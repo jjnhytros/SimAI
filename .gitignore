@@ -1,0 +1,32 @@
+# Evita file compilati Python
+election/__pycache__/
+*.pyc
+*.pyo
+
+# Esclude ambienti virtuali
+venv/
+env/
+
+# Evita dipendenze installate
+*.egg-info/
+pip-log.txt
+
+# Impedisce la registrazione di file di configurazione dell'IDE
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Esclude dati sensibili o di test
+*.log
+*.db
+.env
+*.env
+apikeys.py
+simai.db
+simai.db-journal
+
+# Evita la cartella di build e distribuzione
+dist/
+build/
+
+

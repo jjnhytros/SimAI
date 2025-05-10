@@ -1,0 +1,90 @@
+### Documento di Identità di Anthalys
+
+Il documento di identità di Anthalys è un mezzo di identificazione avanzato che combina l'identificazione personale con funzioni amministrative, finanziarie e aziendali. Progettato per offrire sicurezza, praticità e inclusione, rappresenta un pilastro centrale per la vita quotidiana dei cittadini e l'interazione con i servizi pubblici e privati.
+
+#### Funzionalità e Caratteristiche del Documento di Identità
+
+1. **Informazioni Personali**
+   - Nome completo
+   - Data di nascita
+   - Luogo di nascita
+   - Indirizzo di residenza
+   - Codice Identificativo Personale (CIP)
+   - Foto del titolare
+
+2. **Caratteristiche di Sicurezza**
+   - Microchip incorporato per memorizzare dati digitali critici
+   - Ologrammi di sicurezza per prevenire la contraffazione
+   - Inchiostro speciale ecologico visibile solo agli organi di competenza tramite apparecchiature specifiche, per garantire la sicurezza delle informazioni riservate
+   - Codice a barre e codice QR per la verifica digitale
+   - Firma digitale del titolare
+   - Crittografia avanzata e autenticazione multifattoriale per l'accesso ai dati
+
+3. **Codice Identificativo Personale (CIP)**
+   Il **Codice Identificativo Personale (CIP)** è un numero unico e anonimo che può essere assegnato a una persona e rimane invariato per tutta la vita. Il CIP ha un formato composto da una parte fissa, due serie di numeri casuali e una lettera di controllo finale.
+
+   Il formato è simile a questo: `123.XXXX.YYYY.Z`
+
+   - `123`: Una parte fissa.
+   - `XXXX` e `YYYY`: Due numeri casuali di 4 cifre.
+   - `Z`: Una lettera di controllo, calcolata in base ai numeri precedenti.
+
+   Il codice garantisce l'unicità e l'anonimato della persona a cui viene assegnato, e la lettera di controllo finale serve a verificarne la correttezza. Il CIP è utile per identificare in modo sicuro e univoco le persone.
+
+4. **Accesso ai Dati Completi per il Titolare**
+   - **Scansione Personale**: Il titolare del documento, o il tutore legale in caso di minorenni, può scansionare il codice QR utilizzando un'app ufficiale fornita dal governo di Anthalys. Questa applicazione, disponibile su smartphone e altri dispositivi personali, consente l'accesso completo ai dati personali memorizzati nel documento.
+   - **Verifica di Identità**: Prima di accedere ai dati completi, l'app richiede una verifica dell'identità che può includere impronte digitali, riconoscimento facciale o un codice PIN sicuro, garantendo che solo il titolare o il tutore possa accedere alle informazioni sensibili.
+   - **Funzionalità di Consultazione**: Una volta autenticato, l'utente può visualizzare e gestire informazioni personali come lo stato civile, l'indirizzo di residenza, le informazioni sanitarie e lo storico delle transazioni. Alcuni dati personali possono essere aggiornati direttamente attraverso l'app, che comunica con il sistema centrale governativo per mantenere le informazioni aggiornate in tempo reale.
+
+### Codice QR sul Documento di Identità
+
+1. **Posizionamento e Design**
+   - **Posizionamento**: Il codice QR è posizionato sulla parte posteriore del documento di identità, accanto alla banda magnetica. Questo posizionamento discreto assicura che il QR code sia facilmente accessibile senza compromettere l'estetica del documento.
+   - **Design**: Il codice QR è di dimensioni standard e presenta un design monocromatico (nero su bianco) per garantire una facile scansione. È protetto da un rivestimento trasparente che ne previene l'usura e ne garantisce la leggibilità nel tempo.
+
+2. **Funzionalità del Codice QR**
+   - Il codice QR è progettato per offrire due livelli di accesso alle informazioni del cittadino, garantendo la privacy e la sicurezza dei dati personali.
+   - **Accesso Base**:
+     - **Informazioni Visibili**: Quando scansionato da dispositivi non autorizzati o pubblici (come chioschi di informazioni o lettori comuni), il codice QR rivela solo le informazioni di base del cittadino, come:
+       - Nome e cognome
+       - Data di nascita
+       - Luogo di nascita
+       - Codice Identificativo Personale (CIP)
+       - Data di emissione e scadenza del documento
+     - **Funzione**: Questa funzionalità è utile per verificare rapidamente l'identità del cittadino in situazioni di routine, come l'accesso a edifici pubblici o la registrazione a servizi non critici.
+   - **Accesso Completo**:
+     - **Informazioni Avanzate**: Quando scansionato da dispositivi autorizzati, come quelli in dotazione alle forze dell'ordine, ai professionisti sanitari o ad altre autorità competenti, il codice QR fornisce un accesso completo alle informazioni del cittadino. Queste includono:
+       - Dati biometrici (impronte digitali, scansione dell'iride)
+       - Indirizzo di residenza
+       - Stato civile e professione
+       - Dati medici rilevanti (gruppo sanguigno, allergie, condizioni mediche)
+       - Storico di viaggi e accessi
+       - Informazioni bancarie e transazioni recenti
+     - **Funzione**: Questa funzionalità è cruciale in situazioni che richiedono una verifica approfondita dell'identità o l'accesso a dati sensibili, come interventi sanitari d'urgenza o operazioni di sicurezza.
+
+3. **Sicurezza e Privacy**
+   - **Autenticazione e Crittografia**: Il QR code utilizza protocolli di crittografia avanzati per proteggere le informazioni. Solo i dispositivi autorizzati, dotati delle chiavi di decrittazione appropriate, possono accedere ai dati completi.
+   - **Tracciabilità**: Ogni scansione del codice QR è registrata in un sistema centrale, permettendo di tracciare chi ha accesso alle informazioni e per quale scopo. Questo sistema di tracciamento è un deterrente contro l'uso improprio delle informazioni personali.
+
+4. **Gestione e Aggiornamento**
+   - **Aggiornamento delle Informazioni**: Le informazioni memorizzate nel codice QR possono essere aggiornate in tempo reale tramite il sistema centrale del governo di Anthalys. Questo garantisce che i dati siano sempre aggiornati, riflettendo eventuali cambiamenti nel profilo del cittadino.
+   - **Protezione dei Dati**: In caso di smarrimento o furto del documento di identità, il codice QR può essere disabilitato remotamente, impedendo l'accesso ai dati personali. Un nuovo documento può essere emesso con un nuovo codice QR.
+
+### Carta di Pagamento Integrata
+
+1. **Funzioni di Pagamento**
+   - Il documento di identità funge anche da carta di pagamento, sostituendo le tradizionali carte di credito o debito. Il chip integrato memorizza i dati bancari e consente di effettuare pagamenti contactless presso punti vendita fisici e online.
+   - **Programma a Punti**: I cittadini che utilizzano la carta integrata per pagamenti pubblici (come trasporti o bollette) possono accumulare punti che danno diritto a sconti su futuri servizi o benefici speciali.
+
+2. **Gestione dei Fondi**
+   - Tramite l'app ufficiale, i cittadini possono gestire i loro conti bancari associati, visualizzare il saldo e la cronologia delle transazioni, trasferire fondi e impostare limiti di spesa. È possibile configurare notifiche per monitorare le spese e prevenire utilizzi non autorizzati.
+
+3. **Sicurezza dei Pagamenti**
+   - Ogni transazione richiede l'autenticazione tramite impronta digitale o riconoscimento facciale, garantendo che solo il titolare possa autorizzare i pagamenti. In caso di smarrimento o furto del documento, i dati di pagamento possono essere bloccati immediatamente tramite l'app per impedire l'uso non autorizzato.
+   - **PIN di Emergenza**: Un PIN di emergenza può essere utilizzato per bloccare istantaneamente tutte le funzionalità del documento in caso di furto o minaccia.
+
+### Altro
+1. **Punti raccolta rifiuti**
+   - **Tracciabilità e Incentivi**: Il documento di identità può essere utilizzato per accedere ai punti di raccolta rifiuti. I cittadini che utilizzano questi servizi in modo responsabile possono accumulare punti o ricevere incentivi, promuovendo il riciclo e la gestione sostenibile dei rifiuti.
+
+---

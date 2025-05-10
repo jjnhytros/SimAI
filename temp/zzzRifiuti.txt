@@ -1,0 +1,129 @@
+### Sistema di Raccolta Differenziata Individuale a Anthalys: Contenitori, Bonus e Smaltitori Automatici
+
+#### 1. Tipi di Rifiuti e Contenitori
+
+##### a. Contenitori per Rifiuti
+
+1. **Organico**
+   - **Contenitore**: Marrone
+   - **Descrizione**: Rifiuti alimentari, scarti di cibo, foglie e altri rifiuti biodegradabili.
+
+2. **Carta e Cartone**
+   - **Contenitore**: Blu
+   - **Descrizione**: Carta, cartone, giornali, riviste, scatole di cartone.
+
+3. **Plastica**
+   - **Contenitore**: Giallo
+   - **Descrizione**: Bottiglie di plastica, contenitori di plastica, sacchetti di plastica derivati da materiali naturali come bioplastiche.
+
+4. **Vetro**
+   - **Contenitore**: Verde
+   - **Descrizione**: Bottiglie di vetro, barattoli di vetro, contenitori di vetro.
+
+5. **Metalli**
+   - **Contenitore**: Grigio
+   - **Descrizione**: Lattine, barattoli di metallo, scarti metallici.
+
+6. **Rifiuti Elettronici**
+   - **Contenitore**: Rosso
+   - **Descrizione**: Dispositivi elettronici, batterie, piccoli elettrodomestici.
+
+7. **Rifiuti Speciali**
+   - **Contenitore**: Nero
+   - **Descrizione**: Materiali naturali speciali che richiedono trattamenti specifici (es. oli vegetali usati, sostanze naturali speciali).
+
+#### 2. Sistema di Punti e Bonus
+
+##### a. Sistema di Punti
+
+- Ogni corretta differenziazione dei rifiuti viene premiata con punti accumulabili. I punti sono assegnati sulla base della quantità e del tipo di rifiuti differenziati correttamente.
+
+  1. **Organico**: 1 punto per kg
+  2. **Carta e Cartone**: 1 punto per kg
+  3. **Plastica**: 2 punti per kg
+  4. **Vetro**: 1 punto per kg
+  5. **Metalli**: 3 punti per kg
+  6. **Rifiuti Elettronici**: 5 punti per pezzo
+  7. **Rifiuti Speciali**: 3 punti per pezzo
+
+##### b. Bonus e Incentivi
+
+1. **Sconti sulla Tassa dei Rifiuti**: Accumulando un certo numero di punti, i cittadini possono ottenere sconti sulla tassa dei rifiuti.
+   - 500 punti: 5% di sconto
+   - 1000 punti: 10% di sconto
+   - 2000 punti: 20% di sconto
+
+2. **Buoni Spesa**: I punti possono essere convertiti in buoni spesa utilizzabili presso negozi convenzionati.
+   - 100 punti: 10 AA
+   - 200 punti: 25 AA
+   - 500 punti: 70 AA
+
+3. **Premi e Riconoscimenti**: I cittadini più virtuosi riceveranno premi annuali e riconoscimenti pubblici.
+   - Premio “Cittadino Sostenibile dell’Anno”
+   - Gadget ecologici (borracce, sacchetti riutilizzabili, ecc.)
+
+4. **Applicazione Mobile**: Un'applicazione mobile per permettere ai cittadini di monitorare i propri progressi, visualizzare i punti accumulati e riscattare i bonus.
+   - Notifiche sui giorni di raccolta
+   - Statistiche personalizzate
+   - Accesso ai premi e sconti disponibili
+
+#### 3. Trattamento e Riutilizzo dei Rifiuti
+
+##### a. Organico
+- **Compostaggio**: Produzione di compost per l'agricoltura urbana e giardini.
+- **Digestione Anaerobica**: Produzione di biogas e fertilizzanti naturali.
+
+##### b. Carta e Cartone
+- **Riciclo della Carta**: Produzione di nuova carta e cartone.
+
+##### c. Plastica
+- **Riciclo della Plastica**: Produzione di nuovi prodotti in bioplastica, come imballaggi e tessuti sintetici.
+
+##### d. Vetro
+- **Riciclo del Vetro**: Produzione di nuovi prodotti in vetro, come bottiglie e barattoli.
+
+##### e. Metalli
+- **Riciclo dei Metalli**: Produzione di nuovi prodotti metallici, come lattine e utensili.
+
+##### f. Rifiuti Elettronici
+- **Riciclo dei Rifiuti Elettronici**: Recupero di componenti elettronici e materiali preziosi.
+
+##### g. Rifiuti Speciali
+- **Trattamento Specifico**: Riciclo e trattamento sicuro di materiali naturali speciali.
+
+### 4. Smaltitori Automatici per Famiglie
+
+#### a. Funzionamento degli Smaltitori Automatici
+
+1. **Tipi di Smaltitori**
+   - **Compostatori Domestici**: Per il trattamento dei rifiuti organici.
+   - **Mini-Riciclatori**: Per il trattamento della plastica e del vetro.
+   - **Smaltitori di Metalli**: Per il trattamento dei rifiuti metallici.
+
+2. **Processo di Smaltimento**
+   - **Compostatori Domestici**
+     - Trasformano i rifiuti organici in compost utilizzabile per giardini e orti domestici.
+   - **Mini-Riciclatori**
+     - Frantumano la plastica e il vetro e li trasformano in materiali riutilizzabili.
+   - **Smaltitori di Metalli**
+     - Frantumano i rifiuti metallici per facilitarne il riciclo.
+
+#### b. Incentivi per l'Acquisto di Smaltitori
+
+1. **Sconti e Bonus**
+   - Sconto del 20% sull'acquisto di smaltitori automatici per le famiglie.
+   - Bonus punti extra per l'utilizzo degli smaltitori domestici (10 punti extra al mese per l'utilizzo continuo).
+
+2. **Programma di Noleggio**
+   - Possibilità di noleggiare smaltitori automatici con tariffe agevolate.
+
+#### c. Benefici degli Smaltitori Automatici
+
+1. **Riduzione dei Rifiuti**
+   - Riduzione significativa della quantità di rifiuti trasportati agli impianti di trattamento.
+   - Maggiore efficienza nel riciclaggio domestico.
+
+2. **Convenienza**
+   - Maggiore comodità per le famiglie nel gestire i rifiuti.
+   - Incentivi e bonus per promuovere l'uso degli smaltitori domestici.
+

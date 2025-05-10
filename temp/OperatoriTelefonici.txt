@@ -1,0 +1,54 @@
+### Operatori Telefonici e Assegnazione dei Numeri
+
+Il sistema telefonico prevede un'assegnazione ordinata e chiara dei numeri, con una struttura unificata che distingue tra numeri privati e riservati.
+
+#### Prefisso Internazionale e Operatori
+
+- **+580** è il prefisso internazionale che identifica il sistema di telefonia della piattaforma. Tutti i numeri iniziano con questo prefisso, seguito da un codice specifico per l'operatore.
+- **Codici degli Operatori**: Attualmente, esiste solo un operatore telefonico, identificato dal codice **1**:
+  - **1**: Anthal Mobile
+
+#### Formato dei Numeri Telefonici
+
+I numeri telefonici seguono il formato:
+**+580 (1XXX) XXXX-XXXX**
+
+- **+580**: Prefisso internazionale della piattaforma.
+- **(1XXX)**: La prima cifra identifica l'operatore (1 per Anthal Mobile), mentre le tre cifre successive (XXX) rappresentano il codice assegnato.
+- **XXXX-XXXX**: Numero dell'utente composto da 8 cifre, che indicano se il numero è privato o riservato.
+
+### Numeri di Servizio
+
+#### Numero Unico di Emergenza
+
+Il sistema prevede un **Numero Unico di Emergenza: 101**, accessibile da qualsiasi operatore. Questo numero è standard per contattare i servizi di emergenza e fornisce un accesso rapido all'assistenza in situazioni critiche.
+
+#### Numero di Raccolta Rifiuti
+
+Il **Numero di Raccolta Rifiuti: 181** consente di chiamare un drone per la raccolta di rifiuti di piccole dimensioni (come mozziconi di sigaretta o piccoli contenitori di plastica). Questo numero è attivo **28 ore su 28**, e l'utente che effettua la chiamata accumula punti basati sull'utilizzo del servizio. I dettagli sulla modalità di accumulo dei punti e le possibili conseguenze per l'abuso del servizio sono definiti meglio nella sezione dedicata alla gestione dei rifiuti urbani.
+
+### Categorie di Numeri Assegnati
+
+I numeri sono suddivisi in due categorie principali: **privati** e **riservati**, ognuna con una serie unica:
+
+1. **Numeri Privati**
+   - Questi numeri sono destinati agli utenti per l'uso quotidiano e costituiscono la categoria principale.
+   - La numerazione va da **00000000 a 89999999** e segue il formato **XXXX-XXXX**.
+
+2. **Numeri Riservati**
+   - Questi numeri sono dedicati a usi speciali o a servizi specifici, come linee di supporto o funzioni governative.
+   - La numerazione va da **90000000 a 99999999** e segue il formato **XXXX-XXXX**.
+
+### Finalità e Uso dei Numeri
+
+- **Numeri Privati**: Utilizzati per la comunicazione personale o aziendale.
+- **Numeri Riservati**: Dedicati a usi particolari, come linee di emergenza o supporto specializzato.
+- **Numeri di Servizio**: 
+  - **Numero di Emergenza (101)**: Assicura un contatto immediato per situazioni critiche.
+  - **Numero di Raccolta Rifiuti (181)**: Attivando il servizio tramite il numero dedicato, un drone viene inviato per raccogliere piccoli rifiuti. L'utente accumula punti sulla base delle chiamate effettuate. Ulteriori dettagli sono disponibili nella sezione dedicata ai rifiuti urbani.
+
+### Servizio di Messaggistica SoNet
+
+Non sono previsti servizi di SMS. È utilizzato il servizio di messaggistica **SoNet**, preinstallato di default in ogni sistema. SoNet supporta chat individuali, di gruppo e funzionalità di comunicazione multimediale (come videochiamate).
+
+---

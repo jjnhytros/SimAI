@@ -1,5 +1,7 @@
 # Evita file compilati Python
 election/__pycache__/
+game/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
 
@@ -17,6 +19,7 @@ pip-log.txt
 *.sublime-workspace
 
 # Esclude dati sensibili o di test
+.gitignore
 *.log
 *.db
 .env

@@ -1,0 +1,218 @@
+### Sistema Scolastico di Anthal
+
+#### Struttura del Sistema Scolastico
+
+Il sistema scolastico di Anthal è articolato in otto livelli educativi, con un obbligo scolastico che si estende fino ai 18 anni e ulteriori livelli per la preparazione pre-universitaria e l'istruzione superiore. Ciascun livello è progettato per sviluppare competenze specifiche e preparare gli studenti per il successivo percorso formativo o per l'inserimento nel mercato del lavoro. L'anno scolastico si basa su un ciclo di 18 mesi, suddiviso in periodi di attività didattica e pause ben definite.
+
+#### Calendario Scolastico Dettagliato
+
+L'anno scolastico copre 324 giorni, suddivisi in due periodi principali di attività didattica e due pause:
+
+1. **Inizio dell'Anno Scolastico**: giorno 13/mese 13
+2. **Fine dell'Anno Scolastico**: giorno 12/mese 9
+3. **Durata complessiva dell'anno scolastico**: 324 giorni di attività didattica.
+4. **Pause Totali**: 84 giorni (72 giorni di pausa estiva e 12 giorni di pausa primaverile).
+
+#### Suddivisione dei Periodi Scolastici
+
+1. **Primo Periodo di Scuola**: 13/13 - 24/4
+   - **Durata**: 132 giorni di scuola.
+   - **Pausa Primaverile**: 01/5 - 12/5 (12 giorni di pausa).
+   - Durante questo periodo, l'attenzione è rivolta all'acquisizione di nuove competenze e all'approfondimento delle materie.
+
+2. **Secondo Periodo di Scuola**: 13/5 - 12/9
+   - **Durata**: 192 giorni di scuola.
+   - **Pausa Estiva e Fine dell'Anno Scolastico**: 13/9 - 12/13 (72 giorni di pausa).
+   - Questo periodo consente agli studenti di consolidare quanto appreso e di completare i progetti di fine anno.
+
+#### Struttura delle Vacanze
+
+1. **Pausa Primaverile (12 giorni)**: Dal 01/5 al 12/5. Questa pausa permette un breve riposo e offre l'opportunità di partecipare a attività extracurricolari e viaggi educativi.
+2. **Pausa Estiva (72 giorni)**: Dal 13/9 al 12/13. La lunga pausa estiva è ideale per rigenerarsi, partecipare a campi estivi, svolgere attività ricreative e prepararsi per l'inizio del nuovo anno scolastico.
+
+#### Impatto sul Sistema Scolastico
+
+Il calendario scolastico è progettato per bilanciare il carico di lavoro degli studenti, offrendo un periodo didattico continuativo con brevi pause per garantire un apprendimento costante, oltre a una lunga pausa estiva per il riposo, fondamentale per il benessere psicofisico degli studenti. Questa struttura assicura che il 75% dell'anno sia dedicato all'attività scolastica, rispettando il requisito minimo di 324 giorni di istruzione.
+
+#### Livelli Scolastici
+
+1. **Infanzia (1-3 anni)**
+2. **Elementari Inferiori (4-6 anni)**
+3. **Elementari Superiori (7-9 anni)**
+4. **Medie Inferiori (10-12 anni)**
+5. **Medie Superiori (13-15 anni)**
+6. **Superiori (16-18 anni, obbligatorio)**
+7. **Superior Facoltativo (19-21 anni, preparazione pre-universitaria)**
+8. **Università (21+ anni, specializzazione universitaria)**
+
+#### Dettagli dei Livelli Scolastici e delle Materie
+
+##### 1. Infanzia (1-3 anni)
+
+- **Obiettivo**: Favorire lo sviluppo delle capacità motorie, sociali e linguistiche.
+- **Curriculum**:
+  - **Gioco e Attività Fisica**: Stimolare lo sviluppo motorio e la coordinazione attraverso giochi strutturati e attività fisiche.
+  - **Introduzione ai Colori, Numeri e Lettere**: Familiarizzare con colori, numeri e lettere tramite attività ludiche.
+  - **Socializzazione e Lavoro di Gruppo**: Promuovere la socializzazione e le abilità cooperative.
+  - **Lingue**: Anthaliano moderno base.
+
+##### 2. Elementari Inferiori (4-6 anni)
+
+- **Obiettivo**: Fornire le basi per l'alfabetizzazione e la numerazione.
+- **Curriculum**:
+  - **Lettura e Scrittura di Base**: Introduzione alla lettura e scrittura, comprensione di lettere e parole semplici.
+  - **Matematica di Base**: Concetti come il conteggio, le addizioni e le sottrazioni.
+  - **Scienze Naturali Introduttive**: Esplorazione del mondo naturale, degli animali e delle piante, nonché del ciclo della vita.
+  - **Attività Artistiche e Creative**: Disegno, pittura, musica e attività manuali.
+  - **Lingue**: Anthaliano moderno, Inglese.
+
+##### 3. Elementari Superiori (7-9 anni)
+
+- **Obiettivo**: Consolidare le competenze di base e introdurre nuovi concetti.
+- **Curriculum**:
+  - **Lettura e Scrittura Avanzate**: Comprensione del testo, scrittura di racconti e poesie.
+  - **Matematica**: Moltiplicazioni, divisioni, frazioni e problemi elementari.
+  - **Scienze Naturali e Sociali**: Studi sull'ambiente, scienze della Terra, introduzione alla storia e alla geografia.
+  - **Arti Visive e Musica**: Tecniche artistiche avanzate, teoria musicale e utilizzo di strumenti musicali.
+  - **Educazione Fisica**: Attività sportive e sviluppo della coordinazione.
+  - **Lingue**: Anthaliano moderno, Anthaliano antico base, Inglese.
+
+##### 4. Medie Inferiori (10-12 anni)
+
+- **Obiettivo**: Sviluppare competenze intermedie e il pensiero critico.
+- **Curriculum**:
+  - **Letteratura e Grammatica**: Analisi di testi, scrittura di saggi e studio della grammatica avanzata.
+  - **Matematica**: Algebra e geometria di base, concetti di probabilità e statistica.
+  - **Scienze**: Biologia, chimica e fisica introduttiva con esperimenti pratici.
+  - **Storia e Geografia**: Storia antica e medievale, geografia fisica e politica.
+  - **Educazione Tecnologica e Informatica**: Introduzione all'informatica, basi di programmazione e utilizzo delle tecnologie.
+  - **Educazione Fisica**: Sport di squadra, ginnastica e sviluppo delle capacità fisiche.
+  - **Lingue**: Anthaliano moderno, Anthaliano antico base, Inglese.
+
+##### 5. Medie Superiori (13-15 anni)
+
+- **Obiettivo**: Preparazione avanzata per il livello superiore o la formazione professionale.
+- **Curriculum**:
+  - **Letteratura e Composizione**: Studio approfondito di opere letterarie, scrittura creativa e analisi critica.
+  - **Matematica Avanzata**: Algebra avanzata, geometria, trigonometria e introduzione al calcolo.
+  - **Scienze Avanzate**: Biologia, chimica e fisica avanzate con laboratori pratici.
+  - **Studi Sociali**: Storia moderna e contemporanea, economia, diritto e scienze politiche.
+  - **Lingue Straniere Avanzate**: Anthaliano antico avanzato, Inglese avanzato.
+  - **Educazione Tecnologica e Informatica Avanzata**: Programmazione avanzata, robotica e utilizzo avanzato delle tecnologie.
+  - **Educazione Fisica**: Sport competitivi, fitness e salute.
+  - **Arti e Musica Avanzate**: Tecniche artistiche avanzate, composizione musicale e performance.
+  - **Lingue**: Anthaliano moderno e antico avanzato, Inglese.
+
+##### 6. Superiori (16-18 anni, obbligatorio)
+
+- **Obiettivo**: Preparazione per l'università o l'ingresso nel mondo del lavoro.
+- **Curriculum**:
+  - **Letteratura e Scrittura Avanzata**: Studio di letteratura classica e contemporanea, scrittura accademica e creativa.
+  - **Matematica Superiore**: Calcolo differenziale e integrale, statistica avanzata e matematica applicata.
+  - **Scienze Avanzate**: Fisica, biologia e chimica avanzate con progetti di ricerca.
+  - **Scienze Sociali Avanzate**: Psicologia, sociologia, filosofia e approfondimenti storici.
+  - **Educazione Civica e Diritto**: Studio delle istituzioni, diritto civile e penale, educazione alla cittadinanza.
+  - **Educazione Tecnologica e Informatica Avanzata**: Progetti tecnologici, sviluppo software e innovazione.
+  - **Progetti di Ricerca e Studio Indipendente**: Lavori di ricerca su argomenti di interesse sotto la supervisione di un tutor. Questi progetti sono obbligatori per tutti gli studenti e seguono criteri di valutazione standard.
+  - **Preparazione alla Carriera e Orientamento**: Consulenza sulla carriera, preparazione per l'università e sviluppo di competenze professionali.
+  - **Lingue**: Anthaliano moderno e antico avanzato, Inglese.
+
+##### 7. Superior Facoltativo (19-21 anni, preparazione pre-universitaria)
+
+- **Obiettivo**: Preparazione avanzata e specializzazione per l'accesso all'università.
+- **Curriculum**:
+  - **Materie di Specializzazione**: Approfondimenti in materie scelte dallo studente in preparazione alla facoltà universitaria desiderata.
+  - **Ricerca Avanzata**: Progetti di ricerca individuali o di gruppo con supervisione accademica.
+  - **Stage e Tirocini**: Esperienze lavorative nel campo di interesse dello studente.
+  - **Orientamento Universitario**: Preparazione agli esami di ammissione, consulenza su scelte di facoltà e percorsi accademici.
+  - **Lingue**: Perfezionamento di Anthaliano moderno e antico avanzato, Inglese.
+
+##### 8. Università (21+ anni, Specializzazione Universitaria)
+
+###### Obiettivo
+
+Le università di Anthal hanno l'obiettivo di fornire agli studenti un'educazione approfondita e specialistica in vari campi di studio. Gli studenti possono scegliere tra diversi programmi di laurea, master e dottorato, con opportunità di ricerca, stage e collaborazioni internazionali.
+
+###### Struttura dei Programmi Universitari
+
+1. **Laurea Triennale (3 anni)**
+   - **Obiettivo**: Fornire una base solida nelle discipline scelte.
+   - **Curriculum**: Studi di base e intermedi con un mix di teoria e pratica.
+   - **Esempi di Facoltà**:
+     - Scienze e Tecnologia
+     - Arti e Lettere
+     - Economia e Gestione
+     - Ingegneria
+     - Medicina e Scienze della Salute
+
+2. **Laurea Magistrale (5 anni)**
+   - **Obiettivo**: Offrire una formazione avanzata e specializzata.
+   - **Curriculum**: Studi avanzati, progetti di ricerca e tesi di laurea.
+   - **Esempi di Specializzazioni**:
+     - Bioingegneria
+     - Tecnobiologia
+     - Informatica Avanzata
+     - Scienze Politiche
+     - Architettura
+
+3. **Dottorato di Ricerca (7 anni)**
+   - **Obiettivo**: Sviluppare competenze di ricerca e insegnamento universitario.
+   - **Curriculum**: Ricerca originale, pubblicazione di articoli scientifici e insegnamento universitario.
+   - **Esemppi di Programmi di Ricerca**:
+     - Intelligenza Artificiale e Machine Learning
+     - Biotecnologie Avanzate
+     - Studi Culturali e Umanistici
+     - Scienze Ambientali
+
+4. **Programmi di Scambio e Collaborazione Internazionale**
+   - **Obiettivo**: Offrire esperienze internazionali agli studenti.
+   - **Opportunità**: Studio all'estero, collaborazioni con università internazionali e partecipazione a conferenze globali.
+
+###### Lingue
+
+- **Lingue di Istruzione**: Anthaliano moderno e antico, Inglese.
+- **Studi Linguistici**: Corsi avanzati in lingue rilevanti al campo di studio scelto.
+
+### Esempi di Materie Universitarie
+
+#### Scienze e Tecnologia
+
+- **Matematica Avanzata**: Analisi matematica, algebra lineare, statistica.
+- **Fisica e Chimica**: Fisica quantistica, chimica organica e inorganica.
+- **Informatica**: Programmazione avanzata, intelligenza artificiale, sicurezza informatica.
+- **Scienze Ambientali**: Ecologia, gestione delle risorse naturali, cambiamenti climatici.
+
+#### Arti e Lettere
+
+- **Letteratura**: Studi letterari, teoria della letteratura, letterature comparate.
+- **Storia e Filosofia**: Storia antica e moderna, filosofia politica, etica.
+- **Arti Visive**: Storia dell'arte, tecniche artistiche, design.
+- **Musica e Teatro**: Composizione musicale, performance teatrale, studi sulla musica.
+
+#### Economia e Gestione
+
+- **Economia**: Microeconomia, macroeconomia, econometria.
+- **Gestione Aziendale**: Marketing, finanza, gestione delle risorse umane.
+- **Commercio Internazionale**: Economia globale, commercio internazionale, politiche economiche.
+- **Sostenibilità e Innovazione**: Economia verde, innovazione sostenibile, gestione dell'innovazione.
+
+#### Ingegneria
+
+- **Ingegneria Civile**: Progettazione strutturale, ingegneria dei materiali, gestione dei progetti.
+- **Ingegneria Elettronica**: Circuiti elettronici, sistemi di controllo, comunicazioni.
+- **Ingegneria Meccanica**: Meccanica dei solidi, termodinamica, meccanica dei fluidi.
+- **Ingegneria Informatica**: Architettura dei computer, reti di calcolatori, robotica.
+
+#### Medicina e Scienze della Salute
+
+- **Medicina Generale**: Anatomia, fisiologia, patologia.
+- **Chirurgia**: Tecniche chirurgiche, anestesiologia, chirurgia specializzata.
+- **Psicologia**: Psicologia clinica, psicologia dello sviluppo, psicologia sociale.
+- **Scienze della Nutrizione**: Dietetica, nutrizione clinica, salute pubblica.
+
+### Supporto agli Studenti
+
+- **Orientamento e Consulenza**: Servizi di consulenza per la scelta del percorso di studio e orientamento professionale, tra cui consulenze individuali, laboratori di orientamento e incontri con esperti del settore.
+- **Tutoraggio Accademico**: Supporto individuale e di gruppo per aiutare gli studenti a raggiungere i loro obiettivi accademici.
+- **Programmi di Scambio**: Opportunità di studiare all'estero e partecipare a programmi di scambio culturale.
+- **Servizi di Carriera**: Assistenza nella ricerca di lavoro, stage e preparazione al mondo del lavoro.

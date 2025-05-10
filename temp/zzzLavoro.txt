@@ -1,0 +1,64 @@
+### Sistema di Lavoro Completo per Anthalys
+
+#### 1. Orario di Lavoro
+
+- **Durata della Giornata Lavorativa**: 9 ore lavorative
+- **Settimana Lavorativa**: 5 giorni su 7
+- **Durata dell'Anno Lavorativo**: 15 mesi di lavoro attivo, con 3 mesi di pausa distribuiti in 3 pause annuali (1 mese ogni pausa)
+- **Totale Giorni Lavorativi per Anno**: 15 mesi x 20 giorni lavorativi = 300 giorni lavorativi
+
+#### 2. Stipendio
+
+Gli stipendi sono calcolati in base al tipo di lavoro, esperienza e qualifiche. Ecco una scala di stipendio medio annuo in AA (Athel):
+
+- **Lavori di Base**: 18,000 AA - 36,000 AA
+- **Lavori Specializzati**: 36,000 AA - 72,000 AA
+- **Lavori di Alta Qualifica**: 72,000 AA - 144,000 AA
+- **Posizioni Dirigenziali**: 144,000 AA - 288,000 AA
+
+#### 3. Tasse sul Reddito
+
+Le tasse sul reddito sono applicate con un massimo del 24%. I cittadini con un reddito annuo fino a 3,000 AA sono esenti da tasse. La dichiarazione e raccolta delle tasse va effettuata ogni 9 mesi (216 giorni). 
+Ecco la tabella con le aliquote fiscali:
+
+| Reddito Annuale (AA) | Aliquota (%) |
+| -------------------: | -----------: |
+|            0 - 3,000 |       Esente |
+|        3,001 - 6,000 |        1.50% |
+|       6,001 - 12,000 |        3.00% |
+|      12,001 - 15,000 |        4.50% |
+|      15,001 - 18,000 |        6.00% |
+|      18,001 - 21,000 |        7.50% |
+|      21,001 - 24,000 |        9.00% |
+|      24,001 - 27,000 |       10.50% |
+|      27,001 - 30,000 |       12.00% |
+|      30,001 - 33,000 |       13.50% |
+|      33,001 - 36,000 |       15.00% |
+|      36,001 - 39,000 |       16.50% |
+|      39,001 - 42,000 |       18.00% |
+|      42,001 - 45,000 |       19.50% |
+|      45,001 - 48,000 |       21.00% |
+|      48,001 - 51,000 |       22.50% |
+|     51,001 - 144,000 |       24.00% |
+|        oltre 144,001 |       26.00% |
+
+#### 4. Benefici e Sicurezza Sociale
+
+- **Assicurazione Sanitaria**: Copertura sanitaria completa per tutti i lavoratori, finanziata con contributi mensili.
+- **Pensioni**: Calcolate in base allo stipendio medio mensile. La pensione può essere richiesta:
+  - Pensione di Base: Dopo 20 anni di servizio (almeno 54,000 ore di lavoro), al 50% dello stipendio medio.
+  - Pensione Massima: Dopo 35 anni di servizio (almeno 143,100 ore di lavoro), al 100% dello stipendio medio. La pensione è tassata al 1.5%.
+- **Indennità di Maternità/Paternità**: Congedo retribuito per i nuovi genitori.
+- **Sicurezza sul Lavoro**: Norme rigorose di sicurezza e salute sul lavoro per garantire un ambiente di lavoro sicuro.
+
+#### 5. Copertura Sanitaria per Cittadini a Basso Reddito
+- **Soglia di Reddito**: Cittadini con un reddito annuo inferiore a 6,000 AA.
+- **Copertura Sanitaria**: Finanziata attraverso istituti fondine, che garantiscono l'accesso gratuito a cure mediche di base e ospedaliere.
+- **Istituti Fondine**: Fondi pubblici creati per sostenere i cittadini a basso reddito, finanziati tramite un piccolo contributo aggiuntivo sulle tasse generali.
+
+#### 6. Vacanze e Permessi
+
+- **Vacanze Annuali**: 24 giorni di vacanza pagata per anno lavorativo.
+- **Permessi per Malattia**: Permessi retribuiti in caso di malattia.
+- **Permessi per Emergenze Familiari**: Permessi retribuiti per emergenze familiari.
+

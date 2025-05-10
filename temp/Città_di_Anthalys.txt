@@ -1,0 +1,30 @@
+## Suddivisione della Città di Anthalys
+
+La città di Anthalys, con una popolazione di circa 2.600.000 abitanti, è suddivisa in diversi distretti. La suddivisione dei distretti deve rispettare il vincolo che ogni distretto abbia 1 o 2 stazioni di polizia e dei vigili del fuoco, e il numero di distretti deve essere un multiplo di 6.
+
+### Calcolo del Numero di Distretti
+
+Per ottenere il numero di distretti, possiamo considerare varie suddivisioni della popolazione in base ai multipli di 6. Ecco alcune opzioni:
+
+- **6 Distretti**: 433.333 abitanti per distretto
+- **12 Distretti**: 216.667 abitanti per distretto
+- **18 Distretti**: 144.444 abitanti per distretto
+- **24 Distretti**: 108.333 abitanti per distretto
+- **30 Distretti**: 86.667 abitanti per distretto
+- **36 Distretti**: 72.222 abitanti per distretto
+
+### Suddivisione e Infrastrutture
+
+Dopo aver considerato le opzioni, una suddivisione in **30 distretti** è adeguata per garantire una distribuzione equilibrata della popolazione e delle risorse.
+
+### Distribuzione delle Stazioni di Polizia e dei Vigili del Fuoco
+
+Ogni distretto avrà 1 o 2 stazioni di polizia e dei vigili del fuoco, in base alle dimensioni e alla densità della popolazione del distretto. Supponendo una distribuzione media, possiamo assegnare 1,5 stazioni per distretto (alcuni distretti avranno 1 stazione, altri ne avranno 2).
+
+### Dettagli per Ogni Distretto
+
+- **Popolazione per Distretto**: Circa 86.667 abitanti
+- **Numero Totale di Distretti**: 30
+- **Stazioni di Polizia per Distretto**: 1 o 2 (media di 1,5)
+- **Stazioni dei Vigili del Fuoco per Distretto**: 1 o 2 (media di 1,5)
+

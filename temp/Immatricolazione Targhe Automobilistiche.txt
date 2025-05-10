@@ -1,0 +1,95 @@
+### Sistema di Immatricolazione delle Targhe Automobilistiche di Anthalys
+
+#### Formato della Targa
+- **Formato Alfanumerico**: 3 lettere + fino a 6 caratteri alfanumerici
+  - **Esempi**: ATH 123456, DLF A12345, PRH AK75678.
+
+#### Dettagli del Formato
+1. **Prime 3 Lettere (ABC)**: Indicano la regione o città di immatricolazione.
+2. **Fino a 6 Caratteri Alfanumerici**: 
+   Numero seriale progressivo che aumenta con ogni nuova immatricolazione. Viene calcolato in base 34, cioè utilizzando i numeri da 0 a 9 poi l'alfabeto Anthaliano (A, B, K, D, E, F, G, H, I, Y, J, L, M, N, O, P, R, S, X, T, U, W, V, Z), con alcune lettere omesse per migliore visualizzazione.
+   - **Formato di lettere e numeri**
+     - le lettere **Ĉ** e **Ĝ** sono state omesse per non confonderle con la lettera **G**
+     - la lettera **I** è mostrata con serif per differenziarla e non confonderla con il numero **1**
+     - il numero **0** è mostrato con la barra diagonale interna per differenziarlo e non confonderlo con la lettera **O**
+
+#### Codici Regionali
+- ATH (Anthalys), DLF (Delfa), GHT (Gharta), JRN (Jarlon), MNT (Monta), PRH (Purah)
+
+#### Codici degli Anni (a partire dal 5780)
+- A (5780), B (5781), C (5782), D (5783), E (5784), F (5785), G (5786), ... Z (5803), AA (5804) ... ZZ (6739)
+
+#### Codici dei Tipi di Veicolo
+  - **B**: Autobus
+  - **C**: Veicolo commerciale
+  - **M**: Motociclo
+  - **P**: Auto privata
+  - **R**: Rimorchio
+  - **T**: Taxi
+
+#### Identificativo del Carburante
+  - **A**: Aria
+  - **B**: Biogas
+  - **C**: Metano
+  - **E**: Elettrico
+  - **H**: Idrogeno
+
+
+### Sicurezza e Tecnologia
+- **QR Code a Sinistra**: Il QR code memorizza il numero di immatricolazione standard e altre informazioni sul veicolo, accessibili dalle autorità per verifiche rapide. Le informazioni memorizzate includono il numero di targa, la data di immatricolazione, il tipo di veicolo e il tipo di carburante.
+- **Ologramma a Destra**: Un ologramma sul lato destro della targa serve a prevenire contraffazioni e garantisce l'autenticità della targa. L'ologramma contiene elementi di sicurezza visibili solo sotto specifiche condizioni di luce.
+- **Codice Anno e Tipo di Veicolo**: Sopra il QR code viene mostrato il codice dell'anno di immatricolazione e il tipo di veicolo, rappresentato da una o due lettere.
+- **Codice Tipo di Veicolo e Carburante**: Sopra l'ologramma si trova una lettera per identificare il tipo di veicolo e una per il tipo di carburante.
+
+**Nota**: Ogni provincia ha una sequenza numerica propria. Seguendo lo stesso algoritmo, ogni provincia avrà a disposizione 1,544,804,415 targhe da immatricolare.
+
+#### Design della Targa
+- **Dimensioni**: Standard (520x110 mm).
+- **Sfondo**: Bianco riflettente con bordo blu.
+- **Caratteri**: Neri, con font a serif per la lettera **I** e una barra diagonale per il numero **0** per evitare confusioni.
+- **Bordo Blu**: Include il simbolo nazionale di Anthalys.
+
+---
+
+### Veicoli Privati e Carburanti a Basso Impatto Ambientale
+
+I veicoli privati ad Anthalys utilizzano carburanti ecologici e sono dotati di sistemi avanzati di identificazione. Le targhe indicano anche il tipo di carburante utilizzato dal veicolo.
+
+- **Elettrici**: Alimentati da batterie elettriche con punti di ricarica diffusi in tutta la città.
+- **Idrogeno**: Veicoli con celle a combustibile a idrogeno con stazioni di rifornimento disponibili.
+- **Aria Compressa**: Veicoli che utilizzano aria compressa come fonte di energia.
+- **Biogas**: Veicoli che utilizzano biogas come carburante, con stazioni di rifornimento disponibili.
+
+---
+
+### Sistema di Targhe Personalizzate
+I cittadini possono richiedere targhe personalizzate, che offrono la possibilità di scegliere una combinazione unica di lettere e numeri.
+
+#### Processo di Richiesta
+- Le targhe personalizzate possono essere richieste online o presso gli uffici del Dipartimento dei Trasporti.
+- Le combinazioni devono rispettare specifiche linee guida: non sono ammessi termini offensivi o combinazioni che potrebbero generare confusione con veicoli governativi o di emergenza.
+#### Codice di Immatricolazione Standard
+- Anche le targhe personalizzate includono un **QR code** che memorizza il numero di immatricolazione standard per garantire la tracciabilità e l'autenticità del veicolo.
+#### Costo e Validità
+- Le targhe personalizzate richiedono un pagamento aggiuntivo che varia in base alla combinazione scelta e devono essere rinnovate ogni **10 anni**. Il costo del rinnovo è ridotto rispetto al costo iniziale.
+
+---
+
+### Normative e Regolamenti
+- **Registrazione e Rinnovo**: Le targhe devono essere registrate e rinnovate ogni 10 anni. In caso di mancato rinnovo entro la scadenza, il veicolo non potrà circolare legalmente e sarà soggetto a sanzioni amministrative.
+- **Sostituzione**: Le targhe danneggiate possono essere sostituite su richiesta presso gli uffici del Dipartimento dei Trasporti.
+
+### Targhe per Veicoli Speciali
+Veicoli governativi o d'emergenza hanno targhe con designazioni uniche.
+- Al posto della sigla di provincia hanno:
+  - **GOV**: Veicoli governativi (colore blu, sfondo azzurro).
+  - **PDS**: Veicoli della polizia (colore blu, sfondo bianco).
+  - **VDF**: Veicoli dei vigili del fuoco (colore rosso, sfondo giallo).
+  - **HOP**: Ambulanze o veicoli ospedalieri (colore verde/rosso, sfondo bianco).
+- **Motivo dei Colori**: I colori sono stati scelti per facilitare l'identificazione immediata. Ad esempio, il colore **rosso/giallo** per i vigili del fuoco rappresenta l'urgenza e il pericolo, mentre il **verde/rosso** per le ambulanze indica assistenza sanitaria.
+
+---
+
+### Innovazioni Future
+- **Targhe Digitali**: Anthalys sta esplorando l'introduzione di targhe digitali che mostrano informazioni dinamiche, come la validità dell'assicurazione o lo stato del veicolo. Queste targhe potrebbero anche cambiare colore in caso di furto del veicolo o emergenza.
+- **Integrazione con Veicoli Autonomi**: Le targhe potrebbero comunicare con veicoli autonomi per migliorare la sicurezza del traffico, ad esempio inviando notifiche in tempo reale a veicoli vicini durante manovre di emergenza.

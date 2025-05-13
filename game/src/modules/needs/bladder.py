@@ -1,18 +1,21 @@
 # simai/game/modules/needs/bladder.py
+# Need for Bladder: 0 = empty (good state), 100 = full (bad state, urgent)
+
 from ._base_need import BaseNeed
 
-class Bladder(BaseNeed): # Vescica: 0 = vuota (bene), 100 = piena (male)
-    def __init__(self, owner, max_val, initial_min_pct, initial_max_pct, 
-                 base_fill_rate, multipliers_dict_from_char):
-        super().__init__(owner_character=owner,
+class Bladder(BaseNeed):
+    def __init__(self, owner_character, max_value: float, 
+                 initial_fill_min_pct: float, initial_fill_max_pct: float, 
+                 base_rate_per_hour: float, 
+                 rate_multipliers_dict: dict):
+        super().__init__(owner_character=owner_character,
                          name="Bladder", 
-                         max_value=max_val, 
-                         initial_fill_min_pct=initial_min_pct,
-                         initial_fill_max_pct=initial_max_pct,
-                         base_rate_per_hour=base_fill_rate, 
-                         high_value_is_good=False, 
-                         rate_multipliers_dict=multipliers_dict_from_char)
+                         max_value=max_value, 
+                         initial_fill_min_pct=initial_fill_min_pct, 
+                         initial_fill_max_pct=initial_fill_max_pct,
+                         base_rate_per_hour=base_rate_per_hour, 
+                         is_value_high_good=False, 
+                         rate_multipliers_dict=rate_multipliers_dict)
 
-    # L'update di BaseNeed (con high_value_is_good=False) fa aumentare il valore (riempie)
-    # satisfy() di BaseNeed (con high_value_is_good=False) fa diminuire il valore (svuota)
-    
+    # BaseNeed's update() (with is_value_high_good=False) correctly increases the value (fills up).
+    # BaseNeed's satisfy() (with is_value_high_good=False) correctly decreases the value (empties).

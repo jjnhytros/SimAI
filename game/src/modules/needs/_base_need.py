@@ -1,15 +1,16 @@
-# simai/game/src/modules/needs/_base_need.py (NOME FILE CORRETTO)
+# simai/game/src/modules/needs/_base_need.py
+# MODIFIED: Removed ConfigPlaceholder; critical config import now causes sys.exit().
 # MODIFIED: Made debug prints conditional using config.DEBUG_AI_ACTIVE.
-# MODIFIED: Imports robusti con sys.exit().
 
 import random
 import sys
 
 try:
-    from game import config as game_config
+    from game import config as game_config 
 except ImportError as e_cfg:
     print(f"CRITICAL ERROR (_base_need.py): Could not import 'game.config': {e_cfg}")
-    sys.exit() # Config è essenziale
+    print("Ensure 'game.config' is accessible. SimAI needs system cannot run without it.")
+    sys.exit() # Esce se config è essenziale e non trovato
 
 # Leggi il flag di debug una volta, dopo aver importato config
 DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
@@ -80,11 +81,10 @@ class BaseNeed:
         if hasattr(self.character_owner, 'name'): owner_name = self.character_owner.name
         elif self.character_owner is not None: owner_name = str(self.character_owner)
 
-        # Condizioni di skip specifiche per tipo di bisogno
         if self.name == "Energy" and (character_action == "resting_on_bed" or character_is_resting):
             if DEBUG_VERBOSE: print(f"NEED_UPDATE_SKIP ({owner_name} - {self.name}): Skipping decay due to rest.")
             return 
-        if self.name == "Hunger" and character_action == "eating_food": # Assumendo azione "eating_food"
+        if self.name == "Hunger" and character_action == "eating_food": 
             if DEBUG_VERBOSE: print(f"NEED_UPDATE_SKIP ({owner_name} - {self.name}): Skipping increase due to eating.")
             return
         if self.name == "Bladder" and character_action == "using_toilet":

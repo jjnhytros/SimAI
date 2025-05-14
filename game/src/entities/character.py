@@ -246,8 +246,11 @@ class Character:
                     else: dx = math.cos(angle) * move_this_frame_distance; dy = math.sin(angle) * move_this_frame_distance
                 if self.current_path and self.current_action != "seeking_partner": 
                     if distance_to_target <= reach_threshold_for_node:
-                        self.current_path_index += 1; self.target_destination = None 
-                        if self.current_path_index >= len(self.current_path): self.current_path = None 
+                        self.current_path_index += 1
+                        self.target_destination = None 
+                        if self.current_path_index >= len(self.current_path): 
+                            if DEBUG_VERBOSE: print(f"CHARACTER DEBUG ({self.name}): Reached end of A* path for {self.current_action}.")
+                            self.current_path = None # A* path completato
                 elif not self.current_path and self.current_action != "seeking_partner" and distance_to_target <= stop_movement_threshold : self.target_destination = None
             self.x += dx; self.y += dy
             if abs(dx) > 0.01 or abs(dy) > 0.01: is_moving_this_frame = True

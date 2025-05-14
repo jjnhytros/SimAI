@@ -6,12 +6,11 @@
 
 import pygame
 import sys
-print(sys.path)
-
 import math 
 import os 
 import random 
 import datetime 
+import pygame_gui
 
 try:
     from game.src.entities.character import Character 
@@ -40,6 +39,8 @@ import pygame_gui
 class GameState:
     def __init__(self):
         self.current_time_speed_index: int = 0 
+        self.previous_time_speed_index_before_sleep_ffwd: int = 0 # Memorizza la velocità precedente
+        self.is_sleep_fast_forward_active: bool = False # Flag per l'accelerazione
         self.current_game_total_sim_hours_elapsed: float = 0.0 
         self.current_game_hour_float: float = config.INITIAL_START_HOUR 
         self.current_game_day: int = 1
@@ -47,8 +48,17 @@ class GameState:
         self.current_game_year: int = 1
         self.food_visible: bool = True 
         self.food_cooldown_timer: float = 0.0 
-        self.bed_rect: pygame.Rect | None = None 
-        self.bed_images: dict = {"base": None, "cover": None} 
+        self.bed_rect: pygame.Rect | None = None
+        self.bed_images: dict = {"base": None, "cover": None}
+
+        self.bed_slot_1_occupied_by: str | None = None # UUID dell'NPC o None
+        self.bed_slot_2_occupied_by: str | None = None # UUID dell'NPC o None
+
+        self.bed_slot_1_interaction_pos_world: tuple | None = None # (x, y)
+        self.bed_slot_2_interaction_pos_world: tuple | None = None # (x, y)
+
+        self.bed_slot_1_sleep_pos_world: tuple | None = None  # (x, y)
+        self.bed_slot_2_sleep_pos_world: tuple | None = None  # (x, y)
         self.toilet_rect_instance: pygame.Rect | None = None
         self.db_connection: 'sqlite3.Connection | None' = None
 
@@ -106,7 +116,37 @@ def main():
         if DEBUG_VERBOSE: print("MAIN WARNING: Bed base image not loaded, using fallback dimensions from config.")
         
     game_state.bed_rect = pygame.Rect(config.DESIRED_BED_X, config.DESIRED_BED_Y, base_bed_width, base_bed_height)
-    
+    if DEBUG_VERBOSE and game_state.bed_rect: # Assumendo che DEBUG_VERBOSE sia definito
+        bed_grid_x, bed_grid_y = game_utils.world_to_grid(game_state.bed_rect.left, game_state.bed_rect.top)
+        print(f"DEBUG MAIN: Bed topleft at grid ({bed_grid_x}, {bed_grid_y})")
+        print(f"DEBUG MAIN: Bed world rect: {game_state.bed_rect}")
+    if game_state.bed_rect:
+        # Usa 'config.' perché siamo in main.py dove config è importato direttamente
+        s1_inter_offset = getattr(config, 'BED_SLOT_1_INTERACTION_OFFSET', (config.TILE_SIZE * 0.5, config.TILE_SIZE * 2.2))
+        s2_inter_offset = getattr(config, 'BED_SLOT_2_INTERACTION_OFFSET', (config.TILE_SIZE * 1.5, config.TILE_SIZE * 2.2))
+        s1_sleep_offset = getattr(config, 'BED_SLOT_1_SLEEP_POS_OFFSET', (config.TILE_SIZE * 0.5, config.TILE_SIZE * 0.8))
+        s2_sleep_offset = getattr(config, 'BED_SLOT_2_SLEEP_POS_OFFSET', (config.TILE_SIZE * 1.5, config.TILE_SIZE * 0.8))
+
+        game_state.bed_slot_1_interaction_pos_world = (
+            game_state.bed_rect.left + s1_inter_offset[0],
+            game_state.bed_rect.top + s1_inter_offset[1]
+        )
+        game_state.bed_slot_2_interaction_pos_world = (
+            game_state.bed_rect.left + s2_inter_offset[0],
+            game_state.bed_rect.top + s2_inter_offset[1]
+        )
+        game_state.bed_slot_1_sleep_pos_world = (
+            game_state.bed_rect.left + s1_sleep_offset[0],
+            game_state.bed_rect.top + s1_sleep_offset[1]
+        )
+        game_state.bed_slot_2_sleep_pos_world = (
+            game_state.bed_rect.left + s2_sleep_offset[0],
+            game_state.bed_rect.top + s2_sleep_offset[1]
+        )
+        # Inizializza slot (già fatto nella definizione di GameState, ma per chiarezza)
+        game_state.bed_slot_1_occupied_by = None
+        game_state.bed_slot_2_occupied_by = None
+
     if hasattr(config, 'TOILET_RECT_PARAMS'):
         params = config.TOILET_RECT_PARAMS
         game_state.toilet_rect_instance = pygame.Rect(params["x"], params["y"], params["w"], params["h"])
@@ -163,12 +203,24 @@ def main():
 
         sky_color, period_name, ui_text_color = game_utils.get_sky_color_and_period_info(game_state.current_game_hour_float)
 
+        all_npcs_sleeping_now = False # Rinominato per chiarezza
+        if all_npc_characters: # Solo se ci sono NPC
+            all_npcs_sleeping_now = all(npc.current_action == "resting_on_bed" for npc in all_npc_characters)
+
+        user_manually_changed_speed_this_frame = False 
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT: is_game_running = False
             ui_manager_instance.process_events(event) 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for i, rect_btn in enumerate(gui_elements_dict.get('time_button_rects',[])):
-                    if rect_btn.collidepoint(event.pos): game_state.current_time_speed_index = i; break 
+                    if rect_btn.collidepoint(event.pos): 
+                        if game_state.current_time_speed_index != i:
+                            game_state.current_time_speed_index = i
+                            user_manually_changed_speed_this_frame = True
+                            if game_state.is_sleep_fast_forward_active: # Se l'utente cambia velocità mentre è attivo il FF
+                                game_state.is_sleep_fast_forward_active = False 
+                                if DEBUG_VERBOSE: print("MAIN INFO: User changed speed during sleep fast-forward. Deactivating auto FF.")
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE: is_game_running = False
                 if event.key == pygame.K_g: show_debug_grid = not show_debug_grid
@@ -177,7 +229,14 @@ def main():
                     current_selected_npc_idx_ui = (current_selected_npc_idx_ui + 1) % len(all_npc_characters)
                     if gui_elements_dict.get('char_status_label'): 
                         gui_elements_dict['char_status_label'].set_text(f"Display: {all_npc_characters[current_selected_npc_idx_ui].name} (Space)")
-                if pygame.K_0 <= event.key <= pygame.K_5: game_state.current_time_speed_index = event.key - pygame.K_0
+                if pygame.K_0 <= event.key <= pygame.K_5:
+                    new_speed_idx = event.key - pygame.K_0
+                    if game_state.current_time_speed_index != new_speed_idx:
+                        game_state.current_time_speed_index = new_speed_idx
+                        user_manually_changed_speed_this_frame = True
+                        if game_state.is_sleep_fast_forward_active: # Se l'utente cambia velocità mentre è attivo il FF
+                            game_state.is_sleep_fast_forward_active = False
+                            if DEBUG_VERBOSE: print("MAIN INFO: User changed speed during sleep fast-forward. Deactivating auto FF.")
                 if event.key == pygame.K_r and getattr(config, 'DEBUG_MODE_ACTIVE', False):
                     for char_obj in all_npc_characters: char_obj.randomize_needs() # randomize_needs ha la sua stampa condizionale
                 if event.key == pygame.K_F5: 
@@ -221,16 +280,36 @@ def main():
                             if DEBUG_VERBOSE : print("MAIN ERROR: Load 'quicksave' failed (F9).")
                     else: 
                         if DEBUG_VERBOSE : print("MAIN INFO: No 'quicksave' found to load (F9).")
+        if all_npcs_sleeping_now:
+            if not game_state.is_sleep_fast_forward_active and not user_manually_changed_speed_this_frame:
+                # Attiva l'accelerazione solo se non è già attiva e l'utente non ha appena cambiato velocità
+                game_state.previous_time_speed_index_before_sleep_ffwd = game_state.current_time_speed_index
+                game_state.current_time_speed_index = 5 # O config.TIME_SPEED_SLEEP_ACCELERATED_INDEX se definito
+                game_state.is_sleep_fast_forward_active = True
+                if DEBUG_VERBOSE: print("MAIN INFO: All NPCs sleeping. Activating sleep fast-forward to speed 5.")
+        else: # Almeno un NPC è sveglio (o non ci sono NPC)
+            if game_state.is_sleep_fast_forward_active:
+                # Disattiva l'accelerazione e ripristina la velocità precedente
+                # (user_manually_changed_speed_this_frame avrà già disattivato is_sleep_fast_forward_active,
+                # quindi questa parte si attiva solo se l'accelerazione era attiva e un NPC si è svegliato)
+                game_state.current_time_speed_index = game_state.previous_time_speed_index_before_sleep_ffwd
+                game_state.is_sleep_fast_forward_active = False
+                if DEBUG_VERBOSE: print(f"MAIN INFO: An NPC woke up or not all are sleeping. Deactivating sleep fast-forward. Speed restored to {game_state.current_time_speed_index}.")
 
         for character_obj in all_npc_characters: 
             char_is_resting = character_obj.current_action == "resting_on_bed"
             if game_state.current_time_speed_index > 0: 
                 food_was_eaten = ai_system.run_npc_ai_logic(
-                    character_obj, all_npc_characters, game_hours_this_tick, 
-                    main_pathfinding_grid, game_state.food_visible, config.FOOD_POS, 
-                    game_state.bed_rect, game_state.toilet_rect_instance, 
-                    getattr(config,'FUN_OBJECT_POS_OR_RECT',None), 
-                    getattr(config,'SHOWER_POS_OR_RECT',None)
+                    character_obj,                       # 1°
+                    all_npc_characters,                  # 2°
+                    game_hours_this_tick,                # 3°
+                    main_pathfinding_grid,               # 4°
+                    game_state.food_visible,             # 5°
+                    config.FOOD_POS,                     # 6°
+                    game_state,                          # 7° <--- Passi l'OGGETTO game_state intero
+                    game_state.toilet_rect_instance,     # 8°
+                    getattr(config,'FUN_OBJECT_POS_OR_RECT',None), # 9°
+                    getattr(config,'SHOWER_POS_OR_RECT',None)      # 10°
                 )
                 if food_was_eaten: 
                     game_state.food_visible = False; game_state.food_cooldown_timer = 0.0

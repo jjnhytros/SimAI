@@ -43,6 +43,7 @@ GAME_DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR
 TIME_SPEED_SETTINGS = { 
     0: float('inf'), 1: 240.0, 2: 120.0, 3: 60.0, 4: 30.0, 5: 15.0
 }
+TIME_SPEED_SLEEP_ACCELERATED_INDEX = 5 # Indice della velocità massima quando tutti dormono
 
 # --- Colors ---
 WHITE = (255, 255, 255)
@@ -98,6 +99,19 @@ BED_COLOR_FALLBACK = (100,70,30)
 DESIRED_BED_X = SCREEN_WIDTH - DESIRED_BED_WIDTH - 10 
 DESIRED_BED_Y = SCREEN_HEIGHT - PANEL_UI_HEIGHT - DESIRED_BED_HEIGHT - 10 # Posiziona la base
 BED_COVER_DRAW_OFFSET_Y = 26 # Offset Y dal DESIRED_BED_Y per disegnare la coperta
+BED_SLOT_1_OFFSET = (TILE_SIZE // 2, TILE_SIZE * 1.5) # (dx, dy) dallo spigolo del bed_rect
+BED_SLOT_2_OFFSET = (TILE_SIZE * 1.5, TILE_SIZE * 1.5) # Esempio per un letto di 2xN tiles
+# Offset per i punti di interazione degli slot del letto, relativi a bed_rect.topleft
+# Assumiamo che l'NPC si avvicini ai piedi del letto.
+# Devi adattare questi offset alla grafica del tuo letto e a come vuoi che gli NPC vi accedano.
+# (X, Y)
+BED_SLOT_1_INTERACTION_OFFSET = (-6, 97) 
+BED_SLOT_2_INTERACTION_OFFSET = (26, 97)
+
+# Offset per la posizione effettiva dell'NPC quando è NEL letto (per lo sprite del sonno)
+# Relativi a bed_rect.topleft
+BED_SLOT_1_SLEEP_POS_OFFSET = (TILE_SIZE * 0.5, TILE_SIZE * 0.8) 
+BED_SLOT_2_SLEEP_POS_OFFSET = (TILE_SIZE * 1.5, TILE_SIZE * 0.8) 
 
 TOILET_RECT_PARAMS = {"x": 800, "y": 100, "w": TILE_SIZE * 1, "h": TILE_SIZE * 2} 
 TOILET_COLOR = (210, 210, 225) 

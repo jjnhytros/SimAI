@@ -30,6 +30,10 @@
         * d. Età degli NPC che progredisce in base al tempo di gioco. `[x]`
         * e. `[+]` Calendario con eventi unici (festività stagionali, compleanni NPC con possibili celebrazioni/moodlet).
         * f. `[+]` Meteo dinamico (sole, pioggia, nuvole, neve, vento) e stagioni, con impatto visivo e su gameplay (umore NPC, scelta attività, crescita piante se presenti, ecc.).
+        * g. `[]` **Accelerazione Automatica del Tempo**:
+            * i. `[P]` Se tutti gli NPC attivi sono a letto (`resting_on_bed`), la velocità del gioco passa automaticamente a quella massima (es. velocità 5).
+            * ii.`[P]` Memorizzare la velocità precedente per ripristinarla quando almeno un NPC si sveglia.
+            * iii.`[P]` L'intervento manuale dell'utente sulla velocità del tempo deve interrompere l'accelerazione automatica e avere la priorità.
     * 4. **Sistema di Pathfinding NPC:** `[x]`
         * a. Integrazione libreria Pathfinding A*. `[x]`
         * b. Creazione griglia di navigazione basata su `TILE_SIZE`. `[x]`
@@ -72,6 +76,14 @@
         * d. `[+]` Modificatori di bisogno a lungo termine (tratti, età, salute, oggetti posseduti, qualità dell'ambiente).
         * e. `[+]` Bisogni emergenti specifici per stadi di vita (es. "gioco" per bambini) o situazioni.
         * f. `[]` **Sistema di Malattie e Salute:** NPC possono ammalarsi (casualmente, per scarsa igiene/energia/cibo, o per eventi specifici) con impatto su bisogni, umore, capacità lavorative/sociali. `[]` NPC cercano cure (riposo, medicine - se disponibili, interazione con Ospedale/Medico). `[NUOVO_USER]`
+        * g. `[]` **Migliorare Interazione Cibo per NPC**:
+            * i.  `[]` Introdurre oggetti cibo specifici nel mondo (es. frigorifero, piatti pronti) invece di un `FOOD_POS` generico.
+            * ii. `[]` Implementare azioni come "Prendi Cibo", "Cucina Semplice" (se c'è una cucina), "Ordina Cibo" (se c'è un telefono/computer e servizi).
+            * iii. `[]` (L'azione "seeking_food" è attualmente disabilitata in `npc_behavior.py` per evitare loop finché non ci sono meccaniche di ottenimento/consumo cibo più definite).
+        * h. `[]` **Migliorare Interazione Bagno per NPC**:
+            * i.  `[]` Definire chiaramente i punti di interazione/raggiungimento per l'oggetto bagno (Toilet).
+            * ii. `[]` Assicurare che `_find_walkable_adjacent_target_grid_coords` restituisca celle valide e che la logica di pathfinding e arrivo funzioni correttamente per il bagno.
+            * iii. `[]` (L'azione "seeking_toilet" è attualmente disabilitata in `npc_behavior.py` per evitare loop/blocchi finché la meccanica non è perfezionata).
     * 2. **Ciclo Vita NPC:** `[P]`
         * a. `[x]` Età NPC che progredisce (giorni, mesi, anni) e visualizzazione base.
         * b. `[P]` Meccanica di gravidanza base (probabilità, durata, reset stato, no re-gravidanza durante).
@@ -100,6 +112,16 @@
         * g. `[]` IA per scelta **vestiario** (contesto: meteo, ora, luogo, attività, evento sociale, uniforme scolastica/lavorativa). `[NUOVO_USER]`
         * h. `[+]` Simulazione "Off-Screen" (LoD).
         * i. `[]` IA per interagire con servizi cittadini (Documento d'Identità, punti raccolta rifiuti, obblighi scolastici/lavorativi).
+        * j. `[]` **Riattivare e Migliorare Azione "Phoning"**:
+            * i.  `[]` Collegare l'azione "Phoning" al sistema di relazioni/amicizie (NPC telefona solo se ha contatti).
+            * ii. `[]` Introdurre una durata fissa o variabile per l'azione "Phoning" oltre al semplice soddisfacimento del bisogno Sociale, per evitare che l'NPC rimanga bloccato.
+            * iii. `[]` (Attualmente disabilitata in `npc_behavior.py` per evitare loop finché il sistema di relazioni non è implementato).
+        * k. `[P]` **Migliorare Interazione Letto (Multi-Slot e Ingresso/Uscita)**:
+            * i.  `[P]` Definire punti di interazione e di sonno per 2 slot del letto.
+            * ii. `[P]` IA per verificare slot liberi e fare pathfinding allo slot corretto.
+            * iii.`[P]` Logica per "entrare" nel letto (cambio sprite, allineamento posizione) e "uscire" **posizionandosi in un punto calpestabile adiacente**. <--- AGGIUNTA/ENFASI
+            * iv. `[]` Gestire la "prenotazione" degli slot se più NPC decidono di andare a letto contemporaneamente.
+            * v.  `[]` Affinare la logica A* e di arrivo per evitare "Path too short" per il letto.
 
 **IV. SISTEMA SCOLASTICO DI ANTHALYS** `[]` `[NUOVO_USER]`
     * 1. **Struttura e Calendario Scolastico:** `[]`

@@ -1,11 +1,14 @@
 # simai/game/src/modules/needs/energy.py
 # MODIFIED: Made debug prints conditional using config.DEBUG_AI_ACTIVE.
 # MODIFIED: Removed Fallback logic, critical imports will sys.exit().
+# MODIFIED: Corrected import for _base_need. Made debug prints conditional.
+# MODIFIED: Ensured critical imports lead to sys.exit().
 
 import sys
 
 try:
-    from game.src.modules.needs._base_need import BaseNeed
+    from game.src.modules.needs._base_need import BaseNeed # <--- IMPORT CORRETTO
+
     from game import config as game_config
 except ImportError as e:
     print(f"CRITICAL ERROR (EnergyNeed): Could not import BaseNeed or game_config: {e}")

@@ -5,7 +5,7 @@
 import sys
 
 try:
-    from game.src.modules.needs._base_need import BaseNeed # CORRETTO QUI
+    from game.src.modules.needs._base_need import BaseNeed # <--- IMPORT CORRETTO
     from game import config as game_config
 except ImportError as e:
     print(f"CRITICAL ERROR (IntimacyNeed): Could not import _base_need.BaseNeed or game_config: {e}")

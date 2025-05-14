@@ -1,6 +1,5 @@
 # simai/game/config.py
-# Last Updated: 2025-05-12 (English translation, consolidation for review)
-# MODIFIED: Cleaned up comments related to sprite settings.
+# MODIFIED: Added DEBUG_AI_ACTIVE, cleaned up comments.
 
 import pygame 
 import os
@@ -15,9 +14,10 @@ WINDOW_TITLE = f"{GAME_NAME} v{CORE_VERSION}"
 # --- End Game Name and Versioning ---
 
 # --- DEBUG Settings ---
-DEBUG_MODE_ACTIVE = True # Flag generale per il debug mode
-DEBUG_AI_ACTIVE = True   # NUOVO FLAG: Attiva/Disattiva le stampe di debug specifiche dell'IA
+DEBUG_MODE_ACTIVE = True       # Flag generale per attivare logiche di debug specifiche (es. randomizzazione bisogni)
+DEBUG_AI_ACTIVE = True         # NUOVO: Flag per attivare stampe di debug verbose (IA, Save/Load, Utils, etc.)
 
+# Valori specifici per DEBUG_MODE_ACTIVE = True
 DEBUG_ENERGY_INITIAL_MIN_PCT = 0.05 
 DEBUG_ENERGY_INITIAL_MAX_PCT = 0.15
 DEBUG_HUNGER_INITIAL_MIN_PCT = 0.70 
@@ -90,20 +90,14 @@ FURNITURE_IMAGE_PATH = os.path.join(IMAGE_PATH, "furnitures")
 CHARACTER_SPRITE_PATH = os.path.join(IMAGE_PATH, "characters")
 
 # --- Interactive Objects: Base Properties ---
-BED_SPRITESHEET_BASE_RECT = (0, 0, 64, 80) 
-BED_SPRITESHEET_COVER_RECT = (0, 80, 64, 48) 
-DESIRED_BED_WIDTH = 64
-DESIRED_BED_HEIGHT = 128
-BED_COLOR_FALLBACK = (100,70,30) 
-DESIRED_BED_X = SCREEN_WIDTH - DESIRED_BED_WIDTH - 10 
-DESIRED_BED_Y = SCREEN_HEIGHT - PANEL_UI_HEIGHT - DESIRED_BED_HEIGHT - 10
 BED_SPRITESHEET_BASE_RECT_COORDS = (0, 0, 64, 81)  
 BED_SPRITESHEET_COVER_RECT_COORDS = (0, 106, 64, 22) 
-BED_COVER_Y_OFFSET_ON_SPRITESHEET = 106 
-BED_COVER_HEIGHT_ON_SPRITESHEET = 22    
-NPC_IN_BED_OFFSET_X = 10 
-NPC_IN_BED_OFFSET_Y = 20 
-BED_COVER_DRAW_OFFSET_Y = 26 
+DESIRED_BED_WIDTH = 64 # Larghezza effettiva dell'oggetto letto nel mondo
+DESIRED_BED_HEIGHT = 81 # Altezza effettiva della base del letto (senza coperta separata)
+BED_COLOR_FALLBACK = (100,70,30) 
+DESIRED_BED_X = SCREEN_WIDTH - DESIRED_BED_WIDTH - 10 
+DESIRED_BED_Y = SCREEN_HEIGHT - PANEL_UI_HEIGHT - DESIRED_BED_HEIGHT - 10 # Posiziona la base
+BED_COVER_DRAW_OFFSET_Y = 26 # Offset Y dal DESIRED_BED_Y per disegnare la coperta
 
 TOILET_RECT_PARAMS = {"x": 800, "y": 100, "w": TILE_SIZE * 1, "h": TILE_SIZE * 2} 
 TOILET_COLOR = (210, 210, 225) 
@@ -133,14 +127,10 @@ PREGNANCY_CHANCE_FEMALE = 0.25
 PREGNANCY_TERM_GAME_DAYS = DAYS_PER_MONTH 
 
 # --- Need Bar Gradient Colors ---
-GRADIENT_COLOR_BAD = (200, 0, 0)    
-GRADIENT_COLOR_GOOD = (0, 200, 0)   
-NEED_BAR_BG_COLOR = (50, 50, 50)    
 NEED_BAR_BORDER_COLOR = (150, 150, 150) 
 
 # --- UI Constants ---
 UI_FONT_SIZE = 26 
-ICON_FONT_SIZE = 22 
 
 # --- NPC AI Constants ---
 NPC_SPEED = 80
@@ -156,7 +146,7 @@ NPC_HYGIENE_THRESHOLD = 25
 NPC_INTIMACY_THRESHOLD = 75 
 
 NPC_EAT_REACH_DISTANCE = 15 
-NPC_BED_REACH_DISTANCE = 100 
+NPC_BED_REACH_DISTANCE = TILE_SIZE * 1.8 # Aumentato un po' per maggiore flessibilità con oggetti grandi
 NPC_PARTNER_INTERACTION_DISTANCE = TILE_SIZE * 1.5 
 NPC_TOILET_REACH_DISTANCE = TILE_SIZE * 1.0 
 NPC_FUN_OBJECT_REACH_DISTANCE = TILE_SIZE * 1.0 
@@ -168,49 +158,42 @@ NPC_WANDER_MAX_DIST_TILES = 8
 
 # --- Need System Base Rates & Initial Values ---
 DEFAULT_MAX_NEED_VALUE = 100.0
-
 HUNGER_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 HUNGER_INITIAL_MIN_PCT = 0.0  
 HUNGER_INITIAL_MAX_PCT = 0.6  
 HUNGER_BASE_RATE = 2.0        
 HUNGER_HIGH_IS_GOOD = False   
 HUNGER_RATE_MULTIPLIERS = {"Notte": 0.5, "Mattino": 1.2, "Mezzogiorno": 1.5, "Sera": 1.3}
-
 ENERGY_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 ENERGY_INITIAL_MIN_PCT = 0.4 
 ENERGY_INITIAL_MAX_PCT = 1.0 
 ENERGY_BASE_DECAY_RATE = 5.5 
 ENERGY_HIGH_IS_GOOD = True
 ENERGY_DECAY_MULTIPLIERS = {"Notte": 0.3, "Mattino": 1.0, "Mezzogiorno": 1.2, "Sera": 0.8}
-
 SOCIAL_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 SOCIAL_INITIAL_MIN_PCT = 0.4
 SOCIAL_INITIAL_MAX_PCT = 1.0
 SOCIAL_BASE_DECAY_RATE = 1.4
 SOCIAL_HIGH_IS_GOOD = True
 SOCIAL_DECAY_MULTIPLIERS = {"Notte": 0.7, "Mattino": 1.0, "Mezzogiorno": 1.2, "Sera": 1.5}
-
 BLADDER_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 BLADDER_INITIAL_MIN_PCT = 0.0
 BLADDER_INITIAL_MAX_PCT = 0.65
 BLADDER_BASE_FILL_RATE = 3.0 
 BLADDER_HIGH_IS_GOOD = False
 BLADDER_FILL_MULTIPLIERS = {"Notte": 0.4, "Mattino": 1.0, "Mezzogiorno": 1.2, "Sera": 1.0}
-
 FUN_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 FUN_INITIAL_MIN_PCT = 0.3
 FUN_INITIAL_MAX_PCT = 1.0
 FUN_BASE_DECAY_RATE = 2.5
 FUN_HIGH_IS_GOOD = True
 FUN_DECAY_MULTIPLIERS = {"Notte": 0.6, "Mattino": 1.0, "Mezzogiorno": 1.3, "Sera": 1.1}
-
 HYGIENE_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 HYGIENE_INITIAL_MIN_PCT = 0.5
 HYGIENE_INITIAL_MAX_PCT = 1.0
 HYGIENE_BASE_DECAY_RATE = 1.8
 HYGIENE_HIGH_IS_GOOD = True
 HYGIENE_DECAY_MULTIPLIERS = {"Notte": 0.5, "Mattino": 1.0, "Mezzogiorno": 1.2, "Sera": 1.0}
-
 INTIMACY_MAX_VALUE = DEFAULT_MAX_NEED_VALUE 
 INTIMACY_INITIAL_MIN_PCT = 0.0
 INTIMACY_INITIAL_MAX_PCT = 0.3
@@ -229,12 +212,12 @@ SLEEP_SPRITESHEET_MALE_FILENAME = "malewhitesleep.png"
 SLEEP_SPRITESHEET_FEMALE_FILENAME = "femalewhitesleep.png"
 SLEEP_SPRITE_FRAME_WIDTH = 64  
 SLEEP_SPRITE_FRAME_HEIGHT = 64 
-# NUM_SLEEP_ANIM_FRAMES: Verify and set this based on your sleep spritesheets.
-# Example: If each sleep animation (side right, on back, side left) has 2 frames for a subtle breathing animation.
-NUM_SLEEP_ANIM_FRAMES = 2 # DA VERIFICARE IN BASE AGLI SPRITESHEET EFFETTIVI! 
+# NUM_SLEEP_ANIM_FRAMES: Controllare e impostare in base agli spritesheet del sonno effettivi.
+# Se ogni animazione di sonno (lato dx, supino, lato sx) ha N frame per un'animazione sottile.
+NUM_SLEEP_ANIM_FRAMES = 2 # VERIFICARE QUESTO VALORE!
 ANIM_ROW_SLEEP_SIDE_RIGHT = 0 
 ANIM_ROW_SLEEP_ON_BACK = 1    
-ANIM_ROW_SLEEP_SIDE_LEFT = 2  # Terza riga (pulito dai caratteri extra)
+ANIM_ROW_SLEEP_SIDE_LEFT = 2  # Terza riga (commento pulito)
 
 ANIM_ROW_WALK_UP = 8
 ANIM_ROW_WALK_LEFT = 9

@@ -1,29 +1,38 @@
-# simai/game/modules/needs/social.py
-# Need for Social: 0 = lonely (bad state), 100 = socially fulfilled (good state)
+# simai/game/src/modules/needs/social.py
+# MODIFIED: Corrected import for _base_need. Made debug prints conditional.
+# MODIFIED: Ensured critical imports lead to sys.exit().
 
-from ._base_need import BaseNeed
+import sys
+
+try:
+    from game.src.modules.needs._base_need import BaseNeed # CORRETTO QUI
+    from game import config as game_config
+except ImportError as e:
+    print(f"CRITICAL ERROR (SocialNeed): Could not import _base_need.BaseNeed or game_config: {e}")
+    print("Ensure 'game.config' and 'game.src.modules.needs._base_need' are accessible and correctly named.")
+    sys.exit()
+
+# Leggi il flag di debug una volta, dopo aver importato config
+DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
 
 class Social(BaseNeed):
-    def __init__(self, owner_character, max_value: float, 
-                 initial_fill_min_pct: float, initial_fill_max_pct: float, 
-                 base_rate_per_hour: float, # This is the base *decay* rate
-                 rate_multipliers_dict: dict):
-        super().__init__(owner_character=owner_character, 
-                         name="Social", 
-                         max_value=max_value, 
-                         initial_fill_min_pct=initial_fill_min_pct,
-                         initial_fill_max_pct=initial_fill_max_pct,
-                         base_rate_per_hour=base_rate_per_hour, 
-                         is_value_high_good=True, # High social value is good
-                         rate_multipliers_dict=rate_multipliers_dict)
+    def __init__(self, character_owner, max_value, 
+                 initial_min_percentage, initial_max_percentage, 
+                 base_decay_rate, decay_multipliers):
+        super().__init__(
+            character_owner=character_owner,
+            max_value=max_value,
+            initial_min_percentage=initial_min_percentage,
+            initial_max_percentage=initial_max_percentage,
+            base_rate=base_decay_rate,
+            rate_multipliers=decay_multipliers,
+            high_is_good=getattr(game_config, 'SOCIAL_HIGH_IS_GOOD', True),
+            name="Social"
+        )
+        if DEBUG_VERBOSE:
+            owner_name = "UnknownChar"
+            if hasattr(self.character_owner, 'name'): owner_name = self.character_owner.name
+            elif self.character_owner is not None: owner_name = str(self.character_owner)
+            print(f"SOCIAL_NEED_INIT ({owner_name}): Initialized. Value: {self.get_value():.2f}")
 
-    def update(self, game_hours_advanced: float, period_name: str, 
-               character_action: str = "idle", is_char_externally_resting: bool = False):
-        # Social need decays if not actively socializing.
-        is_actively_socializing = character_action in ["phoning", 
-                                                       "affectionate_interaction_action", # Flirting is social
-                                                       "romantic_interaction_action"]    # Fiki Fiki is also social
-        
-        if not is_actively_socializing:
-            super().update(game_hours_advanced, period_name, character_action, is_char_externally_resting)
-        # Satisfaction happens via satisfy() method called by Character's socialize methods or AI.
+    # Eventuali stampe specifiche per Social possono essere aggiunte qui, dentro if DEBUG_VERBOSE

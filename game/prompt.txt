@@ -1,0 +1,21 @@
+"Ciao! Sto continuando a lavorare sul mio simulatore di vita 2D top-down basato su Pygame, chiamato SimAI, ambientato nella futura città di Anthalys. L'obiettivo è creare una simulazione profonda e con comportamenti NPC emergenti.
+
+Il progetto è sviluppato in Python e il codice sorgente si trova su GitHub al seguente indirizzo: https://github.com/jjnhytros/SimAI
+
+La versione attuale del gioco a cui stiamo lavorando è la SimAI v0.3.0 (con metadati di build basati su timestamp per tracciamento interno).
+
+Abbiamo fatto molti progressi, implementando:
+
+Una struttura di gioco modulare con file dedicati per configurazione, utilità, IA, e classi dei personaggi/bisogni.
+Due NPC (Alpha e Beta) con un sistema di 7 bisogni modulari (Vescica, Fame, Energia, Divertimento, Socialità, Igiene, Intimità) che variano nel tempo.
+Un sistema di IA di base che permette agli NPC di soddisfare alcuni di questi bisogni (Fame, Energia, Vescica, Socialità via telefono, Intimità) usando pathfinding A* per raggiungere oggetti (Letto, WC, Cibo) o altri NPC. Include comportamenti come il "wandering" quando idle.
+Interazioni base per l'intimità tra NPC, con esito casuale (Momento Romantico/Gesto Affettuoso) e una meccanica di gravidanza base.
+Un sistema temporale completo (ciclo giorno/notte di 28h, giorni, mesi, anni, 6 velocità di gioco) e l'età degli NPC che progredisce.
+Una GUI base con pygame_gui e elementi manuali (pulsanti velocità, 7 barre bisogni con icone SVG/PNG e gradienti, info NPC selezionato, stato azione, età, gravidanza).
+Sprite animati base (idle/walk 4 direzioni) per gli NPC adulti e sprite per il sonno. Il letto ha una grafica a due parti (base e coperta).
+Un sistema di salvataggio e caricamento base tramite SQLite.
+Funzionalità di debug (griglia, randomizzazione bisogni, info NPC on-screen).
+Per continuare lo sviluppo, abbiamo una TODO list dettagliata che include funzionalità future come l'espansione del mondo di gioco (open world, più lotti per Anthalys), un sistema scolastico, un sistema economico e di carriere, un sistema di abilità, dinamiche sociali più profonde con relazioni e tratti di personalità, un sistema audio completo con linguaggio "Anthaliano", opzioni di gioco, e meccaniche uniche per SimAI.
+
+In allegato TODO list attuale per riferimento
+

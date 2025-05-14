@@ -69,6 +69,7 @@ class Character:
         self.spritesheet_image: pygame.Surface | None = None
         self.sleep_spritesheet_image: pygame.Surface | None = None
         self.is_bundle: bool = is_bundle
+        self.target_bed_slot_id: int | None = None
 
         if self.is_bundle:
             self.frame_width: int = getattr(game_config, 'BUNDLE_FRAME_WIDTH', 32)

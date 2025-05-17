@@ -260,6 +260,6 @@ BUNDLE_ANIM_ROW = 4
 BUNDLE_ANIM_FRAMES = 3
 
 # --- Save/Load System ---
-SAVE_GAME_SAVE_DIR = "saves" # Directory per i file di salvataggio
+SAVE_GAME_DIR = "saves" # Directory per i file di salvataggio (o SAVE_GAME_SAVE_DIR se preferisci)
 DEFAULT_SAVE_FILENAME = "anthalys_save.json"
 AUTO_SAVE_INTERVAL_SECONDS = 300  # Intervallo per l'auto-salvataggio in secondi (es. 5 minuti). Metti 0 per disabilitare.

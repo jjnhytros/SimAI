@@ -9,103 +9,120 @@
 import pygame
 import sys
 import os
-import asyncio # Se usi asyncio per qualche parte (non evidente nel tuo snippet main)
+# import asyncio # Rimuovi se non lo usi attivamente
 import random
-from collections import deque # Per i path degli NPC, se li salvi
+from collections import deque
+from typing import Optional, Tuple, List, Dict # Aggiungi per type hints
 
-# Le tue importazioni esistenti
-import game.config as config # Importa il tuo modulo config
-import game.game_utils as game_utils
-from game.src.ai.npc_behavior import run_npc_ai_logic
-from game.src.modules.game_state_module import GameState
+# Importa dal package 'game'
+from game import config 
+from game import game_utils # game_utils NON dovrebbe definire SpriteSheetManager
 
-# from src.entities.character import Character # La tua classe Character
-# Dovrai importare la tua classe Character dal percorso corretto
-# Assumendo che sia in src.entities.character
-try:
-    from game.src.entities.character import Character
-except ImportError:
-    # Fallback se la struttura delle cartelle è diversa o per debug locale
-    import game.src.entities.character # Assicurati che character.py sia accessibile
 
-import pygame_gui # Usi pygame_gui
+# Importa Character e run_npc_ai_logic
+from game.src.entities.character import Character
+from game.src.ai.npc_behavior import run_npc_ai_logic 
 
-# NUOVE IMPORTAZIONI PER SALVATAGGIO/CARICAMENTO JSON
-# Rinominiamo le funzioni per evitare conflitti con il tuo 'sl_system' esistente se vuoi tenerlo per ora
-from simai_save_load_system import (
+# Importa le funzioni JSON per salvare/caricare
+from game.simai_save_load_system import (
     save_game_state as save_game_state_json, 
     load_game_state as load_game_state_json,
     get_save_file_path
 )
-# Commenta o rimuovi l'import del tuo sistema SQLite se lo sostituisci completamente
-# import simai_save_load_system as sl_system # Il tuo sistema attuale (presumibilmente per SQLite)
+
+# --- IMPORT CORRETTO PER I MANAGER ---
+from game.src.managers.asset_manager import SpriteSheetManager
+from game.src.managers.time_manager import GameTimeManager # <--- NUOVO IMPORT
+# from game.src.ui_manager import UIManager # Se hai una tua classe UIManager dedicata
+import pygame_gui 
+
+# Importa la classe GameState
+from game.src.modules.game_state_module import GameState
 
 # --- Main Game Function ---
-def main(): # Rimuovi async se non usi asyncio direttamente nel loop principale
-    game_state = GameState()
-
+def main(): # Rimuovi async se non necessario
     pygame.init() 
     pygame.font.init()
-    main_screen_surface = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
-    pygame.display.set_caption(config.WINDOW_TITLE) # Usa WINDOW_TITLE da config
     
-    DEBUG_VERBOSE = getattr(config, 'DEBUG_AI_ACTIVE', False) # Usa il tuo flag di debug
+    game_state = GameState() 
 
-    ui_render_font = None
+    game_state.screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
+    pygame.display.set_caption(config.WINDOW_TITLE) 
+    
+    DEBUG_VERBOSE = game_state.DEBUG_AI_ACTIVE 
+
     try:
-        ui_render_font = pygame.font.SysFont("arial", getattr(config, 'UI_FONT_SIZE', 26))
-    except Exception as e_font_sys:
-        if DEBUG_VERBOSE: print(f"MAIN WARNING: System font 'arial' not found ({e_font_sys}). Trying default.")
+        game_state.main_font = pygame.font.SysFont("arial", getattr(config, 'UI_FONT_SIZE', 26))
+    except Exception:
         try:
-            ui_render_font = pygame.font.Font(None, getattr(config, 'UI_FONT_SIZE', 26) + 2)
-        except Exception as e_font_none:
-            print(f"CRITICAL UI FONT ERROR: Could not load sysfont or default font ({e_font_none}). Exiting.")
-            pygame.quit(); sys.exit()
-    if not ui_render_font:
-        print("CRITICAL UI FONT ERROR: No font could be loaded. Exiting."); pygame.quit(); sys.exit()
-
-    # Imposta i font in game_state per l'uso in load_game_state_json
-    game_state.main_font = ui_render_font # O un font specifico per Character
-    # game_state.debug_font = pygame.font.Font(config.FONT_NAME, 16) # Se hai un debug_font specifico
-
-    gui_theme_file_path = 'theme.json' 
-    if not os.path.exists(gui_theme_file_path) and DEBUG_VERBOSE:
-        print(f"MAIN INFO: Pygame GUI theme file '{gui_theme_file_path}' not found. Using default theme.")
-        
-    ui_manager_instance = pygame_gui.UIManager((config.SCREEN_WIDTH, config.SCREEN_HEIGHT), 
-                                     gui_theme_file_path if os.path.exists(gui_theme_file_path) else None) 
-    game_clock = pygame.time.Clock()
-    is_game_running = True
-
-    # --- Gestione Database SQLite (COMMENTATA O DA RIMUOVERE SE SI USA JSON) ---
-    # game_state.db_connection = sl_system.connect_db(sl_system.DB_FILENAME) 
-    # if game_state.db_connection:
-    #     sl_system.create_tables_if_not_exist(game_state.db_connection) 
-    # else:
-    #     print("CRITICAL DB ERROR: Could not connect to database. Exiting.")
-    #     pygame.quit(); sys.exit()
-    # --- Fine Gestione Database SQLite ---
-
-    # Caricamento asset (il tuo codice esistente)
-    # Assicurati che sprite_sheet_manager sia creato e popolato qui
-    # Esempio:
-    game_state.sprite_sheet_manager = game_utils.SpriteSheetManager() # O come lo inizializzi tu
+            game_state.main_font = pygame.font.Font(None, getattr(config, 'UI_FONT_SIZE', 26) + 2)
+        except Exception as e_font_final:
+             print(f"ERRORE CRITICO FONT: {e_font_final}. Uscita.")
+             pygame.quit(); sys.exit()
+    
+    # Inizializza SpriteSheetManager e assegnalo a game_state
+    game_state.sprite_sheet_manager = SpriteSheetManager() # <--- USA LA CLASSE IMPORTATA CORRETTAMENTE
+    
+    # Carica gli sprite sheet usando l'istanza in game_state
+    # I percorsi in load_sheet sono relativi a config.IMAGE_PATH
     try:
-        # Carica i tuoi sprite sheet qui, come facevi prima
-        # Esempio: game_state.sprite_sheet_manager.load_sheet("male", "assets/images/characters/male.png", ...)
-        # game_state.sprite_sheet_manager.load_sheet("female", "assets/images/characters/female.png", ...)
-        # Carica gli sprite per gli oggetti se necessario per il loro stato salvato/caricato
-        # Questo è un ESEMPIO, devi adattarlo ai tuoi nomi di file e chiavi
-        game_state.sprite_sheet_manager.load_sheet("male_char", "assets/images/characters/male.png", config.SPRITE_FRAME_WIDTH, config.SPRITE_FRAME_HEIGHT)
-        game_state.sprite_sheet_manager.load_sheet("female_char", "assets/images/characters/female.png", config.SPRITE_FRAME_WIDTH, config.SPRITE_FRAME_HEIGHT)
-        game_state.sprite_sheet_manager.load_sheet("male_sleep", os.path.join(config.CHARACTER_SPRITE_PATH, config.SLEEP_SPRITESHEET_MALE_FILENAME), config.SLEEP_SPRITE_FRAME_WIDTH, config.SLEEP_SPRITE_FRAME_HEIGHT)
-        game_state.sprite_sheet_manager.load_sheet("female_sleep", os.path.join(config.CHARACTER_SPRITE_PATH, config.SLEEP_SPRITESHEET_FEMALE_FILENAME), config.SLEEP_SPRITE_FRAME_WIDTH, config.SLEEP_SPRITE_FRAME_HEIGHT)
-        game_state.sprite_sheet_manager.load_sheet("baby_bundle", os.path.join(config.CHARACTER_SPRITE_PATH, "bundles.png"), config.BUNDLE_FRAME_WIDTH, config.BUNDLE_FRAME_HEIGHT)
+        game_state.sprite_sheet_manager.load_sheet(
+            "male_char", 
+            "characters/male.png", # Percorso relativo da IMAGE_PATH
+            config.SPRITE_FRAME_WIDTH, 
+            config.SPRITE_FRAME_HEIGHT
+        )
+        game_state.sprite_sheet_manager.load_sheet(
+            "female_char", 
+            "characters/female.png", 
+            config.SPRITE_FRAME_WIDTH, 
+            config.SPRITE_FRAME_HEIGHT
+        )
+        game_state.sprite_sheet_manager.load_sheet(
+            "male_sleep", 
+            os.path.join("characters", config.SLEEP_SPRITESHEET_MALE_FILENAME), # Usa os.path.join per sicurezza
+            config.SLEEP_SPRITE_FRAME_WIDTH, 
+            config.SLEEP_SPRITE_FRAME_HEIGHT
+        )
+        game_state.sprite_sheet_manager.load_sheet(
+            "female_sleep", 
+            os.path.join("characters", config.SLEEP_SPRITESHEET_FEMALE_FILENAME), 
+            config.SLEEP_SPRITE_FRAME_WIDTH, 
+            config.SLEEP_SPRITE_FRAME_HEIGHT
+        )
+        game_state.sprite_sheet_manager.load_sheet(
+            "baby_bundle", 
+            os.path.join("characters", "bundles.png"), 
+            config.BUNDLE_FRAME_WIDTH, 
+            config.BUNDLE_FRAME_HEIGHT
+        )
 
     except Exception as e_sprites:
         print(f"ERRORE CRITICO nel caricamento degli sprite sheet: {e_sprites}")
         pygame.quit(); sys.exit()
 
+    # Inizializza GameTimeManager
+    # Assicurati che la classe GameTimeManager esista in game/src/time_manager.py
+    # e che l'init corrisponda ai parametri passati.
+    if os.path.exists("game/src/time_manager.py"): # Controllo base
+        game_state.game_time_handler = GameTimeManager(
+            game_hours_in_day=config.GAME_HOURS_IN_DAY, 
+            sky_keyframes=config.SKY_KEYFRAMES, 
+            time_speeds=config.TIME_SPEED_SETTINGS, # Da config
+            initial_hour=config.INITIAL_START_HOUR,
+            # Aggiungi qui default_speed_index se il tuo GameTimeManager lo richiede
+            # default_speed_index = getattr(config, 'DEFAULT_TIME_SPEED_INDEX', 1)
+        )
+    else:
+        print("ERRORE CRITICO: time_manager.py non trovato. Impossibile avviare il gestore del tempo.")
+        pygame.quit(); sys.exit()
+
+    # Inizializza pygame_gui.UIManager e assegnalo a game_state
+    gui_theme_path = 'theme.json' # Assicurati che questo file sia nella directory 'game/' o fornisci il percorso completo
+    game_state.ui_manager_instance = pygame_gui.UIManager(
+        (config.SCREEN_WIDTH, config.SCREEN_HEIGHT),
+        gui_theme_path if os.path.exists(gui_theme_path) else None
+    )
 
     loaded_ui_icons, ui_speed_icons, game_state.bed_images, need_bar_icon_dimensions = \
         game_utils.load_all_game_assets() # Il tuo caricamento asset esistente
@@ -263,6 +280,7 @@ def main(): # Rimuovi async se non usi asyncio direttamente nel loop principale
     # --- Loop Principale del Gioco ---
     while is_game_running:
         delta_time_seconds = game_clock.tick(config.FPS) / 1000.0
+        dt_real=delta_time_seconds
         
         # Gestione Tempo (il tuo codice esistente)
         (game_hours_this_tick, current_int_hour, 

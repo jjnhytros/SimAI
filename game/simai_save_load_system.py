@@ -1,192 +1,220 @@
 # simai_save_load_system.py
 import json
 import os
-import pygame # Per Rect, se necessario
-from collections import deque # Per deserializzare self.path in Character
+import sys
+import pygame 
+from collections import deque
 
-# Importa le classi necessarie (aggiusta i percorsi se la tua struttura è diversa)
-from src.entities.character import Character, NPC_PREGNANCY_DURATION_DAYS, CHARACTER_SPEED # Assumendo che le costanti siano qui o in config
-import config
+# Importa dal package 'game'
+# Importa 'config' a livello di modulo così è accessibile ovunque in questo file
+try:
+    from game import config # Python cercherà simai/game/config.py
+except ImportError as e_cfg:
+    print(f"ERRORE CRITICO (simai_save_load_system.py): Impossibile importare 'game.config': {e_cfg}")
+    sys.exit() # È una dipendenza fondamentale
 
-# Se GameState è una classe definita altrove (es. in main.py o un game_state.py),
-# dovrai assicurarti che sia importabile o che tu possa accedere ai suoi attributi.
-# Per ora, assumiamo che 'game_state' sia l'oggetto passato alle funzioni.
+# Ora importa le altre dipendenze, usando 'config' se necessario per fallback o valori
+try:
+    from game.src.entities.character import Character 
+    # Le costanti specifiche verranno accedute tramite 'config.NOME_COSTANTE'
+    # Non è necessario importarle individualmente qui se importi 'config'
+except ImportError as e_char:
+    print(f"ERRORE CRITICO (simai_save_load_system.py): Impossibile importare 'game.src.entities.character': {e_char}")
+    sys.exit()
+# Non importare GameState qui, verrà passata come oggetto
 
-
-SAVE_GAME_DIR = "saves"  # Cartella per i file di salvataggio
-DEFAULT_SAVE_FILENAME = "anthalys_save.json"
+DEBUG_SAVE_LOAD = getattr(config, 'DEBUG_AI_ACTIVE', False) # Usa il flag di config
 
 def ensure_save_directory_exists():
     """Assicura che la cartella dei salvataggi (definita in config.py) esista."""
-    if not os.path.exists(config.SAVE_GAME_SAVE_DIR):
+    # Usa config.SAVE_GAME_DIR
+    if not os.path.exists(config.SAVE_GAME_DIR):
         try:
-            os.makedirs(config.SAVE_GAME_SAVE_DIR)
-            print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' creata.")
+            os.makedirs(config.SAVE_GAME_DIR)
+            if DEBUG_SAVE_LOAD: print(f"SAVE_LOAD: Cartella '{config.SAVE_GAME_DIR}' creata.")
         except OSError as e:
-            print(f"ERRORE: Impossibile creare la cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}': {e}")
-            # Potresti voler sollevare l'eccezione o gestire diversamente
-            raise  # Rilancia l'eccezione per ora
+            print(f"ERRORE SAVE_LOAD: Impossibile creare '{config.SAVE_GAME_DIR}': {e}")
+            raise 
     else:
-        print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' già esistente.")
+        if DEBUG_SAVE_LOAD:
+            print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' già esistente.")
 
 
-def get_save_file_path(filename=DEFAULT_SAVE_FILENAME):
+def get_save_file_path(filename=None): # filename può essere None per usare il default
     """Restituisce il percorso completo del file di salvataggio."""
-    return os.path.join(config.SAVE_GAME_SAVE_DIR, filename)
+    # Usa config.DEFAULT_SAVE_FILENAME se filename non è fornito
+    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
+    return os.path.join(config.SAVE_GAME_DIR, actual_filename)
 
 
-def save_game_state(game_state, filename=DEFAULT_SAVE_FILENAME):
+def save_game_state(game_state, filename=None): # filename può essere None
     """Salva lo stato completo del gioco in un file JSON."""
-    ensure_save_directory_exists() # Assicura che la dir esista prima di salvare
-    file_path = get_save_file_path(filename)
+    ensure_save_directory_exists() 
+    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
+    file_path = get_save_file_path(actual_filename) # Usa actual_filename
     
-    if hasattr(game_state, 'DEBUG_AI_ACTIVE') and game_state.DEBUG_AI_ACTIVE:
+    if DEBUG_SAVE_LOAD: # Usa la variabile definita a livello di modulo
         print(f"SAVE_LOAD: Tentativo di salvataggio partita in {file_path}...")
 
+    # ... (il resto della funzione save_game_state rimane come prima, 
+    #      ma assicurati che usi 'config.NOME_COSTANTE' quando accedi alle costanti,
+    #      e 'Character' come nome importato) ...
+    # Esempio:
     save_data = {
-        # Stato di GameTimeManager (o l'oggetto che gestisce il tempo in game_state)
         "game_time_details": {
             "day": game_state.game_time_handler.day,
             "month": game_state.game_time_handler.month,
-            "year": game_state.game_time_handler.year,
-            "hour": game_state.game_time_handler.hour,
-            "minute": game_state.game_time_handler.minute,
-            "total_game_seconds_elapsed": game_state.game_time_handler.total_game_seconds_elapsed,
-            "current_period_name": game_state.game_time_handler.current_period_name,
+            # ... etc.
+            "current_sky_color_index": game_state.game_time_handler.current_sky_color_index,
         },
         "time_speed_index": game_state.time_speed_index,
-        # "time_speed_multiplier" è derivato, non strettamente necessario salvarlo
-        "current_sky_color_index": game_state.game_time_handler.current_sky_color_index, # Preso da game_time_handler
         "is_paused_by_player": game_state.is_paused_by_player,
         "is_sleep_fast_forward_active": game_state.is_sleep_fast_forward_active,
         "previous_time_speed_index_before_sleep_ff": game_state.previous_time_speed_index_before_sleep_ff,
-        "npcs": [npc.to_dict() for npc in game_state.npcs], # Usa il metodo to_dict di Character
-        # TODO: Aggiungere la serializzazione per gli oggetti del mondo (game_state.all_objects)
-        # "world_objects": [obj.to_dict() for obj in game_state.all_objects if hasattr(obj, 'to_dict')],
-        "last_auto_save_time": game_state.last_auto_save_time, # Salva il timestamp dell'ultimo auto-salvataggio
-        # Aggiungere qui altri stati globali se necessario
+        "npcs": [npc.to_dict() for npc in game_state.all_npc_characters_list], # Assumendo che la lista sia in game_state
+        "last_auto_save_time": game_state.last_auto_save_time,
+        # Aggiungi qui il salvataggio degli attributi diretti di GameState che erano nel tuo JSON originale
+        "current_game_hour_float": game_state.current_game_hour_float, # Se non coperto da game_time_details
+        "current_game_day": game_state.current_game_day,
+        "current_game_month": game_state.current_game_month,
+        "current_game_year": game_state.current_game_year,
+        "current_game_total_sim_hours_elapsed": game_state.current_game_total_sim_hours_elapsed,
+        "food_visible": game_state.food_visible,
+        "food_cooldown_timer": game_state.food_cooldown_timer,
+        "bed_rect_data": [game_state.bed_rect.x, game_state.bed_rect.y, game_state.bed_rect.width, game_state.bed_rect.height] if game_state.bed_rect else None,
+        "bed_slot_1_occupied_by": game_state.bed_slot_1_occupied_by,
+        "bed_slot_2_occupied_by": game_state.bed_slot_2_occupied_by,
+        # Non salvare bed_slot_X_interaction_pos_world e bed_slot_X_sleep_pos_world perché sono derivati
+        "toilet_rect_data": [game_state.toilet_rect_instance.x, game_state.toilet_rect_instance.y, game_state.toilet_rect_instance.width, game_state.toilet_rect_instance.height] if game_state.toilet_rect_instance else None,
     }
 
+
     try:
-        with open(file_path, 'w', encoding='utf-8') as f: # Specificare encoding='utf-8' è una buona pratica
+        with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(save_data, f, indent=4, ensure_ascii=False)
-        if hasattr(game_state, 'DEBUG_AI_ACTIVE') and game_state.DEBUG_AI_ACTIVE:
+        if DEBUG_SAVE_LOAD:
             print(f"SAVE_LOAD: Partita salvata con successo in {file_path}")
         return True
+    # ... (blocchi except come prima) ...
     except IOError as e:
         print(f"ERRORE SAVE_LOAD: Errore di I/O durante il salvataggio: {e}")
         return False
     except TypeError as e:
-        print(f"ERRORE SAVE_LOAD: Errore di tipo durante la serializzazione JSON: {e}. "
-              "Verifica i metodi to_dict() e che restituiscano tipi serializzabili.")
+        print(f"ERRORE SAVE_LOAD: Errore di tipo durante la serializzazione JSON: {e}. ")
         return False
     except Exception as e:
         print(f"ERRORE SAVE_LOAD: Errore imprevisto durante il salvataggio: {e}")
-        # import traceback # Per debug più dettagliato
-        # traceback.print_exc()
         return False
 
 
-def load_game_state(game_state_to_populate, filename=DEFAULT_SAVE_FILENAME, sprite_sheet_manager=None, font=None):
+def load_game_state(game_state_to_populate, filename=None, sprite_sheet_manager=None, font=None):
     """
     Carica lo stato del gioco da un file JSON e popola l'istanza game_state_to_populate.
-    Richiede sprite_sheet_manager e font per ricreare correttamente gli NPC.
     """
-    file_path = get_save_file_path(filename)
+    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
+    file_path = get_save_file_path(actual_filename) # Usa actual_filename
+
     if not os.path.exists(file_path):
-        if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
-            print(f"SAVE_LOAD: File di salvataggio '{file_path}' non trovato. Impossibile caricare.")
+        if DEBUG_SAVE_LOAD:
+            print(f"SAVE_LOAD: File '{file_path}' non trovato. Impossibile caricare.")
         return None 
 
-    if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
+    if DEBUG_SAVE_LOAD:
         print(f"SAVE_LOAD: Tentativo di caricamento partita da {file_path}...")
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             loaded_data = json.load(f)
+    # ... (blocchi except come prima) ...
     except IOError as e:
         print(f"ERRORE SAVE_LOAD: Errore di I/O durante il caricamento: {e}")
         return None
     except json.JSONDecodeError as e:
         print(f"ERRORE SAVE_LOAD: Errore durante il parsing del JSON: {e}. Il file potrebbe essere corrotto.")
         return None
-
+    
     try:
         # Popola l'istanza di GameState (game_state_to_populate)
+        # (La logica di popolamento di GameState che avevamo definito, 
+        #  assicurandoti che usi 'config.' per i valori di default dalle costanti
+        #  e 'Character' per Character.from_dict)
         
-        # Ripristina GameTimeHandler
+        # Esempio per game_time_details
         time_details = loaded_data.get("game_time_details", {})
-        gt_handler = game_state_to_populate.game_time_handler
-        gt_handler.day = time_details.get("day", 1)
-        gt_handler.month = time_details.get("month", 1)
-        gt_handler.year = time_details.get("year", 1)
-        gt_handler.hour = time_details.get("hour", 7) 
-        gt_handler.minute = time_details.get("minute", 0)
-        gt_handler.total_game_seconds_elapsed = time_details.get("total_game_seconds_elapsed", 0.0)
-        # current_period_name verrà ricalcolato da update_time
-        # È cruciale chiamare update_time per ricalcolare current_period, sky_color etc.
-        # Passiamo 0 come dt_simulated per non far avanzare il tempo, ma solo per aggiornare lo stato interno.
-        gt_handler.update_time(0) 
+        if game_state_to_populate.game_time_handler: # Assicurati che esista
+            gt_handler = game_state_to_populate.game_time_handler
+            gt_handler.day = time_details.get("day", 1)
+            gt_handler.month = time_details.get("month", 1)
+            # ... etc ...
+            gt_handler.current_sky_color_index = time_details.get("current_sky_color_index", 0)
+            gt_handler.update_time(0) 
+        else: # Fallback se game_time_handler non è impostato su game_state_to_populate
+            game_state_to_populate.current_game_day = time_details.get("day", loaded_data.get("current_game_day", 1))
+            game_state_to_populate.current_game_month = time_details.get("month", loaded_data.get("current_game_month", 1))
+            game_state_to_populate.current_game_year = time_details.get("year", loaded_data.get("current_game_year", 1))
+            game_state_to_populate.current_game_hour_float = time_details.get("hour", loaded_data.get("current_game_hour_float", config.INITIAL_START_HOUR))
+            game_state_to_populate.current_game_total_sim_hours_elapsed = time_details.get("total_sim_hours", loaded_data.get("current_game_total_sim_hours_elapsed", 0.0))
+
+
+        game_state_to_populate.time_speed_index = loaded_data.get("time_speed_index", 
+                                                                  game_state_to_populate.game_time_handler.default_speed_index if game_state_to_populate.game_time_handler else 0)
+        if game_state_to_populate.game_time_handler:
+            game_state_to_populate.time_speed_multiplier = game_state_to_populate.game_time_handler.time_speeds[game_state_to_populate.time_speed_index]['multiplier']
         
-        # Ripristina l'indice e il colore del cielo esplicitamente se necessario
-        # game_state_to_populate.current_sky_color_index = loaded_data.get("current_sky_color_index", 0) # L'indice è ora in gt_handler
-        gt_handler.current_sky_color_index = loaded_data.get("current_sky_color_index", gt_handler.current_sky_color_index)
-        gt_handler.current_sky_color = gt_handler.sky_colors[gt_handler.current_sky_color_index] # Applica il colore corretto
-
-        # Ripristina velocità di gioco e stato di pausa
-        game_state_to_populate.time_speed_index = loaded_data.get("time_speed_index", gt_handler.default_speed_index)
-        game_state_to_populate.time_speed_multiplier = gt_handler.time_speeds[game_state_to_populate.time_speed_index]['multiplier']
         game_state_to_populate.is_paused_by_player = loaded_data.get("is_paused_by_player", False)
-
-        # Ripristina stato accelerazione sonno
         game_state_to_populate.is_sleep_fast_forward_active = loaded_data.get("is_sleep_fast_forward_active", False)
-        game_state_to_populate.previous_time_speed_index_before_sleep_ff = loaded_data.get(
-            "previous_time_speed_index_before_sleep_ff", 
-            game_state_to_populate.time_speed_index # Default alla velocità corrente se non salvato
+        game_state_to_populate.previous_time_speed_index_before_sleep_ffwd = loaded_data.get( # Corretto nome variabile
+            "previous_time_speed_index_before_sleep_ffwd", 
+            game_state_to_populate.time_speed_index
         )
-
-        # Ripristina timestamp auto-salvataggio
         game_state_to_populate.last_auto_save_time = loaded_data.get("last_auto_save_time", pygame.time.get_ticks())
+        game_state_to_populate.food_visible = loaded_data.get("food_visible", True)
+        game_state_to_populate.food_cooldown_timer = loaded_data.get("food_cooldown_timer", 0.0)
+
+        bed_rect_data = loaded_data.get("bed_rect_data")
+        if bed_rect_data:
+            game_state_to_populate.bed_rect = pygame.Rect(bed_rect_data)
+            # Ricalcola posizioni slot come facevi in main.py o in GameState.populate_from_dict
+            if hasattr(config, 'BED_SLOT_1_INTERACTION_OFFSET'):
+                s1io,s2io = config.BED_SLOT_1_INTERACTION_OFFSET, config.BED_SLOT_2_INTERACTION_OFFSET
+                s1so,s2so = config.BED_SLOT_1_SLEEP_POS_OFFSET, config.BED_SLOT_2_SLEEP_POS_OFFSET
+                game_state_to_populate.bed_slot_1_interaction_pos_world = (game_state_to_populate.bed_rect.left + s1io[0], game_state_to_populate.bed_rect.top + s1io[1])
+                game_state_to_populate.bed_slot_2_interaction_pos_world = (game_state_to_populate.bed_rect.left + s2io[0], game_state_to_populate.bed_rect.top + s2io[1])
+                game_state_to_populate.bed_slot_1_sleep_pos_world = (game_state_to_populate.bed_rect.left + s1so[0], game_state_to_populate.bed_rect.top + s1so[1])
+                game_state_to_populate.bed_slot_2_sleep_pos_world = (game_state_to_populate.bed_rect.left + s2so[0], game_state_to_populate.bed_rect.top + s2so[1])
+        
+        game_state_to_populate.bed_slot_1_occupied_by = loaded_data.get("bed_slot_1_occupied_by")
+        game_state_to_populate.bed_slot_2_occupied_by = loaded_data.get("bed_slot_2_occupied_by")
+
+        toilet_rect_data = loaded_data.get("toilet_rect_data")
+        if toilet_rect_data:
+            game_state_to_populate.toilet_rect_instance = pygame.Rect(toilet_rect_data)
+        elif hasattr(config, 'TOILET_RECT_PARAMS'):
+             params = config.TOILET_RECT_PARAMS
+             game_state_to_populate.toilet_rect_instance = pygame.Rect(params["x"], params["y"], params["w"], params["h"])
 
 
         # Ricrea NPC
-        loaded_npcs_data = loaded_data.get("npcs", [])
-        game_state_to_populate.npcs = []  # Svuota la lista NPC corrente prima di popolarla
+        # Assicurati che sprite_sheet_manager e font siano passati e validi.
+        # E che game_state_to_populate (che è l'istanza di GameState) sia passato a Character.from_dict.
+        loaded_npcs_data = loaded_data.get("npcs", []) # Chiave corretta da save_game_state
+        if hasattr(game_state_to_populate, 'all_npc_characters_list'):
+            game_state_to_populate.all_npc_characters_list = [] 
+            if sprite_sheet_manager and font:
+                for i, npc_data in enumerate(loaded_npcs_data):
+                    try:
+                        character = Character.from_dict(npc_data, sprite_sheet_manager, font, game_state_to_populate)
+                        game_state_to_populate.all_npc_characters_list.append(character)
+                    except Exception as e:
+                        if DEBUG_SAVE_LOAD: print(f"ERRORE SAVE_LOAD: creazione NPC #{i} ('{npc_data.get('name')}'): {e}")
+            elif DEBUG_SAVE_LOAD:
+                print("WARN SAVE_LOAD: sprite_sheet_manager o font mancanti per caricare NPC.")
         
-        if not sprite_sheet_manager:
-            print("ERRORE SAVE_LOAD: sprite_sheet_manager non fornito a load_game_state. Impossibile caricare gli sprite degli NPC.")
-        if not font:
-             print("ERRORE SAVE_LOAD: font non fornito a load_game_state. Testo degli NPC potrebbe non essere corretto.")
-
-        for i, npc_data in enumerate(loaded_npcs_data):
-            try:
-                # Passa game_state_to_populate (che è l'istanza di GameState)
-                # a Character.from_dict per accedere a game_time_handler e altre dipendenze.
-                character = Character.from_dict(npc_data, sprite_sheet_manager, font, game_state_to_populate)
-                game_state_to_populate.npcs.append(character)
-            except Exception as e:
-                print(f"ERRORE SAVE_LOAD: durante la creazione dell'NPC #{i} ('{npc_data.get('name', 'ID Sconosciuto')}') dai dati. Errore: {e}")
-                # import traceback # Per debug
-                # traceback.print_exc()
-                # Potresti decidere di continuare a caricare gli altri NPC o interrompere.
-                # Per ora, continuiamo.
-
-        # TODO: Deserializzare gli oggetti del mondo (game_state.all_objects)
-        # loaded_world_objects_data = loaded_data.get("world_objects", [])
-        # game_state_to_populate.all_objects = [] # Svuota e ripopola
-        # for obj_data in loaded_world_objects_data:
-        #     # Qui avrai bisogno di un modo per determinare il tipo di oggetto e chiamare il suo from_dict
-        #     # Esempio:
-        #     # obj_type = obj_data.get("type")
-        #     # if obj_type == "Bed":
-        #     #    new_obj = Bed.from_dict(obj_data, sprite_sheet_manager)
-        #     #    game_state_to_populate.all_objects.append(new_obj)
-        #     pass
+        if DEBUG_SAVE_LOAD:
+            npc_count = len(game_state_to_populate.all_npc_characters_list) if hasattr(game_state_to_populate, 'all_npc_characters_list') else "N/A (lista NPC non in game_state)"
+            print(f"SAVE_LOAD: Partita caricata. NPC: {npc_count}")
         
-        if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
-            print(f"SAVE_LOAD: Partita caricata con successo da {file_path}. NPC caricati: {len(game_state_to_populate.npcs)}")
-        
-        return game_state_to_populate # Restituisce l'istanza di game_state popolata (anche se è la stessa passata)
+        return game_state_to_populate
 
     except KeyError as e:
         print(f"ERRORE SAVE_LOAD: Chiave mancante nel file di salvataggio: '{e}'. "

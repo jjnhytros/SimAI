@@ -27,6 +27,7 @@ pip-log.txt
 apikeys.py
 simai.db
 simai.db-journal
+ls.txt
 
 # Evita la cartella di build e distribuzione
 dist/

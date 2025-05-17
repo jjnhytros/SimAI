@@ -183,11 +183,14 @@
     * 6. **IA e LLM (Obiettivi a Lungo Termine per SimAI):**
         * a. `[]` (Ricerca Estrema) Agenti NPC potenziati da LLM.
         * b. `[]` (Ricerca) Approccio Ibrido LLM/Regole.
-    * 7. **Persistenza Dati Avanzata (Ispirato da "Database SQLite"):** (vedi XIII.1)
-        * a. `[]` Utilizzare un sistema robusto (es. SQLite) per persistenza NPC dettagliata e stato mondo.
-        * b. `[]` Ogni NPC (e oggetti significativi) con UUID.
-        * c. `[]` Salvare/caricare: tratti, valori, abilità, relazioni, età, gravidanza, storia personale, finanze, inventario, progressi lavorativi/scolastici.
-        * d. `[]` Memorizzare statistiche aggregate di vita per ogni NPC e per la città di Anthalys.
+    * 7. **Persistenza Dati Avanzata con SQLite (Evoluzione di XIV.1):** `[]` `[ELEC]`
+        * a. `[]` **Migrazione da JSON a SQLite:** Pianificare e implementare la transizione dal sistema di salvataggio basato su JSON (implementato in XIV.1) a un database SQLite.
+        * b. `[]` Progettare lo schema del database SQLite per `GameState`, `Character` (con UUID univoco come da V.7.b originale, ora fuso qui), oggetti del mondo dinamici, relazioni, e altre entità persistenti.
+        * c. `[]` Implementare la logica di mapping tra oggetti Python e tabelle SQLite (valutare ORM come SQLAlchemy a lungo termine).
+        * d. `[]` Garantire la retrocompatibilità o un percorso di migrazione per i salvataggi JSON esistenti, se fattibile e desiderato.
+        * e. `[]` Sfruttare le transazioni SQLite per garantire l'atomicità e l'integrità dei salvataggi.
+        * f. `[]` Salvare/caricare in modo strutturato: tratti, valori, abilità, relazioni, età, gravidanza, storia personale, finanze, inventario, progressi lavorativi/scolastici (come da V.7.c originale, ora fuso qui).
+        * g. `[]` Memorizzare statistiche aggregate di vita per ogni NPC e per la città di Anthalys (come da V.7.d originale, ora fuso qui).
 
 **VI. DINAMICHE SOCIALI E RELAZIONALI AVANZATE** (Ex Sezione IV, rinumerata per inserimento Scuola)
     * 1. **Interazioni Sociali:** `[P]`
@@ -272,7 +275,7 @@
     * c. `[]` Piccoli scenari o storie emergenti.
     * d. `[]` Eventi legati a rifiuti, sostenibilità, scuola, lavoro.
 
-**XIV. SISTEMI TECNICI** `[P]` (Ex Sezione XIII)
+**XIV. SISTEMI TECNICI** `[P]`
     * 1. Salvataggio e Caricamento Partita `[]` (**Priorità Alta**) (Includere tutti i nuovi sistemi). `[ELEC]`
     * 2. Opzioni di Gioco e Impostazioni `[]`.
 

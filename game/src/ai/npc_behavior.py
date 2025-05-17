@@ -4,6 +4,7 @@
 
 import math
 import random 
+import asyncio
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.core.diagonal_movement import DiagonalMovement
@@ -11,7 +12,8 @@ import pygame
 import sys 
 
 try:
-    from game import config as game_config
+    from game.src.entities.character import Character
+    from game import config
     from game import game_utils
     from game.main import GameState # Per il type hinting
     # Non importiamo Character direttamente per evitare potenziali import circolari
@@ -19,7 +21,7 @@ except ImportError as e:
     print(f"CRITICAL ERROR (npc_behavior.py): Could not import dependencies: {e}")
     sys.exit()
 
-DEBUG_AI = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
+DEBUG_AI = getattr(config, 'DEBUG_AI_ACTIVE', False)
 
 # --- Funzione Helper per Pathfinding (già esistente) ---
 def _find_walkable_adjacent_target_grid_coords(obj_rect: pygame.Rect, npc_x: float, npc_y: float, grid_matrix_ref: list) -> tuple | None:
@@ -29,15 +31,15 @@ def _find_walkable_adjacent_target_grid_coords(obj_rect: pygame.Rect, npc_x: flo
     potential_targets_grid = []
     if obj_gy_min > 0:
         for gx_candidate in range(obj_gx_min, obj_gx_max + 1): potential_targets_grid.append((gx_candidate, obj_gy_min - 1))
-    if obj_gy_max < game_config.GRID_HEIGHT - 1:
+    if obj_gy_max < config.GRID_HEIGHT - 1:
         for gx_candidate in range(obj_gx_min, obj_gx_max + 1): potential_targets_grid.append((gx_candidate, obj_gy_max + 1))
     if obj_gx_min > 0:
         for gy_candidate in range(obj_gy_min, obj_gy_max + 1): potential_targets_grid.append((obj_gx_min - 1, gy_candidate))
-    if obj_gx_max < game_config.GRID_WIDTH - 1:
+    if obj_gx_max < config.GRID_WIDTH - 1:
         for gy_candidate in range(obj_gy_min, obj_gy_max + 1): potential_targets_grid.append((obj_gx_max + 1, gy_candidate))
     valid_targets_grid_coords = []
     for pt_gx, pt_gy in potential_targets_grid:
-        if (0 <= pt_gy < game_config.GRID_HEIGHT and 0 <= pt_gx < game_config.GRID_WIDTH and grid_matrix_ref[pt_gy][pt_gx] == 1): 
+        if (0 <= pt_gy < config.GRID_HEIGHT and 0 <= pt_gx < config.GRID_WIDTH and grid_matrix_ref[pt_gy][pt_gx] == 1): 
             valid_targets_grid_coords.append((pt_gx, pt_gy))
     if not valid_targets_grid_coords: return None
     npc_gx, npc_gy = game_utils.world_to_grid(npc_x, npc_y)
@@ -45,7 +47,7 @@ def _find_walkable_adjacent_target_grid_coords(obj_rect: pygame.Rect, npc_x: flo
     return valid_targets_grid_coords[0]
 
 # --- Sezione 0: Gestione Azioni Bloccanti/Continue ---
-def _handle_continuous_actions(npc: 'Character', game_state_ref: GameState) -> bool | None:
+def _handle_continuous_actions(npc: 'Character', game_state_ref: 'GameState') -> bool | None:
     """
     Gestisce azioni che bloccano altre decisioni finché non sono completate.
     Restituisce True/False (per food_eaten, anche se attualmente sempre False qui) se l'NPC era in un'azione
@@ -86,14 +88,14 @@ def _handle_continuous_actions(npc: 'Character', game_state_ref: GameState) -> b
         return food_eaten_this_tick
 
     elif npc.current_action in ["romantic_interaction_action", "affectionate_interaction_action"]:
-        if npc.time_in_current_action >= getattr(game_config, 'INTIMACY_INTERACTION_DURATION_HOURS', 1.0):
+        if npc.time_in_current_action >= getattr(config, 'INTIMACY_INTERACTION_DURATION_HOURS', 1.0):
             npc.current_action = "idle"; npc.time_in_current_action = 0.0
             if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Finished intimacy interaction. Action -> idle")
         return food_eaten_this_tick
 
     elif npc.current_action == "using_toilet": 
-        if npc.time_in_current_action >= getattr(game_config, 'TOILET_USE_DURATION_HOURS', 0.25):
-            npc.use_toilet(getattr(game_config, 'BLADDER_RELIEF_AMOUNT', 80)) 
+        if npc.time_in_current_action >= getattr(config, 'TOILET_USE_DURATION_HOURS', 0.25):
+            npc.use_toilet(getattr(config, 'BLADDER_RELIEF_AMOUNT', 80)) 
             npc.current_action = "idle"; npc.time_in_current_action = 0.0
             if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Finished using toilet. Bladder: {npc.bladder.get_value():.0f}. Action -> idle")
         return food_eaten_this_tick
@@ -101,27 +103,27 @@ def _handle_continuous_actions(npc: 'Character', game_state_ref: GameState) -> b
     return None # Nessuna azione bloccante rilevante
 
 # --- Sezione 1: Gestione "Seeking Partner" ---
-def _handle_partner_seeking(npc: 'Character', all_characters_list: list, game_state_ref: GameState) -> bool | None:
+def _handle_partner_seeking(npc: 'Character', all_characters_list: list, game_state_ref: 'GameState') -> bool | None:
     food_eaten_this_tick = False
     if npc.current_action == "seeking_partner":
         if npc.target_partner:
             dist_to_partner = math.sqrt((npc.x - npc.target_partner.x)**2 + (npc.y - npc.target_partner.y)**2)
-            if dist_to_partner < game_config.NPC_PARTNER_INTERACTION_DISTANCE:
+            if dist_to_partner < config.NPC_PARTNER_INTERACTION_DISTANCE:
                 interaction_outcome_action = ""
-                if random.random() < getattr(game_config, 'ROMANTIC_INTERACTION_CHANCE', 0.5): 
-                    npc.satisfy_intimacy_drive(game_config.INTIMACY_SATISFACTION_ROMANTIC) 
-                    if npc.target_partner: npc.target_partner.satisfy_intimacy_drive(game_config.INTIMACY_SATISFACTION_ROMANTIC) 
+                if random.random() < getattr(config, 'ROMANTIC_INTERACTION_CHANCE', 0.5): 
+                    npc.satisfy_intimacy_drive(config.INTIMACY_SATISFACTION_ROMANTIC) 
+                    if npc.target_partner: npc.target_partner.satisfy_intimacy_drive(config.INTIMACY_SATISFACTION_ROMANTIC) 
                     interaction_outcome_action = "romantic_interaction_action" 
                     female_npc = npc if npc.gender=="female" else (npc.target_partner if npc.target_partner and npc.target_partner.gender=="female" else None)
                     if female_npc and not female_npc.is_pregnant:
-                         if random.random() < getattr(game_config, 'PREGNANCY_CHANCE_FEMALE', 0.25):
+                         if random.random() < getattr(config, 'PREGNANCY_CHANCE_FEMALE', 0.25):
                              if hasattr(female_npc, 'become_pregnant'): female_npc.become_pregnant()
                 else:
-                    npc.satisfy_intimacy_drive(game_config.INTIMACY_SATISFACTION_AFFECTIONATE) 
-                    npc.social.satisfy(game_config.SOCIAL_SATISFACTION_AFFECTIONATE)         
+                    npc.satisfy_intimacy_drive(config.INTIMACY_SATISFACTION_AFFECTIONATE) 
+                    npc.social.satisfy(config.SOCIAL_SATISFACTION_AFFECTIONATE)         
                     if npc.target_partner:
-                        npc.target_partner.satisfy_intimacy_drive(game_config.INTIMACY_SATISFACTION_AFFECTIONATE) 
-                        npc.target_partner.social.satisfy(game_config.SOCIAL_SATISFACTION_AFFECTIONATE)       
+                        npc.target_partner.satisfy_intimacy_drive(config.INTIMACY_SATISFACTION_AFFECTIONATE) 
+                        npc.target_partner.social.satisfy(config.SOCIAL_SATISFACTION_AFFECTIONATE)       
                     interaction_outcome_action = "affectionate_interaction_action" 
                 
                 if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Interacted with {npc.target_partner.name if npc.target_partner else 'None'}, outcome: {interaction_outcome_action}")
@@ -140,12 +142,12 @@ def _handle_partner_seeking(npc: 'Character', all_characters_list: list, game_st
     return None
 
 # --- Sezione 2: Interruzione Azioni A* ---
-def _check_and_handle_interruptions(npc: 'Character', current_food_visible: bool, game_state_ref: GameState) -> bool:
+def _check_and_handle_interruptions(npc: 'Character', current_food_visible: bool, game_state_ref: 'GameState') -> bool:
     should_interrupt = False
     action_being_checked = npc.current_action
 
     if action_being_checked == "seeking_food" and \
-       (not current_food_visible or npc.hunger.get_value() <= game_config.NPC_HUNGER_THRESHOLD * 0.5):
+       (not current_food_visible or npc.hunger.get_value() <= config.NPC_HUNGER_THRESHOLD * 0.5):
         should_interrupt = True
     elif action_being_checked.startswith("seeking_bed_slot_"):
         slot_id = int(action_being_checked.split("_")[-1])
@@ -154,11 +156,11 @@ def _check_and_handle_interruptions(npc: 'Character', current_food_visible: bool
             is_my_slot_taken_by_another = True
         elif slot_id == 2 and game_state_ref.bed_slot_2_occupied_by != npc.uuid and game_state_ref.bed_slot_2_occupied_by is not None:
             is_my_slot_taken_by_another = True
-        if npc.energy.get_value() >= game_config.NPC_ENERGY_THRESHOLD * 1.1 or is_my_slot_taken_by_another:
+        if npc.energy.get_value() >= config.NPC_ENERGY_THRESHOLD * 1.1 or is_my_slot_taken_by_another:
             should_interrupt = True
             if DEBUG_AI and is_my_slot_taken_by_another: print(f"AI DEBUG ({npc.name}): Bed slot {slot_id} taken by another. Interrupting.")
     elif action_being_checked == "seeking_toilet" and \
-         npc.bladder.get_value() <= game_config.NPC_BLADDER_THRESHOLD * 0.5:
+         npc.bladder.get_value() <= config.NPC_BLADDER_THRESHOLD * 0.5:
         should_interrupt = True
 
     if should_interrupt:
@@ -175,7 +177,7 @@ def _check_and_handle_interruptions(npc: 'Character', current_food_visible: bool
     return False
 
 # --- Sezione 3: Gestione Arrivo a Destinazione A* ---
-def _handle_arrival_at_destination(npc: 'Character', game_state_ref: GameState, 
+def _handle_arrival_at_destination(npc: 'Character', game_state_ref: 'GameState', 
                                    current_food_visible: bool, food_pos_tuple: tuple,
                                    param_toilet_rect: pygame.Rect | None) -> bool | None:
     food_eaten_this_tick = False
@@ -203,8 +205,8 @@ def _handle_arrival_at_destination(npc: 'Character', game_state_ref: GameState,
 
     elif action_at_arrival == "seeking_food":
         dist_to_food = math.sqrt((npc.x - food_pos_tuple[0])**2 + (npc.y - food_pos_tuple[1])**2)
-        if current_food_visible and dist_to_food < game_config.NPC_EAT_REACH_DISTANCE:
-            npc.eat(game_config.FOOD_VALUE); food_eaten_this_tick = True
+        if current_food_visible and dist_to_food < config.NPC_EAT_REACH_DISTANCE:
+            npc.eat(config.FOOD_VALUE); food_eaten_this_tick = True
             if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Ate food. Hunger: {npc.hunger.get_value():.0f}. Action -> idle")
         else:
             if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Arrived for food, but not visible/too far. Dist: {dist_to_food:.1f}")
@@ -212,8 +214,8 @@ def _handle_arrival_at_destination(npc: 'Character', game_state_ref: GameState,
     elif action_at_arrival == "seeking_toilet" and param_toilet_rect:
         target_center_wc = param_toilet_rect.center 
         dist_to_wc_center = math.sqrt((npc.x - target_center_wc[0])**2 + (npc.y - target_center_wc[1])**2)
-        if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Arrived near Toilet. Dist: {dist_to_wc_center:.1f}, Reach: {game_config.NPC_TOILET_REACH_DISTANCE}")
-        if dist_to_wc_center < game_config.NPC_TOILET_REACH_DISTANCE: 
+        if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Arrived near Toilet. Dist: {dist_to_wc_center:.1f}, Reach: {config.NPC_TOILET_REACH_DISTANCE}")
+        if dist_to_wc_center < config.NPC_TOILET_REACH_DISTANCE: 
             npc.current_action = "using_toilet"; npc.time_in_current_action = 0.0 
             if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Action -> using_toilet")
         else:
@@ -230,7 +232,7 @@ def _handle_arrival_at_destination(npc: 'Character', game_state_ref: GameState,
 # --- Sezione 4: Logica Decisionale (quando Idle) ---
 def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix_ref: list, 
                         current_food_visible: bool, food_pos_tuple: tuple, 
-                        game_state_ref: GameState,
+                        game_state_ref: 'GameState',
                         param_toilet_rect: pygame.Rect | None, 
                         param_fun_object_rect: pygame.Rect | None, 
                         param_shower_rect: pygame.Rect | None):
@@ -238,7 +240,7 @@ def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix
     target_grid_for_astar = None; action_after_astar = "idle"
     bed_rect_obj = game_state_ref.bed_rect
 
-    if npc.energy.get_value() < game_config.NPC_ENERGY_THRESHOLD and bed_rect_obj:
+    if npc.energy.get_value() < config.NPC_ENERGY_THRESHOLD and bed_rect_obj:
         chosen_slot_interaction_pos = None; chosen_slot_id = None
         if game_state_ref.bed_slot_1_occupied_by is None and game_state_ref.bed_slot_1_interaction_pos_world:
             chosen_slot_interaction_pos = game_state_ref.bed_slot_1_interaction_pos_world; chosen_slot_id = 1
@@ -261,7 +263,7 @@ def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix
     # ... (Hygiene, Fun)
 
     if target_grid_for_astar is None: 
-        if npc.intimacy.get_value() > game_config.NPC_INTIMACY_THRESHOLD:
+        if npc.intimacy.get_value() > config.NPC_INTIMACY_THRESHOLD:
             chosen_partner_for_intimacy = None
             for char_candidate in all_characters_list:
                 if char_candidate is not npc: chosen_partner_for_intimacy = char_candidate; break
@@ -269,16 +271,16 @@ def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix
                 npc.target_partner = chosen_partner_for_intimacy; npc.current_action = "seeking_partner"
                 if DEBUG_AI: print(f"AI DEBUG ({npc.name}): Decided -> seeking_partner ({npc.target_partner.name})")
                 return # Azione immediata
-        # elif npc.social.get_value() < game_config.NPC_SOCIAL_THRESHOLD: # Phoning disabilitato
+        # elif npc.social.get_value() < config.NPC_SOCIAL_THRESHOLD: # Phoning disabilitato
             # npc.current_action = "phoning"; return
         else: 
-            if random.random() < getattr(game_config, 'NPC_IDLE_WANDER_CHANCE', 0.02):
-                angle=random.uniform(0,2*math.pi); dist_tiles=random.uniform(game_config.NPC_WANDER_MIN_DIST_TILES,game_config.NPC_WANDER_MAX_DIST_TILES)
-                dist_px=dist_tiles*game_config.TILE_SIZE; wander_tx=npc.x+math.cos(angle)*dist_px; wander_ty=npc.y+math.sin(angle)*dist_px
+            if random.random() < getattr(config, 'NPC_IDLE_WANDER_CHANCE', 0.02):
+                angle=random.uniform(0,2*math.pi); dist_tiles=random.uniform(config.NPC_WANDER_MIN_DIST_TILES,config.NPC_WANDER_MAX_DIST_TILES)
+                dist_px=dist_tiles*config.TILE_SIZE; wander_tx=npc.x+math.cos(angle)*dist_px; wander_ty=npc.y+math.sin(angle)*dist_px
                 half_w=(npc.frame_width/2)if npc.frame_width>0 else 15; half_h=(npc.frame_height/2)if npc.frame_height>0 else 15
-                wander_tx=max(half_w,min(wander_tx,game_config.SCREEN_WIDTH-half_w)); wander_ty=max(half_h,min(wander_ty,game_config.SCREEN_HEIGHT-half_h))
+                wander_tx=max(half_w,min(wander_tx,config.SCREEN_WIDTH-half_w)); wander_ty=max(half_h,min(wander_ty,config.SCREEN_HEIGHT-half_h))
                 wander_gx,wander_gy=game_utils.world_to_grid(wander_tx,wander_ty)
-                if 0<=wander_gy<game_config.GRID_HEIGHT and 0<=wander_gx<game_config.GRID_WIDTH and grid_matrix_ref[wander_gy][wander_gx]==1:
+                if 0<=wander_gy<config.GRID_HEIGHT and 0<=wander_gx<config.GRID_WIDTH and grid_matrix_ref[wander_gy][wander_gx]==1:
                     target_grid_for_astar=(wander_gx,wander_gy); action_after_astar="wandering"
                     if DEBUG_AI:print(f"AI DEBUG ({npc.name}): Decided -> wandering to grid ({wander_gx},{wander_gy})")
 
@@ -288,8 +290,8 @@ def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix
              print(f"AI DEBUG ({npc.name}): Decided -> {action_after_astar} to grid {target_grid_for_astar} (world approx {target_world_pos_for_print})")
         start_gx, start_gy = game_utils.world_to_grid(npc.x, npc.y)
         end_gx, end_gy = target_grid_for_astar[0], target_grid_for_astar[1] 
-        start_walkable = (0 <= start_gy < game_config.GRID_HEIGHT and 0 <= start_gx < game_config.GRID_WIDTH and grid_matrix_ref[start_gy][start_gx] == 1)
-        end_walkable = (0 <= end_gy < game_config.GRID_HEIGHT and 0 <= end_gx < game_config.GRID_WIDTH and grid_matrix_ref[end_gy][end_gx] == 1)
+        start_walkable = (0 <= start_gy < config.GRID_HEIGHT and 0 <= start_gx < config.GRID_WIDTH and grid_matrix_ref[start_gy][start_gx] == 1)
+        end_walkable = (0 <= end_gy < config.GRID_HEIGHT and 0 <= end_gx < config.GRID_WIDTH and grid_matrix_ref[end_gy][end_gx] == 1)
         if start_walkable and end_walkable:
             grid_obj_pf = Grid(matrix=grid_matrix_ref); start_node = grid_obj_pf.node(start_gx, start_gy); end_node = grid_obj_pf.node(end_gx, end_gy)
             finder = AStarFinder(diagonal_movement=DiagonalMovement.always) 
@@ -331,17 +333,18 @@ def _make_idle_decision(npc: 'Character', all_characters_list: list, grid_matrix
     # La funzione run_npc_ai_logic restituirà food_eaten_by_this_npc.
 
 # --- Funzione Principale di Orchestrazione dell'IA (Nuova Struttura) ---
-def run_npc_ai_logic(npc: 'Character', 
-                     all_characters_list: list, 
-                     game_hours_advanced: float, 
-                     grid_matrix_ref: list, 
-                     current_food_visible: bool,
-                     food_pos_tuple: tuple, 
-                     game_state_ref: GameState, 
-                     param_toilet_rect: pygame.Rect | None = None, 
-                     param_fun_object_rect: pygame.Rect | None = None, 
-                     param_shower_rect: pygame.Rect | None = None
-                     ) -> bool:
+def run_npc_ai_logic(
+    character_obj: Character,
+    all_npcs: list[Character],
+    game_hours_tick: float,
+    pf_grid, # Dovrebbe essere la tua istanza di pathfinding_grid
+    food_is_visible: bool,
+    food_coords: tuple,
+    current_game_state: 'GameState', # Type hint come stringa (forward reference)
+    toilet_obj_rect: pygame.Rect | None,
+    fun_obj_info, # Definisci meglio questo tipo
+    shower_obj_info # Definisci meglio questo tipo
+):
     """
     Orchestra la logica IA per un NPC, chiamando funzioni helper per diverse fasi.
     Restituisce True se cibo è stato mangiato, False altrimenti.

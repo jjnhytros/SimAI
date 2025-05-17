@@ -1,280 +1,199 @@
-# simai/game/simai_save_load_system.py
-# MODIFIED: Made save/load debug prints conditional on config.DEBUG_AI_ACTIVE.
-# MODIFIED: Corrected target_partner reconstruction during load.
-# MODIFIED: Added saving/loading of spritesheet filenames.
-
-import sqlite3
+# simai_save_load_system.py
 import json
 import os
-import datetime
-import sys # Aggiunto per sys.exit()
+import pygame # Per Rect, se necessario
+from collections import deque # Per deserializzare self.path in Character
 
-try:
-    from game.src.entities.character import Character
-    from game import config 
-except ImportError as e:
-    print(f"CRITICAL ERROR (SaveLoadSystem): Could not import Character or Config: {e}")
-    # Se questi sono critici, il modulo non può funzionare.
-    # Potresti voler uscire o sollevare l'eccezione.
-    Character = None 
-    config = None 
-    # sys.exit() # Considera se uscire qui se config non è caricabile
+# Importa le classi necessarie (aggiusta i percorsi se la tua struttura è diversa)
+from src.entities.character import Character, NPC_PREGNANCY_DURATION_DAYS, CHARACTER_SPEED # Assumendo che le costanti siano qui o in config
+import config
 
-DB_FILENAME = "simai.db"
-
-# Leggi il flag di debug una volta a livello di modulo se config è disponibile
-# Altrimenti, default a False per non stampare errori durante il tentativo di importazione.
-DEBUG_MESSAGES_ACTIVE = True
-if config: # Verifica se l'import di config è riuscito
-    DEBUG_MESSAGES_ACTIVE = getattr(config, 'DEBUG_AI_ACTIVE', False) # Usa lo stesso flag dell'IA o crea uno dedicato
+# Se GameState è una classe definita altrove (es. in main.py o un game_state.py),
+# dovrai assicurarti che sia importabile o che tu possa accedere ai suoi attributi.
+# Per ora, assumiamo che 'game_state' sia l'oggetto passato alle funzioni.
 
 
-def connect_db(db_name=DB_FILENAME):
-    conn = None
-    try:
-        conn = sqlite3.connect(db_name)
-        conn.execute("PRAGMA foreign_keys = ON;")
-    except sqlite3.Error as e_connect:
-        if DEBUG_MESSAGES_ACTIVE: # Usa il flag qui
-            print(f"DB CONNECTION ERROR: Could not connect to database '{db_name}': {e_connect}")
-        # Considera di sollevare l'eccezione o ritornare None per una gestione più robusta in main.py
-    return conn
+SAVE_GAME_DIR = "saves"  # Cartella per i file di salvataggio
+DEFAULT_SAVE_FILENAME = "anthalys_save.json"
 
-def create_tables_if_not_exist(conn):
-    if not conn: return
-    cursor = conn.cursor()
+def ensure_save_directory_exists():
+    """Assicura che la cartella dei salvataggi (definita in config.py) esista."""
+    if not os.path.exists(config.SAVE_GAME_SAVE_DIR):
+        try:
+            os.makedirs(config.SAVE_GAME_SAVE_DIR)
+            print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' creata.")
+        except OSError as e:
+            print(f"ERRORE: Impossibile creare la cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}': {e}")
+            # Potresti voler sollevare l'eccezione o gestire diversamente
+            raise  # Rilancia l'eccezione per ora
+    else:
+        print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' già esistente.")
+
+
+def get_save_file_path(filename=DEFAULT_SAVE_FILENAME):
+    """Restituisce il percorso completo del file di salvataggio."""
+    return os.path.join(config.SAVE_GAME_SAVE_DIR, filename)
+
+
+def save_game_state(game_state, filename=DEFAULT_SAVE_FILENAME):
+    """Salva lo stato completo del gioco in un file JSON."""
+    ensure_save_directory_exists() # Assicura che la dir esista prima di salvare
+    file_path = get_save_file_path(filename)
     
-    try:
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS GameSaves (
-            save_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            save_name TEXT NOT NULL UNIQUE,
-            timestamp TEXT NOT NULL,
-            current_game_year INTEGER,
-            current_game_month INTEGER,
-            current_game_day INTEGER,
-            current_game_hour_float REAL,
-            current_game_total_sim_hours_elapsed REAL,
-            current_time_speed_index INTEGER,
-            food_visible BOOLEAN,
-            food_cooldown_timer REAL,
-            ui_selected_char_uuid TEXT 
-        )
-        """)
+    if hasattr(game_state, 'DEBUG_AI_ACTIVE') and game_state.DEBUG_AI_ACTIVE:
+        print(f"SAVE_LOAD: Tentativo di salvataggio partita in {file_path}...")
 
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS SavedCharacters (
-            character_uuid TEXT NOT NULL,
-            save_id INTEGER NOT NULL,
-            name TEXT,
-            gender TEXT,
-            x_pos REAL,
-            y_pos REAL,
-            current_action TEXT,
-            target_partner_uuid TEXT, 
-            age_in_total_game_days REAL,
-            is_pregnant BOOLEAN,
-            pregnancy_progress_days REAL,
-            time_in_current_action REAL,
-            spritesheet_filename TEXT,
-            sleep_spritesheet_filename TEXT,
-            PRIMARY KEY (character_uuid, save_id),
-            FOREIGN KEY (save_id) REFERENCES GameSaves (save_id) ON DELETE CASCADE
-        )
-        """)
-
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS SavedCharacterNeeds (
-            need_save_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            character_uuid TEXT NOT NULL,
-            save_id INTEGER NOT NULL,
-            need_name TEXT NOT NULL, 
-            current_value REAL NOT NULL,
-            FOREIGN KEY (character_uuid, save_id) REFERENCES SavedCharacters (character_uuid, save_id) ON DELETE CASCADE,
-            UNIQUE (character_uuid, save_id, need_name)
-        )
-        """)
-        
-        conn.commit()
-        # if DEBUG_MESSAGES_ACTIVE: print("DB INFO: Tables checked/created.") # Meno verboso
-    except sqlite3.Error as e_create:
-        if DEBUG_MESSAGES_ACTIVE:
-            print(f"DB ERROR creating tables: {e_create}")
-
-
-def save_current_game_state(conn, save_name_str, global_state_dict, characters_list):
-    if not conn or Character is None: 
-        if DEBUG_MESSAGES_ACTIVE: print("SAVE ERROR: DB not connected or Character class not available.")
-        return False
-    cursor = conn.cursor()
-    current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_data = {
+        # Stato di GameTimeManager (o l'oggetto che gestisce il tempo in game_state)
+        "game_time_details": {
+            "day": game_state.game_time_handler.day,
+            "month": game_state.game_time_handler.month,
+            "year": game_state.game_time_handler.year,
+            "hour": game_state.game_time_handler.hour,
+            "minute": game_state.game_time_handler.minute,
+            "total_game_seconds_elapsed": game_state.game_time_handler.total_game_seconds_elapsed,
+            "current_period_name": game_state.game_time_handler.current_period_name,
+        },
+        "time_speed_index": game_state.time_speed_index,
+        # "time_speed_multiplier" è derivato, non strettamente necessario salvarlo
+        "current_sky_color_index": game_state.game_time_handler.current_sky_color_index, # Preso da game_time_handler
+        "is_paused_by_player": game_state.is_paused_by_player,
+        "is_sleep_fast_forward_active": game_state.is_sleep_fast_forward_active,
+        "previous_time_speed_index_before_sleep_ff": game_state.previous_time_speed_index_before_sleep_ff,
+        "npcs": [npc.to_dict() for npc in game_state.npcs], # Usa il metodo to_dict di Character
+        # TODO: Aggiungere la serializzazione per gli oggetti del mondo (game_state.all_objects)
+        # "world_objects": [obj.to_dict() for obj in game_state.all_objects if hasattr(obj, 'to_dict')],
+        "last_auto_save_time": game_state.last_auto_save_time, # Salva il timestamp dell'ultimo auto-salvataggio
+        # Aggiungere qui altri stati globali se necessario
+    }
 
     try:
-        with conn:
-            cursor.execute("""
-                INSERT INTO GameSaves (save_name, timestamp, current_game_year, current_game_month, current_game_day,
-                                         current_game_hour_float, current_game_total_sim_hours_elapsed,
-                                         current_time_speed_index, food_visible, food_cooldown_timer,
-                                         ui_selected_char_uuid)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(save_name) DO UPDATE SET
-                    timestamp=excluded.timestamp, current_game_year=excluded.current_game_year,
-                    current_game_month=excluded.current_game_month, current_game_day=excluded.current_game_day,
-                    current_game_hour_float=excluded.current_game_hour_float,
-                    current_game_total_sim_hours_elapsed=excluded.current_game_total_sim_hours_elapsed,
-                    current_time_speed_index=excluded.current_time_speed_index,
-                    food_visible=excluded.food_visible, food_cooldown_timer=excluded.food_cooldown_timer,
-                    ui_selected_char_uuid=excluded.ui_selected_char_uuid
-            """, (save_name_str, current_timestamp, 
-                  global_state_dict['year'], global_state_dict['month'], global_state_dict['day'],
-                  global_state_dict['hour_float'], global_state_dict['total_sim_hours'],
-                  global_state_dict['speed_index'], global_state_dict['food_visible'],
-                  global_state_dict['food_cooldown'], global_state_dict['selected_char_uuid']))
-            
-            cursor.execute("SELECT save_id FROM GameSaves WHERE save_name = ?", (save_name_str,))
-            result = cursor.fetchone()
-            if not result: 
-                if DEBUG_MESSAGES_ACTIVE: print("DB ERROR: Could not retrieve save_id after insert/update.")
-                return False
-            current_save_id = result[0]
-
-            cursor.execute("DELETE FROM SavedCharacterNeeds WHERE save_id = ?", (current_save_id,))
-            cursor.execute("DELETE FROM SavedCharacters WHERE save_id = ?", (current_save_id,))
-
-            for char_obj in characters_list:
-                char_data_to_save = char_obj.to_dict()
-                
-                cursor.execute("""
-                    INSERT INTO SavedCharacters 
-                        (character_uuid, save_id, name, gender, x_pos, y_pos, current_action, 
-                         target_partner_uuid, age_in_total_game_days, is_pregnant, 
-                         pregnancy_progress_days, time_in_current_action,
-                         spritesheet_filename, sleep_spritesheet_filename)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (char_obj.uuid, current_save_id, char_obj.name, char_obj.gender, 
-                      char_obj.x, char_obj.y, char_obj.current_action,
-                      char_data_to_save.get('target_partner_uuid'), 
-                      char_obj.age_in_total_game_days, char_obj.is_pregnant, 
-                      char_obj.pregnancy_progress_days, char_obj.time_in_current_action,
-                      char_data_to_save.get('spritesheet_filename'),
-                      char_data_to_save.get('sleep_spritesheet_filename')))
-
-                for need_key, need_data_dict in char_data_to_save.get("needs", {}).items():
-                    cursor.execute("""
-                        INSERT INTO SavedCharacterNeeds 
-                            (character_uuid, save_id, need_name, current_value)
-                        VALUES (?, ?, ?, ?)
-                    """, (char_obj.uuid, current_save_id, need_key, need_data_dict.get("current_value")))
-            
-        if DEBUG_MESSAGES_ACTIVE: print(f"DB INFO: Game '{save_name_str}' saved with ID: {current_save_id}")
+        with open(file_path, 'w', encoding='utf-8') as f: # Specificare encoding='utf-8' è una buona pratica
+            json.dump(save_data, f, indent=4, ensure_ascii=False)
+        if hasattr(game_state, 'DEBUG_AI_ACTIVE') and game_state.DEBUG_AI_ACTIVE:
+            print(f"SAVE_LOAD: Partita salvata con successo in {file_path}")
         return True
-    except sqlite3.Error as e:
-        if DEBUG_MESSAGES_ACTIVE: print(f"DB ERROR during save '{save_name_str}': {e}")
+    except IOError as e:
+        print(f"ERRORE SAVE_LOAD: Errore di I/O durante il salvataggio: {e}")
         return False
-    except Exception as ex_save:
-        if DEBUG_MESSAGES_ACTIVE: print(f"GENERIC ERROR during save '{save_name_str}': {ex_save}")
+    except TypeError as e:
+        print(f"ERRORE SAVE_LOAD: Errore di tipo durante la serializzazione JSON: {e}. "
+              "Verifica i metodi to_dict() e che restituiscano tipi serializzabili.")
+        return False
+    except Exception as e:
+        print(f"ERRORE SAVE_LOAD: Errore imprevisto durante il salvataggio: {e}")
+        # import traceback # Per debug più dettagliato
+        # traceback.print_exc()
         return False
 
-def get_available_save_slots(conn):
-    if not conn: return []
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT save_id, save_name, timestamp FROM GameSaves ORDER BY timestamp DESC")
-        return cursor.fetchall()
-    except sqlite3.Error as e:
-        if DEBUG_MESSAGES_ACTIVE: print(f"DB ERROR reading save list: {e}")
-        return []
 
-def load_game_state_from_db(conn, save_id_to_load):
-    if not conn or Character is None or config is None:
-        if DEBUG_MESSAGES_ACTIVE: print("LOAD ERROR: DB not connected or Character/Config not available.")
-        return None, None
-        
-    cursor = conn.cursor()
-    loaded_game_globals = {}
-    recreated_characters_list = []
-    raw_character_data_for_linking = []
+def load_game_state(game_state_to_populate, filename=DEFAULT_SAVE_FILENAME, sprite_sheet_manager=None, font=None):
+    """
+    Carica lo stato del gioco da un file JSON e popola l'istanza game_state_to_populate.
+    Richiede sprite_sheet_manager e font per ricreare correttamente gli NPC.
+    """
+    file_path = get_save_file_path(filename)
+    if not os.path.exists(file_path):
+        if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
+            print(f"SAVE_LOAD: File di salvataggio '{file_path}' non trovato. Impossibile caricare.")
+        return None 
+
+    if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
+        print(f"SAVE_LOAD: Tentativo di caricamento partita da {file_path}...")
 
     try:
-        cursor.execute("SELECT * FROM GameSaves WHERE save_id = ?", (save_id_to_load,))
-        gs_row_tuple = cursor.fetchone()
-        if not gs_row_tuple: 
-            if DEBUG_MESSAGES_ACTIVE: print(f"DB ERROR: Save ID {save_id_to_load} not found.")
-            return None, None
+        with open(file_path, 'r', encoding='utf-8') as f:
+            loaded_data = json.load(f)
+    except IOError as e:
+        print(f"ERRORE SAVE_LOAD: Errore di I/O durante il caricamento: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"ERRORE SAVE_LOAD: Errore durante il parsing del JSON: {e}. Il file potrebbe essere corrotto.")
+        return None
+
+    try:
+        # Popola l'istanza di GameState (game_state_to_populate)
         
-        gs_cols = [desc[0] for desc in cursor.description]
-        gs_data = dict(zip(gs_cols, gs_row_tuple))
-
-        loaded_game_globals = {
-            "save_name": gs_data["save_name"], "timestamp": gs_data["timestamp"], 
-            "year": gs_data["current_game_year"], "month": gs_data["current_game_month"], 
-            "day": gs_data["current_game_day"], "hour_float": gs_data["current_game_hour_float"], 
-            "total_sim_hours": gs_data["current_game_total_sim_hours_elapsed"],
-            "speed_index": gs_data["current_time_speed_index"], 
-            "food_visible": bool(gs_data["food_visible"]), 
-            "food_cooldown": gs_data["food_cooldown_timer"],
-            "selected_char_uuid": gs_data["ui_selected_char_uuid"]
-        }
-
-        cursor.execute("SELECT * FROM SavedCharacters WHERE save_id = ?", (save_id_to_load,))
-        char_cols_desc = [desc[0] for desc in cursor.description]
-        temp_char_map_by_uuid = {} 
-        all_char_rows = cursor.fetchall()
+        # Ripristina GameTimeHandler
+        time_details = loaded_data.get("game_time_details", {})
+        gt_handler = game_state_to_populate.game_time_handler
+        gt_handler.day = time_details.get("day", 1)
+        gt_handler.month = time_details.get("month", 1)
+        gt_handler.year = time_details.get("year", 1)
+        gt_handler.hour = time_details.get("hour", 7) 
+        gt_handler.minute = time_details.get("minute", 0)
+        gt_handler.total_game_seconds_elapsed = time_details.get("total_game_seconds_elapsed", 0.0)
+        # current_period_name verrà ricalcolato da update_time
+        # È cruciale chiamare update_time per ricalcolare current_period, sky_color etc.
+        # Passiamo 0 come dt_simulated per non far avanzare il tempo, ma solo per aggiornare lo stato interno.
+        gt_handler.update_time(0) 
         
-        for char_row_tuple in all_char_rows:
-            char_data_from_db = dict(zip(char_cols_desc, char_row_tuple))
-            raw_character_data_for_linking.append(char_data_from_db)
+        # Ripristina l'indice e il colore del cielo esplicitamente se necessario
+        # game_state_to_populate.current_sky_color_index = loaded_data.get("current_sky_color_index", 0) # L'indice è ora in gt_handler
+        gt_handler.current_sky_color_index = loaded_data.get("current_sky_color_index", gt_handler.current_sky_color_index)
+        gt_handler.current_sky_color = gt_handler.sky_colors[gt_handler.current_sky_color_index] # Applica il colore corretto
 
-            char_data_for_from_dict = {
-                "uuid": char_data_from_db["character_uuid"], "name": char_data_from_db["name"], 
-                "gender": char_data_from_db["gender"], "x": char_data_from_db["x_pos"], "y": char_data_from_db["y_pos"],
-                "current_action": char_data_from_db["current_action"],
-                "age_in_total_game_days": char_data_from_db["age_in_total_game_days"], 
-                "is_pregnant": bool(char_data_from_db["is_pregnant"]),
-                "pregnancy_progress_days": char_data_from_db["pregnancy_progress_days"], 
-                "time_in_current_action": char_data_from_db["time_in_current_action"],
-                "spritesheet_filename": char_data_from_db.get("spritesheet_filename"),
-                "sleep_spritesheet_filename": char_data_from_db.get("sleep_spritesheet_filename"),
-                "needs": {}
-            }
-            
-            cursor.execute("SELECT need_name, current_value FROM SavedCharacterNeeds WHERE character_uuid = ? AND save_id = ?",
-                           (char_data_from_db["character_uuid"], save_id_to_load))
-            for need_name_db, current_val_db in cursor.fetchall():
-                char_data_for_from_dict["needs"][need_name_db.lower()] = {"current_value": current_val_db}
-            
-            char_r_load = min(15, getattr(config, 'TILE_SIZE', 32)//2-2)
-            speed_load = getattr(config, 'NPC_SPEED', 80)
-            color_load = getattr(config, 'NPC_ALPHA_COLOR_MALE', (100,149,237)) # Fallback
-            
-            new_char_obj = Character.from_data(
-                char_data_for_from_dict, 
-                fallback_color=color_load,
-                fallback_radius=char_r_load,
-                speed=speed_load
-            )
-            recreated_characters_list.append(new_char_obj)
-            temp_char_map_by_uuid[new_char_obj.uuid] = new_char_obj
+        # Ripristina velocità di gioco e stato di pausa
+        game_state_to_populate.time_speed_index = loaded_data.get("time_speed_index", gt_handler.default_speed_index)
+        game_state_to_populate.time_speed_multiplier = gt_handler.time_speeds[game_state_to_populate.time_speed_index]['multiplier']
+        game_state_to_populate.is_paused_by_player = loaded_data.get("is_paused_by_player", False)
+
+        # Ripristina stato accelerazione sonno
+        game_state_to_populate.is_sleep_fast_forward_active = loaded_data.get("is_sleep_fast_forward_active", False)
+        game_state_to_populate.previous_time_speed_index_before_sleep_ff = loaded_data.get(
+            "previous_time_speed_index_before_sleep_ff", 
+            game_state_to_populate.time_speed_index # Default alla velocità corrente se non salvato
+        )
+
+        # Ripristina timestamp auto-salvataggio
+        game_state_to_populate.last_auto_save_time = loaded_data.get("last_auto_save_time", pygame.time.get_ticks())
+
+
+        # Ricrea NPC
+        loaded_npcs_data = loaded_data.get("npcs", [])
+        game_state_to_populate.npcs = []  # Svuota la lista NPC corrente prima di popolarla
         
-        for char_obj in recreated_characters_list:
-            original_data_for_this_char = next(
-                (raw_data for raw_data in raw_character_data_for_linking if raw_data["character_uuid"] == char_obj.uuid), None
-            )
-            if original_data_for_this_char:
-                target_uuid = original_data_for_this_char.get("target_partner_uuid")
-                if target_uuid:
-                    partner_obj = temp_char_map_by_uuid.get(target_uuid)
-                    if partner_obj:
-                        char_obj.target_partner = partner_obj
-                    elif DEBUG_MESSAGES_ACTIVE:
-                        print(f"LOAD WARNING: Partner UUID {target_uuid} for {char_obj.name} not found in current load batch.")
-            
-        if DEBUG_MESSAGES_ACTIVE: print(f"DB INFO: Game '{loaded_game_globals['save_name']}' (ID: {save_id_to_load}) loaded.")
-        return loaded_game_globals, recreated_characters_list
+        if not sprite_sheet_manager:
+            print("ERRORE SAVE_LOAD: sprite_sheet_manager non fornito a load_game_state. Impossibile caricare gli sprite degli NPC.")
+        if not font:
+             print("ERRORE SAVE_LOAD: font non fornito a load_game_state. Testo degli NPC potrebbe non essere corretto.")
 
-    except sqlite3.Error as e:
-        if DEBUG_MESSAGES_ACTIVE: print(f"DB ERROR during load of save ID {save_id_to_load}: {e}")
-        return None, None
-    except Exception as ex_gen:
-        if DEBUG_MESSAGES_ACTIVE: print(f"GENERIC ERROR during load: {ex_gen}")
-        return None, None
+        for i, npc_data in enumerate(loaded_npcs_data):
+            try:
+                # Passa game_state_to_populate (che è l'istanza di GameState)
+                # a Character.from_dict per accedere a game_time_handler e altre dipendenze.
+                character = Character.from_dict(npc_data, sprite_sheet_manager, font, game_state_to_populate)
+                game_state_to_populate.npcs.append(character)
+            except Exception as e:
+                print(f"ERRORE SAVE_LOAD: durante la creazione dell'NPC #{i} ('{npc_data.get('name', 'ID Sconosciuto')}') dai dati. Errore: {e}")
+                # import traceback # Per debug
+                # traceback.print_exc()
+                # Potresti decidere di continuare a caricare gli altri NPC o interrompere.
+                # Per ora, continuiamo.
+
+        # TODO: Deserializzare gli oggetti del mondo (game_state.all_objects)
+        # loaded_world_objects_data = loaded_data.get("world_objects", [])
+        # game_state_to_populate.all_objects = [] # Svuota e ripopola
+        # for obj_data in loaded_world_objects_data:
+        #     # Qui avrai bisogno di un modo per determinare il tipo di oggetto e chiamare il suo from_dict
+        #     # Esempio:
+        #     # obj_type = obj_data.get("type")
+        #     # if obj_type == "Bed":
+        #     #    new_obj = Bed.from_dict(obj_data, sprite_sheet_manager)
+        #     #    game_state_to_populate.all_objects.append(new_obj)
+        #     pass
+        
+        if hasattr(game_state_to_populate, 'DEBUG_AI_ACTIVE') and game_state_to_populate.DEBUG_AI_ACTIVE:
+            print(f"SAVE_LOAD: Partita caricata con successo da {file_path}. NPC caricati: {len(game_state_to_populate.npcs)}")
+        
+        return game_state_to_populate # Restituisce l'istanza di game_state popolata (anche se è la stessa passata)
+
+    except KeyError as e:
+        print(f"ERRORE SAVE_LOAD: Chiave mancante nel file di salvataggio: '{e}'. "
+              "Il file potrebbe essere corrotto, di una vecchia versione, o un errore nel metodo to_dict/from_dict.")
+        return None
+    except Exception as e:
+        print(f"ERRORE SAVE_LOAD: Errore imprevisto durante il caricamento dei dati: {e}")
+        # import traceback
+        # traceback.print_exc()
+        return None

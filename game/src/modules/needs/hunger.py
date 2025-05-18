@@ -16,19 +16,15 @@ except ImportError as e:
 DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
 
 class Hunger(BaseNeed):
-    def __init__(self, character_owner, max_value, 
-                 initial_min_percentage, initial_max_percentage, 
-                 base_rate, rate_multipliers):
-        super().__init__(
-            character_owner=character_owner,
-            max_value=max_value,
-            initial_min_percentage=initial_min_percentage,
-            initial_max_percentage=initial_max_percentage,
-            base_rate=base_rate,
-            rate_multipliers=rate_multipliers,
-            high_is_good=getattr(game_config, 'HUNGER_HIGH_IS_GOOD', False), 
-            name="Hunger"
-        )
+    def __init__(self, character_owner, max_value: float, 
+                 initial_min_percentage: float, initial_max_percentage: float, 
+                 base_rate: float, rate_multipliers: dict,
+                 high_is_good: bool): # <<<< Deve accettare high_is_good
+        super().__init__(character_owner, max_value, 
+                         initial_min_percentage, initial_max_percentage, 
+                         base_rate, rate_multipliers, 
+                         high_is_good,
+                         name="Hunger")
         if DEBUG_VERBOSE:
             owner_name = "UnknownChar"
             if hasattr(self.character_owner, 'name'): owner_name = self.character_owner.name

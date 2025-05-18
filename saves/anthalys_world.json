@@ -1,0 +1,22 @@
+{
+    "anthalys_core_version": "0.3.0",
+    "anthalys_full_version": "0.3.0+20250519000504",
+    "save_timestamp_utc": "2025-05-18T22:05:06.733769",
+    "current_game_total_sim_hours_elapsed": 0.012416666666666657,
+    "is_paused_by_player": false,
+    "current_time_speed_index": 2,
+    "previous_time_speed_index_before_sleep_ffwd": 2,
+    "is_sleep_fast_forward_active": false,
+    "last_auto_save_time_ticks": 248,
+    "bed_slot_1_occupied_by_uuid": null,
+    "bed_slot_2_occupied_by_uuid": null,
+    "time_manager_data": {
+        "total_game_seconds_elapsed": 25244.700000000066,
+        "year": 1,
+        "month": 1,
+        "day": 1,
+        "hour": 7,
+        "minute": 0
+    },
+    "all_npcs_character_data": []
+}

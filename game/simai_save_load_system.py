@@ -3,7 +3,10 @@ import json
 import os
 import sys
 import pygame 
+import logging
+import datetime
 from collections import deque
+from typing import TYPE_CHECKING, Optional, List, Dict, Any, Tuple # <-- AGGIUNGI/COMPLETA QUESTO
 
 # Importa dal package 'game'
 # Importa 'config' a livello di modulo così è accessibile ovunque in questo file
@@ -37,101 +40,120 @@ def ensure_save_directory_exists():
             raise 
     else:
         if DEBUG_SAVE_LOAD:
-            print(f"Cartella di salvataggio '{config.SAVE_GAME_SAVE_DIR}' già esistente.")
+            print(f"Cartella di salvataggio '{config.SAVE_GAME_DIR}' già esistente.")
 
 
-def get_save_file_path(filename=None): # filename può essere None per usare il default
-    """Restituisce il percorso completo del file di salvataggio."""
-    # Usa config.DEFAULT_SAVE_FILENAME se filename non è fornito
-    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
-    return os.path.join(config.SAVE_GAME_DIR, actual_filename)
+def get_save_file_path(filename_to_load: str) -> str: # Assicurati che il parametro sia usato
+    if not isinstance(filename_to_load, str): # Aggiungi un controllo per debug
+        logging.error(f"GET_SAVE_FILE_PATH: filename_to_load NON è una stringa! Ricevuto: {type(filename_to_load)} - {filename_to_load}")
+        # Fallback o solleva un errore più specifico
+        filename_to_load = config.DEFAULT_SAVE_FILENAME 
+
+    save_dir = getattr(config, 'SAVE_GAME_DIR', 'saves') # Usa getattr per un fallback
+    if not os.path.exists(save_dir): # Assicurati che la directory base esista, anche se ensure_save_directory_exists lo fa per il salvataggio
+        try:
+            os.makedirs(save_dir)
+            logging.info(f"SAVE_LOAD: Creata directory di salvataggio: {save_dir}")
+        except OSError as e:
+            logging.error(f"SAVE_LOAD: Impossibile creare directory di salvataggio {save_dir}: {e}")
+            # Potrebbe essere meglio sollevare l'errore o avere un percorso di fallback
+    return os.path.join(save_dir, filename_to_load)
 
 
-def save_game_state(game_state, filename=None): # filename può essere None
-    """Salva lo stato completo del gioco in un file JSON."""
-    ensure_save_directory_exists() 
-    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
-    file_path = get_save_file_path(actual_filename) # Usa actual_filename
-    
-    if DEBUG_SAVE_LOAD: # Usa la variabile definita a livello di modulo
-        print(f"SAVE_LOAD: Tentativo di salvataggio partita in {file_path}...")
+def save_game_state(game_state: 'GameState', filename: str = config.DEFAULT_SAVE_FILENAME):
+    """Salva lo stato corrente del gioco su un file JSON."""
+    if not game_state:
+        logging.error("SAVE_LOAD: Tentativo di salvare un game_state nullo.")
+        return
 
-    # ... (il resto della funzione save_game_state rimane come prima, 
-    #      ma assicurati che usi 'config.NOME_COSTANTE' quando accedi alle costanti,
-    #      e 'Character' come nome importato) ...
-    # Esempio:
-    save_data = {
-        "game_time_details": {
-            "day": game_state.game_time_handler.day,
-            "month": game_state.game_time_handler.month,
-            # ... etc.
-            "current_sky_color_index": game_state.game_time_handler.current_sky_color_index,
-        },
-        "time_speed_index": game_state.time_speed_index,
-        "is_paused_by_player": game_state.is_paused_by_player,
-        "is_sleep_fast_forward_active": game_state.is_sleep_fast_forward_active,
-        "previous_time_speed_index_before_sleep_ff": game_state.previous_time_speed_index_before_sleep_ff,
-        "npcs": [npc.to_dict() for npc in game_state.all_npc_characters_list], # Assumendo che la lista sia in game_state
-        "last_auto_save_time": game_state.last_auto_save_time,
-        # Aggiungi qui il salvataggio degli attributi diretti di GameState che erano nel tuo JSON originale
-        "current_game_hour_float": game_state.current_game_hour_float, # Se non coperto da game_time_details
-        "current_game_day": game_state.current_game_day,
-        "current_game_month": game_state.current_game_month,
-        "current_game_year": game_state.current_game_year,
+    logging.info(f"SAVE_LOAD: Inizio salvataggio partita su '{filename}'...")
+    ensure_save_directory_exists() # Assicura che la cartella 'saves' esista
+
+    # Dati dal GameTimeManager (se esiste)
+    time_data_to_save = {}
+    if game_state.game_time_handler and hasattr(game_state.game_time_handler, 'to_dict'):
+        time_data_to_save = game_state.game_time_handler.to_dict()
+
+    # Dati degli NPC
+    npcs_data_to_save = []
+    if game_state.all_npc_characters_list:
+        for npc_obj in game_state.all_npc_characters_list:
+            if hasattr(npc_obj, 'to_dict'):
+                npcs_data_to_save.append(npc_obj.to_dict())
+            else:
+                logging.warning(f"SAVE_LOAD: NPC '{npc_obj.name if hasattr(npc_obj, 'name') else 'Sconosciuto'}' non ha metodo to_dict().")
+
+    # Dati principali del GameState
+    game_data_to_save = {
+        "anthalys_core_version": config.CORE_VERSION,
+        "anthalys_full_version": config.FULL_VERSION_INTERNAL,
+        "save_timestamp_utc": datetime.datetime.utcnow().isoformat(),
+
+        # Attributi diretti di GameState (quelli che hai definito in GameState.__init__)
         "current_game_total_sim_hours_elapsed": game_state.current_game_total_sim_hours_elapsed,
-        "food_visible": game_state.food_visible,
-        "food_cooldown_timer": game_state.food_cooldown_timer,
-        "bed_rect_data": [game_state.bed_rect.x, game_state.bed_rect.y, game_state.bed_rect.width, game_state.bed_rect.height] if game_state.bed_rect else None,
-        "bed_slot_1_occupied_by": game_state.bed_slot_1_occupied_by,
-        "bed_slot_2_occupied_by": game_state.bed_slot_2_occupied_by,
-        # Non salvare bed_slot_X_interaction_pos_world e bed_slot_X_sleep_pos_world perché sono derivati
-        "toilet_rect_data": [game_state.toilet_rect_instance.x, game_state.toilet_rect_instance.y, game_state.toilet_rect_instance.width, game_state.toilet_rect_instance.height] if game_state.toilet_rect_instance else None,
+        "is_paused_by_player": game_state.is_paused_by_player,
+
+        # Usa il nome attributo corretto per l'indice di velocità
+        "current_time_speed_index": game_state.current_time_speed_index, # <-- CORRETTO
+
+        "previous_time_speed_index_before_sleep_ffwd": game_state.previous_time_speed_index_before_sleep_ffwd,
+        "is_sleep_fast_forward_active": game_state.is_sleep_fast_forward_active,
+        "last_auto_save_time_ticks": game_state.last_auto_save_time, # Salva i ticks
+
+        # Dati oggetti del mondo (letto, bagno, ecc. - lo stato, non la definizione)
+        "bed_slot_1_occupied_by_uuid": game_state.bed_slot_1_occupied_by,
+        "bed_slot_2_occupied_by_uuid": game_state.bed_slot_2_occupied_by,
+        # Aggiungi qui altri stati di oggetti del mondo che devono essere salvati
+        # es. "food_visible": game_state.food_visible, "food_cooldown_timer": game_state.food_cooldown_timer
+
+        # Dati aggregati
+        "time_manager_data": time_data_to_save,
+        "all_npcs_character_data": npcs_data_to_save,
+        # Potresti voler salvare anche gli inventari domestici
+        # "household_inventories_data": {hid: inv.to_dict() for hid, inv in game_state.household_inventories.items()}
     }
 
+    save_file_path = get_save_file_path(filename)
+    try:
+        with open(save_file_path, 'w') as f:
+            json.dump(game_data_to_save, f, indent=4)
+        logging.info(f"SAVE_LOAD: Partita salvata con successo in '{save_file_path}'.")
+    except IOError as e:
+        logging.error(f"SAVE_LOAD: Errore di I/O durante il salvataggio in '{save_file_path}': {e}")
+    except TypeError as e:
+        logging.error(f"SAVE_LOAD: Errore di tipo durante la serializzazione JSON per '{save_file_path}': {e}. Controlla che tutti i dati siano serializzabili.")
+    except Exception as e:
+        logging.exception(f"SAVE_LOAD: Errore imprevisto durante il salvataggio in '{save_file_path}': {e}")
+
+
+def load_game_state(game_state_to_populate: 'GameState',
+                    sprite_sheet_manager_param: Optional['SpriteSheetManager'],
+                    font_param: Optional[pygame.font.Font],
+                    character_manager_param: Optional['CharacterManager'],
+                    filename: str = config.DEFAULT_SAVE_FILENAME) -> bool: # 'filename' è il parametro corretto
+
+    logging.info(f"SAVE_LOAD: Tentativo di caricamento partita da '{filename}'...")
+
+    # >>> USA IL PARAMETRO 'filename' QUI <<<
+    load_file_path = get_save_file_path(filename) # Passa il parametro 'filename'
+
+    if not os.path.exists(load_file_path):
+        logging.info(f"SAVE_LOAD: File di salvataggio '{load_file_path}' non trovato. Nessuna partita caricata.")
+        return False # Indica che nessun file è stato caricato (per main.py per avviare una nuova partita)
 
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(save_data, f, indent=4, ensure_ascii=False)
-        if DEBUG_SAVE_LOAD:
-            print(f"SAVE_LOAD: Partita salvata con successo in {file_path}")
-        return True
-    # ... (blocchi except come prima) ...
-    except IOError as e:
-        print(f"ERRORE SAVE_LOAD: Errore di I/O durante il salvataggio: {e}")
+        with open(load_file_path, 'r') as f:
+            loaded_data = json.load(f)
+        logging.info(f"SAVE_LOAD: Dati caricati con successo da '{load_file_path}'.")
+    except FileNotFoundError: # Dovrebbe essere già gestito da os.path.exists, ma per sicurezza
+        logging.info(f"SAVE_LOAD: File di salvataggio '{load_file_path}' non trovato (FileNotFoundError).")
         return False
-    except TypeError as e:
-        print(f"ERRORE SAVE_LOAD: Errore di tipo durante la serializzazione JSON: {e}. ")
+    except json.JSONDecodeError as e:
+        logging.error(f"SAVE_LOAD: Errore nel decodificare JSON da '{load_file_path}': {e}")
         return False
     except Exception as e:
-        print(f"ERRORE SAVE_LOAD: Errore imprevisto durante il salvataggio: {e}")
+        logging.error(f"SAVE_LOAD: Errore imprevisto durante il caricamento di '{load_file_path}': {e}", exc_info=True)
         return False
-
-
-def load_game_state(game_state_to_populate, filename=None, sprite_sheet_manager=None, font=None):
-    """
-    Carica lo stato del gioco da un file JSON e popola l'istanza game_state_to_populate.
-    """
-    actual_filename = filename if filename is not None else config.DEFAULT_SAVE_FILENAME
-    file_path = get_save_file_path(actual_filename) # Usa actual_filename
-
-    if not os.path.exists(file_path):
-        if DEBUG_SAVE_LOAD:
-            print(f"SAVE_LOAD: File '{file_path}' non trovato. Impossibile caricare.")
-        return None 
-
-    if DEBUG_SAVE_LOAD:
-        print(f"SAVE_LOAD: Tentativo di caricamento partita da {file_path}...")
-
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            loaded_data = json.load(f)
-    # ... (blocchi except come prima) ...
-    except IOError as e:
-        print(f"ERRORE SAVE_LOAD: Errore di I/O durante il caricamento: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"ERRORE SAVE_LOAD: Errore durante il parsing del JSON: {e}. Il file potrebbe essere corrotto.")
-        return None
     
     try:
         # Popola l'istanza di GameState (game_state_to_populate)

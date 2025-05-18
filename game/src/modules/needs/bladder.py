@@ -16,17 +16,14 @@ except ImportError as e:
 DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
 
 class Bladder(BaseNeed):
-    def __init__(self, character_owner, max_value, 
-                 initial_min_percentage, initial_max_percentage, 
-                 base_fill_rate, fill_multipliers):
-        super().__init__(
-            character_owner=character_owner,
-            max_value=max_value,
-            initial_min_percentage=initial_min_percentage,
-            initial_max_percentage=initial_max_percentage,
-            base_rate=base_fill_rate,
-            rate_multipliers=fill_multipliers,
-            high_is_good=getattr(game_config, 'BLADDER_HIGH_IS_GOOD', False),
+    def __init__(self, character_owner, max_value: float, 
+                 initial_min_percentage: float, initial_max_percentage: float, 
+                 base_rate: float, rate_multipliers: dict,
+                 high_is_good: bool): # <<<< Deve accettare high_is_good
+        super().__init__(character_owner, max_value, 
+                         initial_min_percentage, initial_max_percentage, 
+                         base_rate, rate_multipliers, 
+                         high_is_good,
             name="Bladder"
         )
         if DEBUG_VERBOSE:

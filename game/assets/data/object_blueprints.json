@@ -57,7 +57,7 @@
         "num_slots": 2,
         "provides_need": {
             "energy": 10
-        } // Esempio: quanto riposo dà per ora
+        }
     },
     "toilet_standard": {
         "display_name": "WC Standard",
@@ -97,7 +97,6 @@
         ],
         "satisfies_need": {
             "bladder": 100
-        } // Esempio: quanto bisogno soddisfa
+        }
     }
-    // ... altri tipi di oggetti
 }

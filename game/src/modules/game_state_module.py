@@ -22,7 +22,8 @@ class GameState:
         self.current_time_speed_index: int = 0 
         self.previous_time_speed_index_before_sleep_ffwd: int = 0 
         self.is_sleep_fast_forward_active: bool = False 
-        self.current_game_total_sim_hours_elapsed: float = 0.0 
+        self.is_paused_by_player: bool = False # Inizializza lo stato di pausa manuale
+        self.current_game_total_sim_hours_elapsed: float = 0.0
         self.current_game_hour_float: float = config.INITIAL_START_HOUR # Da config
         self.current_game_day: int = 1
         self.current_game_month: int = 1 
@@ -30,6 +31,7 @@ class GameState:
         self.food_visible: bool = True 
         self.food_cooldown_timer: float = 0.0 
 
+        # Per il letto
         self.bed_rect: Optional[pygame.Rect] = None
         self.bed_images: Dict[str, Optional[pygame.Surface]] = {"base": None, "cover": None}
         self.bed_slot_1_occupied_by: Optional[str] = None 
@@ -39,7 +41,10 @@ class GameState:
         self.bed_slot_1_sleep_pos_world: Optional[Tuple[int, int]] = None
         self.bed_slot_2_sleep_pos_world: Optional[Tuple[int, int]] = None
 
+        # Per il bagno
         self.toilet_rect_instance: Optional[pygame.Rect] = None
+        self.toilet_interaction_point_world: Optional[Tuple[int, int]] = None
+        self.toilet_sit_point_world: Optional[Tuple[int, int]] = None # Dove l'NPC si siede visivamente
 
         # Attributi aggiunti per una gestione più centralizzata dello stato,
         # questi verranno inizializzati in main.py dopo la creazione dell'istanza di GameState.

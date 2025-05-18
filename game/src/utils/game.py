@@ -1,619 +1,603 @@
-# simai/game/game_utils.py
-# MODIFIED: Moved interpolate_color and get_need_bar_color definition before their first call.
-# MODIFIED: Removed ConfigPlaceholder; critical config import now causes sys.exit().
-# MODIFIED: Made debug/warning prints conditional on config.DEBUG_AI_ACTIVE.
-
+# game/src/utils/game.py
 import pygame
-import json
 import os
+import json
+import random
 import math
-import random 
-import pygame_gui 
-import sys 
-from collections import deque # Importa deque se lo usi per find_path_to_target
-from typing import Optional
+import heapq
+import logging
+from typing import List, Optional, Tuple, Dict, Any, TYPE_CHECKING
+from collections import deque
 
-try:
-    from game import config 
-except ImportError as e:
-    print(f"CRITICAL ERROR (game_utils.py): Could not import 'game.config': {e}")
-    print("Ensure 'game.config' is accessible. SimAI cannot run without its configuration.")
-    sys.exit()
+import pygame_gui # Importa pygame_gui
 
+# Importa dal package 'game'
+from game import config
+
+if TYPE_CHECKING:
+    from game.src.entities.character import Character
+    from game.src.modules.game_state_module import GameState
+    from pygame_gui.core import UIElement
+    from pygame_gui.elements import UIPanel, UITextBox, UIButton # Aggiungi UIButton
+
+logger = logging.getLogger(__name__)
 DEBUG_VERBOSE = getattr(config, 'DEBUG_AI_ACTIVE', False)
 
-try:
-    import cairosvg
-    from io import BytesIO 
-    CAIROSVG_AVAILABLE = True
-except ImportError:
-    if DEBUG_VERBOSE: print("WARNING (game_utils.py): Library 'cairosvg' not found. SVG file loading will fail.")
-    CAIROSVG_AVAILABLE = False
+# --- Costanti per UI (definite qui o meglio in config.py) ---
+NEEDS_BAR_WIDTH = getattr(config, 'UI_NEEDS_BAR_WIDTH', 100)
+NEEDS_BAR_HEIGHT = getattr(config, 'UI_NEEDS_BAR_HEIGHT', 15)
+NEEDS_BAR_PADDING_Y = getattr(config, 'UI_NEEDS_BAR_PADDING_Y', 3)
+NEEDS_BAR_PADDING_X = getattr(config, 'UI_NEEDS_BAR_PADDING_X', 5)
+ICON_TEXT_SPACING = getattr(config, 'UI_ICON_TEXT_SPACING', 3)
 
-OBJECT_BLUEPRINTS_DATA = {}
+# Mappa per visualizzazione bisogni - 'icon_char_config_key' per Unicode
+NEED_DISPLAY_ORDER_AND_INFO = [
+    {"attr": "hunger",   "icon_key_for_map": "hunger_icon",   "icon_char_config_key": "ICON_CHAR_HUNGER",   "label": "Fame",   "color_config_key": "HUNGER_BAR_COLOR",   "fallback_color": getattr(config,"RED",(255,0,0)),    "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "energy",   "icon_key_for_map": "energy_icon",   "icon_char_config_key": "ICON_CHAR_ENERGY",   "label": "Energia","color_config_key": "ENERGY_BAR_COLOR",   "fallback_color": getattr(config,"BLUE",(0,0,255)),   "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "social",   "icon_key_for_map": "social_icon",   "icon_char_config_key": "ICON_CHAR_SOCIAL",   "label": "Social", "color_config_key": "SOCIAL_BAR_COLOR",   "fallback_color": getattr(config,"GREEN",(0,255,0)),  "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "bladder",  "icon_key_for_map": "bladder_icon",  "icon_char_config_key": "ICON_CHAR_BLADDER",  "label": "Vescica","color_config_key": "BLADDER_BAR_COLOR",  "fallback_color": getattr(config,"YELLOW",(255,255,0)), "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "fun",      "icon_key_for_map": "fun_icon",      "icon_char_config_key": "ICON_CHAR_FUN",      "label": "Divert.","color_config_key": "FUN_BAR_COLOR",      "fallback_color": getattr(config,"ORANGE",(255,165,0)), "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "hygiene",  "icon_key_for_map": "hygiene_icon",  "icon_char_config_key": "ICON_CHAR_HYGIENE",  "label": "Igiene", "color_config_key": "HYGIENE_BAR_COLOR",  "fallback_color": getattr(config,"CYAN",(0,255,255)),   "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+    {"attr": "intimacy", "icon_key_for_map": "intimacy_icon", "icon_char_config_key": "ICON_CHAR_INTIMACY", "label": "Intim.", "color_config_key": "INTIMACY_BAR_COLOR", "fallback_color": getattr(config,"PINK",(255,192,203)),   "show_label": getattr(config, "UI_SHOW_NEED_LABEL_TEXT", False)},
+]
 
-def load_object_blueprints(filename="object_blueprints.json"):
-    global OBJECT_BLUEPRINTS_DATA
-    # Costruisci il percorso corretto per il file JSON
-    # Assumendo che la directory 'data' sia dentro 'assets'
-    data_path = os.path.join(config.BASE_ASSET_PATH, "data", filename)
-    try:
-        with open(data_path, 'r', encoding='utf-8') as f:
-            OBJECT_BLUEPRINTS_DATA = json.load(f)
-        if getattr(config, 'DEBUG_AI_ACTIVE', False): # Usa config per il flag di debug
-            print(f"OBJECTS: Caricati {len(OBJECT_BLUEPRINTS_DATA)} blueprint di oggetti da {data_path}")
-    except FileNotFoundError:
-        print(f"ERRORE OGGETTI: File blueprint '{data_path}' non trovato.")
-        OBJECT_BLUEPRINTS_DATA = {} # Resetta se il file non è trovato
-    except json.JSONDecodeError as e:
-        print(f"ERRORE OGGETTI: Errore nel parsing del JSON '{data_path}': {e}")
-        OBJECT_BLUEPRINTS_DATA = {}
-    except Exception as e:
-        print(f"ERRORE OGGETTI: Errore imprevisto durante il caricamento dei blueprint: {e}")
-        OBJECT_BLUEPRINTS_DATA = {}
-    return OBJECT_BLUEPRINTS_DATA # Restituisci i dati caricati
+OBJECT_BLUEPRINTS_DATA: Dict[str, Any] = {}
 
-# Potresti voler una funzione per accedere ai dati
-def get_object_blueprint(type_key):
-    return OBJECT_BLUEPRINTS_DATA.get(type_key)
-
-def load_image(filename_with_ext: str, target_size: tuple = None, base_path: str = "."):
-    full_path = os.path.join(base_path, filename_with_ext)
-    if not os.path.exists(full_path):
-        if DEBUG_VERBOSE: print(f"LOAD_IMAGE WARNING: Image file NOT FOUND at '{full_path}'")
-        return None
-    try:
-        image_surface = None
-        if filename_with_ext.lower().endswith(".svg"):
-            if CAIROSVG_AVAILABLE:
-                out_w = target_size[0] if target_size and target_size[0] is not None else None
-                out_h = target_size[1] if target_size and target_size[1] is not None else None
-                png_data = cairosvg.svg2png(url=full_path, output_width=out_w, output_height=out_h)
-                png_file_like_object = BytesIO(png_data)
-                image_surface = pygame.image.load(png_file_like_object, filename_with_ext)
-            else:
-                if DEBUG_VERBOSE: print(f"LOAD_IMAGE ERROR: 'cairosvg' not available for SVG: {filename_with_ext}.")
-                return None
-        else: 
-            image_surface = pygame.image.load(full_path)
-        
-        if image_surface:
-            if image_surface.get_alpha() is not None:
-                 image_surface = image_surface.convert_alpha()
-            else:
-                 image_surface = image_surface.convert()
-            if target_size and (image_surface.get_width() != target_size[0] or image_surface.get_height() != target_size[1]):
-                image_surface = pygame.transform.smoothscale(image_surface, target_size)
-        return image_surface
-    except Exception as e: 
-        if DEBUG_VERBOSE: print(f"LOAD_IMAGE ERROR loading '{filename_with_ext}' from '{full_path}': {e}")
-        return None
-
-def load_all_game_assets():
-    loaded_icons_map = {}
-    icon_size_time_btn = (30, 30); icon_size_prd = (28, 28); icon_size_nd = (22, 22)
-    placeholder_sfc = pygame.Surface(icon_size_nd, pygame.SRCALPHA)
-    pygame.draw.circle(placeholder_sfc, (100,100,100), (icon_size_nd[0]//2, icon_size_nd[1]//2), icon_size_nd[0]//2 - 1)
-    if hasattr(config, 'RED'):
-        pygame.draw.line(placeholder_sfc, config.RED, (3,3), (icon_size_nd[0]-3, icon_size_nd[1]-3), 1)
-        pygame.draw.line(placeholder_sfc, config.RED, (3,icon_size_nd[1]-3), (icon_size_nd[0]-3, 3), 1)
-    
-    icon_files_cfg_map = {
-        "pause":"pause-circle.svg", "speed_1":"1-circle.svg", "speed_2":"2-circle.svg", "speed_3":"3-circle.svg",
-        "speed_4":"4-circle.svg", "speed_5":"5-circle.svg", "dawn":"sunrise.svg", "noon":"sun.svg",
-        "sunset":"sunset.svg", "night":"moon.svg", "bladder":"toilet.svg", "hunger":"hunger.svg",
-        "energy":"battery-charging.svg", "fun":"fun.svg", "social":"social.svg", "hygiene":"shower.svg",
-        "intimacy": "intimacy.svg"}
-    icon_sizes_cfg_map = {n: icon_size_nd for n in ["bladder","hunger","energy","fun","social","hygiene","intimacy"]}
-    icon_sizes_cfg_map.update({n: icon_size_time_btn for n in ["pause","speed_1","speed_2","speed_3","speed_4","speed_5"]})
-    icon_sizes_cfg_map.update({n: icon_size_prd for n in ["dawn","noon","sunset","night"]})
-    
-    for name, filename in icon_files_cfg_map.items():
-        size = icon_sizes_cfg_map.get(name, icon_size_nd)
-        loaded_icons_map[name] = load_image(filename, size, base_path=config.ICON_PATH)
-        if loaded_icons_map[name] is None: loaded_icons_map[name] = placeholder_sfc
-    
-    speed_control_icons = [loaded_icons_map.get(s) for s in ["pause","speed_1","speed_2","speed_3","speed_4","speed_5"]]
-    need_bar_icon_size_val = loaded_icons_map.get("hunger").get_size() if loaded_icons_map.get("hunger") else (22,22)
-    
-    game_bed_parts = {"base": None, "cover": None, "full_spritesheet_for_debug": None} 
-    bed_spritesheet_filename = "double-blue.png" 
-    bed_spritesheet_path = getattr(config, 'FURNITURE_IMAGE_PATH', os.path.join(getattr(config, 'IMAGE_PATH', 'assets/images'), 'furnitures'))
-    full_bed_spritesheet_surf = load_image(bed_spritesheet_filename, None, base_path=bed_spritesheet_path)
-    game_bed_parts["full_spritesheet_for_debug"] = full_bed_spritesheet_surf
-
-    if full_bed_spritesheet_surf:
-        base_coords = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0, 0, 64, 81)) 
-        base_surf = pygame.Surface((base_coords[2], base_coords[3]), pygame.SRCALPHA)
-        base_surf.blit(full_bed_spritesheet_surf, (0,0), base_coords)
-        game_bed_parts["base"] = base_surf
-
-        cover_coords = getattr(config, 'BED_SPRITESHEET_COVER_RECT_COORDS', (0, 106, 64, 22))
-        cover_surf = pygame.Surface((cover_coords[2], cover_coords[3]), pygame.SRCALPHA)
-        cover_surf.blit(full_bed_spritesheet_surf, (0,0), cover_coords)
-        game_bed_parts["cover"] = cover_surf
-    else:
-        if DEBUG_VERBOSE: print(f"GAME_UTILS WARNING: Bed spritesheet '{bed_spritesheet_filename}' not loaded. Using fallback color.")
-        placeholder_base_w = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[2]
-        placeholder_base_h = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[3]
-        placeholder_base = pygame.Surface((placeholder_base_w, placeholder_base_h), pygame.SRCALPHA)
-        placeholder_base.fill(getattr(config,'BED_COLOR_FALLBACK',(100,70,30)))
-        game_bed_parts["base"] = placeholder_base
-    
-    return loaded_icons_map, speed_control_icons, game_bed_parts, need_bar_icon_size_val
-
-def setup_pathfinding_grid(list_of_obstacle_rects: list) -> list:
-    path_grid = [[1 for _ in range(config.GRID_WIDTH)] for _ in range(config.GRID_HEIGHT)]
-    if list_of_obstacle_rects:
-        for rect_obj_instance in list_of_obstacle_rects:
-            if rect_obj_instance is None: continue
-            start_gx, start_gy = world_to_grid(rect_obj_instance.left, rect_obj_instance.top) 
-            end_gx, end_gy = world_to_grid(rect_obj_instance.right - 1, rect_obj_instance.bottom - 1) 
-            for gy_idx in range(start_gy, end_gy + 1):
-                for gx_idx in range(start_gx, end_gx + 1):
-                    if 0 <= gx_idx < config.GRID_WIDTH and 0 <= gy_idx < config.GRID_HEIGHT:
-                        path_grid[gy_idx][gx_idx] = 0 
-    return path_grid
-
-def setup_gui_elements(ui_manager_param: pygame_gui.UIManager, 
-                       character_list_param: list, 
-                       initial_selected_idx_param: int, 
-                       icon_size_time_button_tuple_param: tuple, 
-                       panel_height_param: int, 
-                       screen_width_param: int, 
-                       screen_height_param: int 
-                       ) -> dict:
-    gui_elems = {} 
-    gui_elems['bottom_panel'] = pygame_gui.elements.UIPanel(
-        relative_rect=pygame.Rect((0, screen_height_param - panel_height_param), 
-                                  (screen_width_param, panel_height_param)), 
-        manager=ui_manager_param,
-        object_id="@bottom_panel"
-    )
-    btn_w, btn_h = icon_size_time_button_tuple_param[0], icon_size_time_button_tuple_param[1]
-    btn_m = 5 
-    time_ctrl_y = screen_height_param - panel_height_param - btn_h - btn_m 
-    time_btn_rects_list = []
-    current_x_button = btn_m 
-    for _ in range(6): 
-        rect = pygame.Rect(current_x_button, time_ctrl_y, btn_w, btn_h)
-        time_btn_rects_list.append(rect)
-        current_x_button += btn_w + btn_m
-    gui_elems['time_button_rects'] = time_btn_rects_list
-    time_label_x_start = current_x_button + 10 
-    time_label_width = screen_width_param - time_label_x_start - btn_m 
-    gui_elems['time_label'] = pygame_gui.elements.UILabel(
-        relative_rect=pygame.Rect((time_label_x_start, time_ctrl_y), (time_label_width, btn_h)),
-        text="Loading...", 
-        manager=ui_manager_param, 
-        object_id="#time_label"
-    )
-    panel_margin_local = 10 
-    char_info_width_local = screen_width_param // 3 
-    gui_elems['char_status_label'] = pygame_gui.elements.UILabel(
-        relative_rect=pygame.Rect(
-            (panel_margin_local, panel_margin_local), 
-            (char_info_width_local - panel_margin_local * 2, 30)
-        ),
-        text=f"Displaying: {character_list_param[initial_selected_idx_param].name} (Space)", 
-        manager=ui_manager_param,
-        container=gui_elems['bottom_panel'] 
-    )
-    gui_elems['action_label'] = pygame_gui.elements.UILabel(
-        relative_rect=pygame.Rect(
-            (panel_margin_local, gui_elems['char_status_label'].relative_rect.bottom + 5),
-            (char_info_width_local - panel_margin_local * 2, 30)
-        ),
-        text="",
-        manager=ui_manager_param,
-        container=gui_elems['bottom_panel']
-    )
-    gui_elems['pregnancy_label'] = pygame_gui.elements.UILabel(
-        relative_rect=pygame.Rect(
-            (panel_margin_local, gui_elems['action_label'].relative_rect.bottom + 5),
-            (char_info_width_local - panel_margin_local * 2, 30)
-        ),
-        text="", 
-        manager=ui_manager_param, 
-        container=gui_elems['bottom_panel'],
-        visible=False 
-    )
-    gui_elems['needs_bar_area_x_in_panel'] = panel_margin_local + char_info_width_local + 10 
-    gui_elems['needs_bar_area_y_in_panel'] = panel_margin_local + 5
-    return gui_elems
-
-# --- Funzioni di utility per colori e tempo ---
-def interpolate_color(color1: tuple, color2: tuple, factor: float) -> tuple:
-    """Linearly interpolates between two RGB colors."""
-    factor = max(0.0, min(1.0, factor))
-    r = int(color1[0] * (1.0 - factor) + color2[0] * factor)
-    g = int(color1[1] * (1.0 - factor) + color2[1] * factor)
-    b = int(color1[2] * (1.0 - factor) + color2[2] * factor)
-    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
-
-def get_need_bar_color(goodness_factor): 
-    if goodness_factor < 0.25: 
-        return interpolate_color(config.NEED_COLOR_VERY_BAD, config.NEED_COLOR_BAD, goodness_factor / 0.25)
-    elif goodness_factor < 0.5: 
-        return interpolate_color(config.NEED_COLOR_BAD, config.NEED_COLOR_MEDIUM, (goodness_factor - 0.25) / 0.25)
-    elif goodness_factor < 0.75: 
-        return interpolate_color(config.NEED_COLOR_MEDIUM, config.NEED_COLOR_OKAY, (goodness_factor - 0.5) / 0.25)
-    else: 
-        return interpolate_color(config.NEED_COLOR_OKAY, config.NEED_COLOR_GOOD, (goodness_factor - 0.75) / 0.25)
-
-def get_sky_color_and_period_info(precise_game_hour: float) -> tuple:
-    hour_for_sky_color = precise_game_hour % getattr(config, 'GAME_HOURS_IN_DAY', 28)
-    sky_keyframes_list = getattr(config, 'SKY_KEYFRAMES', [])
-    if not sky_keyframes_list or len(sky_keyframes_list) < 2:
-        default_sky_color = (135, 206, 235) 
-        default_period_name = "Daytime" 
-        default_ui_text_color = getattr(config, 'TEXT_COLOR_DARK', (0,0,0))
-        if DEBUG_VERBOSE: print(f"GAME_UTILS WARNING (get_sky_color): SKY_KEYFRAMES not properly defined in config. Using defaults.")
-        return default_sky_color, default_period_name, default_ui_text_color
-    
-    current_sky_color = sky_keyframes_list[0][1] 
-    for i in range(len(sky_keyframes_list)):
-        h1, c1 = sky_keyframes_list[i]
-        if i == len(sky_keyframes_list) - 1: 
-            if hour_for_sky_color >= h1: current_sky_color = c1
-            break 
-        h2, c2 = sky_keyframes_list[i+1]
-        if h1 <= hour_for_sky_color < h2:
-            segment_duration = h2 - h1
-            if segment_duration <= 0: current_sky_color = c1
-            else:
-                time_into_segment = hour_for_sky_color - h1
-                interpolation_factor = time_into_segment / segment_duration
-                current_sky_color = interpolate_color(c1, c2, interpolation_factor) # Chiamata corretta ora
-            break 
-            
-    current_game_hour_int = int(precise_game_hour) % getattr(config, 'GAME_HOURS_IN_DAY', 28)
-    period_name = "Night" 
-    if 7 <= current_game_hour_int < 12: period_name = "Morning"
-    elif 12 <= current_game_hour_int < 18: period_name = "Afternoon"
-    elif 18 <= current_game_hour_int < 22: period_name = "Evening"
-    brightness = (current_sky_color[0]*0.299 + current_sky_color[1]*0.587 + current_sky_color[2]*0.114)
-    ui_text_color = getattr(config, 'TEXT_COLOR_DARK', (0,0,0)) if brightness > 140 \
-                    else getattr(config, 'TEXT_COLOR_LIGHT', (255,255,255))
-    return current_sky_color, period_name, ui_text_color
-
-def world_to_grid(world_x: float, world_y: float) -> tuple:
-    tile_s = getattr(config, 'TILE_SIZE', 32)
-    grid_w = getattr(config, 'GRID_WIDTH', 1024 // tile_s if tile_s > 0 else 32) 
-    grid_h = getattr(config, 'GRID_HEIGHT', 768 // tile_s if tile_s > 0 else 24) 
-    if tile_s <= 0: 
-        if DEBUG_VERBOSE: print("GAME_UTILS ERROR (world_to_grid): TILE_SIZE is invalid (<=0). Returning (0,0).")
-        return (0, 0) 
-    grid_x = int(world_x // tile_s)
-    grid_y = int(world_y // tile_s)
-    grid_x = max(0, min(grid_w - 1, grid_x)) 
-    grid_y = max(0, min(grid_h - 1, grid_y)) 
-    return grid_x, grid_y
-
-def grid_to_world_center(grid_x: int, grid_y: int) -> tuple:
-    tile_s = getattr(config, 'TILE_SIZE', 32)
-    world_x = grid_x * tile_s + tile_s / 2.0 
-    world_y = grid_y * tile_s + tile_s / 2.0
-    return world_x, world_y
-
-def update_game_time_state(
-    time_delta_seconds: float, 
-    current_speed_idx: int,
-    current_total_sim_hours_elapsed_val: float,
-    current_hour_float_val: float, 
-    current_day_val: int,
-    current_month_val: int,
-    current_year_val: int
-) -> tuple:
-    hours_advanced_this_frame = 0.0
-    if current_speed_idx > 0:
-        seconds_per_game_hour = config.TIME_SPEED_SETTINGS[current_speed_idx]
-        if seconds_per_game_hour > 0 and seconds_per_game_hour != float('inf'):
-            hours_advanced_this_frame = time_delta_seconds / seconds_per_game_hour
-    new_total_sim_hours = current_total_sim_hours_elapsed_val
-    new_hour_float = current_hour_float_val 
-    new_day = current_day_val
-    new_month = current_month_val
-    new_year = current_year_val
-    if hours_advanced_this_frame > 0:
-        new_total_sim_hours = current_total_sim_hours_elapsed_val + hours_advanced_this_frame
-        total_hours_from_epoch = config.INITIAL_START_HOUR + new_total_sim_hours
-        new_hour_float = total_hours_from_epoch % config.GAME_HOURS_IN_DAY
-        total_days_passed_from_epoch = int(total_hours_from_epoch / config.GAME_HOURS_IN_DAY)
-        new_year = 1 + total_days_passed_from_epoch // config.GAME_DAYS_PER_YEAR
-        days_into_this_year = total_days_passed_from_epoch % config.GAME_DAYS_PER_YEAR
-        new_month = 1 + days_into_this_year // config.DAYS_PER_MONTH
-        new_day = 1 + days_into_this_year % config.DAYS_PER_MONTH
-    return (hours_advanced_this_frame, int(new_hour_float), 
-            new_day, new_month, new_year, 
-            new_total_sim_hours, new_hour_float)
-
-def draw_all_manual_ui_elements(screen_surface: pygame.Surface, loaded_icons_map: dict, 
-                                speed_button_icons: list, current_selected_speed_idx: int, 
-                                time_label_gui_obj: pygame_gui.elements.UILabel, current_day_period_name: str, 
-                                selected_character_to_display: 'Character', 
-                                bottom_panel_gui_obj: pygame_gui.elements.UIPanel, 
-                                needs_bars_start_x_in_panel: int, needs_bars_start_y_in_panel: int, 
-                                ui_current_text_color: tuple, default_ui_font: pygame.font.Font, 
-                                time_control_buttons_rect_list: list, need_icon_dimensions: tuple):
-    if time_control_buttons_rect_list and speed_button_icons:
-        for idx, button_r in enumerate(time_control_buttons_rect_list):
-            if idx < len(speed_button_icons) and speed_button_icons[idx]: screen_surface.blit(speed_button_icons[idx], button_r.topleft)
-            if idx == current_selected_speed_idx: 
-                pygame.draw.rect(screen_surface, (255,255,0), button_r, 2)
-    
-    period_icon_name_map = {"Morning":"dawn","Afternoon":"noon","Evening":"sunset","Night":"night"}
-    period_icon_surface = loaded_icons_map.get(period_icon_name_map.get(current_day_period_name))
-
-    if period_icon_surface and time_label_gui_obj: 
-        period_icon_r = period_icon_surface.get_rect(centery=time_label_gui_obj.rect.centery)
-        period_icon_r.right = time_label_gui_obj.rect.left - 5
-        screen_surface.blit(period_icon_surface, period_icon_r)
-
-    if selected_character_to_display and bottom_panel_gui_obj and \
-       needs_bars_start_x_in_panel is not None and needs_bars_start_y_in_panel is not None:
-        
-        bar_max_width = 100; bar_height = 15; bar_vertical_spacing = 5 
-        icon_w, icon_h = need_icon_dimensions
-        col1_x_abs_screen = bottom_panel_gui_obj.rect.left + needs_bars_start_x_in_panel
-        bar_start_y_abs_screen = bottom_panel_gui_obj.rect.top + needs_bars_start_y_in_panel
-        col_h_space_between = icon_w + 5 + bar_max_width + 15
-
-        needs_display_data_list = [
-            ("Bladder", "bladder", selected_character_to_display.bladder), ("Hunger", "hunger", selected_character_to_display.hunger), 
-            ("Energy", "energy", selected_character_to_display.energy),("Fun", "fun", selected_character_to_display.fun), 
-            ("Social", "social", selected_character_to_display.social), ("Hygiene", "hygiene", selected_character_to_display.hygiene),
-            ("Intimacy", "intimacy", selected_character_to_display.intimacy)
-        ]
-        cols_layout_data = [needs_display_data_list[0:3], needs_display_data_list[3:6], needs_display_data_list[6:7]]
-        current_col_x_to_draw_at = col1_x_abs_screen
-        for col_idx_val, needs_in_this_col in enumerate(cols_layout_data):
-            current_need_y_to_draw_at = bar_start_y_abs_screen
-            if col_idx_val == 0: current_col_x_to_draw_at = col1_x_abs_screen
-            elif col_idx_val == 1: current_col_x_to_draw_at = col1_x_abs_screen + col_h_space_between
-            elif col_idx_val == 2: current_col_x_to_draw_at = col1_x_abs_screen + 2 * col_h_space_between
-            for _, icon_key_name, need_instance in needs_in_this_col:
-                if not need_instance: continue
-                icon_surf = loaded_icons_map.get(icon_key_name)
-                color_goodness_factor = need_instance.get_goodness_factor()
-                bar_actual_color = get_need_bar_color(color_goodness_factor)
-                icon_display_rect=pygame.Rect(current_col_x_to_draw_at, current_need_y_to_draw_at + (bar_height - icon_h) // 2, icon_w, icon_h)
-                if icon_surf: screen_surface.blit(icon_surf, icon_display_rect.topleft)
-                bar_draw_start_x = icon_display_rect.right + 5
-                bar_fill_rect = pygame.Rect(bar_draw_start_x, current_need_y_to_draw_at, bar_max_width, bar_height)
-                pygame.draw.rect(screen_surface, bar_actual_color, bar_fill_rect)
-                border_rect = pygame.Rect(bar_draw_start_x, current_need_y_to_draw_at, bar_max_width, bar_height)
-                pygame.draw.rect(screen_surface, config.NEED_BAR_BORDER_COLOR, border_rect, 1)
-                current_need_y_to_draw_at += bar_height + bar_vertical_spacing
-
-def occupy_bed_slot_for_character(game_state: 'GameState', character: 'Character', slot_index: int) -> bool:
-    """Tenta di occupare uno slot del letto per il personaggio."""
-    if slot_index == 0 and not game_state.bed_slot_1_occupied_by:
-        game_state.bed_slot_1_occupied_by = character.uuid
-        character.bed_object_id = "main_bed" # o l'ID corretto del letto
-        character.bed_slot_index = 0
-        if DEBUG_VERBOSE: print(f"UTILS: {character.name} occupied bed slot 0.")
-        return True
-    elif slot_index == 1 and not game_state.bed_slot_2_occupied_by:
-        game_state.bed_slot_2_occupied_by = character.uuid
-        character.bed_object_id = "main_bed"
-        character.bed_slot_index = 1
-        if DEBUG_VERBOSE: print(f"UTILS: {character.name} occupied bed slot 1.")
-        return True
-    if DEBUG_VERBOSE: print(f"UTILS WARN: {character.name} failed to occupy bed slot {slot_index}.")
-    return False
-def print_debug_grid(grid_map_data, start_pos_grid=None, end_pos_grid=None):
-    if not grid_map_data or not grid_map_data[0]:
-        print("DEBUG GRID: Mappa vuota o non valida.")
-        return
-    print("\n--- GRIGLIA DI PATHFINDING (DEBUG) ---")
-    for r_idx, row in enumerate(grid_map_data):
-        row_str = []
-        for c_idx, cell in enumerate(row):
-            char_to_print = str(cell)
-            if start_pos_grid and start_pos_grid == (c_idx, r_idx):
-                char_to_print = "S" # Start
-            elif end_pos_grid and end_pos_grid == (c_idx, r_idx):
-                char_to_print = "E" # End
-            elif cell == 0:
-                char_to_print = "#" # Ostacolo
-            else:
-                char_to_print = "." # Calpestabile
-            row_str.append(char_to_print)
-        print(" ".join(row_str))
-    print("--- FINE GRIGLIA ---")
-
-def free_bed_slot_for_character(game_state: 'GameState', character: 'Character'):
-    """Libera lo slot del letto precedentemente occupato dal personaggio."""
-    if character.bed_object_id == "main_bed": # Controlla se era effettivamente su questo letto
-        if character.bed_slot_index == 0 and game_state.bed_slot_1_occupied_by == character.uuid:
-            game_state.bed_slot_1_occupied_by = None
-            if DEBUG_VERBOSE: print(f"UTILS: {character.name} freed bed slot 0.")
-        elif character.bed_slot_index == 1 and game_state.bed_slot_2_occupied_by == character.uuid:
-            game_state.bed_slot_2_occupied_by = None
-            if DEBUG_VERBOSE: print(f"UTILS: {character.name} freed bed slot 1.")
-    character.bed_object_id = None
-    character.bed_slot_index = -1 # o None
-    character.is_on_bed = False
-
-def is_close_to_point(point1: tuple[float, float], point2: tuple[float, float], tolerance: float) -> bool:
-    """Controlla se due punti sono vicini entro una certa tolleranza."""
-    if point1 is None or point2 is None:
-        return False
-    distance_sq = (point1[0] - point2[0])**2 + (point1[1] - point2[1])**2
-    return distance_sq <= tolerance**2
-
-def are_coords_equal(coord1: Optional[tuple[int, int]], coord2: Optional[tuple[int, int]], tolerance: float = 1.0) -> bool:
-    """Controlla se due coordinate (tuple) sono uguali entro una piccola tolleranza."""
-    if coord1 is None or coord2 is None:
-        return coord1 == coord2 # Entrambi None sono considerati uguali, uno None e l'altro no -> diversi
-    return math.isclose(coord1[0], coord2[0], abs_tol=tolerance) and \
-           math.isclose(coord1[1], coord2[1], abs_tol=tolerance)
 class AStarNode:
-    """Nodo per l'algoritmo A*."""
-    def __init__(self, parent=None, position=None):
-        self.parent = parent
-        self.position = position # Tupla (x, y) in coordinate della GRIGLIA
-        self.g = 0 # Costo dal nodo di partenza al nodo corrente
-        self.h = 0 # Costo stimato (euristica) dal nodo corrente al nodo di destinazione
-        self.f = 0 # Costo totale (g + h)
+    def __init__(self, position: Tuple[int, int], parent=None):
+        self.position = position; self.parent = parent
+        self.g = 0; self.h = 0; self.f = 0
+    def __lt__(self, other): return self.f < other.f
+    def __eq__(self, other): return self.position == other.position if isinstance(other, AStarNode) else False
+    def __hash__(self): return hash(self.position)
 
-    def __eq__(self, other):
-        return self.position == other.position
+# --- Funzioni di Utilità Generiche ---
 
-    def __hash__(self):
-        return hash(self.position)
+def load_image(filename: str, desired_size: Optional[Tuple[int, int]] = None,
+               base_path: Optional[str] = None) -> Optional[pygame.Surface]:
+    """Carica un'immagine, opzionalmente la ridimensiona."""
+    path_to_use = base_path if base_path is not None else getattr(config, 'IMAGE_PATH', os.path.join(config.ASSETS_PATH, 'images'))
 
-    def __lt__(self, other): # Necessario per heapq
-        return self.f < other.f
+    # Se filename è già un percorso assoluto o relativo che include "assets", non aggiungere path_to_use
+    # Questa è una semplificazione; una gestione più robusta dei percorsi potrebbe essere necessaria
+    # se filename a volte include parti del percorso.
+    # Per ora, assumiamo che filename sia solo il nome del file dentro path_to_use.
+    full_path = os.path.join(path_to_use, filename)
 
-    # Metodo per la serializzazione (opzionale, se vuoi salvare i path)
-    def to_tuple(self) -> tuple:
-        return self.position
+    try:
+        image = pygame.image.load(full_path)
+        image = image.convert_alpha() # Sempre convert_alpha per trasparenza
+        if desired_size:
+            image = pygame.transform.smoothscale(image, desired_size)
+        return image
+    except pygame.error as e:
+        logger.error(f"LOAD_IMAGE ERROR: Impossibile caricare l'immagine '{full_path}': {e}")
+    except FileNotFoundError:
+        logger.error(f"LOAD_IMAGE ERROR: File immagine NON TROVATO a '{full_path}'")
+    return None
 
-    @classmethod
-    def from_tuple(cls, pos_tuple, parent=None): # Opzionale
-        return cls(parent, pos_tuple)
+def render_unicode_icon(ui_icon_font: Optional[pygame.font.Font], unicode_char: str,
+                        color: Tuple[int,int,int], desired_size: Tuple[int,int]) -> pygame.Surface:
+    """Renderizza un carattere Unicode in una Surface della dimensione desiderata."""
+    # Crea sempre una surface placeholder, anche se il font fallisce
+    surf = pygame.Surface(desired_size, pygame.SRCALPHA)
+    surf.fill((0,0,0,0)) # Trasparente di default
 
+    if not ui_icon_font:
+        logger.warning(f"render_unicode_icon: Font per icone non fornito. Impossibile renderizzare '{unicode_char}'.")
+        # Disegna un placeholder grafico
+        pygame.draw.rect(surf, getattr(config, "GREY", (128,128,128)), (1, 1, desired_size[0]-2, desired_size[1]-2), 1)
+        pygame.draw.line(surf, getattr(config, "RED", (255,0,0)), (1,1), (desired_size[0]-1, desired_size[1]-1), 1)
+        pygame.draw.line(surf, getattr(config, "RED", (255,0,0)), (1,desired_size[1]-1), (desired_size[0]-1, 1), 1)
+        return surf
 
+    if not unicode_char or unicode_char == "?": # Carattere di fallback per errore di config
+        pygame.draw.rect(surf, getattr(config, "GREY", (128,128,128)), (1, 1, desired_size[0]-2, desired_size[1]-2), 1)
+        try:
+            q_mark_surf = ui_icon_font.render("?", True, getattr(config, "RED", (255,0,0)))
+            surf.blit(q_mark_surf, ( (desired_size[0] - q_mark_surf.get_width()) // 2, (desired_size[1] - q_mark_surf.get_height()) // 2))
+        except Exception as e_qmark:
+             logger.error(f"Errore rendering placeholder '?' per icona: {e_qmark}")
+        return surf
+
+    try:
+        char_surf = ui_icon_font.render(unicode_char, True, color)
+        # Scala alla dimensione desiderata
+        scaled_surf = pygame.transform.smoothscale(char_surf, desired_size)
+        return scaled_surf
+    except Exception as e:
+        logger.error(f"Errore rendering icona Unicode '{unicode_char}' con font '{ui_icon_font.name if ui_icon_font else 'N/A'}': {e}")
+        # Restituisce il placeholder già creato
+        pygame.draw.rect(surf, getattr(config, "GREY", (128,128,128)), (1, 1, desired_size[0]-2, desired_size[1]-2), 1)
+        return surf
+
+def world_to_grid(world_x: float, world_y: float) -> Tuple[int, int]:
+    return int(world_x // config.TILE_SIZE), int(world_y // config.TILE_SIZE)
+
+def grid_to_world_center(grid_x: int, grid_y: int) -> Tuple[float, float]:
+    return (grid_x * config.TILE_SIZE) + config.TILE_SIZE / 2, (grid_y * config.TILE_SIZE) + config.TILE_SIZE / 2
+
+def is_close_to_point(current_pos_tuple: Tuple[float, float], target_pos_tuple: Optional[Tuple[float, float]],
+                      threshold_distance: float = config.NPC_TARGET_REACH_THRESHOLD) -> bool:
+    if not target_pos_tuple or not current_pos_tuple: return False
+    dist_sq = (current_pos_tuple[0] - target_pos_tuple[0])**2 + (current_pos_tuple[1] - target_pos_tuple[1])**2
+    return dist_sq <= threshold_distance**2
+
+def get_random_walkable_tile_in_radius(
+    center_pos_world: Tuple[float, float],
+    pf_grid: List[List[int]],
+    min_dist_tiles: int = getattr(config, 'NPC_WANDER_MIN_DIST_TILES', 3),
+    max_dist_tiles: int = getattr(config, 'NPC_WANDER_MAX_DIST_TILES', 8),
+    max_attempts: int = 20
+) -> Optional[Tuple[float, float]]:
+    center_gx, center_gy = world_to_grid(center_pos_world[0], center_pos_world[1])
+    for _ in range(max_attempts):
+        angle = random.uniform(0, 2 * math.pi); distance_tiles = random.uniform(min_dist_tiles, max_dist_tiles)
+        offset_gx = int(round(math.cos(angle) * distance_tiles)); offset_gy = int(round(math.sin(angle) * distance_tiles))
+        target_gx, target_gy = center_gx + offset_gx, center_gy + offset_gy
+        if 0 <= target_gx < config.GRID_WIDTH and 0 <= target_gy < config.GRID_HEIGHT and \
+           len(pf_grid) > target_gy and len(pf_grid[target_gy]) > target_gx and \
+           pf_grid[target_gy][target_gx] == 1:
+            return grid_to_world_center(target_gx, target_gy)
+    if DEBUG_VERBOSE: logger.debug(f"WANDER: Impossibile trovare cella camminabile dopo {max_attempts} tentativi da ({center_gx},{center_gy}).")
+    return None
+
+# --- Pathfinding A* ---
 def find_path_to_target(
-    character_obj, # Character instance (per la posizione iniziale)
-    target_world_pos: tuple[int, int],
-    grid_map_data: list[list[int]], # La griglia da setup_pathfinding_grid (0=ostacolo, 1=calpestabile)
-    world_dynamic_obstacles: Optional[list[pygame.Rect]] = None # Opzionale, per NPC
-) -> Optional[deque[AStarNode]]:
-    """
-    Trova un percorso usando A* dalla posizione del personaggio a target_world_pos.
-    Restituisce una deque di nodi (in coordinate della GRIGLIA) o None.
-    """
-    if grid_map_data is None or not grid_map_data or not grid_map_data[0]:
-        if DEBUG_VERBOSE: print("PATHFINDING ERROR: grid_map_data non valida.")
+    character_obj: 'Character',
+    target_world_pos: Tuple[int, int],
+    grid_map_data: List[List[int]],
+    world_dynamic_obstacles: Optional[List[pygame.Rect]] = None
+) -> Optional[deque]:
+    if not grid_map_data or not grid_map_data[0]:
+        logger.error("PATHFINDING: Griglia mappa dati vuota o non valida.")
+        return None
+    grid_height = len(grid_map_data)
+    grid_width = len(grid_map_data[0])
+
+    start_pos_grid = world_to_grid(character_obj.rect.centerx, character_obj.rect.centery)
+    end_pos_grid = world_to_grid(target_world_pos[0], target_world_pos[1])
+
+    if not (0 <= start_pos_grid[0] < grid_width and 0 <= start_pos_grid[1] < grid_height):
+        logger.warning(f"PATHFINDING: Partenza {start_pos_grid} fuori griglia ({grid_width}x{grid_height}).")
+        return None
+    if not (0 <= end_pos_grid[0] < grid_width and 0 <= end_pos_grid[1] < grid_height):
+        logger.warning(f"PATHFINDING: Destinazione {end_pos_grid} fuori griglia ({grid_width}x{grid_height}).")
+        return None
+    if grid_map_data[end_pos_grid[1]][end_pos_grid[0]] == 0:
+        logger.warning(f"PATHFINDING: Destinazione {end_pos_grid} è un ostacolo.")
+        return None
+    if grid_map_data[start_pos_grid[1]][start_pos_grid[0]] == 0:
+        logger.warning(f"PATHFINDING: Partenza {start_pos_grid} è un ostacolo. NPC bloccato?")
         return None
 
-    start_grid_pos = world_to_grid(character_obj.rect.centerx, character_obj.rect.centery)
-    end_grid_pos = world_to_grid(target_world_pos[0], target_world_pos[1])
+    start_node = AStarNode(start_pos_grid); end_node = AStarNode(end_pos_grid)
+    open_list_heap = []; closed_set = set() # Usare set per closed_list è più efficiente
+    open_list_dict = {} # Per tracciare nodi in open_list e i loro costi g per aggiornamenti
 
-    start_node = AStarNode(None, start_grid_pos)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = AStarNode(None, end_grid_pos)
-    end_node.g = end_node.h = end_node.f = 0
-
-    open_list = [] # Tratteremo questa lista come una coda di priorità (heapq sarebbe meglio per le prestazioni)
-    closed_list_positions = set() # Usiamo un set di posizioni per controlli O(1)
-
-    open_list.append(start_node)
-
-    max_iterations = getattr(config, "ASTAR_MAX_ITERATIONS", 1000) # Limita le iterazioni
+    heapq.heappush(open_list_heap, start_node)
+    open_list_dict[start_node.position] = start_node.g
+    
     iterations = 0
+    max_iterations = getattr(config, 'ASTAR_MAX_ITERATIONS', 1000)
 
-    while open_list and iterations < max_iterations:
+    while open_list_heap and iterations < max_iterations:
         iterations += 1
-
-        # Trova il nodo con il costo f più basso (simulazione heapq)
-        current_node = open_list[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
-            if item.f < current_node.f:
-                current_node = item
-                current_index = index
-
-        open_list.pop(current_index)
-        closed_list_positions.add(current_node.position)
+        current_node = heapq.heappop(open_list_heap)
+        
+        if current_node.position in open_list_dict: # Rimuovi da dict quando estratto dall'heap
+            del open_list_dict[current_node.position]
+        
+        closed_set.add(current_node.position)
 
         if current_node == end_node:
             path = deque()
-            current = current_node
-            while current is not None:
-                path.appendleft(current) # Aggiunge all'inizio per avere il path nell'ordine corretto
-                current = current.parent
-            if DEBUG_VERBOSE and len(path) > 0: print(f"PATHFINDING: Path found from {start_grid_pos} to {end_grid_pos}, length: {len(path)}")
+            temp = current_node
+            while temp: path.appendleft(temp); temp = temp.parent
+            if DEBUG_VERBOSE: logger.debug(f"PATHFINDING: Path trovato da {start_pos_grid} a {end_pos_grid}, lunghezza: {len(path)} nodi, iter: {iterations}")
             return path
 
-        children = []
-        # Adiacenti (incluse diagonali)
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+        for offset_x, offset_y in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            node_pos = (current_node.position[0] + offset_x, current_node.position[1] + offset_y)
 
-            # Assicurati che sia dentro i limiti della mappa
-            if not (0 <= node_position[0] < len(grid_map_data[0]) and \
-                    0 <= node_position[1] < len(grid_map_data)):
-                continue
+            if not (0 <= node_pos[0] < grid_width and 0 <= node_pos[1] < grid_height): continue
+            if grid_map_data[node_pos[1]][node_pos[0]] == 0: continue
+            if node_pos in closed_set: continue
 
-            # Assicurati che sia calpestabile sulla griglia statica
-            if grid_map_data[node_position[1]][node_position[0]] == 0: # 0 è ostacolo
-                continue
+            move_cost = 1.414 if offset_x != 0 and offset_y != 0 else 1.0
+            tentative_g_score = current_node.g + move_cost
 
-            # Qui potresti aggiungere controlli per ostacoli dinamici (altri NPC),
-            # se world_dynamic_obstacles è fornito e vuoi che A* li eviti.
-            # Questo rende A* più costoso.
+            if node_pos in open_list_dict and tentative_g_score >= open_list_dict[node_pos]:
+                continue # Percorso non migliore
 
-            new_node = AStarNode(current_node, node_position)
-            children.append(new_node)
-
-        for child in children:
-            if child.position in closed_list_positions:
-                continue
-
-            # Calcolo dei costi
-            # Movimento diagonale costa di più (sqrt(2) ~ 1.414)
-            cost_g = 1.414 if abs(child.position[0] - current_node.position[0]) == 1 and \
-                              abs(child.position[1] - current_node.position[1]) == 1 else 1.0
-            child.g = current_node.g + cost_g
-            child.h = math.sqrt(((child.position[0] - end_node.position[0]) ** 2) + \
-                                ((child.position[1] - end_node.position[1]) ** 2))
-            child.f = child.g + child.h
-
-            # Se il figlio è già nella open_list con un costo f minore, salta
-            for open_node in open_list:
-                if child == open_node and child.g >= open_node.g: # Confronta g per trovare il percorso più breve
-                    break
-            else: # Se il loop non è stato interrotto da break
-                open_list.append(child)
-
-    if DEBUG_VERBOSE: print(f"PATHFINDING WARN: No path found from {start_grid_pos} to {end_grid_pos} after {iterations} iterations.")
-    return None # Nessun percorso trovato
-
-
-def get_random_walkable_tile_in_radius(
-    origin_world_pos: tuple[float, float],
-    grid_map_data: list[list[int]],
-    min_dist_tiles: int,
-    max_dist_tiles: int,
-    world_obstacles: Optional[list[pygame.Rect]] = None, # Potrebbe essere usato per controlli più fini
-    max_attempts: int = 20
-) -> Optional[tuple[int, int]]:
-    """
-    Trova una cella calpestabile casuale entro un raggio specificato (in coordinate del mondo).
-    Restituisce le coordinate MONDO del centro della cella trovata, o None.
-    """
-    if grid_map_data is None or not grid_map_data or not grid_map_data[0]:
-        return None
-
-    origin_grid_x, origin_grid_y = world_to_grid(origin_world_pos[0], origin_world_pos[1])
-    grid_width = len(grid_map_data[0])
-    grid_height = len(grid_map_data)
-    tile_size = getattr(config, 'TILE_SIZE', 32)
-
-    for _ in range(max_attempts):
-        angle = random.uniform(0, 2 * math.pi)
-        distance_tiles = random.uniform(min_dist_tiles, max_dist_tiles)
-
-        offset_x = int(round(math.cos(angle) * distance_tiles))
-        offset_y = int(round(math.sin(angle) * distance_tiles))
-
-        target_grid_x = origin_grid_x + offset_x
-        target_grid_y = origin_grid_y + offset_y
-
-        # Controlla limiti della griglia
-        if not (0 <= target_grid_x < grid_width and 0 <= target_grid_y < grid_height):
-            continue
-
-        # Controlla se la cella è calpestabile
-        if grid_map_data[target_grid_y][target_grid_x] == 1: # 1 è calpestabile
-            # Qui potresti aggiungere un controllo più fine usando world_obstacles se necessario,
-            # per assicurarti che il centro della cella non sia troppo vicino a un ostacolo.
-            return grid_to_world_center(target_grid_x, target_grid_y)
-
-    if DEBUG_VERBOSE:
-        print(f"RANDOM_WALKABLE: Failed to find walkable tile near ({origin_grid_x},{origin_grid_y}) after {max_attempts} attempts.")
+            child_node = AStarNode(node_pos, current_node)
+            child_node.g = tentative_g_score
+            child_node.h = math.sqrt((child_node.position[0] - end_node.position[0])**2 + (child_node.position[1] - end_node.position[1])**2)
+            child_node.f = child_node.g + child_node.h
+            
+            # Rimuovi vecchio nodo dall'heap se esiste (heapq non supporta decrease-key facilmente)
+            # È più semplice aggiungere il nuovo e lasciare che l'heap gestisca la priorità.
+            # Il controllo `tentative_g_score >= open_list_dict[node_pos]` previene la ri-aggiunta se non è migliore.
+            # Ma se è migliore e già in heap, andrebbe aggiornato.
+            # Per semplicità, aggiungiamo e lasciamo che open_list_dict prevenga l'esplorazione di percorsi peggiori.
+            heapq.heappush(open_list_heap, child_node)
+            open_list_dict[child_node.position] = child_node.g
+            
+    logger.warning(f"PATHFINDING WARN: No path found from {start_pos_grid} to {end_pos_grid} after {iterations} iterations.")
     return None
+
+# --- Funzioni di Setup e Gestione Stato Gioco ---
+def setup_pathfinding_grid(list_of_obstacle_rects: List[pygame.Rect]) -> List[List[int]]:
+    logger.debug(f"Inizio setup_pathfinding_grid con {len(list_of_obstacle_rects)} ostacoli.")
+    path_grid = [[1 for _ in range(config.GRID_WIDTH)] for _ in range(config.GRID_HEIGHT)]
+    if list_of_obstacle_rects:
+        for i, rect_obj in enumerate(list_of_obstacle_rects):
+            if rect_obj is None: logger.warning(f"Ostacolo {i} è None."); continue
+            if DEBUG_VERBOSE: logger.debug(f"Pathfinding Grid: Processo Ostacolo {i}: World Rect {rect_obj}")
+            start_gx, start_gy = world_to_grid(rect_obj.left, rect_obj.top)
+            end_gx, end_gy = world_to_grid(rect_obj.right - 1, rect_obj.bottom - 1)
+            if DEBUG_VERBOSE: logger.debug(f"Pathfinding Grid: Ostacolo {i} Grid Coords ({start_gx},{start_gy}) to ({end_gx},{end_gy})")
+            for gy in range(start_gy, end_gy + 1):
+                for gx in range(start_gx, end_gx + 1):
+                    if 0 <= gx < config.GRID_WIDTH and 0 <= gy < config.GRID_HEIGHT: path_grid[gy][gx] = 0
+                    elif DEBUG_VERBOSE: logger.warning(f"Pathfinding Grid: Ostacolo {i} tentato fuori griglia: ({gx},{gy})")
+        if DEBUG_VERBOSE: logger.debug("Fine marcatura ostacoli.")
+    else: logger.info("Nessun ostacolo fornito a setup_pathfinding_grid.")
+    return path_grid
+
+def print_debug_grid(grid_map_data: List[List[int]], start_pos: Optional[Tuple[int,int]] = None, 
+                     end_pos: Optional[Tuple[int,int]] = None, path: Optional[deque] = None):
+    if not grid_map_data or not grid_map_data[0]: logger.warning("PRINT_DEBUG_GRID: Griglia vuota."); return
+    h, w = len(grid_map_data), len(grid_map_data[0])
+    display = [['.' for _ in range(w)] for _ in range(h)]
+    for r in range(h):
+        for c in range(w):
+            if grid_map_data[r][c] == 0: display[r][c] = '#'
+    if path:
+        for node in path:
+            px, py = node.position
+            if (px,py) != start_pos and (px,py) != end_pos: display[py][px] = '*'
+    if start_pos: display[start_pos[1]][start_pos[0]] = 'S'
+    if end_pos: display[end_pos[1]][end_pos[0]] = 'E'
+    grid_str = "\n--- GRIGLIA DI PATHFINDING (DEBUG) ---\n" + "\n".join(" ".join(row) for row in display) + "\n--- FINE GRIGLIA ---"
+    logger.info(grid_str)
+
+
+def load_object_blueprints(filename: str = getattr(config, "OBJECT_BLUEPRINTS_FILENAME", "object_blueprints.json")):
+    global OBJECT_BLUEPRINTS_DATA
+    full_path = os.path.join(config.DATA_PATH, filename)
+    try:
+        with open(full_path, 'r') as f: OBJECT_BLUEPRINTS_DATA = json.load(f)
+        logger.info(f"Caricati {len(OBJECT_BLUEPRINTS_DATA)} blueprint di oggetti da {full_path}")
+    except Exception as e:
+        logger.error(f"ERRORE OGGETTI: Fallito caricamento '{full_path}': {e}"); OBJECT_BLUEPRINTS_DATA = {}
+
+
+def get_object_blueprint(object_id: str) -> Optional[Dict[str, Any]]:
+    return OBJECT_BLUEPRINTS_DATA.get(object_id)
+
+def setup_object_interaction_points(game_state: 'GameState', object_type_key: str, 
+                                   object_blueprint: Optional[Dict[str, Any]], 
+                                   object_world_rect: Optional[pygame.Rect]):
+    if not object_blueprint or not object_world_rect:
+        logger.warning(f"UTILS: Blueprint o rect non forniti per '{object_type_key}'.")
+        return
+    interactions = object_blueprint.get("interaction_points", [])
+    slots_data = object_blueprint.get("slots", [])
+    obj_l, obj_t = object_world_rect.left, object_world_rect.top
+    if DEBUG_VERBOSE: logger.debug(f"UTILS: Setup punti interazione per '{object_type_key}' a ({obj_l},{obj_t})")
+
+    if object_type_key == "bed":
+        game_state.bed_slot_1_interaction_pos_world = (obj_l + interactions[0]["offset"][0], obj_t + interactions[0]["offset"][1]) if len(interactions) > 0 else None
+        game_state.bed_slot_2_interaction_pos_world = (obj_l + interactions[1]["offset"][0], obj_t + interactions[1]["offset"][1]) if len(interactions) > 1 else None
+        game_state.bed_slot_1_sleep_pos_world = (obj_l + slots_data[0]["offset"][0], obj_t + slots_data[0]["offset"][1]) if len(slots_data) > 0 else None
+        game_state.bed_slot_2_sleep_pos_world = (obj_l + slots_data[1]["offset"][0], obj_t + slots_data[1]["offset"][1]) if len(slots_data) > 1 else None
+        if DEBUG_VERBOSE: logger.debug(f"  Bed Slots Interaction: {game_state.bed_slot_1_interaction_pos_world}, {game_state.bed_slot_2_interaction_pos_world}. Sleep: {game_state.bed_slot_1_sleep_pos_world}, {game_state.bed_slot_2_sleep_pos_world}")
+    elif object_type_key == "toilet":
+        game_state.toilet_interaction_point_world = (obj_l + interactions[0]["offset"][0], obj_t + interactions[0]["offset"][1]) if interactions else (object_world_rect.centerx, object_world_rect.bottom + config.TILE_SIZE//4)
+        game_state.toilet_sit_point_world = (obj_l + slots_data[0]["offset"][0], obj_t + slots_data[0]["offset"][1]) if slots_data else None
+        if DEBUG_VERBOSE: logger.debug(f"  Toilet Interaction: {game_state.toilet_interaction_point_world}, Sit: {game_state.toilet_sit_point_world}")
+    # Aggiungi altri tipi di oggetti qui
+
+def occupy_bed_slot_for_character(game_state: 'GameState', character: 'Character', slot_idx: int) -> bool:
+    if not game_state.bed_rect: return False
+    if slot_idx == 0:
+        if not game_state.bed_slot_1_occupied_by: game_state.bed_slot_1_occupied_by = character.uuid; char_setup = True
+        elif game_state.bed_slot_1_occupied_by == character.uuid: char_setup = True; # Già lì
+        else: return False # Occupato da altri
+    elif slot_idx == 1:
+        if not game_state.bed_slot_2_occupied_by: game_state.bed_slot_2_occupied_by = character.uuid; char_setup = True
+        elif game_state.bed_slot_2_occupied_by == character.uuid: char_setup = True;
+        else: return False
+    else: return False # Slot non valido
+    
+    if char_setup:
+        character.bed_object_id = "main_bed"; character.bed_slot_index = slot_idx; character.is_on_bed = True
+        if DEBUG_VERBOSE: logger.debug(f"UTILS: {character.name} occupa slot letto {slot_idx}.")
+    return True
+
+
+def free_bed_slot_for_character(game_state: 'GameState', character: 'Character'):
+    freed = False
+    if character.bed_object_id == "main_bed":
+        if character.bed_slot_index == 0 and game_state.bed_slot_1_occupied_by == character.uuid:
+            game_state.bed_slot_1_occupied_by = None; freed = True
+        elif character.bed_slot_index == 1 and game_state.bed_slot_2_occupied_by == character.uuid:
+            game_state.bed_slot_2_occupied_by = None; freed = True
+    character.bed_object_id = None; character.bed_slot_index = -1; character.is_on_bed = False
+    if freed and DEBUG_VERBOSE: logger.debug(f"UTILS: {character.name} ha liberato lo slot letto.")
+
+# --- Funzioni UI ---
+def load_all_game_assets(ui_icon_font: Optional[pygame.font.Font]
+                        ) -> Tuple[Dict[str, pygame.Surface], List[pygame.Surface], Dict[str, Optional[pygame.Surface]], Tuple[int,int]]:
+    """Carica asset UI, usando caratteri Unicode per le icone."""
+    loaded_icons_map: Dict[str, pygame.Surface] = {}
+    speed_button_icon_surfaces: List[pygame.Surface] = []
+    bed_images: Dict[str, Optional[pygame.Surface]] = {"base": None, "cover": None}
+    
+    # Dimensioni per le icone
+    default_icon_size = (getattr(config, 'UI_ICON_SIZE', 24), getattr(config, 'UI_ICON_SIZE', 24))
+    time_button_icon_size = (getattr(config, 'UI_ICON_SIZE_TIME_BUTTONS', 30), getattr(config, 'UI_ICON_SIZE_TIME_BUTTONS', 30))
+    
+    # Definizione CORRETTA della variabile:
+    needs_icon_size = (getattr(config, 'UI_ICON_SIZE_NEEDS', 20), getattr(config, 'UI_ICON_SIZE_NEEDS', 20)) 
+    
+    icon_color = getattr(config, 'UI_UNICODE_ICON_COLOR', config.BLACK if hasattr(config, 'BLACK') else (0,0,0))
+
+    # Icone Velocità (Unicode)
+    speed_icon_definitions = [
+        ("pause", "ICON_CHAR_PAUSE", "\u23F8"),
+        ("play", "ICON_CHAR_PLAY", "\u25B6"),
+        ("ffwd", "ICON_CHAR_FFWD", "\u23E9"),
+        ("ffwd_2x", "ICON_CHAR_FFWD2", getattr(config, "ICON_CHAR_FFWD2_FALLBACK", "\u23E9\u23E9")),
+        ("ffwd_3x", "ICON_CHAR_FFWD3", getattr(config, "ICON_CHAR_FFWD3_FALLBACK", "\u23E9\u23E9\u23E9")),
+        ("ffwd_sleep", "ICON_CHAR_SLEEP_SPEED", "\U0001F4A4")
+    ]
+    for key, char_conf_key, fallback_char in speed_icon_definitions:
+        unicode_char = getattr(config, char_conf_key, fallback_char)
+        surf = render_unicode_icon(ui_icon_font, unicode_char, icon_color, time_button_icon_size)
+        loaded_icons_map[key] = surf
+        loaded_icons_map[key+"_char_surf"] = surf 
+        speed_button_icon_surfaces.append(surf)
+
+    # Icone Bisogni (Unicode)
+    for need_data in NEED_DISPLAY_ORDER_AND_INFO: 
+        icon_map_storage_key = need_data["icon_key_for_map"]
+        char_conf_key = need_data["icon_char_config_key"]
+        fallback_char = "?"
+        
+        unicode_char = getattr(config, char_conf_key, fallback_char)
+        # Usa il nome corretto della variabile per la dimensione:
+        surf = render_unicode_icon(ui_icon_font, unicode_char, icon_color, needs_icon_size) # <-- CORRETTO QUI
+        loaded_icons_map[icon_map_storage_key] = surf
+    
+    # La variabile da restituire per le dimensioni delle icone dei bisogni
+    need_icon_dim_final = needs_icon_size # <-- CORRETTO QUI
+
+    # Icona periodo giorno (Unicode)
+    default_period_char_key = getattr(config, 'DEFAULT_PERIOD_ICON_CHAR_KEY', "ICON_CHAR_SUN")
+    default_period_char_val = getattr(config, default_period_char_key, "\u2600") 
+    loaded_icons_map["period_icon_default"] = render_unicode_icon(ui_icon_font, default_period_char_val, icon_color, default_icon_size)
+    
+    for _start_h, _p_name, p_icon_char_cfg_key in getattr(config, "PERIOD_DEFINITIONS", []):
+        if isinstance(p_icon_char_cfg_key, str) and p_icon_char_cfg_key.startswith("ICON_CHAR_"):
+             char_val = getattr(config, p_icon_char_cfg_key, "?")
+             if char_val not in loaded_icons_map: 
+                 loaded_icons_map[p_icon_char_cfg_key] = render_unicode_icon(ui_icon_font, char_val, icon_color, default_icon_size)
+
+    # Immagini Letto
+    bed_images["base"] = load_image(getattr(config, 'BED_IMAGE_BASE_FILENAME', "bed_base.png"))
+    bed_images["cover"] = load_image(getattr(config, 'BED_IMAGE_COVER_FILENAME', "bed_cover.png"))
+    
+    logger.info("Asset UI (icone Unicode e immagini) caricati.")
+    return loaded_icons_map, speed_button_icon_surfaces, bed_images, need_icon_dim_final
+
+
+def setup_gui_elements(ui_manager: 'pygame_gui.UIManager', all_npcs: List['Character'], 
+                       selected_npc_idx: int, time_button_dimensions: Tuple[int, int], 
+                       panel_height: int, screen_width: int, screen_height: int) -> Dict[str, Any]:
+    gui_elements: Dict[str, Any] = {}
+    panel_pad = config.UI_BOTTOM_PANEL_PADDING; section_space = config.UI_SECTION_SPACING
+    panel_rect = pygame.Rect(0, screen_height - panel_height, screen_width, panel_height)
+    gui_elements['bottom_panel'] = pygame_gui.elements.UIPanel(
+        relative_rect=panel_rect, starting_layer_height=0, manager=ui_manager, object_id="#bottom_panel")
+    
+    panel_iw = panel_rect.width - (2 * panel_pad); panel_ih = panel_rect.height - (2 * panel_pad)
+    base_y_in_panel = panel_pad
+    
+    # Sezione Sinistra
+    left_x = panel_pad; left_w = int(panel_iw * config.UI_LEFT_SECTION_WIDTH_PERCENT)
+    curr_y_l = base_y_in_panel; lbl_h = 25; lbl_space = 3
+    gui_elements['char_status_label'] = pygame_gui.elements.UITextBox("NPC: -", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#char_name_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['action_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_ACTION + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#action_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['finance_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_FINANCE + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#finance_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['mood_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_MOOD + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#mood_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['pregnancy_label'] = pygame_gui.elements.UITextBox("", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#pregnancy_label"); gui_elements['pregnancy_label'].visible = False
+
+    # Sezione Centrale
+    center_x = left_x + left_w + section_space; center_w = int(panel_iw * config.UI_CENTER_SECTION_WIDTH_PERCENT)
+    time_btn_w, time_btn_h = time_button_dimensions
+    num_btns = len(getattr(config, 'TIME_SPEED_SETTINGS', {})); total_btn_w = (num_btns * time_btn_w) + ((num_btns - 1) * 5)
+    btns_start_x_panel = center_x + (center_w - total_btn_w) // 2
+    btns_y_panel = base_y_in_panel
+    gui_elements['time_button_rects'] = [pygame.Rect(btns_start_x_panel + i * (time_btn_w + 5), btns_y_panel, time_btn_w, time_btn_h) for i in range(num_btns)]
+    time_disp_y = btns_y_panel + time_btn_h + 10; time_disp_h = 35
+    gui_elements['time_label'] = pygame_gui.elements.UITextBox("Ora...", pygame.Rect(center_x, time_disp_y, center_w, time_disp_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#time_display_panel")
+
+    # Sezione Destra
+    right_x = center_x + center_w + section_space
+    right_w = panel_iw - (left_w + center_w + (2 * section_space))
+    curr_y_r = base_y_in_panel
+    btn_h_r = config.UI_RIGHT_SECTION_BUTTON_HEIGHT; btn_space_r = config.UI_RIGHT_SECTION_BUTTON_SPACING_Y
+    cats_right = [("aspirations_btn", config.UI_LABEL_ASPIRATIONS), ("career_btn", config.UI_LABEL_CAREER),
+                  ("skills_btn", config.UI_LABEL_SKILLS), ("relationships_btn", config.UI_LABEL_RELATIONSHIPS),
+                  ("inventory_btn", config.UI_LABEL_INVENTORY), ("needs_display_btn", config.UI_LABEL_NEEDS_BUTTON)]
+    for id_key, lbl_txt in cats_right:
+        btn_rect = pygame.Rect(right_x, curr_y_r, right_w, btn_h_r)
+        gui_elements[id_key] = pygame_gui.elements.UIButton(relative_rect=btn_rect, text=lbl_txt, manager=ui_manager, container=gui_elements['bottom_panel'], object_id=f"#{id_key}", starting_layer_height=1)
+        curr_y_r += btn_h_r + btn_space_r
+        if id_key == "needs_display_btn": gui_elements['needs_button_rect_abs_for_positioning'] = gui_elements[id_key].get_abs_rect()
+    
+    gui_elements['needs_bar_area_x_in_panel'] = right_x # X relativo al pannello
+    gui_elements['needs_bar_area_y_in_panel'] = curr_y_r # Y relativo al pannello, sotto i pulsanti
+        
+    logger.info(f"Elementi GUI pannello ({len(gui_elements)}) creati.")
+    return gui_elements
+
+
+def draw_all_manual_ui_elements(
+    screen_surface: pygame.Surface,
+    loaded_icons_map: Dict[str, pygame.Surface], 
+    speed_button_icons: List[pygame.Surface],
+    current_selected_speed_idx: int,
+    current_day_period_name: str, 
+    selected_character_to_display: Optional['Character'],
+    bottom_panel_gui_obj: Optional['pygame_gui.elements.UIPanel'],
+    needs_bars_start_x_in_panel: int, 
+    needs_bars_start_y_in_panel: int,
+    ui_current_text_color: Tuple[int,int,int],
+    default_ui_font: Optional[pygame.font.Font],
+    time_control_buttons_rect_list: List[pygame.Rect], 
+    need_icon_dimensions: Tuple[int,int], # Questa è la dimensione a cui sono state renderizzate le icone
+    gui_elements_ref: Dict[str, Any]
+    ):
+    """Disegna gli elementi UI manuali come barre dei bisogni, pulsanti velocità e icona periodo."""
+    
+    panel_abs_x, panel_abs_y = 0, 0
+    if bottom_panel_gui_obj:
+        # get_abs_rect() restituisce il rettangolo in coordinate assolute dello schermo
+        panel_abs_rect = bottom_panel_gui_obj.get_abs_rect()
+        panel_abs_x, panel_abs_y = panel_abs_rect.topleft
+    else:
+        logger.warning("draw_all_manual_ui_elements: bottom_panel_gui_obj non fornito. Il posizionamento potrebbe essere errato.")
+        # Se il pannello non c'è, disegna rispetto a (0,0) dello schermo, il che probabilmente non è desiderato.
+
+    # --- 1. Disegna Pulsanti Velocità ---
+    # Questi sono disegnati manualmente usando le icone (ora Surface Unicode) e i rect calcolati.
+    if speed_button_icons and time_control_buttons_rect_list and \
+       len(speed_button_icons) >= len(getattr(config, 'TIME_SPEED_SETTINGS', {})):
+        for idx, panel_relative_rect in enumerate(time_control_buttons_rect_list):
+            if idx < len(speed_button_icons): # Protezione indice
+                icon_to_draw = speed_button_icons[idx]
+                # Converte il rect relativo al pannello in rect assoluto sullo schermo
+                absolute_button_rect = pygame.Rect(panel_abs_x + panel_relative_rect.left,
+                                                 panel_abs_y + panel_relative_rect.top,
+                                                 panel_relative_rect.width,
+                                                 panel_relative_rect.height)
+                screen_surface.blit(icon_to_draw, absolute_button_rect.topleft)
+                if idx == current_selected_speed_idx: # Evidenzia il pulsante selezionato
+                    highlight_color = getattr(config, "YELLOW", (255,255,0)) # Usa config.YELLOW se definito
+                    pygame.draw.rect(screen_surface, highlight_color, absolute_button_rect, 2) # Bordo
+
+    # --- 2. Disegna Icona Periodo Giorno (accanto alla label dell'ora nel pannello) ---
+    time_label_pygame_gui_element = gui_elements_ref.get('time_label') # Questo è il UITextBox nel pannello
+    if time_label_pygame_gui_element and default_ui_font: # Assicurati che il font per il testo UI esista
+        period_icon_char_key_from_config = None
+        # Trova la chiave del carattere Unicode per il periodo corrente
+        for _start_hour, period_name_iter, icon_char_key_iter in getattr(config, "PERIOD_DEFINITIONS", []):
+            if period_name_iter == current_day_period_name:
+                period_icon_char_key_from_config = icon_char_key_iter
+                break
+        
+        period_icon_to_draw_surface = None
+        if period_icon_char_key_from_config:
+            period_icon_to_draw_surface = loaded_icons_map.get(period_icon_char_key_from_config)
+        
+        if not period_icon_to_draw_surface: # Fallback all'icona di default se quella specifica non è trovata
+            period_icon_to_draw_surface = loaded_icons_map.get(getattr(config, 'DEFAULT_PERIOD_ICON_CHAR_KEY', "ICON_CHAR_SUN"))
+        if not period_icon_to_draw_surface: # Ulteriore fallback all'icona "period_icon_default" se esiste
+            period_icon_to_draw_surface = loaded_icons_map.get("period_icon_default")
+
+
+        if period_icon_to_draw_surface:
+            icon_absolute_rect = period_icon_to_draw_surface.get_rect()
+            time_label_absolute_rect = time_label_pygame_gui_element.get_abs_rect()
+            
+            # Posiziona a sinistra della label dell'ora (che è nel pannello)
+            icon_absolute_rect.right = time_label_absolute_rect.left - getattr(config, "UI_PERIOD_ICON_TIME_LABEL_SPACING", 10)
+            icon_absolute_rect.centery = time_label_absolute_rect.centery
+            screen_surface.blit(period_icon_to_draw_surface, icon_absolute_rect)
+        elif DEBUG_VERBOSE:
+            logger.debug(f"Icona per il periodo '{current_day_period_name}' non trovata o non renderizzata.")
+
+    # --- 3. Disegno Barre dei Bisogni ---
+    if selected_character_to_display and \
+       bottom_panel_gui_obj and \
+       default_ui_font and \
+       hasattr(selected_character_to_display, 'needs') and \
+       selected_character_to_display.needs:
+        
+        # Punto di partenza assoluto per la prima barra dei bisogni
+        start_x_for_bars_absolute = panel_abs_x + needs_bars_start_x_in_panel
+        current_draw_y_absolute = panel_abs_y + needs_bars_start_y_in_panel
+        
+        icon_width, icon_height = need_icon_dimensions
+
+        for need_info in NEED_DISPLAY_ORDER_AND_INFO:
+            need_attribute_name = need_info["attr"]
+            # La chiave per recuperare la Surface dell'icona da loaded_icons_map
+            icon_map_key_to_retrieve = need_info["icon_key_for_map"] 
+            show_text_label = need_info.get("show_label", False)
+            need_text_label_string = need_info.get("label", need_attribute_name.capitalize())
+
+            if hasattr(selected_character_to_display.needs, need_attribute_name):
+                need_object = getattr(selected_character_to_display.needs, need_attribute_name)
+                
+                current_item_drawing_start_x = start_x_for_bars_absolute
+
+                # a. Disegna Icona (ora una Surface Unicode)
+                icon_surface_to_blit = loaded_icons_map.get(icon_map_key_to_retrieve)
+                if icon_surface_to_blit:
+                    # Allinea verticalmente l'icona con la barra del bisogno
+                    icon_y_position = current_draw_y_absolute + (NEEDS_BAR_HEIGHT - icon_height) // 2
+                    screen_surface.blit(icon_surface_to_blit, (current_item_drawing_start_x, icon_y_position))
+                current_item_drawing_start_x += icon_width + NEEDS_BAR_PADDING_X # Spazio dopo l'icona
+
+                # b. (Opzionale) Disegna Etichetta Testuale del Bisogno
+                if show_text_label:
+                    label_text_surface = default_ui_font.render(f"{need_text_label_string}:", True, ui_current_text_color)
+                    label_y_position = current_draw_y_absolute + (NEEDS_BAR_HEIGHT - label_text_surface.get_height()) // 2
+                    screen_surface.blit(label_text_surface, (current_item_drawing_start_x, label_y_position))
+                    current_item_drawing_start_x += label_text_surface.get_width() + NEEDS_BAR_PADDING_X
+
+                # c. Disegna Barra del Bisogno
+                value_percentage = need_object.get_value() / need_object.max_value
+                bar_color_config_key = need_info["color_config_key"]
+                bar_fill_color_actual = getattr(config, bar_color_config_key, need_info["fallback_color"])
+                bar_background_color = tuple(max(0, c - 70) for c in bar_fill_color_actual) # Sfondo più scuro
+                
+                # Disegna sfondo barra
+                pygame.draw.rect(screen_surface, bar_background_color, 
+                                 (current_item_drawing_start_x, current_draw_y_absolute, NEEDS_BAR_WIDTH, NEEDS_BAR_HEIGHT))
+                
+                # Disegna barra del valore attuale
+                current_bar_fill_actual_width = int(NEEDS_BAR_WIDTH * value_percentage)
+                if current_bar_fill_actual_width > 0:
+                    pygame.draw.rect(screen_surface, bar_fill_color_actual, 
+                                     (current_item_drawing_start_x, current_draw_y_absolute, current_bar_fill_actual_width, NEEDS_BAR_HEIGHT))
+                
+                # Disegna bordo attorno alla barra
+                bar_border_color_actual = getattr(config, 'UI_NEEDS_BAR_BORDER_COLOR', (50,50,50))
+                pygame.draw.rect(screen_surface, bar_border_color_actual, 
+                                 (current_item_drawing_start_x, current_draw_y_absolute, NEEDS_BAR_WIDTH, NEEDS_BAR_HEIGHT), 1)
+                
+                current_item_drawing_start_x += NEEDS_BAR_WIDTH + NEEDS_BAR_PADDING_X # Spazio dopo la barra
+
+                # d. (Opzionale) Disegna Testo Valore Percentuale o Numerico
+                if getattr(config, "UI_SHOW_NEED_VALUE_TEXT", True):
+                    value_display_string = f"{need_object.get_value():.0f}%" if need_object.max_value == 100 else f"{need_object.get_value():.0f}/{need_object.max_value:.0f}"
+                    value_text_surface_rendered = default_ui_font.render(value_display_string, True, ui_current_text_color)
+                    value_text_y_position = current_draw_y_absolute + (NEEDS_BAR_HEIGHT - value_text_surface_rendered.get_height()) // 2
+                    screen_surface.blit(value_text_surface_rendered, (current_item_drawing_start_x, value_text_y_position))
+
+                # Aggiorna la posizione Y per la prossima barra
+                current_draw_y_absolute += NEEDS_BAR_HEIGHT + NEEDS_BAR_PADDING_Y
+            else:
+                if DEBUG_VERBOSE: 
+                    logger.warning(f"UTILS: NPC selezionato ({selected_character_to_display.name}) non ha il bisogno '{need_attribute_name}' nel suo NeedsComponent o NeedsComponent non è inizializzato.")
+    
+    elif selected_character_to_display and \
+         (not hasattr(selected_character_to_display, 'needs') or not selected_character_to_display.needs) and \
+         DEBUG_VERBOSE:
+        logger.warning(f"UTILS: NPC selezionato ({selected_character_to_display.name}) non ha un NeedsComponent valido per disegnare le barre.")
+

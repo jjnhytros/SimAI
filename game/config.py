@@ -49,6 +49,16 @@ TIME_SPEED_SETTINGS = {
     0: float('inf'), 1: 240.0, 2: 120.0, 3: 60.0, 4: 30.0, 5: 15.0
 } # Secondi reali per passare un'ora di gioco
 TIME_SPEED_SLEEP_ACCELERATED_INDEX = 5 # Indice della velocità massima quando tutti dormono
+PERIOD_DEFINITIONS = [
+    (0.0, "Tarda Notte", "night.svg"),        # Da 00:00 fino a (ma escluso) 6.0
+    (6.0, "Alba", "dawn.svg"),              # Da 06:00 fino a 7.0
+    (7.0, "Mattina", "sunrise.svg"),         # Da 07:00 fino a 12.0 (o sun.svg)
+    (12.0, "Mezzogiorno", "sun.svg"),         # Da 12:00 fino a 14.0
+    (14.0, "Pomeriggio", "sun.svg"),        # Da 14:00 fino a 19.0
+    (19.0, "Tramonto", "sunset.svg"),       # Da 19:00 fino a 21.0
+    (21.0, "Sera", "moon.svg"),             # Da 21:00 fino a 23.0
+    (23.0, "Notte", "night.svg")            # Da 23:00 fino alla fine della giornata (GAME_HOURS_IN_DAY)
+]
 
 # --- Colors ---
 WHITE = (255, 255, 255)
@@ -64,9 +74,6 @@ TEXT_COLOR_LIGHT = (220, 220, 220)
 TEXT_COLOR_DARK = (30, 30, 50)
 DEBUG_GRID_COLOR = (50, 50, 50)
 DEBUG_OBSTACLE_COLOR = (100, 0, 0)
-
-NPC_ALPHA_COLOR_MALE = (100, 149, 237) 
-NPC_BETA_COLOR_FEMALE = (255, 105, 180)
 
 DEEP_NIGHT_COLOR = (10, 10, 30)
 PRE_DAWN_COLOR = (25, 25, 55)
@@ -103,8 +110,10 @@ BED_SPRITESHEET_COVER_RECT_COORDS = (0, 106, 64, 22)
 DESIRED_BED_WIDTH = 64 
 DESIRED_BED_HEIGHT = 81 
 BED_COLOR_FALLBACK = (100,70,30) 
-DESIRED_BED_X = SCREEN_WIDTH - DESIRED_BED_WIDTH - 10 
-DESIRED_BED_Y = SCREEN_HEIGHT - PANEL_UI_HEIGHT - DESIRED_BED_HEIGHT - 10 
+# DESIRED_BED_X = SCREEN_WIDTH - DESIRED_BED_WIDTH - 10 
+# DESIRED_BED_Y = SCREEN_HEIGHT - PANEL_UI_HEIGHT - DESIRED_BED_HEIGHT - 10 
+DESIRED_BED_X = SCREEN_WIDTH // 2 
+DESIRED_BED_Y = SCREEN_HEIGHT // 2
 BED_COVER_DRAW_OFFSET_Y = 26 
 BED_SLOT_1_OFFSET = (TILE_SIZE // 2, TILE_SIZE * 1.5) 
 BED_SLOT_2_OFFSET = (TILE_SIZE * 1.5, TILE_SIZE * 1.5) 
@@ -151,7 +160,7 @@ UI_FONT_SIZE = 26
 # CHARACTER_SPEED rinominata da NPC_SPEED per coerenza e già presente sotto "NPC AI Constants"
 # NPC_SPEED = 80 # Vecchia, ora CHARACTER_SPEED
 CHARACTER_SPEED = 80.0  # Velocità base degli NPC in pixel/secondo (float per calcoli più precisi con dt)
-NPC_SPEED = CHARACTER_SPEED # Aggiunto per compatibilità
+#NPC_SPEED = CHARACTER_SPEED # Aggiunto per compatibilità
 
 NPC_MOVEMENT_SPEED_MULTIPLIERS = { # Questi erano già presenti, li lascio
     0: 0.0, 1: 0.75, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5   
@@ -260,6 +269,6 @@ BUNDLE_ANIM_ROW = 4
 BUNDLE_ANIM_FRAMES = 3
 
 # --- Save/Load System ---
-SAVE_GAME_DIR = "saves" # Directory per i file di salvataggio (o SAVE_GAME_SAVE_DIR se preferisci)
+SAVE_GAME_DIR = "saves" # Directory per i file di salvataggio (o SAVE_GAME_DIR se preferisci)
 DEFAULT_SAVE_FILENAME = "anthalys_save.json"
 AUTO_SAVE_INTERVAL_SECONDS = 300  # Intervallo per l'auto-salvataggio in secondi (es. 5 minuti). Metti 0 per disabilitare.

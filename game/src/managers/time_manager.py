@@ -1,7 +1,7 @@
 # /home/nhytros/work/clair/simai/game/src/managers/time_manager.py
 import pygame # Per pygame.time.get_ticks() se necessario per delta reali
 import math
-from typing import Optional, Tuple, List, Dict # Aggiungi per type hints
+from typing import Optional, Tuple, List, Dict, Any # Aggiungi per type hints
 
 # Importa config per accedere alle costanti temporali
 # Dato che time_manager.py è in game/src/managers/, e config.py è in game/,

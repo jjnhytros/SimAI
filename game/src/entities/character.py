@@ -13,7 +13,7 @@ import sys
 try:
     from collections import deque
     from game import config
-    from game import game_utils 
+    from game.src.utils import game 
 except ImportError as e:
     # Questa è un'importazione critica. Se fallisce, il modulo Character non può funzionare.
     print(f"CRITICAL ERROR (Character): Could not import 'game.config' or 'game.game_utils': {e}")
@@ -35,42 +35,59 @@ except ImportError as e_needs:
     if DEBUG_VERBOSE: print(f"CRITICAL ERROR (Character): Could not import Need modules: {e_needs}")
     sys.exit()
 
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+    from game.src.managers.asset_manager import SpriteSheetManager
+    from game.src.modules.game_state_module import GameState
+    # from pygame.font import Font # Se vuoi tipizzare font
+
 def _character_grid_to_world_center(grid_x: int, grid_y: int, tile_size_ref: int) -> tuple:
     world_x = grid_x * tile_size_ref + tile_size_ref / 2.0
     world_y = grid_y * tile_size_ref + tile_size_ref / 2.0
     return world_x, world_y
 
 class Character:
-    def __init__(self, name: str, gender: str, x: float, y: float, 
-                 color: tuple = (255,0,0), radius: int = 15, speed: float = 200, 
-                 spritesheet_filename: str = None, 
+    def __init__(self, name: str, gender: str, x: float, y: float,
+                 game_state: 'GameState', # Aggiunto
+                 sprite_sheet_manager: Optional['SpriteSheetManager'], # Aggiunto, reso opzionale se può essere None
+                 font: Optional[pygame.font.Font], # Aggiunto, reso opzionale
+                 color: tuple = (255,0,0), radius: int = 15, speed: float = 200,
+                 spritesheet_filename: str = None, # Questo diventa la "chiave" o nome file principale
                  sleep_spritesheet_filename: str = None,
-                 is_bundle: bool = False, existing_uuid: str = None):
-        
+                 is_bundle: bool = False, existing_uuid: str = None,
+                 sprite_key_override: str = None): # Aggiunto, anche se potremmo non usarlo direttamente se spritesheet_filename è la chiave
+
         self.uuid: str = existing_uuid if existing_uuid else str(uuid.uuid4())
-        self.name: str = name 
-        self.gender: str = gender 
-        self.x: float = float(x)    
-        self.y: float = float(y)    
-        self.fallback_color: tuple = color 
-        self.fallback_radius: int = radius 
+        self.name: str = name
+        self.gender: str = gender
+        self.x: float = float(x)
+        self.y: float = float(y)
+        self.fallback_color: tuple = color
+        self.fallback_radius: int = radius
         self.speed: float = float(speed)
-        
-        self.target_destination: tuple | None = None 
-        self.is_player: bool = False 
-        self.current_action: str = "idle" 
-        self.current_path: list | None = None 
-        self.current_path_index: int = 0 
-        self.target_partner: Character | None = None 
+        self.pending_intimacy_requester: Optional[Character] = None # O Optional[str] per l'UUID
+
+        # Memorizza i manager e game_state
+        self.game_state_ref: 'GameState' = game_state # Riferimento a game_state per i bisogni, ecc.
+        self.sprite_sheet_manager_ref: Optional['SpriteSheetManager'] = sprite_sheet_manager # Riferimento al manager
+        self.font_ref: Optional[pygame.font.Font] = font # Riferimento al font
+
+        self.target_destination: tuple | None = None
+        self.is_player: bool = False
+        self.current_action: str = "idle"
+        self.current_path: Optional[deque] = None # Modificato tipo per coerenza
+        self.current_path_index: int = 0
+        self.target_partner: Optional[Character] = None # Usare Character per type hint
         self.time_in_current_action: float = 0.0
 
+        # Usa spritesheet_filename come riferimento principale per lo sheet del personaggio
         self.spritesheet_filename_ref: str | None = spritesheet_filename
         self.sleep_spritesheet_filename_ref: str | None = sleep_spritesheet_filename
 
-        self.spritesheet_image: pygame.Surface | None = None
-        self.sleep_spritesheet_image: pygame.Surface | None = None
+        self.spritesheet_image: Optional[pygame.Surface] = None
+        self.sleep_spritesheet_image: Optional[pygame.Surface] = None
         self.is_bundle: bool = is_bundle
-        self.target_bed_slot_id: int | None = None
+        self.target_bed_slot_id: Optional[int] = None
 
         if self.is_bundle:
             self.frame_width: int = getattr(config, 'BUNDLE_FRAME_WIDTH', 32)
@@ -78,34 +95,38 @@ class Character:
         else:
             self.frame_width: int = getattr(config, 'SPRITE_FRAME_WIDTH', 64)
             self.frame_height: int = getattr(config, 'SPRITE_FRAME_HEIGHT', 64)
-        
+
         self.sleep_frame_width: int = getattr(config, 'SLEEP_SPRITE_FRAME_WIDTH', 64)
         self.sleep_frame_height: int = getattr(config, 'SLEEP_SPRITE_FRAME_HEIGHT', 64)
-        
-        self.animations: dict = {} 
-        self.current_animation_key: str = "idle_down" 
+
+        self.animations: dict = {}
+        self.current_animation_key: str = "idle_down"
         self.current_frame_idx_in_animation: int = 0
         self.animation_timer: float = 0.0
         self.animation_speed: float = getattr(config, 'DEFAULT_ANIMATION_SPEED', 0.15)
         self.current_facing_direction: str = "down"
 
-        char_sprite_base_path = getattr(config, 'CHARACTER_SPRITE_PATH', os.path.join('assets', 'images', 'characters'))
 
-        if self.spritesheet_filename_ref:
-            self.spritesheet_image = game_utils.load_image(self.spritesheet_filename_ref, base_path=char_sprite_base_path)
-            if self.spritesheet_image:
-                if self.is_bundle: self._load_bundle_animations()
-                else: self._load_standard_animations()
-            elif DEBUG_VERBOSE: print(f"CHARACTER WARNING: Standard spritesheet {self.spritesheet_filename_ref} not loaded for {self.name}")
+        # char_sprite_base_path = getattr(config, 'CHARACTER_SPRITE_PATH', os.path.join('assets', 'images', 'characters'))
 
-        if self.sleep_spritesheet_filename_ref: 
-            self.sleep_spritesheet_image = game_utils.load_image(self.sleep_spritesheet_filename_ref, base_path=char_sprite_base_path)
-            if self.sleep_spritesheet_image:
-                self._load_sleep_animations()
-            elif DEBUG_VERBOSE: print(f"CHARACTER WARNING: Sleep spritesheet {self.sleep_spritesheet_filename_ref} not loaded for {self.name}")
-        
+        if self.sprite_sheet_manager_ref:
+            if self.spritesheet_filename_ref: # Questo 'filename' è in realtà la chiave usata in AssetManager
+                self.spritesheet_image = self.sprite_sheet_manager_ref.get_sheet(self.spritesheet_filename_ref)
+                if self.spritesheet_image:
+                    if self.is_bundle: self._load_bundle_animations()
+                    else: self._load_standard_animations()
+                elif DEBUG_VERBOSE: print(f"CHARACTER WARNING: Standard spritesheet '{self.spritesheet_filename_ref}' (key) not found in manager for {self.name}")
+
+            if self.sleep_spritesheet_filename_ref: # Anche questa è una chiave
+                self.sleep_spritesheet_image = self.sprite_sheet_manager_ref.get_sheet(self.sleep_spritesheet_filename_ref)
+                if self.sleep_spritesheet_image:
+                    self._load_sleep_animations()
+                elif DEBUG_VERBOSE: print(f"CHARACTER WARNING: Sleep spritesheet '{self.sleep_spritesheet_filename_ref}' (key) not found in manager for {self.name}")
+        else:
+            if DEBUG_VERBOSE: print(f"CHARACTER WARNING: SpriteSheetManager not provided to {self.name}. Sprites will not be loaded.")
+
         self._set_initial_animation_key()
-        
+
         current_render_fw = self.sleep_frame_width if self.current_action == "resting_on_bed" and self.sleep_spritesheet_image else self.frame_width
         current_render_fh = self.sleep_frame_height if self.current_action == "resting_on_bed" and self.sleep_spritesheet_image else self.frame_height
         rect_w = current_render_fw if (self.spritesheet_image or self.sleep_spritesheet_image) and current_render_fw > 0 else self.fallback_radius * 2
@@ -113,6 +134,7 @@ class Character:
         self.rect = pygame.Rect(0, 0, rect_w, rect_h)
         self.rect.center = (int(self.x), int(self.y))
 
+        # Passa self (character_owner) ai bisogni
         self.hunger = Hunger(self,getattr(config,'HUNGER_MAX_VALUE',100.),getattr(config,'HUNGER_INITIAL_MIN_PCT',0.),getattr(config,'HUNGER_INITIAL_MAX_PCT',0.6),getattr(config,'HUNGER_BASE_RATE',2.),getattr(config,'HUNGER_RATE_MULTIPLIERS',{}))
         self.energy = Energy(self,getattr(config,'ENERGY_MAX_VALUE',100.),getattr(config,'ENERGY_INITIAL_MIN_PCT',0.4),getattr(config,'ENERGY_INITIAL_MAX_PCT',1.),getattr(config,'ENERGY_BASE_DECAY_RATE',5.5),getattr(config,'ENERGY_DECAY_MULTIPLIERS',{}))
         self.social = Social(self,getattr(config,'SOCIAL_MAX_VALUE',100.),getattr(config,'SOCIAL_INITIAL_MIN_PCT',0.4),getattr(config,'SOCIAL_INITIAL_MAX_PCT',1.),getattr(config,'SOCIAL_BASE_DECAY_RATE',1.4),getattr(config,'SOCIAL_DECAY_MULTIPLIERS',{}))
@@ -124,6 +146,8 @@ class Character:
         self.age_in_total_game_days: float = random.uniform(getattr(config,'NPC_INITIAL_AGE_YEARS_MIN',20)*getattr(config,'GAME_DAYS_PER_YEAR',432), getattr(config,'NPC_INITIAL_AGE_YEARS_MAX',40)*getattr(config,'GAME_DAYS_PER_YEAR',432))
         self.is_pregnant: bool = False
         self.pregnancy_progress_days: float = 0.0
+        # Inizializza PregnancyStatus (se non lo fai già nel metodo from_dict o altrove)
+        # self.pregnancy_status = self.PregnancyStatus(self.game_state_ref) # Assicurati che PregnancyStatus sia definita
 
     def _get_sprite_from_sheet(self, source_spritesheet, x_on_sheet: int, y_on_sheet: int, width: int, height: int) -> pygame.Surface:
         if not source_spritesheet: surface = pygame.Surface((width,height),pygame.SRCALPHA); surface.fill((0,0,0,0)); return surface
@@ -372,122 +396,127 @@ class Character:
         needs_data = {name: need.to_dict() for name, need in self.needs.items()}
         path_data = list(self.path) if self.path else None
 
-        return {
-            "id": self.id,
-            "name": self.name,
-            "age_days": self.age_days,
-            "gender": self.gender,
-            
-            "is_pregnant": self.is_pregnant,
-            "pregnancy_duration_days": self.pregnancy_duration_days,
-            "days_into_pregnancy": self.days_into_pregnancy,
-            "pregnancy_status": self.pregnancy_status.to_dict(), # Usa il to_dict della sottoclasse
+        needs_data_to_save = {
+            "hunger": self.hunger.to_dict(),
+            "energy": self.energy.to_dict(),
+            "social": self.social.to_dict(),
+            "bladder": self.bladder.to_dict(),
+            "fun": self.fun.to_dict(),
+            "hygiene": self.hygiene.to_dict(),
+            "intimacy": self.intimacy.to_dict()
+        }
 
-            "rect": rect_data,
-            "needs": needs_data,
-            "current_activity": self.current_activity,
-            "current_sprite_key": self.current_sprite_key,
-            "sprite_last_update": self.sprite_last_update,
-            "frame_index": self.frame_index,
-            "is_moving": self.is_moving,
-            "path": path_data,
-            "target_object_id": self.target_object_id,
-            "target_object_interaction_point": self.target_object_interaction_point,
-            "is_interacting": self.is_interacting,
-            "interaction_timer": self.interaction_timer,
-            "last_wander_time": self.last_wander_time,
-            "wander_interval": self.wander_interval,
+        return {
+            "uuid": self.uuid, # Coerenza con from_dict
+            "name": self.name,
+            "age_in_total_game_days": self.age_in_total_game_days, # Coerenza con from_dict
+            "gender": self.gender,
+            "x": self.x, # Salva le coordinate dirette
+            "y": self.y,
+            "fallback_color": list(self.fallback_color),
+            "fallback_radius": self.fallback_radius,
             "speed": self.speed,
-            "color": list(self.color) if self.color else None,
-            "is_on_bed": self.is_on_bed,
-            "bed_object_id": self.bed_object_id,
-            "bed_slot_index": self.bed_slot_index,
-            # Salva la chiave dello sprite sheet usato, se rilevante e gestibile
-            "sprite_sheet_key_used": self.sprite_sheet_key_used, 
+            "spritesheet_filename_ref": self.spritesheet_filename_ref,
+            "sleep_spritesheet_filename_ref": self.sleep_spritesheet_filename_ref,
+            "is_bundle": self.is_bundle,
+            "current_action": self.current_action, # Coerenza con from_dict
+            # "current_path": [node.to_tuple() for node in self.current_path] if self.current_path else None, # Se i nodi hanno to_tuple()
+            "current_path": None, # Ricalcolare il path è spesso più sicuro
+            "current_path_index": self.current_path_index,
+            "target_destination": list(self.target_destination) if self.target_destination else None,
+            "target_partner_uuid": self.target_partner.uuid if self.target_partner else None, # Salva UUID
+            "target_bed_slot_id": self.target_bed_slot_id,
+            "time_in_current_action": self.time_in_current_action,
+            "is_pregnant": self.is_pregnant,
+            "pregnancy_progress_days": self.pregnancy_progress_days,
+            # "pregnancy_status": self.pregnancy_status.to_dict(), # Se PregnancyStatus ha to_dict
+            "needs_data": needs_data_to_save # Chiave corretta
         }
 
     @classmethod
-    def from_dict(cls, data, sprite_sheet_manager, font, game_state):
-        """Crea un'istanza di Character da un dizionario."""
-        char_id = data.get("id", f"npc_{uuid.uuid4()}")
+    def from_dict(cls, data, sprite_sheet_manager_param, font_param, game_state_param):
+        char_id = data.get("uuid", f"npc_{uuid.uuid4()}") # Coerenza con __init__
         name = data.get("name", "Loaded NPC")
-        age_days = data.get("age_days", 20 * 28 * 18) # Default ~20 anni di Anthalys
+        age_days = data.get("age_in_total_game_days", 20 * getattr(config, 'GAME_DAYS_PER_YEAR', 432))
         gender = data.get("gender", random.choice(["male", "female"]))
-        
-        rect_data = data.get("rect")
-        initial_x = rect_data[0] if rect_data else 0
-        initial_y = rect_data[1] if rect_data else 0
-        
-        # Recupera la chiave dello sprite sheet salvata, o usa un default
-        sprite_key_override = data.get("sprite_sheet_key_used", "character_spritesheet_ αγορά")
+
+        rect_data = data.get("rect") # 'rect' è una lista [x, y, w, h]
+        initial_x = rect_data[0] + rect_data[2]/2 if rect_data else config.SCREEN_WIDTH / 2 # Centro x
+        initial_y = rect_data[1] + rect_data[3]/2 if rect_data else config.SCREEN_HEIGHT / 2 # Centro y
+
+        # Recupera i nomi dei file degli spritesheet dal salvataggio
+        spritesheet_fn = data.get("spritesheet_filename_ref") # Coerente con to_dict
+        sleep_spritesheet_fn = data.get("sleep_spritesheet_filename_ref") # Coerente con to_dict
+        is_bundle_loaded = data.get("is_bundle", False)
 
 
         character = cls(
-            char_id=char_id,
             name=name,
-            age_days=age_days,
             gender=gender,
-            sprite_sheet_manager=sprite_sheet_manager,
-            font=font,
             x=initial_x,
             y=initial_y,
-            game_state=game_state,
-            sprite_key_override=sprite_key_override # Passa la chiave dello sprite sheet
+            game_state=game_state_param, # Passa game_state
+            sprite_sheet_manager=sprite_sheet_manager_param, # Passa il manager
+            font=font_param, # Passa il font
+            spritesheet_filename=spritesheet_fn, # Passa la chiave/nome file
+            sleep_spritesheet_filename=sleep_spritesheet_fn, # Passa la chiave/nome file
+            is_bundle=is_bundle_loaded,
+            existing_uuid=char_id,
+            # sprite_key_override non è più necessario se spritesheet_filename è la chiave principale
+            # Se lo vuoi mantenere, aggiungilo alla firma di __init__
+            color=tuple(data.get("fallback_color", (255,0,0))), # Usa fallback_color
+            radius=data.get("fallback_radius", 15),
+            speed=data.get("speed", config.CHARACTER_SPEED)
         )
 
-        # Popola gli attributi specifici post-__init__
-        if rect_data:
-             character.rect = pygame.Rect(rect_data[0], rect_data[1], character.rect.width, character.rect.height)
-        
+        # Popola attributi che __init__ potrebbe non coprire dal dizionario 'data'
+        # (molti di questi ora sono gestiti da __init__ o sono impostati ai default lì)
+
+        character.current_action = data.get("current_action", "idle") # Coerenza con Character.current_action
+        # current_animation_key e current_frame_idx_in_animation sono gestiti da _set_initial_animation_key e update
+
+        path_data_raw = data.get("current_path") # current_path è salvato come lista di tuple (x,y)
+        if path_data_raw:
+            # Se AStarNode ha un metodo from_tuple o simile per la ricostruzione, usalo
+            # Altrimenti, se salvi solo tuple (x,y), la conversione a Node potrebbe essere complessa qui
+            # Per ora, assumiamo che AStarNode possa essere ricreato se necessario o che il path sia solo di tuple
+            # Questo path è di nodi griglia, non world coords.
+            # La ricostruzione dei Node objects da semplici tuple (x,y) è problematica qui.
+            # È meglio che il path venga ricalcolato se necessario, o che i nodi siano serializzabili.
+            # Per ora, resettiamo il path, l'IA lo ricalcolerà.
+            character.current_path = None #deque([AStarNode.from_tuple(p_tuple) for p_tuple in path_data_raw])
+            character.current_path_index = data.get("current_path_index", 0)
+        else:
+            character.current_path = None
+
+        character.target_destination = tuple(data.get("target_destination")) if data.get("target_destination") else None
+
+        # Bisogni: __init__ già li inizializza e li randomizza.
+        # from_dict dovrebbe SOVRASCRIVERE i valori dei bisogni con quelli salvati.
+        needs_data_loaded = data.get("needs_data", {}) # Assumendo che 'needs_data' sia la chiave corretta
+        for need_name_key, need_saved_data in needs_data_loaded.items():
+            if hasattr(character, need_name_key.lower()): # es. character.hunger
+                need_object_to_update = getattr(character, need_name_key.lower())
+                # Assumiamo che BaseNeed e le sue sottoclassi abbiano un metodo per impostare lo stato da un dizionario,
+                # o almeno un set_value.
+                if hasattr(need_object_to_update, 'set_value') and 'current_value' in need_saved_data:
+                    need_object_to_update.set_value(need_saved_data['current_value'])
+                    if hasattr(need_object_to_update, 'last_updated_total_seconds') and 'last_updated_total_seconds' in need_saved_data:
+                         need_object_to_update.last_updated_total_seconds = need_saved_data['last_updated_total_seconds']
+                # Oppure un metodo from_dict più completo nel BaseNeed:
+                # need_object_to_update.from_data(need_saved_data) # Se BaseNeed.from_data è adatto
+            elif DEBUG_VERBOSE:
+                print(f"CHARACTER from_dict WARNING: Need '{need_name_key}' from save data not found as attribute on character '{character.name}'.")
+
+
         character.is_pregnant = data.get("is_pregnant", False)
-        character.pregnancy_duration_days = data.get("pregnancy_duration_days", config.NPC_PREGNANCY_DURATION_DAYS)
-        character.days_into_pregnancy = data.get("days_into_pregnancy", 0)
-        
-        pregnancy_status_data = data.get("pregnancy_status")
-        if pregnancy_status_data:
-            # Qui usiamo il from_dict della sottoclasse PregnancyStatus
-            character.pregnancy_status = cls.PregnancyStatus.from_dict(pregnancy_status_data, game_state)
+        character.pregnancy_progress_days = data.get("pregnancy_progress_days", 0.0)
+        # pregnancy_status (se hai una sottoclasse e un metodo from_dict per essa)
 
-        needs_data = data.get("needs", {})
-        for need_name, need_dict in needs_data.items():
-            if need_name in character.needs:
-                # Passa game_state al from_dict di Need
-                character.needs[need_name] = cls.Need.from_dict(need_dict, character, game_state) # Aggiunto game_state
-            else:
-                print(f"Avviso: il bisogno '{need_name}' dal salvataggio non è stato trovato nell'NPC '{character.name}' durante il caricamento.")
+        character.target_partner_uuid = data.get("target_partner_uuid") # Salva UUID, ricostruisci il riferimento dopo
+        character.target_bed_slot_id = data.get("target_bed_slot_id")
+        # ... (altri attributi)
 
-
-        character.current_activity = data.get("current_activity", "Idle")
-        # current_sprite_key sarà impostato da update_sprite() o da altre logiche,
-        # ma possiamo caricarlo per coerenza se l'NPC era in uno stato specifico.
-        character.current_sprite_key = data.get("current_sprite_key", character.get_default_sprite_key())
-
-        character.sprite_last_update = data.get("sprite_last_update", pygame.time.get_ticks())
-        character.frame_index = data.get("frame_index", 0)
-        character.is_moving = data.get("is_moving", False)
-        
-        path_data = data.get("path")
-        character.path = deque(path_data) if path_data else deque()
-
-        character.target_object_id = data.get("target_object_id")
-        tpip_data = data.get("target_object_interaction_point")
-        character.target_object_interaction_point = tuple(tpip_data) if tpip_data else None
-        
-        character.is_interacting = data.get("is_interacting", False)
-        character.interaction_timer = data.get("interaction_timer", 0)
-        character.last_wander_time = data.get("last_wander_time")
-        character.wander_interval = data.get("wander_interval", random.uniform(5, 15))
-        character.speed = data.get("speed", config.CHARACTER_SPEED)
-        
-        color_data = data.get("color")
-        if color_data:
-            character.color = tuple(color_data)
-        
-        character.is_on_bed = data.get("is_on_bed", False)
-        character.bed_object_id = data.get("bed_object_id")
-        character.bed_slot_index = data.get("bed_slot_index")
-        
-        character.update_sprite() # Applica lo sprite corretto dopo aver caricato tutti i dati
         return character
 
     # === Sottoclasse Need ===

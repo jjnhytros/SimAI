@@ -6,14 +6,15 @@ import sys
 
 try:
     from game.src.modules.needs._base_need import BaseNeed # <--- IMPORT CORRETTO
-    from game import config as game_config
+    from game import config
 except ImportError as e:
-    print(f"CRITICAL ERROR (IntimacyNeed): Could not import _base_need.BaseNeed or game_config: {e}")
+    print(f"CRITICAL ERROR (IntimacyNeed): Could not import _base_need.BaseNeed or config: {e}")
     print("Ensure 'game.config' and 'game.src.modules.needs._base_need' are accessible and correctly named.")
     sys.exit()
 
+
 # Leggi il flag di debug una volta, dopo aver importato config
-DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
+DEBUG_VERBOSE = getattr(config, 'DEBUG_AI_ACTIVE', False)
 
 class Intimacy(BaseNeed):
     def __init__(self, character_owner, max_value, 
@@ -26,7 +27,7 @@ class Intimacy(BaseNeed):
             initial_max_percentage=initial_max_percentage,
             base_rate=base_increase_rate, 
             rate_multipliers=increase_multipliers,
-            high_is_good=getattr(game_config, 'INTIMACY_HIGH_IS_GOOD', False),
+            high_is_good=getattr(config, 'INTIMACY_HIGH_IS_GOOD', False),
             name="Intimacy"
         )
         if DEBUG_VERBOSE:

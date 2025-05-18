@@ -4,20 +4,23 @@
 # MODIFIED: Made debug/warning prints conditional on config.DEBUG_AI_ACTIVE.
 
 import pygame
+import json
 import os
 import math
 import random 
 import pygame_gui 
 import sys 
+from collections import deque # Importa deque se lo usi per find_path_to_target
+from typing import Optional
 
 try:
-    from game import config as game_config 
+    from game import config 
 except ImportError as e:
     print(f"CRITICAL ERROR (game_utils.py): Could not import 'game.config': {e}")
     print("Ensure 'game.config' is accessible. SimAI cannot run without its configuration.")
     sys.exit()
 
-DEBUG_VERBOSE = getattr(game_config, 'DEBUG_AI_ACTIVE', False)
+DEBUG_VERBOSE = getattr(config, 'DEBUG_AI_ACTIVE', False)
 
 try:
     import cairosvg
@@ -26,6 +29,33 @@ try:
 except ImportError:
     if DEBUG_VERBOSE: print("WARNING (game_utils.py): Library 'cairosvg' not found. SVG file loading will fail.")
     CAIROSVG_AVAILABLE = False
+
+OBJECT_BLUEPRINTS_DATA = {}
+
+def load_object_blueprints(filename="object_blueprints.json"):
+    global OBJECT_BLUEPRINTS_DATA
+    # Costruisci il percorso corretto per il file JSON
+    # Assumendo che la directory 'data' sia dentro 'assets'
+    data_path = os.path.join(config.BASE_ASSET_PATH, "data", filename)
+    try:
+        with open(data_path, 'r', encoding='utf-8') as f:
+            OBJECT_BLUEPRINTS_DATA = json.load(f)
+        if getattr(config, 'DEBUG_AI_ACTIVE', False): # Usa config per il flag di debug
+            print(f"OBJECTS: Caricati {len(OBJECT_BLUEPRINTS_DATA)} blueprint di oggetti da {data_path}")
+    except FileNotFoundError:
+        print(f"ERRORE OGGETTI: File blueprint '{data_path}' non trovato.")
+        OBJECT_BLUEPRINTS_DATA = {} # Resetta se il file non è trovato
+    except json.JSONDecodeError as e:
+        print(f"ERRORE OGGETTI: Errore nel parsing del JSON '{data_path}': {e}")
+        OBJECT_BLUEPRINTS_DATA = {}
+    except Exception as e:
+        print(f"ERRORE OGGETTI: Errore imprevisto durante il caricamento dei blueprint: {e}")
+        OBJECT_BLUEPRINTS_DATA = {}
+    return OBJECT_BLUEPRINTS_DATA # Restituisci i dati caricati
+
+# Potresti voler una funzione per accedere ai dati
+def get_object_blueprint(type_key):
+    return OBJECT_BLUEPRINTS_DATA.get(type_key)
 
 def load_image(filename_with_ext: str, target_size: tuple = None, base_path: str = "."):
     full_path = os.path.join(base_path, filename_with_ext)
@@ -64,9 +94,9 @@ def load_all_game_assets():
     icon_size_time_btn = (30, 30); icon_size_prd = (28, 28); icon_size_nd = (22, 22)
     placeholder_sfc = pygame.Surface(icon_size_nd, pygame.SRCALPHA)
     pygame.draw.circle(placeholder_sfc, (100,100,100), (icon_size_nd[0]//2, icon_size_nd[1]//2), icon_size_nd[0]//2 - 1)
-    if hasattr(game_config, 'RED'):
-        pygame.draw.line(placeholder_sfc, game_config.RED, (3,3), (icon_size_nd[0]-3, icon_size_nd[1]-3), 1)
-        pygame.draw.line(placeholder_sfc, game_config.RED, (3,icon_size_nd[1]-3), (icon_size_nd[0]-3, 3), 1)
+    if hasattr(config, 'RED'):
+        pygame.draw.line(placeholder_sfc, config.RED, (3,3), (icon_size_nd[0]-3, icon_size_nd[1]-3), 1)
+        pygame.draw.line(placeholder_sfc, config.RED, (3,icon_size_nd[1]-3), (icon_size_nd[0]-3, 3), 1)
     
     icon_files_cfg_map = {
         "pause":"pause-circle.svg", "speed_1":"1-circle.svg", "speed_2":"2-circle.svg", "speed_3":"3-circle.svg",
@@ -80,7 +110,7 @@ def load_all_game_assets():
     
     for name, filename in icon_files_cfg_map.items():
         size = icon_sizes_cfg_map.get(name, icon_size_nd)
-        loaded_icons_map[name] = load_image(filename, size, base_path=game_config.ICON_PATH)
+        loaded_icons_map[name] = load_image(filename, size, base_path=config.ICON_PATH)
         if loaded_icons_map[name] is None: loaded_icons_map[name] = placeholder_sfc
     
     speed_control_icons = [loaded_icons_map.get(s) for s in ["pause","speed_1","speed_2","speed_3","speed_4","speed_5"]]
@@ -88,32 +118,32 @@ def load_all_game_assets():
     
     game_bed_parts = {"base": None, "cover": None, "full_spritesheet_for_debug": None} 
     bed_spritesheet_filename = "double-blue.png" 
-    bed_spritesheet_path = getattr(game_config, 'FURNITURE_IMAGE_PATH', os.path.join(getattr(game_config, 'IMAGE_PATH', 'assets/images'), 'furnitures'))
+    bed_spritesheet_path = getattr(config, 'FURNITURE_IMAGE_PATH', os.path.join(getattr(config, 'IMAGE_PATH', 'assets/images'), 'furnitures'))
     full_bed_spritesheet_surf = load_image(bed_spritesheet_filename, None, base_path=bed_spritesheet_path)
     game_bed_parts["full_spritesheet_for_debug"] = full_bed_spritesheet_surf
 
     if full_bed_spritesheet_surf:
-        base_coords = getattr(game_config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0, 0, 64, 81)) 
+        base_coords = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0, 0, 64, 81)) 
         base_surf = pygame.Surface((base_coords[2], base_coords[3]), pygame.SRCALPHA)
         base_surf.blit(full_bed_spritesheet_surf, (0,0), base_coords)
         game_bed_parts["base"] = base_surf
 
-        cover_coords = getattr(game_config, 'BED_SPRITESHEET_COVER_RECT_COORDS', (0, 106, 64, 22))
+        cover_coords = getattr(config, 'BED_SPRITESHEET_COVER_RECT_COORDS', (0, 106, 64, 22))
         cover_surf = pygame.Surface((cover_coords[2], cover_coords[3]), pygame.SRCALPHA)
         cover_surf.blit(full_bed_spritesheet_surf, (0,0), cover_coords)
         game_bed_parts["cover"] = cover_surf
     else:
         if DEBUG_VERBOSE: print(f"GAME_UTILS WARNING: Bed spritesheet '{bed_spritesheet_filename}' not loaded. Using fallback color.")
-        placeholder_base_w = getattr(game_config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[2]
-        placeholder_base_h = getattr(game_config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[3]
+        placeholder_base_w = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[2]
+        placeholder_base_h = getattr(config, 'BED_SPRITESHEET_BASE_RECT_COORDS', (0,0,64,81))[3]
         placeholder_base = pygame.Surface((placeholder_base_w, placeholder_base_h), pygame.SRCALPHA)
-        placeholder_base.fill(getattr(game_config,'BED_COLOR_FALLBACK',(100,70,30)))
+        placeholder_base.fill(getattr(config,'BED_COLOR_FALLBACK',(100,70,30)))
         game_bed_parts["base"] = placeholder_base
     
     return loaded_icons_map, speed_control_icons, game_bed_parts, need_bar_icon_size_val
 
 def setup_pathfinding_grid(list_of_obstacle_rects: list) -> list:
-    path_grid = [[1 for _ in range(game_config.GRID_WIDTH)] for _ in range(game_config.GRID_HEIGHT)]
+    path_grid = [[1 for _ in range(config.GRID_WIDTH)] for _ in range(config.GRID_HEIGHT)]
     if list_of_obstacle_rects:
         for rect_obj_instance in list_of_obstacle_rects:
             if rect_obj_instance is None: continue
@@ -121,7 +151,7 @@ def setup_pathfinding_grid(list_of_obstacle_rects: list) -> list:
             end_gx, end_gy = world_to_grid(rect_obj_instance.right - 1, rect_obj_instance.bottom - 1) 
             for gy_idx in range(start_gy, end_gy + 1):
                 for gx_idx in range(start_gx, end_gx + 1):
-                    if 0 <= gx_idx < game_config.GRID_WIDTH and 0 <= gy_idx < game_config.GRID_HEIGHT:
+                    if 0 <= gx_idx < config.GRID_WIDTH and 0 <= gy_idx < config.GRID_HEIGHT:
                         path_grid[gy_idx][gx_idx] = 0 
     return path_grid
 
@@ -203,21 +233,21 @@ def interpolate_color(color1: tuple, color2: tuple, factor: float) -> tuple:
 
 def get_need_bar_color(goodness_factor): 
     if goodness_factor < 0.25: 
-        return interpolate_color(game_config.NEED_COLOR_VERY_BAD, game_config.NEED_COLOR_BAD, goodness_factor / 0.25)
+        return interpolate_color(config.NEED_COLOR_VERY_BAD, config.NEED_COLOR_BAD, goodness_factor / 0.25)
     elif goodness_factor < 0.5: 
-        return interpolate_color(game_config.NEED_COLOR_BAD, game_config.NEED_COLOR_MEDIUM, (goodness_factor - 0.25) / 0.25)
+        return interpolate_color(config.NEED_COLOR_BAD, config.NEED_COLOR_MEDIUM, (goodness_factor - 0.25) / 0.25)
     elif goodness_factor < 0.75: 
-        return interpolate_color(game_config.NEED_COLOR_MEDIUM, game_config.NEED_COLOR_OKAY, (goodness_factor - 0.5) / 0.25)
+        return interpolate_color(config.NEED_COLOR_MEDIUM, config.NEED_COLOR_OKAY, (goodness_factor - 0.5) / 0.25)
     else: 
-        return interpolate_color(game_config.NEED_COLOR_OKAY, game_config.NEED_COLOR_GOOD, (goodness_factor - 0.75) / 0.25)
+        return interpolate_color(config.NEED_COLOR_OKAY, config.NEED_COLOR_GOOD, (goodness_factor - 0.75) / 0.25)
 
 def get_sky_color_and_period_info(precise_game_hour: float) -> tuple:
-    hour_for_sky_color = precise_game_hour % getattr(game_config, 'GAME_HOURS_IN_DAY', 28)
-    sky_keyframes_list = getattr(game_config, 'SKY_KEYFRAMES', [])
+    hour_for_sky_color = precise_game_hour % getattr(config, 'GAME_HOURS_IN_DAY', 28)
+    sky_keyframes_list = getattr(config, 'SKY_KEYFRAMES', [])
     if not sky_keyframes_list or len(sky_keyframes_list) < 2:
         default_sky_color = (135, 206, 235) 
         default_period_name = "Daytime" 
-        default_ui_text_color = getattr(game_config, 'TEXT_COLOR_DARK', (0,0,0))
+        default_ui_text_color = getattr(config, 'TEXT_COLOR_DARK', (0,0,0))
         if DEBUG_VERBOSE: print(f"GAME_UTILS WARNING (get_sky_color): SKY_KEYFRAMES not properly defined in config. Using defaults.")
         return default_sky_color, default_period_name, default_ui_text_color
     
@@ -237,20 +267,20 @@ def get_sky_color_and_period_info(precise_game_hour: float) -> tuple:
                 current_sky_color = interpolate_color(c1, c2, interpolation_factor) # Chiamata corretta ora
             break 
             
-    current_game_hour_int = int(precise_game_hour) % getattr(game_config, 'GAME_HOURS_IN_DAY', 28)
+    current_game_hour_int = int(precise_game_hour) % getattr(config, 'GAME_HOURS_IN_DAY', 28)
     period_name = "Night" 
     if 7 <= current_game_hour_int < 12: period_name = "Morning"
     elif 12 <= current_game_hour_int < 18: period_name = "Afternoon"
     elif 18 <= current_game_hour_int < 22: period_name = "Evening"
     brightness = (current_sky_color[0]*0.299 + current_sky_color[1]*0.587 + current_sky_color[2]*0.114)
-    ui_text_color = getattr(game_config, 'TEXT_COLOR_DARK', (0,0,0)) if brightness > 140 \
-                    else getattr(game_config, 'TEXT_COLOR_LIGHT', (255,255,255))
+    ui_text_color = getattr(config, 'TEXT_COLOR_DARK', (0,0,0)) if brightness > 140 \
+                    else getattr(config, 'TEXT_COLOR_LIGHT', (255,255,255))
     return current_sky_color, period_name, ui_text_color
 
 def world_to_grid(world_x: float, world_y: float) -> tuple:
-    tile_s = getattr(game_config, 'TILE_SIZE', 32)
-    grid_w = getattr(game_config, 'GRID_WIDTH', 1024 // tile_s if tile_s > 0 else 32) 
-    grid_h = getattr(game_config, 'GRID_HEIGHT', 768 // tile_s if tile_s > 0 else 24) 
+    tile_s = getattr(config, 'TILE_SIZE', 32)
+    grid_w = getattr(config, 'GRID_WIDTH', 1024 // tile_s if tile_s > 0 else 32) 
+    grid_h = getattr(config, 'GRID_HEIGHT', 768 // tile_s if tile_s > 0 else 24) 
     if tile_s <= 0: 
         if DEBUG_VERBOSE: print("GAME_UTILS ERROR (world_to_grid): TILE_SIZE is invalid (<=0). Returning (0,0).")
         return (0, 0) 
@@ -261,7 +291,7 @@ def world_to_grid(world_x: float, world_y: float) -> tuple:
     return grid_x, grid_y
 
 def grid_to_world_center(grid_x: int, grid_y: int) -> tuple:
-    tile_s = getattr(game_config, 'TILE_SIZE', 32)
+    tile_s = getattr(config, 'TILE_SIZE', 32)
     world_x = grid_x * tile_s + tile_s / 2.0 
     world_y = grid_y * tile_s + tile_s / 2.0
     return world_x, world_y
@@ -277,7 +307,7 @@ def update_game_time_state(
 ) -> tuple:
     hours_advanced_this_frame = 0.0
     if current_speed_idx > 0:
-        seconds_per_game_hour = game_config.TIME_SPEED_SETTINGS[current_speed_idx]
+        seconds_per_game_hour = config.TIME_SPEED_SETTINGS[current_speed_idx]
         if seconds_per_game_hour > 0 and seconds_per_game_hour != float('inf'):
             hours_advanced_this_frame = time_delta_seconds / seconds_per_game_hour
     new_total_sim_hours = current_total_sim_hours_elapsed_val
@@ -287,13 +317,13 @@ def update_game_time_state(
     new_year = current_year_val
     if hours_advanced_this_frame > 0:
         new_total_sim_hours = current_total_sim_hours_elapsed_val + hours_advanced_this_frame
-        total_hours_from_epoch = game_config.INITIAL_START_HOUR + new_total_sim_hours
-        new_hour_float = total_hours_from_epoch % game_config.GAME_HOURS_IN_DAY
-        total_days_passed_from_epoch = int(total_hours_from_epoch / game_config.GAME_HOURS_IN_DAY)
-        new_year = 1 + total_days_passed_from_epoch // game_config.GAME_DAYS_PER_YEAR
-        days_into_this_year = total_days_passed_from_epoch % game_config.GAME_DAYS_PER_YEAR
-        new_month = 1 + days_into_this_year // game_config.DAYS_PER_MONTH
-        new_day = 1 + days_into_this_year % game_config.DAYS_PER_MONTH
+        total_hours_from_epoch = config.INITIAL_START_HOUR + new_total_sim_hours
+        new_hour_float = total_hours_from_epoch % config.GAME_HOURS_IN_DAY
+        total_days_passed_from_epoch = int(total_hours_from_epoch / config.GAME_HOURS_IN_DAY)
+        new_year = 1 + total_days_passed_from_epoch // config.GAME_DAYS_PER_YEAR
+        days_into_this_year = total_days_passed_from_epoch % config.GAME_DAYS_PER_YEAR
+        new_month = 1 + days_into_this_year // config.DAYS_PER_MONTH
+        new_day = 1 + days_into_this_year % config.DAYS_PER_MONTH
     return (hours_advanced_this_frame, int(new_hour_float), 
             new_day, new_month, new_year, 
             new_total_sim_hours, new_hour_float)
@@ -353,16 +383,237 @@ def draw_all_manual_ui_elements(screen_surface: pygame.Surface, loaded_icons_map
                 bar_fill_rect = pygame.Rect(bar_draw_start_x, current_need_y_to_draw_at, bar_max_width, bar_height)
                 pygame.draw.rect(screen_surface, bar_actual_color, bar_fill_rect)
                 border_rect = pygame.Rect(bar_draw_start_x, current_need_y_to_draw_at, bar_max_width, bar_height)
-                pygame.draw.rect(screen_surface, game_config.NEED_BAR_BORDER_COLOR, border_rect, 1)
+                pygame.draw.rect(screen_surface, config.NEED_BAR_BORDER_COLOR, border_rect, 1)
                 current_need_y_to_draw_at += bar_height + bar_vertical_spacing
 
-# Esempio di funzione per aggiornare le posizioni degli slot
-# Potrebbe essere un metodo della classe GameState in main.py
-# def update_bed_slot_positions(self): # self sarebbe game_state
-#     if self.bed_rect:
-#         s1_inter_offset = getattr(config, 'BED_SLOT_1_INTERACTION_OFFSET', ...)
-#         # ... ricalcola tutti e 4 i punti (interaction e sleep per entrambi gli slot) ...
-#         self.bed_slot_1_interaction_pos_world = (self.bed_rect.left + s1_inter_offset[0], ...)
-#         # etc.
+def occupy_bed_slot_for_character(game_state: 'GameState', character: 'Character', slot_index: int) -> bool:
+    """Tenta di occupare uno slot del letto per il personaggio."""
+    if slot_index == 0 and not game_state.bed_slot_1_occupied_by:
+        game_state.bed_slot_1_occupied_by = character.uuid
+        character.bed_object_id = "main_bed" # o l'ID corretto del letto
+        character.bed_slot_index = 0
+        if DEBUG_VERBOSE: print(f"UTILS: {character.name} occupied bed slot 0.")
+        return True
+    elif slot_index == 1 and not game_state.bed_slot_2_occupied_by:
+        game_state.bed_slot_2_occupied_by = character.uuid
+        character.bed_object_id = "main_bed"
+        character.bed_slot_index = 1
+        if DEBUG_VERBOSE: print(f"UTILS: {character.name} occupied bed slot 1.")
+        return True
+    if DEBUG_VERBOSE: print(f"UTILS WARN: {character.name} failed to occupy bed slot {slot_index}.")
+    return False
+def print_debug_grid(grid_map_data, start_pos_grid=None, end_pos_grid=None):
+    if not grid_map_data or not grid_map_data[0]:
+        print("DEBUG GRID: Mappa vuota o non valida.")
+        return
+    print("\n--- GRIGLIA DI PATHFINDING (DEBUG) ---")
+    for r_idx, row in enumerate(grid_map_data):
+        row_str = []
+        for c_idx, cell in enumerate(row):
+            char_to_print = str(cell)
+            if start_pos_grid and start_pos_grid == (c_idx, r_idx):
+                char_to_print = "S" # Start
+            elif end_pos_grid and end_pos_grid == (c_idx, r_idx):
+                char_to_print = "E" # End
+            elif cell == 0:
+                char_to_print = "#" # Ostacolo
+            else:
+                char_to_print = "." # Calpestabile
+            row_str.append(char_to_print)
+        print(" ".join(row_str))
+    print("--- FINE GRIGLIA ---")
 
-# E chiameresti game_state.update_bed_slot_positions() ogni volta che il letto viene spostato.
+def free_bed_slot_for_character(game_state: 'GameState', character: 'Character'):
+    """Libera lo slot del letto precedentemente occupato dal personaggio."""
+    if character.bed_object_id == "main_bed": # Controlla se era effettivamente su questo letto
+        if character.bed_slot_index == 0 and game_state.bed_slot_1_occupied_by == character.uuid:
+            game_state.bed_slot_1_occupied_by = None
+            if DEBUG_VERBOSE: print(f"UTILS: {character.name} freed bed slot 0.")
+        elif character.bed_slot_index == 1 and game_state.bed_slot_2_occupied_by == character.uuid:
+            game_state.bed_slot_2_occupied_by = None
+            if DEBUG_VERBOSE: print(f"UTILS: {character.name} freed bed slot 1.")
+    character.bed_object_id = None
+    character.bed_slot_index = -1 # o None
+    character.is_on_bed = False
+
+def is_close_to_point(point1: tuple[float, float], point2: tuple[float, float], tolerance: float) -> bool:
+    """Controlla se due punti sono vicini entro una certa tolleranza."""
+    if point1 is None or point2 is None:
+        return False
+    distance_sq = (point1[0] - point2[0])**2 + (point1[1] - point2[1])**2
+    return distance_sq <= tolerance**2
+
+def are_coords_equal(coord1: Optional[tuple[int, int]], coord2: Optional[tuple[int, int]], tolerance: float = 1.0) -> bool:
+    """Controlla se due coordinate (tuple) sono uguali entro una piccola tolleranza."""
+    if coord1 is None or coord2 is None:
+        return coord1 == coord2 # Entrambi None sono considerati uguali, uno None e l'altro no -> diversi
+    return math.isclose(coord1[0], coord2[0], abs_tol=tolerance) and \
+           math.isclose(coord1[1], coord2[1], abs_tol=tolerance)
+class AStarNode:
+    """Nodo per l'algoritmo A*."""
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position # Tupla (x, y) in coordinate della GRIGLIA
+        self.g = 0 # Costo dal nodo di partenza al nodo corrente
+        self.h = 0 # Costo stimato (euristica) dal nodo corrente al nodo di destinazione
+        self.f = 0 # Costo totale (g + h)
+
+    def __eq__(self, other):
+        return self.position == other.position
+
+    def __hash__(self):
+        return hash(self.position)
+
+    def __lt__(self, other): # Necessario per heapq
+        return self.f < other.f
+
+    # Metodo per la serializzazione (opzionale, se vuoi salvare i path)
+    def to_tuple(self) -> tuple:
+        return self.position
+
+    @classmethod
+    def from_tuple(cls, pos_tuple, parent=None): # Opzionale
+        return cls(parent, pos_tuple)
+
+
+def find_path_to_target(
+    character_obj, # Character instance (per la posizione iniziale)
+    target_world_pos: tuple[int, int],
+    grid_map_data: list[list[int]], # La griglia da setup_pathfinding_grid (0=ostacolo, 1=calpestabile)
+    world_dynamic_obstacles: Optional[list[pygame.Rect]] = None # Opzionale, per NPC
+) -> Optional[deque[AStarNode]]:
+    """
+    Trova un percorso usando A* dalla posizione del personaggio a target_world_pos.
+    Restituisce una deque di nodi (in coordinate della GRIGLIA) o None.
+    """
+    if grid_map_data is None or not grid_map_data or not grid_map_data[0]:
+        if DEBUG_VERBOSE: print("PATHFINDING ERROR: grid_map_data non valida.")
+        return None
+
+    start_grid_pos = world_to_grid(character_obj.rect.centerx, character_obj.rect.centery)
+    end_grid_pos = world_to_grid(target_world_pos[0], target_world_pos[1])
+
+    start_node = AStarNode(None, start_grid_pos)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = AStarNode(None, end_grid_pos)
+    end_node.g = end_node.h = end_node.f = 0
+
+    open_list = [] # Tratteremo questa lista come una coda di priorità (heapq sarebbe meglio per le prestazioni)
+    closed_list_positions = set() # Usiamo un set di posizioni per controlli O(1)
+
+    open_list.append(start_node)
+
+    max_iterations = getattr(config, "ASTAR_MAX_ITERATIONS", 1000) # Limita le iterazioni
+    iterations = 0
+
+    while open_list and iterations < max_iterations:
+        iterations += 1
+
+        # Trova il nodo con il costo f più basso (simulazione heapq)
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+
+        open_list.pop(current_index)
+        closed_list_positions.add(current_node.position)
+
+        if current_node == end_node:
+            path = deque()
+            current = current_node
+            while current is not None:
+                path.appendleft(current) # Aggiunge all'inizio per avere il path nell'ordine corretto
+                current = current.parent
+            if DEBUG_VERBOSE and len(path) > 0: print(f"PATHFINDING: Path found from {start_grid_pos} to {end_grid_pos}, length: {len(path)}")
+            return path
+
+        children = []
+        # Adiacenti (incluse diagonali)
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+
+            # Assicurati che sia dentro i limiti della mappa
+            if not (0 <= node_position[0] < len(grid_map_data[0]) and \
+                    0 <= node_position[1] < len(grid_map_data)):
+                continue
+
+            # Assicurati che sia calpestabile sulla griglia statica
+            if grid_map_data[node_position[1]][node_position[0]] == 0: # 0 è ostacolo
+                continue
+
+            # Qui potresti aggiungere controlli per ostacoli dinamici (altri NPC),
+            # se world_dynamic_obstacles è fornito e vuoi che A* li eviti.
+            # Questo rende A* più costoso.
+
+            new_node = AStarNode(current_node, node_position)
+            children.append(new_node)
+
+        for child in children:
+            if child.position in closed_list_positions:
+                continue
+
+            # Calcolo dei costi
+            # Movimento diagonale costa di più (sqrt(2) ~ 1.414)
+            cost_g = 1.414 if abs(child.position[0] - current_node.position[0]) == 1 and \
+                              abs(child.position[1] - current_node.position[1]) == 1 else 1.0
+            child.g = current_node.g + cost_g
+            child.h = math.sqrt(((child.position[0] - end_node.position[0]) ** 2) + \
+                                ((child.position[1] - end_node.position[1]) ** 2))
+            child.f = child.g + child.h
+
+            # Se il figlio è già nella open_list con un costo f minore, salta
+            for open_node in open_list:
+                if child == open_node and child.g >= open_node.g: # Confronta g per trovare il percorso più breve
+                    break
+            else: # Se il loop non è stato interrotto da break
+                open_list.append(child)
+
+    if DEBUG_VERBOSE: print(f"PATHFINDING WARN: No path found from {start_grid_pos} to {end_grid_pos} after {iterations} iterations.")
+    return None # Nessun percorso trovato
+
+
+def get_random_walkable_tile_in_radius(
+    origin_world_pos: tuple[float, float],
+    grid_map_data: list[list[int]],
+    min_dist_tiles: int,
+    max_dist_tiles: int,
+    world_obstacles: Optional[list[pygame.Rect]] = None, # Potrebbe essere usato per controlli più fini
+    max_attempts: int = 20
+) -> Optional[tuple[int, int]]:
+    """
+    Trova una cella calpestabile casuale entro un raggio specificato (in coordinate del mondo).
+    Restituisce le coordinate MONDO del centro della cella trovata, o None.
+    """
+    if grid_map_data is None or not grid_map_data or not grid_map_data[0]:
+        return None
+
+    origin_grid_x, origin_grid_y = world_to_grid(origin_world_pos[0], origin_world_pos[1])
+    grid_width = len(grid_map_data[0])
+    grid_height = len(grid_map_data)
+    tile_size = getattr(config, 'TILE_SIZE', 32)
+
+    for _ in range(max_attempts):
+        angle = random.uniform(0, 2 * math.pi)
+        distance_tiles = random.uniform(min_dist_tiles, max_dist_tiles)
+
+        offset_x = int(round(math.cos(angle) * distance_tiles))
+        offset_y = int(round(math.sin(angle) * distance_tiles))
+
+        target_grid_x = origin_grid_x + offset_x
+        target_grid_y = origin_grid_y + offset_y
+
+        # Controlla limiti della griglia
+        if not (0 <= target_grid_x < grid_width and 0 <= target_grid_y < grid_height):
+            continue
+
+        # Controlla se la cella è calpestabile
+        if grid_map_data[target_grid_y][target_grid_x] == 1: # 1 è calpestabile
+            # Qui potresti aggiungere un controllo più fine usando world_obstacles se necessario,
+            # per assicurarti che il centro della cella non sia troppo vicino a un ostacolo.
+            return grid_to_world_center(target_grid_x, target_grid_y)
+
+    if DEBUG_VERBOSE:
+        print(f"RANDOM_WALKABLE: Failed to find walkable tile near ({origin_grid_x},{origin_grid_y}) after {max_attempts} attempts.")
+    return None

@@ -1,0 +1,103 @@
+{
+    "double_bed_blue": {
+        "display_name": "Letto Matrimoniale Blu",
+        "sprite_sheet_key": "furniture_sprites",
+        "sprite_rect_in_sheet": [
+            0,
+            0,
+            64,
+            96
+        ],
+        "obstacle_rect_relative": [
+            0,
+            0,
+            64,
+            80
+        ],
+        "interaction_points": [
+            {
+                "id": "slot0_interaction",
+                "offset": [
+                    16,
+                    88
+                ],
+                "purpose": "use_slot_0",
+                "facing_on_arrival": "up"
+            },
+            {
+                "id": "slot1_interaction",
+                "offset": [
+                    48,
+                    88
+                ],
+                "purpose": "use_slot_1",
+                "facing_on_arrival": "up"
+            }
+        ],
+        "slots": [
+            {
+                "id": "slot0_sleep",
+                "offset": [
+                    16,
+                    32
+                ],
+                "action_animation": "sleep_on_back_left",
+                "facing_in_slot": "up"
+            },
+            {
+                "id": "slot1_sleep",
+                "offset": [
+                    48,
+                    32
+                ],
+                "action_animation": "sleep_on_back_right",
+                "facing_in_slot": "up"
+            }
+        ],
+        "num_slots": 2,
+        "provides_need": {
+            "energy": 10
+        } // Esempio: quanto riposo dà per ora
+    },
+    "toilet_standard": {
+        "display_name": "WC Standard",
+        "sprite_sheet_key": "furniture_sprites",
+        "sprite_rect_in_sheet": [
+            64,
+            0,
+            32,
+            48
+        ],
+        "obstacle_rect_relative": [
+            0,
+            0,
+            32,
+            48
+        ],
+        "interaction_points": [
+            {
+                "id": "use_toilet",
+                "offset": [
+                    16,
+                    56
+                ],
+                "purpose": "use",
+                "facing_on_arrival": "up"
+            }
+        ],
+        "slots": [
+            {
+                "id": "sitting_on_toilet",
+                "offset": [
+                    16,
+                    16
+                ],
+                "action_animation": "sitting_toilet"
+            }
+        ],
+        "satisfies_need": {
+            "bladder": 100
+        } // Esempio: quanto bisogno soddisfa
+    }
+    // ... altri tipi di oggetti
+}

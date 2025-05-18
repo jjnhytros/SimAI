@@ -11,39 +11,36 @@ from game import config # Cercherà simai/game/config.py
 class SpriteSheetManager:
     def __init__(self):
         self.sprite_sheets: dict[str, pygame.Surface] = {}
-        self.frame_dimensions: dict[str, tuple[int, int]] = {} # key: (width, height)
-        self.animation_configs: dict[str, dict] = {} # Per configurazioni di animazione più complesse
+        self.frame_dimensions: dict[str, tuple[int, int]] = {}
+        self.animation_configs: dict[str, dict] = {}
 
-        if getattr(config, 'DEBUG_AI_ACTIVE', False): # Usa il flag da config
+        if getattr(config, 'DEBUG_AI_ACTIVE', False):
             print("ASSET_MANAGER: SpriteSheetManager initialized.")
 
-    def load_sheet(self, key: str, image_path: str, frame_width: int, frame_height: int, 
+    def load_sheet(self, key: str, image_path_relative_to_config_image_path: str, frame_width: int, frame_height: int,
                    animation_config: Optional[dict] = None):
         """
         Carica uno sprite sheet da un file immagine.
-        key: Una chiave univoca per identificare questo sprite sheet (es. "player_character", "tileset_world").
-        image_path: Il percorso completo del file immagine dello sprite sheet.
-        frame_width: La larghezza di un singolo frame nello sprite sheet.
-        frame_height: L'altezza di un singolo frame nello sprite sheet.
-        animation_config: (Opzionale) Un dizionario con dettagli sulle animazioni, 
-                          es. {"walk_down": {"row": 0, "frames": 4, "speed": 0.1}, ...}
+        image_path_relative_to_config_image_path: Il percorso RELATIVO a config.IMAGE_PATH.
         """
-        if not os.path.exists(image_path):
-            print(f"ERRORE ASSET_MANAGER: Immagine non trovata per lo sprite sheet '{key}' al percorso: {image_path}")
-            # Potresti voler sollevare un'eccezione o caricare uno sprite di fallback
+        # COSTRUISCI IL PERCORSO COMPLETO USANDO config.IMAGE_PATH COME BASE
+        full_image_path = os.path.join(config.IMAGE_PATH, image_path_relative_to_config_image_path)
+
+        if not os.path.exists(full_image_path):
+            print(f"ERRORE ASSET_MANAGER: Immagine non trovata per lo sprite sheet '{key}' al percorso: {full_image_path}")
             return False
 
         try:
-            sheet_surface = pygame.image.load(image_path).convert_alpha()
+            sheet_surface = pygame.image.load(full_image_path).convert_alpha()
             self.sprite_sheets[key] = sheet_surface
             self.frame_dimensions[key] = (frame_width, frame_height)
             if animation_config:
                 self.animation_configs[key] = animation_config
             if getattr(config, 'DEBUG_AI_ACTIVE', False):
-                print(f"ASSET_MANAGER: Sprite sheet '{key}' caricato da '{image_path}' con frame ({frame_width}x{frame_height}).")
+                print(f"ASSET_MANAGER: Sprite sheet '{key}' caricato da '{full_image_path}' con frame ({frame_width}x{frame_height}).")
             return True
         except pygame.error as e:
-            print(f"ERRORE ASSET_MANAGER: Impossibile caricare lo sprite sheet '{key}' da '{image_path}': {e}")
+            print(f"ERRORE ASSET_MANAGER: Impossibile caricare lo sprite sheet '{key}' da '{full_image_path}': {e}")
             return False
 
     def get_sprite(self, sheet_key: str, frame_x_index: int, frame_y_index: int) -> Optional[pygame.Surface]:

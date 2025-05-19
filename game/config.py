@@ -13,6 +13,7 @@ WINDOW_TITLE = f"{GAME_NAME} v{CORE_VERSION} - Anthalys"
 # --- II. Impostazioni di Debug ---
 DEBUG_MODE_ACTIVE = True      # Flag generale per logiche di debug (es. randomizzazione bisogni)
 DEBUG_AI_ACTIVE = True        # Flag per stampe di debug verbose (IA, Pathfinding, Componenti, ecc.)
+# Nota: Valori di debug specifici per i bisogni iniziali sono in Sezione X.1
 
 # Valori specifici se DEBUG_MODE_ACTIVE = True (per testare stati specifici dei bisogni)
 DEBUG_ENERGY_INITIAL_MIN_PCT = 0.05 # 5%
@@ -20,21 +21,27 @@ DEBUG_ENERGY_INITIAL_MAX_PCT = 0.15 # 15%
 DEBUG_HUNGER_INITIAL_MIN_PCT = 0.70 # 70% (alto è male per la fame)
 DEBUG_HUNGER_INITIAL_MAX_PCT = 0.85 # 85%
 
+# Placeholder per le costanti degli stati di gioco
+GAME_STATE_MAIN_MENU = "main_menu"
+GAME_STATE_CHARACTER_CREATION = "character_creation"
+GAME_STATE_GAMEPLAY = "gameplay"
+GAME_STATE_RANDOM_DEBUG_START = "random_debug_start"
+
 # --- III. Impostazioni Percorsi File (Paths) ---
 GAME_DIR_PATH = os.path.dirname(os.path.abspath(__file__)) # Directory del gioco (dove si trova questo file)
 ASSETS_PATH = os.path.join(GAME_DIR_PATH, "assets")
 IMAGE_PATH = os.path.join(ASSETS_PATH, "images")
 CHARACTER_SPRITE_PATH = os.path.join(IMAGE_PATH, "characters")
 FURNITURE_IMAGE_PATH = os.path.join(IMAGE_PATH, "furnitures")
-UI_ICON_PATH = os.path.join(IMAGE_PATH, "ui_icons") # Potresti voler separare le icone UI
-TILE_IMAGE_PATH = os.path.join(IMAGE_PATH, "tiles") # Per le tile della mappa
-FONT_ASSETS_PATH = os.path.join(ASSETS_PATH, "fonts") # Rinominato per chiarezza
+UI_ICON_PATH = os.path.join(IMAGE_PATH, "ui_icons")
+TILE_IMAGE_PATH = os.path.join(IMAGE_PATH, "tiles")
+FONT_ASSETS_PATH = os.path.join(ASSETS_PATH, "fonts")
 DATA_PATH = os.path.join(ASSETS_PATH, "data")
 SAVE_GAME_DIR = "saves" # Relativo alla directory da cui esegui il gioco, o usa os.path.join(GAME_DIR_PATH, "saves")
 
 # --- IV. Impostazioni Schermo e Grafica Base ---
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = 768
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 FPS = 30 # Abbassato leggermente per potenziale risparmio CPU, 60 è ok se le performance lo permettono
 TILE_SIZE = 32
 
@@ -70,14 +77,41 @@ if WORLD_TILE_WIDTH > 5 and WORLD_TILE_HEIGHT > 5:
 
 
 # --- VI. Sistema di Tempo ---
-GAME_HOURS_IN_DAY = 28 # Come da tue specifiche
+ATH = "Y, d/m G:i:s"    # Formato data ("Anno, giorno / mese Ora: minuto: secondo")
+RDN = 951584400 # Numero del giorno di rifondazione
+RY  = 5775      # Anno di rifondazione
+DXY = 432       # Giorni per anno
+DXC = DXY * 100 # Giorni per secolo
+ADN = RY * DXY  # Numero del giorno di Anthal (giorni totali dall'inizio dell'epoca di Anthal)
+MXY = 18        # Mesi per anno
+DXM = 24        # Giorni per mese
+DXW = 7         # Giorni per settimana
+HXD = 28        # Ore per giorno
+IXH = 60        # Minuti per ora
+IXD = IXH * HXD # Minuti per giorno
+IXW = IXH * HXD # Minuti per settimana
+IXM = IXH * HXD # Minuti per mese
+IXY = IXH * HXD # Minuti per anno
+SXI = 60        # Secondi per minuto
+SXH = SXI * IXH # Secondi per ora
+SXD = SXH * HXD # Secondi per giorno
+SXW = SXD * DXW # Secondi per settimana
+SXM = SXD * DXM # Secondi per mese
+SXY = SXD * DXY # Secondi per anno
+MONTH_NAMES = [
+        'Arejal','Brukom','Ĉelal','Kebor','Duvol','Elumag',
+        'Fydrin','Ĝinuril','Itrekos','Jebrax','Letranat','Mulfus',
+        'Nylumer','Otlevat','Prax','Retlixen','Sajep','Xetul']
+DAY_NAMES = ['Nijahr', 'Majahr', 'Bejahr', 'Ĉejahr', 'Dyjahr', 'Fejahr', 'Ĝejahr']
+
+GAME_HOURS_IN_DAY = HXD # Come da tue specifiche
 INITIAL_START_HOUR = 7.0
 INITIAL_START_DAY = 1
 INITIAL_START_MONTH = 1
 INITIAL_START_YEAR = 1
-DAYS_PER_MONTH = 24
-MONTHS_PER_YEAR = 18
-GAME_DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR
+DAYS_PER_MONTH = DXM
+MONTHS_PER_YEAR = MXY
+GAME_DAYS_PER_YEAR = DXY
 
 # TIME_SPEED_SETTINGS: chiave = indice velocità, valore = secondi REALI per far passare UN'ORA di GIOCO
 TIME_SPEED_SETTINGS = {
@@ -94,15 +128,16 @@ TIME_SPEED_SLEEP_ACCELERATED_INDEX = 5 # Indice della velocità massima quando t
 # PERIOD_DEFINITIONS: (ora_inizio_float, nome_periodo_str, chiave_config_icona_char_unicode_str)
 DEFAULT_PERIOD_ICON_CHAR_KEY = "ICON_CHAR_SUN" # Fallback se l'icona specifica non è trovata
 PERIOD_DEFINITIONS = [
-    (0.0, "Notte Profonda", "ICON_CHAR_MOON_STARS"),
-    (5.0, "Alba", "ICON_CHAR_DAWN"),
-    (7.0, "Mattina", "ICON_CHAR_SUNRISE"),
-    (12.0, "Mezzogiorno", "ICON_CHAR_SUN_BRIGHT"),
-    (14.0, "Pomeriggio", "ICON_CHAR_SUN_CLOUDS"),
-    (18.0, "Tramonto", "ICON_CHAR_SUNSET_สวยงาม"), # (Esempio nome chiave)
-    (20.0, "Sera", "ICON_CHAR_MOON_SIMPLE"),
-    (23.0, "Notte", "ICON_CHAR_MOON_STARS_ALT")
+    (0.0, "Notte Profonda", "⚫"),  # U+26AB Cerchio nero
+    (7.0, "Alba", "🟠"),    # U+1F7E0 Cerchio arancione
+    (9.0, "Mattina", "🟡"),  # U+1F7E1 Cerchio giallo
+    (14.0, "Mezzogiorno", "⚪"), # U+26AA Cerchio bianco
+    (15.0, "Pomeriggio", "🟤"), # U+1F7EB Cerchio marrone (toni più caldi e terrosi del pomeriggio)
+    (21.0, "Tramonto", "🔴"),  # U+1F7E5 Cerchio rosso
+    (23.0, "Sera", "🌑"),    # U+1F311 Luna nuova (riproposto per la transizione all'oscurità)
+    (26.0, "Notte", "⚫")   # U+26AB Cerchio nero (coerenza con la Notte Profonda)
 ]
+
 # Colori per SKY_KEYFRAMES (definisci i colori qui)
 DEEP_NIGHT_COLOR = (10, 10, 30); PRE_DAWN_COLOR = (25, 25, 55); VIVID_DAWN_COLOR = (100, 90, 140);
 EARLY_MORNING_COLOR = (120, 140, 190); FULL_MORNING_COLOR = (135, 206, 235); BRIGHT_DAY_COLOR = (170, 225, 255);
@@ -152,7 +187,12 @@ NPC_FEMALE_SLEEP_SPRITESHEET_KEYS = ["female_sleep"]
 DEFAULT_HOUSEHOLD_ID_FOR_NEW_NPCS = "default_household_1" # Per inventario domestico
 
 CHARACTER_SPEED = 80.0 # pixel/secondo
-NPC_MOVEMENT_SPEED_MULTIPLIERS = {0: 0.0, 1: 0.75, 2: 1.0, 3: 1.5, 4: 2.0, 5: 2.5}
+NPC_MOVEMENT_SPEED_MULTIPLIERS = {
+    0: 0.0,       # Immobile
+    1: 1.0,       # Velocità normale
+    2: 1.5,       # 50% più veloce
+    3: 2.0        # Doppio della velocità normale
+}
 NPC_TARGET_REACH_THRESHOLD = TILE_SIZE / 2.8 # Distanza per considerare un target raggiunto
 NPC_PARTNER_INTERACTION_DISTANCE = TILE_SIZE * 1.8 # Distanza per iniziare interazioni di coppia
 
@@ -200,7 +240,7 @@ DEFAULT_MAX_NEED_VALUE = 100.0
 HUNGER_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 HUNGER_INITIAL_MIN_PCT = 0.3  # Inizia un po' affamato
 HUNGER_INITIAL_MAX_PCT = 0.7
-HUNGER_BASE_DECAY_RATE = 2.0  # Tasso con cui la sazietà SCENDE (aumenta la fame)
+HUNGER_BASE_DECAY_RATE = 0.0  # Tasso (2.0) con cui la sazietà SCENDE (aumenta la fame)
 HUNGER_HIGH_IS_GOOD = True   # <<<< MODIFICATO
 HUNGER_RATE_MULTIPLIERS = {"Notte Profonda": 0.5, "Alba": 1.0, "Mattina": 1.2, "Mezzogiorno": 1.5, "Pomeriggio": 1.4, "Tramonto": 1.3, "Sera": 1.1, "Notte": 0.8}
 DEBUG_HUNGER_INITIAL_MIN_PCT = 0.10 # Per testare la fame critica
@@ -210,7 +250,7 @@ DEBUG_HUNGER_INITIAL_MAX_PCT = 0.25
 ENERGY_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 ENERGY_INITIAL_MIN_PCT = 0.4
 ENERGY_INITIAL_MAX_PCT = 1.0
-ENERGY_BASE_DECAY_RATE = 5.5 # Tasso con cui l'energia SCENDE
+ENERGY_BASE_DECAY_RATE = 0.0 # Tasso (5.5) con cui l'energia SCENDE
 ENERGY_HIGH_IS_GOOD = True   # Già True
 ENERGY_RECOVERY_RATE_PER_HOUR = 18.0
 ENERGY_DECAY_MULTIPLIERS = {"Notte Profonda": 0.3, "Alba": 0.8, "Mattina": 1.0, "Mezzogiorno": 1.2, "Pomeriggio": 1.1, "Tramonto": 0.9, "Sera": 0.7, "Notte": 0.5}
@@ -221,7 +261,7 @@ DEBUG_ENERGY_INITIAL_MAX_PCT = 0.15
 SOCIAL_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 SOCIAL_INITIAL_MIN_PCT = 0.3
 SOCIAL_INITIAL_MAX_PCT = 0.8
-SOCIAL_BASE_DECAY_RATE = 1.4 # Tasso con cui la socialità SCENDE
+SOCIAL_BASE_DECAY_RATE = 0.0 # Tasso (1.4) con cui la socialità SCENDE
 SOCIAL_HIGH_IS_GOOD = True   # Già True
 SOCIAL_DECAY_MULTIPLIERS = {}
 
@@ -229,7 +269,7 @@ SOCIAL_DECAY_MULTIPLIERS = {}
 BLADDER_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 BLADDER_INITIAL_MIN_PCT = 0.5 # Inizia con la vescica non completamente vuota
 BLADDER_INITIAL_MAX_PCT = 0.9
-BLADDER_BASE_DECAY_RATE = 3.0 # Tasso con cui lo "stato di sollievo" SCENDE (la vescica si riempie)
+BLADDER_BASE_DECAY_RATE = 0.0 # Tasso (3.0) con cui lo "stato di sollievo" SCENDE (la vescica si riempie)
 BLADDER_HIGH_IS_GOOD = True   # <<<< MODIFICATO
 BLADDER_FILL_MULTIPLIERS = {} # Questi erano fill, ora sono decay del "sollievo"
 # BLADDER_RELIEF_AMOUNT (definito in Action Values) è quanto si aggiunge quando si usa il bagno
@@ -238,7 +278,7 @@ BLADDER_FILL_MULTIPLIERS = {} # Questi erano fill, ora sono decay del "sollievo"
 FUN_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 FUN_INITIAL_MIN_PCT = 0.2
 FUN_INITIAL_MAX_PCT = 0.7
-FUN_BASE_DECAY_RATE = 2.5
+FUN_BASE_DECAY_RATE = 0.0 # Tasso (2.5) in cui scende il divertimento
 FUN_HIGH_IS_GOOD = True   # Già True
 FUN_DECAY_MULTIPLIERS = {}
 
@@ -246,7 +286,7 @@ FUN_DECAY_MULTIPLIERS = {}
 HYGIENE_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 HYGIENE_INITIAL_MIN_PCT = 0.4
 HYGIENE_INITIAL_MAX_PCT = 0.9
-HYGIENE_BASE_DECAY_RATE = 1.8
+HYGIENE_BASE_DECAY_RATE = 0.0 # Tasso (1.8) con cui l'igiene SCENDE
 HYGIENE_HIGH_IS_GOOD = True   # Già True
 HYGIENE_DECAY_MULTIPLIERS = {}
 
@@ -254,7 +294,7 @@ HYGIENE_DECAY_MULTIPLIERS = {}
 INTIMACY_MAX_VALUE = DEFAULT_MAX_NEED_VALUE
 INTIMACY_INITIAL_MIN_PCT = 0.0
 INTIMACY_INITIAL_MAX_PCT = 0.3
-INTIMACY_BASE_DECAY_RATE = 0.8 # Tasso con cui la soddisfazione da intimità SCENDE
+INTIMACY_BASE_DECAY_RATE = 0.0 # Tasso (0.8) con cui la soddisfazione da intimità SCENDE
 INTIMACY_HIGH_IS_GOOD = True   # <<<< MODIFICATO
 INTIMACY_INCREASE_RATE_MULTIPLIERS = {} # Questi erano increase, ora decay della soddisfazione
 # Le costanti _SATISFACTION (es. INTIMACY_FROM_CUDDLING) sono quanto si aggiunge quando si soddisfa il bisogno
@@ -271,7 +311,7 @@ MOOD_VALUE_MAX = 100.0
 MOOD_STARTING_MIN_PCT = 0.4 # Dal 40% al 60% del range (quindi da -20 a +20 se il range è -100 a 100)
 MOOD_STARTING_MAX_PCT = 0.6
 MAX_RECENT_EMOTIONS_LOG = 5
-MOOD_DECAY_RATE_PER_SECOND = 0.005 # Tende a neutralizzarsi molto lentamente
+MOOD_DECAY_RATE_PER_SECOND = 0.000 # Tasso (0.005) in cui il mood scende. Tende a neutralizzarsi molto lentamente
 # Modificatori umore da bisogni (valore aggiunto/sottratto al mood_value per secondo reale se condizione attiva)
 HUNGER_CRITICAL_THRESHOLD_FOR_MOOD = 15 # Sotto questa % di fame -> malumore
 MOOD_MODIFIER_HUNGER_CRITICAL = -0.2
@@ -314,10 +354,10 @@ NPC_PERSONAL_INVENTORY_CAPACITY = 15
 HOUSEHOLD_INVENTORY_CAPACITY = 50 # Per l'inventario domestico
 
 # X.9 Stato (StatusComponent)
-NPC_INITIAL_AGE_YEARS_MIN = 18
-NPC_INITIAL_AGE_YEARS_MAX = 35
+NPC_INITIAL_AGE_YEARS_MIN = 14
+NPC_INITIAL_AGE_YEARS_MAX = 18
 PREGNANCY_TERM_GAME_DAYS = DAYS_PER_MONTH * 2 # Esempio: 2 mesi di gioco
-MIN_PREGNANCY_AGE_YEARS = 18
+MIN_PREGNANCY_AGE_YEARS = 12
 MAX_PREGNANCY_AGE_YEARS = 45 # Età massima per iniziare una gravidanza
 MOOD_BOOST_PREGNANT = 25.0
 MOOD_BOOST_BIRTH = 100.0

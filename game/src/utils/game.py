@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 DEBUG_VERBOSE = getattr(config, 'DEBUG_AI_ACTIVE', False)
+OBJECT_BLUEPRINTS: Optional[Dict[str, Dict[str, Any]]] = None
 
 # --- Costanti per UI (definite qui o meglio in config.py) ---
 NEEDS_BAR_WIDTH = getattr(config, 'UI_NEEDS_BAR_WIDTH', 100)
@@ -263,41 +264,116 @@ def print_debug_grid(grid_map_data: List[List[int]], start_pos: Optional[Tuple[i
     logger.info(grid_str)
 
 
-def load_object_blueprints(filename: str = getattr(config, "OBJECT_BLUEPRINTS_FILENAME", "object_blueprints.json")):
-    global OBJECT_BLUEPRINTS_DATA
-    full_path = os.path.join(config.DATA_PATH, filename)
-    try:
-        with open(full_path, 'r') as f: OBJECT_BLUEPRINTS_DATA = json.load(f)
-        logger.info(f"Caricati {len(OBJECT_BLUEPRINTS_DATA)} blueprint di oggetti da {full_path}")
-    except Exception as e:
-        logger.error(f"ERRORE OGGETTI: Fallito caricamento '{full_path}': {e}"); OBJECT_BLUEPRINTS_DATA = {}
-
+def load_object_blueprints():
+    global OBJECT_BLUEPRINTS
+    if OBJECT_BLUEPRINTS is None: # Carica solo una volta
+        filepath = os.path.join(config.DATA_PATH, config.OBJECT_BLUEPRINTS_FILENAME)
+        try:
+            with open(filepath, 'r') as f:
+                OBJECT_BLUEPRINTS = json.load(f)
+            logger.info(f"Object blueprints caricati da '{filepath}'.")
+        except FileNotFoundError:
+            logger.error(f"File object blueprints '{filepath}' non trovato.")
+            OBJECT_BLUEPRINTS = {}
+        except json.JSONDecodeError:
+            logger.error(f"Errore decoding JSON per object blueprints in '{filepath}'.")
+            OBJECT_BLUEPRINTS = {}
+        except Exception as e:
+            logger.error(f"Errore generico caricamento object blueprints: {e}")
+            OBJECT_BLUEPRINTS = {}
 
 def get_object_blueprint(object_id: str) -> Optional[Dict[str, Any]]:
-    return OBJECT_BLUEPRINTS_DATA.get(object_id)
+    global OBJECT_BLUEPRINTS
+    if OBJECT_BLUEPRINTS is None:
+        load_object_blueprints() # Assicurati che siano caricati
 
-def setup_object_interaction_points(game_state: 'GameState', object_type_key: str, 
-                                   object_blueprint: Optional[Dict[str, Any]], 
-                                   object_world_rect: Optional[pygame.Rect]):
-    if not object_blueprint or not object_world_rect:
-        logger.warning(f"UTILS: Blueprint o rect non forniti per '{object_type_key}'.")
+    if OBJECT_BLUEPRINTS:
+        blueprint = OBJECT_BLUEPRINTS.get(object_id)
+        if blueprint:
+            logger.debug(f"Blueprint trovato per ID '{object_id}': {blueprint}")
+        else:
+            logger.warning(f"Nessun blueprint trovato per ID '{object_id}' in OBJECT_BLUEPRINTS.")
+        return blueprint
+    else:
+        logger.error("OBJECT_BLUEPRINTS è vuoto o None dopo il tentativo di caricamento.")
+    return None
+
+def setup_object_interaction_points(game_state: 'GameState', object_type: str, 
+                                    blueprint_data: Optional[Dict[str, Any]], 
+                                    object_world_rect: pygame.Rect):
+    if not blueprint_data:
+        logger.warning(f"UTILS: Blueprint dati mancante per {object_type} a {object_world_rect.topleft}. Impossibile impostare punti interazione.")
         return
-    interactions = object_blueprint.get("interaction_points", [])
-    slots_data = object_blueprint.get("slots", [])
-    obj_l, obj_t = object_world_rect.left, object_world_rect.top
-    if DEBUG_VERBOSE: logger.debug(f"UTILS: Setup punti interazione per '{object_type_key}' a ({obj_l},{obj_t})")
 
-    if object_type_key == "bed":
-        game_state.bed_slot_1_interaction_pos_world = (obj_l + interactions[0]["offset"][0], obj_t + interactions[0]["offset"][1]) if len(interactions) > 0 else None
-        game_state.bed_slot_2_interaction_pos_world = (obj_l + interactions[1]["offset"][0], obj_t + interactions[1]["offset"][1]) if len(interactions) > 1 else None
-        game_state.bed_slot_1_sleep_pos_world = (obj_l + slots_data[0]["offset"][0], obj_t + slots_data[0]["offset"][1]) if len(slots_data) > 0 else None
-        game_state.bed_slot_2_sleep_pos_world = (obj_l + slots_data[1]["offset"][0], obj_t + slots_data[1]["offset"][1]) if len(slots_data) > 1 else None
-        if DEBUG_VERBOSE: logger.debug(f"  Bed Slots Interaction: {game_state.bed_slot_1_interaction_pos_world}, {game_state.bed_slot_2_interaction_pos_world}. Sleep: {game_state.bed_slot_1_sleep_pos_world}, {game_state.bed_slot_2_sleep_pos_world}")
-    elif object_type_key == "toilet":
-        game_state.toilet_interaction_point_world = (obj_l + interactions[0]["offset"][0], obj_t + interactions[0]["offset"][1]) if interactions else (object_world_rect.centerx, object_world_rect.bottom + config.TILE_SIZE//4)
-        game_state.toilet_sit_point_world = (obj_l + slots_data[0]["offset"][0], obj_t + slots_data[0]["offset"][1]) if slots_data else None
-        if DEBUG_VERBOSE: logger.debug(f"  Toilet Interaction: {game_state.toilet_interaction_point_world}, Sit: {game_state.toilet_sit_point_world}")
-    # Aggiungi altri tipi di oggetti qui
+    blueprint_id = blueprint_data.get("id", f"UnknownBlueprint_{object_type}")
+    logger.debug(f"UTILS: Setup punti interazione per '{object_type}' (ID: '{blueprint_id}') a ({object_world_rect.left},{object_world_rect.top})")
+
+    obj_l, obj_t = object_world_rect.left, object_world_rect.top
+    interaction_points_data = blueprint_data.get("interaction_points", {})
+
+    if object_type == "bed":
+        sleep_slots_data = interaction_points_data.get("sleep_slots", [])
+        interaction_slots_data = interaction_points_data.get("interaction_slots", [])
+
+        game_state.bed_slot_0_sleep_pos_world = None
+        game_state.bed_slot_0_interaction_pos_world = None
+        game_state.bed_slot_1_sleep_pos_world = None
+        game_state.bed_slot_1_interaction_pos_world = None
+
+        if len(sleep_slots_data) >= 1 and "offset" in sleep_slots_data[0]:
+            s0_off = sleep_slots_data[0]["offset"]
+            if isinstance(s0_off, list) and len(s0_off) == 2:
+                game_state.bed_slot_0_sleep_pos_world = (obj_l + s0_off[0], obj_t + s0_off[1])
+        
+        if len(interaction_slots_data) >= 1 and "offset" in interaction_slots_data[0]:
+            i0_off = interaction_slots_data[0]["offset"]
+            if isinstance(i0_off, list) and len(i0_off) == 2:
+                game_state.bed_slot_0_interaction_pos_world = (obj_l + i0_off[0], obj_t + i0_off[1])
+
+        if len(sleep_slots_data) >= 2 and "offset" in sleep_slots_data[1]:
+            s1_off = sleep_slots_data[1]["offset"]
+            if isinstance(s1_off, list) and len(s1_off) == 2:
+                game_state.bed_slot_1_sleep_pos_world = (obj_l + s1_off[0], obj_t + s1_off[1])
+
+        if len(interaction_slots_data) >= 2 and "offset" in interaction_slots_data[1]:
+            i1_off = interaction_slots_data[1]["offset"]
+            if isinstance(i1_off, list) and len(i1_off) == 2:
+                game_state.bed_slot_1_interaction_pos_world = (obj_l + i1_off[0], obj_t + i1_off[1])
+            
+        log_msg_bed = "    Bed Slots - "
+        log_msg_bed += f"Interaction: [{game_state.bed_slot_0_interaction_pos_world}, {game_state.bed_slot_1_interaction_pos_world if game_state.bed_slot_1_interaction_pos_world else 'N/A'}]. "
+        log_msg_bed += f"Sleep: [{game_state.bed_slot_0_sleep_pos_world}, {game_state.bed_slot_1_sleep_pos_world if game_state.bed_slot_1_sleep_pos_world else 'N/A'}]"
+        logger.debug(log_msg_bed)
+
+    elif object_type == "toilet":
+        # 'interaction_use_points' è definita e usata SOLO dentro questo blocco 'elif'
+        interaction_use_points = interaction_points_data.get("use", []) 
+        
+        # Tutta la logica che usa 'interaction_use_points' deve essere indentata qui sotto
+        if interaction_use_points and isinstance(interaction_use_points, list) and len(interaction_use_points) > 0:
+            first_use_point = interaction_use_points[0] 
+            if isinstance(first_use_point, dict) and "offset" in first_use_point and \
+               isinstance(first_use_point["offset"], (list, tuple)) and len(first_use_point["offset"]) == 2:
+                
+                offset_x = first_use_point["offset"][0]
+                offset_y = first_use_point["offset"][1]
+                game_state.toilet_interaction_point_world = (obj_l + offset_x, obj_t + offset_y)
+                logger.debug(f"    Toilet Interaction Point ('use'[0]): World ({game_state.toilet_interaction_point_world[0]:.0f},{game_state.toilet_interaction_point_world[1]:.0f}) from offset [{offset_x},{offset_y}]")
+                
+                if "facing" in first_use_point:
+                    if not hasattr(game_state, 'toilet_facing_direction'): # Aggiungi l'attributo a GameState se non esiste
+                        game_state.toilet_facing_direction = None
+                    game_state.toilet_facing_direction = first_use_point.get("facing")
+                    logger.debug(f"    Toilet Facing Direction: {game_state.toilet_facing_direction}")
+            else:
+                logger.warning(f"    Blueprint 'toilet' ('{blueprint_id}'): punto 'use'[0] malformato o offset mancante. Uso fallback.")
+                game_state.toilet_interaction_point_world = (object_world_rect.centerx, object_world_rect.bottom + config.TILE_SIZE // 4)
+        else:
+            logger.warning(f"    Blueprint 'toilet' ('{blueprint_id}'): 'interaction_points.use' non trovato o vuoto. Uso fallback per interaction point.")
+            game_state.toilet_interaction_point_world = (object_world_rect.centerx, object_world_rect.bottom + config.TILE_SIZE // 4)
+            
+    else:
+        logger.warning(f"UTILS: Tipo oggetto '{object_type}' (ID: '{blueprint_id}') non ha una gestione specifica per i punti di interazione in setup_object_interaction_points.")
 
 def occupy_bed_slot_for_character(game_state: 'GameState', character: 'Character', slot_idx: int) -> bool:
     if not game_state.bed_rect: return False
@@ -400,7 +476,7 @@ def setup_gui_elements(ui_manager: 'pygame_gui.UIManager', all_npcs: List['Chara
     panel_pad = config.UI_BOTTOM_PANEL_PADDING; section_space = config.UI_SECTION_SPACING
     panel_rect = pygame.Rect(0, screen_height - panel_height, screen_width, panel_height)
     gui_elements['bottom_panel'] = pygame_gui.elements.UIPanel(
-        relative_rect=panel_rect, starting_layer_height=0, manager=ui_manager, object_id="#bottom_panel")
+        relative_rect=panel_rect, manager=ui_manager, object_id="#bottom_panel")
     
     panel_iw = panel_rect.width - (2 * panel_pad); panel_ih = panel_rect.height - (2 * panel_pad)
     base_y_in_panel = panel_pad
@@ -408,11 +484,11 @@ def setup_gui_elements(ui_manager: 'pygame_gui.UIManager', all_npcs: List['Chara
     # Sezione Sinistra
     left_x = panel_pad; left_w = int(panel_iw * config.UI_LEFT_SECTION_WIDTH_PERCENT)
     curr_y_l = base_y_in_panel; lbl_h = 25; lbl_space = 3
-    gui_elements['char_status_label'] = pygame_gui.elements.UITextBox("NPC: -", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#char_name_label"); curr_y_l += lbl_h + lbl_space
-    gui_elements['action_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_ACTION + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#action_label"); curr_y_l += lbl_h + lbl_space
-    gui_elements['finance_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_FINANCE + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#finance_label"); curr_y_l += lbl_h + lbl_space
-    gui_elements['mood_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_MOOD + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#mood_label"); curr_y_l += lbl_h + lbl_space
-    gui_elements['pregnancy_label'] = pygame_gui.elements.UITextBox("", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#pregnancy_label"); gui_elements['pregnancy_label'].visible = False
+    gui_elements['char_status_label'] = pygame_gui.elements.UITextBox("NPC: -", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#char_name_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['action_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_ACTION + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#action_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['finance_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_FINANCE + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#finance_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['mood_label'] = pygame_gui.elements.UITextBox(config.UI_LABEL_MOOD + "-", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#mood_label"); curr_y_l += lbl_h + lbl_space
+    gui_elements['pregnancy_label'] = pygame_gui.elements.UITextBox("", pygame.Rect(left_x, curr_y_l, left_w, lbl_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#pregnancy_label"); gui_elements['pregnancy_label'].visible = False
 
     # Sezione Centrale
     center_x = left_x + left_w + section_space; center_w = int(panel_iw * config.UI_CENTER_SECTION_WIDTH_PERCENT)
@@ -422,7 +498,7 @@ def setup_gui_elements(ui_manager: 'pygame_gui.UIManager', all_npcs: List['Chara
     btns_y_panel = base_y_in_panel
     gui_elements['time_button_rects'] = [pygame.Rect(btns_start_x_panel + i * (time_btn_w + 5), btns_y_panel, time_btn_w, time_btn_h) for i in range(num_btns)]
     time_disp_y = btns_y_panel + time_btn_h + 10; time_disp_h = 35
-    gui_elements['time_label'] = pygame_gui.elements.UITextBox("Ora...", pygame.Rect(center_x, time_disp_y, center_w, time_disp_h), ui_manager, container=gui_elements['bottom_panel'], starting_layer_height=1, object_id="#time_display_panel")
+    gui_elements['time_label'] = pygame_gui.elements.UITextBox("Ora...", pygame.Rect(center_x, time_disp_y, center_w, time_disp_h), ui_manager, container=gui_elements['bottom_panel'], object_id="#time_display_panel")
 
     # Sezione Destra
     right_x = center_x + center_w + section_space
@@ -434,7 +510,7 @@ def setup_gui_elements(ui_manager: 'pygame_gui.UIManager', all_npcs: List['Chara
                   ("inventory_btn", config.UI_LABEL_INVENTORY), ("needs_display_btn", config.UI_LABEL_NEEDS_BUTTON)]
     for id_key, lbl_txt in cats_right:
         btn_rect = pygame.Rect(right_x, curr_y_r, right_w, btn_h_r)
-        gui_elements[id_key] = pygame_gui.elements.UIButton(relative_rect=btn_rect, text=lbl_txt, manager=ui_manager, container=gui_elements['bottom_panel'], object_id=f"#{id_key}", starting_layer_height=1)
+        gui_elements[id_key] = pygame_gui.elements.UIButton(relative_rect=btn_rect, text=lbl_txt, manager=ui_manager, container=gui_elements['bottom_panel'], object_id=f"#{id_key}")
         curr_y_r += btn_h_r + btn_space_r
         if id_key == "needs_display_btn": gui_elements['needs_button_rect_abs_for_positioning'] = gui_elements[id_key].get_abs_rect()
     
@@ -601,3 +677,106 @@ def draw_all_manual_ui_elements(
          DEBUG_VERBOSE:
         logger.warning(f"UTILS: NPC selezionato ({selected_character_to_display.name}) non ha un NeedsComponent valido per disegnare le barre.")
 
+def get_sprite_from_blueprint(object_blueprint: Dict[str, Any], 
+                              sprite_sheet_manager_instance: 'SpriteSheetManager') -> Optional[pygame.Surface]:
+    """
+    Estrae una singola sprite Surface basandosi sulle informazioni di un object blueprint
+    e uno SpriteSheetManager.
+
+    Args:
+        object_blueprint: Il dizionario del blueprint per l'oggetto.
+                          Si aspetta chiavi come "sprite_sheet_key" e "sprite_rect_in_sheet".
+        sprite_sheet_manager_instance: L'istanza di SpriteSheetManager.
+
+    Returns:
+        Optional[pygame.Surface]: La Surface dello sprite se trovato, altrimenti None.
+    """
+    if not object_blueprint or not sprite_sheet_manager_instance:
+        logger.warning("get_sprite_from_blueprint: blueprint o sprite_sheet_manager mancanti.")
+        return None
+
+    sheet_key = object_blueprint.get("sprite_sheet_key")
+    rect_in_sheet_data = object_blueprint.get("sprite_rect_in_sheet") # Dovrebbe essere [x, y, w, h]
+
+    if not sheet_key:
+        logger.warning(f"get_sprite_from_blueprint: 'sprite_sheet_key' non trovato nel blueprint: {object_blueprint.get('id', 'ID Sconosciuto')}")
+        return None
+    
+    if not rect_in_sheet_data or not isinstance(rect_in_sheet_data, list) or len(rect_in_sheet_data) != 4:
+        logger.warning(f"get_sprite_from_blueprint: 'sprite_rect_in_sheet' non valido o mancante per blueprint: {object_blueprint.get('id', 'ID Sconosciuto')}")
+        return None
+
+    # Lo SpriteSheetManager.get_sprite si aspetta indici di frame, non coordinate pixel.
+    # Dobbiamo convertire o assicurarci che il blueprint contenga gli indici corretti
+    # O, più semplicemente, se SpriteSheetManager può estrarre un rettangolo specifico.
+
+    # Il tuo SpriteSheetManager.get_sprite(sheet_key, frame_x_index, frame_y_index)
+    # si aspetta indici di frame.
+    # Se "sprite_rect_in_sheet" nel blueprint contiene le coordinate x,y,w,h *pixel* sullo sheet,
+    # allora dobbiamo usare un metodo diverso o adattare SpriteSheetManager.
+    #
+    # Assumiamo per ora che il tuo SpriteSheetManager abbia un modo (o che lo aggiungiamo)
+    # per estrarre una regione specifica, o che "sprite_rect_in_sheet" in realtà
+    # contenga qualcosa che può essere convertito in indici di frame.
+    #
+    # SOLUZIONE PIÙ DIRETTA: SpriteSheetManager dovrebbe avere un metodo
+    # per prendere un rettangolo pixel esatto. Se non ce l'ha, lo implementiamo lì.
+    #
+    # Per ora, proviamo a fare un'ipotesi: se `sprite_rect_in_sheet` definisce un singolo frame
+    # e il tuo `SpriteSheetManager` ha già caricato lo sheet e conosce le dimensioni dei frame,
+    # potremmo calcolare l'indice.
+    # Ma è più pulito se SpriteSheetManager ha un metodo come `get_sprite_by_rect`.
+
+    # >>> Modifichiamo SpriteSheetManager per aggiungere get_sprite_by_pixel_rect <<<
+    # Vai in asset_manager.py e aggiungi questo metodo a SpriteSheetManager:
+    """
+    # In SpriteSheetManager (asset_manager.py)
+    def get_sprite_by_pixel_rect(self, sheet_key: str, rect_on_sheet: pygame.Rect) -> Optional[pygame.Surface]:
+        if sheet_key not in self.sprite_sheets:
+            # ... (log error) ...
+            return None
+        sheet = self.sprite_sheets[sheet_key]
+        if rect_on_sheet.right > sheet.get_width() or rect_on_sheet.bottom > sheet.get_height() or \
+           rect_on_sheet.left < 0 or rect_on_sheet.top < 0:
+            # ... (log error: rect out of bounds) ...
+            return None
+        
+        sprite_surface = pygame.Surface(rect_on_sheet.size, pygame.SRCALPHA)
+        sprite_surface.blit(sheet, (0, 0), rect_on_sheet)
+        return sprite_surface
+    """
+    # Dopo aver aggiunto quel metodo a SpriteSheetManager, possiamo usarlo qui:
+    try:
+        sprite_rect = pygame.Rect(rect_in_sheet_data[0], rect_in_sheet_data[1], rect_in_sheet_data[2], rect_in_sheet_data[3])
+        
+        # Verifica se SpriteSheetManager ha il metodo get_sprite_by_pixel_rect
+        if hasattr(sprite_sheet_manager_instance, 'get_sprite_by_pixel_rect'):
+            sprite_surface = sprite_sheet_manager_instance.get_sprite_by_pixel_rect(sheet_key, sprite_rect)
+            if sprite_surface:
+                logger.debug(f"Sprite per '{object_blueprint.get('id')}' caricato da sheet '{sheet_key}' usando rect {sprite_rect}")
+                return sprite_surface
+            else:
+                logger.warning(f"Fallito get_sprite_by_pixel_rect per sheet '{sheet_key}', rect {sprite_rect}")
+                return None
+        else:
+            # Fallback se get_sprite_by_pixel_rect non esiste (NON IDEALE, ma per far procedere)
+            # Questo assume che sprite_rect_in_sheet contenga l'indice x,y del frame
+            # e che le dimensioni del frame siano quelle di default dello sheet.
+            # Questo probabilmente NON è corretto per oggetti con dimensioni diverse dai personaggi.
+            logger.warning(f"Metodo 'get_sprite_by_pixel_rect' non trovato in SpriteSheetManager. "
+                                      f"Tentativo di fallback con get_sprite usando indici (potrebbe fallire).")
+            frame_dims = sprite_sheet_manager_instance.get_frame_dimensions(sheet_key)
+            if frame_dims and frame_dims[0] > 0 and frame_dims[1] > 0:
+                frame_x_index = rect_in_sheet_data[0] // frame_dims[0]
+                frame_y_index = rect_in_sheet_data[1] // frame_dims[1]
+                sprite_surface = sprite_sheet_manager_instance.get_sprite(sheet_key, frame_x_index, frame_y_index)
+                if sprite_surface:
+                    logger.debug(f"Sprite per '{object_blueprint.get('id')}' caricato da sheet '{sheet_key}' usando indici ({frame_x_index},{frame_y_index})")
+                    return sprite_surface
+            
+            logger.error(f"Impossibile estrarre lo sprite per '{object_blueprint.get('id')}' da sheet '{sheet_key}' con dati {rect_in_sheet_data}")
+            return None
+
+    except Exception as e:
+        logger.error(f"Errore in get_sprite_from_blueprint per '{object_blueprint.get('id')}': {e}", exc_info=True)
+        return None

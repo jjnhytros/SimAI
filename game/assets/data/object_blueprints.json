@@ -14,26 +14,40 @@
             64,
             80
         ],
-        "interaction_points": [
-            {
-                "id": "slot0_interaction",
-                "offset": [
-                    16,
-                    88
-                ],
-                "purpose": "use_slot_0",
-                "facing_on_arrival": "up"
-            },
-            {
-                "id": "slot1_interaction",
-                "offset": [
-                    48,
-                    88
-                ],
-                "purpose": "use_slot_1",
-                "facing_on_arrival": "up"
-            }
-        ],
+        "interaction_points": {
+            "sleep_slots": [
+                {
+                    "offset": [
+                        16,
+                        32
+                    ],
+                    "facing": "up"
+                },
+                {
+                    "offset": [
+                        48,
+                        32
+                    ],
+                    "facing": "up"
+                }
+            ],
+            "interaction_slots": [
+                {
+                    "offset": [
+                        16,
+                        80
+                    ],
+                    "facing": "up"
+                },
+                {
+                    "offset": [
+                        48,
+                        80
+                    ],
+                    "facing": "up"
+                }
+            ]
+        },
         "slots": [
             {
                 "id": "slot0_sleep",
@@ -60,7 +74,9 @@
         }
     },
     "toilet_standard": {
-        "display_name": "WC Standard",
+        "id": "toilet_standard",
+        "name": "WC Standard",
+        "type": "toilet",
         "sprite_sheet_key": "furniture_sprites",
         "sprite_rect_in_sheet": [
             64,
@@ -74,29 +90,16 @@
             32,
             48
         ],
-        "interaction_points": [
-            {
-                "id": "use_toilet",
-                "offset": [
-                    16,
-                    56
-                ],
-                "purpose": "use",
-                "facing_on_arrival": "up"
-            }
-        ],
-        "slots": [
-            {
-                "id": "sitting_on_toilet",
-                "offset": [
-                    16,
-                    16
-                ],
-                "action_animation": "sitting_toilet"
-            }
-        ],
-        "satisfies_need": {
-            "bladder": 100
+        "interaction_points": {
+            "use": [
+                {
+                    "offset": [
+                        16,
+                        56
+                    ],
+                    "facing": "up"
+                }
+            ]
         }
     }
 }

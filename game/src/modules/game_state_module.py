@@ -34,16 +34,17 @@ class GameState:
         # Per il letto
         self.bed_rect: Optional[pygame.Rect] = None
         self.bed_images: Dict[str, Optional[pygame.Surface]] = {"base": None, "cover": None}
+        self.bed_slot_1_interaction_pos_world: Optional[Tuple[float, float]] = None
         self.bed_slot_1_occupied_by: Optional[str] = None 
+        self.bed_slot_1_sleep_pos_world: Optional[Tuple[float, float]] = None
+        self.bed_slot_2_interaction_pos_world: Optional[Tuple[float, float]] = None
         self.bed_slot_2_occupied_by: Optional[str] = None
-        self.bed_slot_1_interaction_pos_world: Optional[Tuple[int, int]] = None
-        self.bed_slot_2_interaction_pos_world: Optional[Tuple[int, int]] = None
-        self.bed_slot_1_sleep_pos_world: Optional[Tuple[int, int]] = None
-        self.bed_slot_2_sleep_pos_world: Optional[Tuple[int, int]] = None
+        self.bed_slot_2_sleep_pos_world: Optional[Tuple[float, float]] = None
 
         # Per il bagno
+        self.toilet_facing_direction: Optional[str] = None # Se lo usi
+        self.toilet_interaction_point_world: Optional[Tuple[float, float]] = None
         self.toilet_rect_instance: Optional[pygame.Rect] = None
-        self.toilet_interaction_point_world: Optional[Tuple[int, int]] = None
         self.toilet_sit_point_world: Optional[Tuple[int, int]] = None # Dove l'NPC si siede visivamente
 
         # Attributi aggiunti per una gestione più centralizzata dello stato,

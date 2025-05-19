@@ -2,11 +2,14 @@
 import pygame
 import os
 from typing import Dict, Tuple, Optional, List # Aggiunti i type hints
+import logging
 
 # Importa config per accedere ai percorsi degli asset e alle dimensioni di default.
 # Dato che asset_manager.py è in game/src/managers/, e config.py è in game/,
 # l'import corretto quando si esegue con 'python -m game.main' da 'simai/' è:
 from game import config # Cercherà simai/game/config.py
+
+logger = logging.getLogger(__name__)
 
 class SpriteSheetManager:
     def __init__(self):
@@ -69,6 +72,35 @@ class SpriteSheetManager:
         sprite_surface = pygame.Surface((frame_width, frame_height), pygame.SRCALPHA)
         sprite_surface.blit(sheet, (0, 0), (x, y, frame_width, frame_height))
         return sprite_surface
+
+    def get_sprite_by_pixel_rect(self, sheet_key: str, rect_on_sheet: pygame.Rect) -> Optional[pygame.Surface]:
+        """
+        Estrae un singolo sprite (Surface) da uno sprite sheet caricato,
+        data una specifica pygame.Rect che definisce l'area in pixel sullo sheet.
+        """
+        if sheet_key not in self.sprite_sheets:
+            logger.error(f"Sprite sheet '{sheet_key}' non trovato per get_sprite_by_pixel_rect.")
+            return None
+
+        sheet = self.sprite_sheets[sheet_key]
+
+        if rect_on_sheet.left < 0 or rect_on_sheet.top < 0 or \
+           rect_on_sheet.right > sheet.get_width() or \
+           rect_on_sheet.bottom > sheet.get_height() or \
+           rect_on_sheet.width <= 0 or rect_on_sheet.height <= 0:
+            logger.error(f"Rettangolo {rect_on_sheet} fuori dai limiti o non valido per sheet '{sheet_key}' (size: {sheet.get_size()}).")
+            return None
+
+        try:
+            sprite_surface = pygame.Surface(rect_on_sheet.size, pygame.SRCALPHA)
+            sprite_surface.blit(sheet, (0, 0), rect_on_sheet)
+            if getattr(config, 'DEBUG_AI_ACTIVE', False):
+                 logger.debug(f"Estratto sprite da '{sheet_key}' usando rect {rect_on_sheet}.")
+            return sprite_surface
+        except Exception as e:
+            logger.error(f"Errore durante blit per get_sprite_by_pixel_rect da '{sheet_key}': {e}")
+            return None
+
 
     def get_animation_frames(self, sheet_key: str, animation_name: str) -> List[pygame.Surface]:
         """

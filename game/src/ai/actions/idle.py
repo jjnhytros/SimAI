@@ -30,38 +30,42 @@ def handle_idle_decision(npc: 'Character',
     Modifica npc.current_action, npc.target_destination, npc.current_path,
     npc.current_action_before_movement, npc.previous_action_was_movement_to_target.
     """
+    if not hasattr(npc, 'needs') or not npc.needs:
+        if DEBUG_AI:
+            logger.warning(f"AI Decision ({npc.name}): NeedsComponent non trovato o non inizializzato. Impossibile prendere decisioni basate sui bisogni.")
+        return # Non può fare nulla senza bisogni
+
     if DEBUG_AI:
         logger.debug(f"AI Decision ({npc.name}): In idle. Valutazione bisogni...")
-        logger.debug(f"AI Decision ({npc.name}): Energia: {npc.energy.get_value():.1f}/{npc.energy.max_value:.0f} (Soglia: {config.NPC_ENERGY_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Fame: {npc.hunger.get_value():.1f}/{npc.hunger.max_value:.0f} (Soglia: {config.NPC_HUNGER_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Vescica: {npc.bladder.get_value():.1f}/{npc.bladder.max_value:.0f} (Soglia: {config.NPC_BLADDER_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Social: {npc.social.get_value():.1f}/{npc.social.max_value:.0f} (Soglia: {config.NPC_SOCIAL_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Intimità: {npc.intimacy.get_value():.1f}/{npc.intimacy.max_value:.0f} (Soglia Richiesta: {config.NPC_INTIMACY_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Divertimento: {npc.fun.get_value():.1f}/{npc.fun.max_value:.0f} (Soglia: {config.NPC_FUN_THRESHOLD})")
-        logger.debug(f"AI Decision ({npc.name}): Igiene: {npc.hygiene.get_value():.1f}/{npc.hygiene.max_value:.0f} (Soglia: {config.NPC_HYGIENE_THRESHOLD})")
+        # Accesso corretto ai bisogni tramite npc.needs.NOME_BISOGNO
+        if hasattr(npc.needs, 'energy'):
+            logger.debug(f"AI Decision ({npc.name}): Energia: {npc.needs.energy.get_value():.1f}/{npc.needs.energy.max_value:.0f} (Soglia: {config.NPC_ENERGY_THRESHOLD})")
+        if hasattr(npc.needs, 'hunger'):
+            logger.debug(f"AI Decision ({npc.name}): Fame: {npc.needs.hunger.get_value():.1f}/{npc.needs.hunger.max_value:.0f} (Soglia: {config.NPC_HUNGER_THRESHOLD})")
+        if hasattr(npc.needs, 'bladder'):
+            logger.debug(f"AI Decision ({npc.name}): Vescica: {npc.needs.bladder.get_value():.1f}/{npc.needs.bladder.max_value:.0f} (Soglia: {config.NPC_BLADDER_THRESHOLD})")
+        if hasattr(npc.needs, 'social'):
+            logger.debug(f"AI Decision ({npc.name}): Social: {npc.needs.social.get_value():.1f}/{npc.needs.social.max_value:.0f} (Soglia: {config.NPC_SOCIAL_THRESHOLD})")
+        if hasattr(npc.needs, 'intimacy'):
+            logger.debug(f"AI Decision ({npc.name}): Intimità: {npc.needs.intimacy.get_value():.1f}/{npc.needs.intimacy.max_value:.0f} (Soglia Richiesta: {config.NPC_INTIMACY_THRESHOLD})")
+        if hasattr(npc.needs, 'fun'):
+            logger.debug(f"AI Decision ({npc.name}): Divertimento: {npc.needs.fun.get_value():.1f}/{npc.needs.fun.max_value:.0f} (Soglia: {config.NPC_FUN_THRESHOLD})")
+        if hasattr(npc.needs, 'hygiene'):
+            logger.debug(f"AI Decision ({npc.name}): Igiene: {npc.needs.hygiene.get_value():.1f}/{npc.needs.hygiene.max_value:.0f} (Soglia: {config.NPC_HYGIENE_THRESHOLD})")
 
 
     # --- Priorità 1: Bisogni Critici ---
     # Energia / Sonno
-    if npc.energy.get_value() < config.NPC_ENERGY_THRESHOLD:
-        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Energia bassa ({npc.energy.get_value():.1f}). Cerco letto.")
+    if hasattr(npc.needs, 'energy') and npc.needs.energy.get_value() < config.NPC_ENERGY_THRESHOLD:
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Energia bassa ({npc.needs.energy.get_value():.1f}). Cerco letto.")
         
-        # Logica per trovare e andare a letto (simile a quella che avevi in _make_idle_decision)
-        # Questo potrebbe essere estratto in una funzione helper in seeking_bed.py
-        # from .seeking_bed import attempt_to_find_and_go_to_bed
-        # if attempt_to_find_and_go_to_bed(npc, game_state, pf_grid):
-        #     return # Decisione presa
-
-        # Logica semplificata per ora, per mantenere la funzione contenuta:
         bed_interaction_pos = None
         chosen_slot_index = -1
 
-        # Controlla Slot 0 (o "slot 1" come definito nel game_state)
         if game_state.bed_slot_1_interaction_pos_world and not game_state.bed_slot_1_occupied_by:
             bed_interaction_pos = game_state.bed_slot_1_interaction_pos_world
             chosen_slot_index = 0
             if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Slot 0 letto disponibile a {bed_interaction_pos}.")
-        # Controlla Slot 1 (o "slot 2" come definito nel game_state)
         elif game_state.bed_slot_2_interaction_pos_world and not game_state.bed_slot_2_occupied_by:
             bed_interaction_pos = game_state.bed_slot_2_interaction_pos_world
             chosen_slot_index = 1
@@ -76,7 +80,7 @@ def handle_idle_decision(npc: 'Character',
                 npc.current_action = "moving_to_target"
                 npc.target_destination = bed_interaction_pos_int
                 npc.current_path = path_to_bed
-                npc.bed_slot_index = chosen_slot_index # Memorizza lo slot target
+                npc.bed_slot_index = chosen_slot_index 
                 npc.previous_action_was_movement_to_target = True
                 return
             else:
@@ -84,15 +88,16 @@ def handle_idle_decision(npc: 'Character',
         elif DEBUG_AI:
             logger.info(f"AI INFO ({npc.name}): Energia bassa, ma nessun letto libero o posizioni letto non definite.")
     
-    # Bisogno Vescica (Bladder)
-    if npc.bladder.get_value() > config.NPC_BLADDER_THRESHOLD: # Alto è male per la vescica
-        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Vescica piena ({npc.bladder.get_value():.1f}). Cerco bagno.")
+    # Bisogno Vescica (Bladder) - Ricorda che per Bladder, alto è buono (sollievo), quindi se scende SOTTO la soglia, agisci.
+    # La tua config dice: NPC_BLADDER_THRESHOLD = 25
+    # La tua logica in idle.py era: npc.bladder.get_value() > config.NPC_BLADDER_THRESHOLD
+    # Questo è INVERSO se alto è buono. Se il valore (sollievo) è ALTO, non deve andare in bagno.
+    # Deve andare se il valore di sollievo è BASSO.
+    if hasattr(npc.needs, 'bladder') and npc.needs.bladder.get_value() < config.NPC_BLADDER_THRESHOLD: # CORRETTO: se sollievo è BASSO
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Sollievo vescica basso ({npc.needs.bladder.get_value():.1f}). Cerco bagno.")
         if game_state.toilet_rect_instance:
-            # Determina un punto di interazione per il bagno
-            # Esempio: davanti al bagno. Dovresti definire questo nel blueprint dell'oggetto WC.
-            # Per ora, usiamo il centro del lato inferiore come punto di interazione grezzo.
             interaction_x = game_state.toilet_rect_instance.centerx
-            interaction_y = game_state.toilet_rect_instance.bottom + config.TILE_SIZE // 2 # Un po' sotto
+            interaction_y = game_state.toilet_rect_instance.bottom + config.TILE_SIZE // 2 
             toilet_interaction_pos = (interaction_x, interaction_y)
 
             path_to_toilet = game_utils.find_path_to_target(npc, toilet_interaction_pos, pf_grid, game_state.world_objects_list)
@@ -107,13 +112,25 @@ def handle_idle_decision(npc: 'Character',
             else:
                 if DEBUG_AI: logger.warning(f"AI WARN ({npc.name}): No path to toilet at {toilet_interaction_pos}.")
         elif DEBUG_AI:
-            logger.info(f"AI INFO ({npc.name}): Vescica piena, ma nessun bagno definito in game_state.")
+            logger.info(f"AI INFO ({npc.name}): Sollievo vescica basso, ma nessun bagno definito in game_state.")
 
-    # TODO: Aggiungere qui la logica per cercare Cibo se npc.hunger.get_value() < config.NPC_HUNGER_THRESHOLD
+    # Fame (Hunger) - Ricorda che per Hunger, alto è buono (sazio), quindi se scende SOTTO la soglia, agisci.
+    if hasattr(npc.needs, 'hunger') and npc.needs.hunger.get_value() < config.NPC_HUNGER_THRESHOLD:
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Sazietà bassa ({npc.needs.hunger.get_value():.1f}). Cerco cibo.")
+        # TODO: Implementare la logica per cercare e mangiare cibo
+        # Esempio:
+        # food_location = game_utils.find_food_source(game_state, npc)
+        # if food_location:
+        #     path_to_food = game_utils.find_path_to_target(npc, food_location, pf_grid, game_state.world_objects_list)
+        #     if path_to_food:
+        #         npc.current_action_before_movement = "seeking_food"
+        #         # ... imposta target e path ...
+        #         return
+        pass # Placeholder per la logica del cibo
+
 
     # --- Priorità 2: Bisogni Sociali/Intimità (se non critici) ---
-    # Gestione richiesta di intimità ricevuta
-    if npc.pending_intimacy_requester and npc.current_action == "idle": # Verifica di essere idle
+    if npc.pending_intimacy_requester and npc.current_action == "idle": 
         partner_candidate = npc.pending_intimacy_requester
         if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Ricevuta richiesta di intimità da {partner_candidate.name}. Accetto e attendo.")
         npc.current_action = "accepting_intimacy_and_waiting"
@@ -121,33 +138,31 @@ def handle_idle_decision(npc: 'Character',
         npc.target_destination = None
         npc.current_path = None
         npc.is_interacting = True
-        npc.pending_intimacy_requester = None # Richiesta gestita
-        return # Decisione presa
+        npc.pending_intimacy_requester = None 
+        return 
 
-    # Iniziare intimità
-    # Assicurati che NPC_INTIMACY_THRESHOLD sia definito in config (es. 75, dove più alto significa più bisogno)
-    # e che intimacy.high_is_good sia False (quindi un valore ALTO significa bisogno NON soddisfatto)
-    if npc.intimacy.get_value() > config.NPC_INTIMACY_THRESHOLD and \
-       len(all_npcs) > 1 and npc.current_action == "idle": # Assicurati che sia idle per iniziare
-        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Bisogno di intimità ({npc.intimacy.get_value():.1f}). Cerco partner idle.")
+    # Intimità - Ricorda che per Intimacy, alto è buono (soddisfazione), quindi se scende SOTTO la soglia, agisci.
+    # La tua config dice: NPC_INTIMACY_THRESHOLD = 35
+    # La tua logica in idle.py era: npc.intimacy.get_value() > config.NPC_INTIMACY_THRESHOLD
+    # Questo è INVERSO se alto è buono. Se il valore (soddisfazione) è ALTO, non ha bisogno di intimità.
+    # Deve agire se la soddisfazione è BASSA.
+    if hasattr(npc.needs, 'intimacy') and npc.needs.intimacy.get_value() < config.NPC_INTIMACY_THRESHOLD and \
+       len(all_npcs) > 1 and npc.current_action == "idle": 
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Soddisfazione intimità bassa ({npc.needs.intimacy.get_value():.1f}). Cerco partner idle.")
         
         potential_partners = [p for p in all_npcs if p.uuid != npc.uuid and p.current_action == "idle" and p.pending_intimacy_requester is None]
         if potential_partners:
             chosen_partner = random.choice(potential_partners)
             
-            # "Invia" la richiesta al partner
             chosen_partner.pending_intimacy_requester = npc
             if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Inviata richiesta di intimità a {chosen_partner.name}.")
 
-            # L'NPC iniziatore si muove vicino al partner
-            # Calcola un punto vicino al partner (davanti, di lato, ecc.)
-            # Questo dovrebbe essere un punto camminabile
             interaction_offset_x = random.choice([-config.TILE_SIZE, config.TILE_SIZE]) 
             target_pos_world_for_meeting = (chosen_partner.rect.centerx + interaction_offset_x, chosen_partner.rect.centery)
             
             path_to_meet_partner = game_utils.find_path_to_target(npc, target_pos_world_for_meeting, pf_grid, game_state.world_objects_list)
             if path_to_meet_partner:
-                npc.target_partner = chosen_partner # Imposta il partner target SOLO se può iniziare ad andare
+                npc.target_partner = chosen_partner 
                 npc.current_action_before_movement = "seeking_partner_for_intimacy"
                 npc.current_action = "moving_to_target"
                 npc.target_destination = target_pos_world_for_meeting
@@ -157,32 +172,47 @@ def handle_idle_decision(npc: 'Character',
                 return
             else:
                 if DEBUG_AI: logger.warning(f"AI WARN ({npc.name}): No path to meet partner {chosen_partner.name}. Annullamento richiesta.")
-                chosen_partner.pending_intimacy_requester = None # Annulla la richiesta
+                chosen_partner.pending_intimacy_requester = None 
         elif DEBUG_AI:
-            logger.info(f"AI INFO ({npc.name}): Bisogno di intimità, ma nessun partner idle/disponibile trovato.")
+            logger.info(f"AI INFO ({npc.name}): Soddisfazione intimità bassa, ma nessun partner idle/disponibile trovato.")
             
     # Socialità (Telefonare)
-    if npc.social.get_value() < config.NPC_SOCIAL_THRESHOLD and npc.current_action == "idle":
-        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Bisogno Social basso ({npc.social.get_value():.1f}). Inizio 'phoning'.")
+    if hasattr(npc.needs, 'social') and npc.needs.social.get_value() < config.NPC_SOCIAL_THRESHOLD and npc.current_action == "idle":
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Bisogno Social basso ({npc.needs.social.get_value():.1f}). Inizio 'phoning'.")
         npc.current_action = "phoning"
-        npc.is_interacting = True # L'azione "phoning" è un'interazione
-        npc.time_in_current_action = 0.0 # Resetta il timer per la nuova azione
+        npc.is_interacting = True 
+        npc.time_in_current_action = 0.0 
         return
 
-    # TODO: Aggiungere decisioni per Divertimento e Igiene qui, se non c'è nulla di più urgente
+    # Divertimento (Fun)
+    if hasattr(npc.needs, 'fun') and npc.needs.fun.get_value() < config.NPC_FUN_THRESHOLD and npc.current_action == "idle":
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Divertimento basso ({npc.needs.fun.get_value():.1f}). Cerco attività divertente.")
+        # TODO: Implementare la logica per cercare un'attività divertente
+        # Esempio:
+        # fun_activity_location = game_utils.find_fun_activity(game_state, npc)
+        # if fun_activity_location:
+        #     # ... vai all'attività ...
+        #     return
+        pass # Placeholder
+
+    # Igiene (Hygiene)
+    if hasattr(npc.needs, 'hygiene') and npc.needs.hygiene.get_value() < config.NPC_HYGIENE_THRESHOLD and npc.current_action == "idle":
+        if DEBUG_AI: logger.debug(f"AI Decision ({npc.name}): Igiene bassa ({npc.needs.hygiene.get_value():.1f}). Cerco doccia/lavandino.")
+        # TODO: Implementare la logica per cercare doccia/lavandino
+        # Esempio:
+        # hygiene_station_location = game_utils.find_hygiene_station(game_state, npc)
+        # if hygiene_station_location:
+        #     # ... vai alla stazione di igiene ...
+        #     return
+        pass # Placeholder
+
 
     # --- Fallback: Wandering ---
     if random.random() < getattr(config, 'NPC_IDLE_WANDER_CHANCE', 0.02) and npc.current_action == "idle":
-        # La logica di wandering è già in npc_behavior.py,
-        # potremmo chiamare una funzione da wandering.py per ottenere la destinazione
-        # o implementarla qui.
-        # from .wandering import decide_wander_destination
-        # target_wander_pos = decide_wander_destination(npc, pf_grid, game_state)
         target_wander_pos = game_utils.get_random_walkable_tile_in_radius(
             npc.rect.center, pf_grid,
             min_dist_tiles=getattr(config, 'NPC_WANDER_MIN_DIST_TILES', 3),
             max_dist_tiles=getattr(config, 'NPC_WANDER_MAX_DIST_TILES', 8),
-            # world_obstacles non è usato da get_random_walkable_tile_in_radius
         )
 
         if target_wander_pos:
@@ -200,7 +230,6 @@ def handle_idle_decision(npc: 'Character',
         elif DEBUG_AI:
             logger.debug(f"AI Decision ({npc.name}): Voleva fare wandering ma nessun target valido trovato.")
 
-    # Se nessuna decisione è stata presa, l'NPC rimane "idle"
     if npc.current_action == "idle" and DEBUG_AI:
         logger.debug(f"AI Decision ({npc.name}): Nessuna azione urgente, rimane idle.")
 
@@ -216,7 +245,7 @@ def update_post_interaction_idle(npc: 'Character', game_state: 'GameState', hour
         if DEBUG_AI: logger.debug(f"AI ({npc.name}): Terminato 'post_intimacy_idle'. Ritorno a idle.")
         npc.current_action = "idle"
         npc.time_in_current_action = 0.0
-        return False # Azione terminata
+        return False 
     else:
         if DEBUG_AI: logger.debug(f"AI ({npc.name}): In 'post_intimacy_idle'. Timer: {npc.time_in_current_action:.2f}/{post_interaction_idle_duration:.2f}")
-        return True # Azione ancora in corso
+        return True

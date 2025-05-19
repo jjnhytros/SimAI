@@ -10,7 +10,7 @@
 * `[ESPANSIONE]`: Punto che espande significativamente una funzionalità esistente o pianificata (usato nelle iterazioni precedenti)
 
 ---
-**Data Ultimo Aggiornamento TODO:** 18 Maggio 2025
+**Data Ultimo Aggiornamento TODO:** 19 Maggio 2025
 ---
 
 **I. FONDAMENTA DEL GIOCO E MOTORE**
@@ -54,7 +54,22 @@
         * h. `[]` Algoritmi di evitamento collisioni più fluidi tra NPC.
         * i. `[]` Costi di attraversamento diversi per differenti tipi di terreno/superfici.
 
-**II. MONDO DI ANTHALYS (Open World e Costruzione)**
+**II. CREAZIONE DEL PERSONAGGIO GIOCABILE** `[NUOVO_USER]`
+    * 1. `[]` **Interfaccia di Creazione Personaggio (ICP):**
+        * a. `[]` Scelta del nome e cognome.
+        * b. `[]` Scelta del genere.
+        * c. `[]` Personalizzazione aspetto fisico (viso, corpo, capelli, vestiti base).
+        * d. `[]` Scelta età iniziale (es. giovane adulto).
+        * e. `[]` Selezione aspirazione iniziale.
+        * f. `[]` Selezione tratti di personalità iniziali.
+    * 2. `[]` **Impostazione Background Familiare (Opzionale):**
+        * a. `[]` Creare/selezionare genitori e fratelli (con impatto su relazioni iniziali e albero genealogico).
+    * 3. `[]` **Assegnazione Residenza Iniziale:**
+        * a. `[]` Scelta o assegnazione di un lotto residenziale di partenza.
+    * 4. `[]` **Introduzione/Tutorial al Gioco:**
+        * a. `[]` Breve tutorial che guida il giocatore attraverso le meccaniche base dopo la creazione.
+
+**III. MONDO DI ANTHALYS (Open World e Costruzione)**
     * 1. `[]` **Funzionalità Open World di Base:**
         * a. `[]` Transizione da lotto singolo a mappa open-world per la città di Anthalys.
         * b. `[]` Sistema di coordinate globali per la città e gestione caricamento/streaming di aree (chunk).
@@ -70,9 +85,9 @@
         * e. `[]` Sistema di trasporti pubblici base.
     * 4. `[]` **Ambiente Dinamico e Interattivo:**
         * a. `[]` Impatto visivo e su NPC di Meteo e Stagioni.
-        * b. `[]` (Molto Avanzato) Modalità "Costruisci/Compra" per modificare lotti.
+        * b. `[]` (Molto Avanzato) Strumenti di costruzione e arredo lotti.
 
-**III. SIMULAZIONE NPC (Bisogni, IA, Ciclo Vita, Caratteristiche)**
+**IV. SIMULAZIONE NPC (Bisogni, IA, Ciclo Vita, Caratteristiche)**
     * 1. **Sistema dei Bisogni:** `[x]` (Componente `NeedsComponent` e classi `BaseNeed` implementati)
         * a. `[x]` 7 Bisogni modulari implementati.
         * b. `[x]` Logica di decay/increase e soddisfazione per ogni bisogno.
@@ -117,7 +132,7 @@
         * k. `[P]` **Migliorare Interazione Letto** (pathfinding, gestione slot, animazioni).
         * l. `[x]` **Refactor `npc_behavior.py` per Modularità**: (Completato con i moduli azione).
 
-**IV. SISTEMA SCOLASTICO DI ANTHALYS** `[]` `[NUOVO_USER]`
+**V. SISTEMA SCOLASTICO DI ANTHALYS** `[]` `[NUOVO_USER]`
     * 1. `[]` **Struttura e Calendario Scolastico:**
         * a. `[]` Definire 8 Livelli Scolastici (Infanzia -> Università) con fasce d'età.
         * b. `[]` Implementare Anno Scolastico (18 mesi, 324gg didattica, Inizio 13/13, Fine 12/9).
@@ -138,7 +153,7 @@
         * d. `[]` "Saltare la scuola" con conseguenze.
         * e. `[]` Attività extracurriculari, viaggi educativi, supporto studenti.
 
-**V. INTEGRAZIONE FUNZIONALITÀ E CONCETTI DA `simai/election`** `[P]` `[ELEC]`
+**VI. INTEGRAZIONE FUNZIONALITÀ E CONCETTI DA `simai/election`** `[P]` `[ELEC]`
     * 1. **Modelli Comportamentali NPC Avanzati:**
         * a. `[P]` Personalità Complesse e Tratti NPC.
         * b. `[]` Implementazione di **Bias Cognitivi**.
@@ -147,13 +162,13 @@
         * e. `[]` **"Alfabetizzazione" Sociale/Emotiva e Pensiero Critico NPC**.
         * f. `[]` **Apprendimento e Adattamento Comportamentale Avanzato NPC**.
     * 2. `[]` **Miglioramenti alla Simulazione del "Mondo Vivo"**.
-        * a. `[]` NPC perseguono **"Progetti Personali"** con gestione risorse e fasi (vedi III.4.h).
-        * b. `[]` **Eventi Casuali Dinamici** influenzati da "stato del mondo" e "argomenti caldi" in Anthalys (vedi X.b).
-        * c. `[]` Modellare **"Fonti di Informazione" fittizie** in Anthalys (media locali, social media simulati) con bias, che influenzano NPC (vedi X.c).
+        * a. `[]` NPC perseguono **"Progetti Personali"** con gestione risorse e fasi (vedi IV.4.h).
+        * b. `[]` **Eventi Casuali Dinamici** influenzati da "stato del mondo" e "argomenti caldi" in Anthalys (vedi XI.b).
+        * c. `[]` Modellare **"Fonti di Informazione" fittizie** in Anthalys (media locali, social media simulati) con bias, che influenzano NPC (vedi XI.c).
         * d. `[]` **Sistemi di "Scelta Collettiva"** o influenza di gruppo per NPC (per attività comunitarie, mode).
         * e. `[]` **Generazione NPC Più Profonda e Unica**, con background e relazioni iniziali.
     * 3. `[]` **Strategie Comportamentali Dinamiche NPC**.
-        * a. `[]` NPC definiscono strategie per raggiungere obiettivi personali (sociali, carriera, abilità) adattandole e gestendo risorse (vedi III.4.s).
+        * a. `[]` NPC definiscono strategie per raggiungere obiettivi personali (sociali, carriera, abilità) adattandole e gestendo risorse (vedi IV.4.s).
     * 4. `[]` **Generazione di Contenuti Testuali (NLG) per SimAI**.
         * a. `[]` "Pensieri" o "voci di diario" testuali più variati per gli NPC.
         * b. `[]` Generazione di "notizie" fittizie o "post social media" all'interno del mondo di Anthalys.
@@ -165,16 +180,16 @@
     * 6. `[]` **IA e LLM (Obiettivi a Lungo Termine per SimAI)**.
         * a. `[]` (Ricerca Estrema) Agenti NPC potenziati da LLM.
         * b. `[]` (Ricerca) Approccio Ibrido LLM/Regole.
-    * 7. `[P]` **Persistenza Dati Avanzata con SQLite (Evoluzione di XIV.1):** `[ELEC]` (Attualmente JSON, SQLite è futuro)
-        * a. `[]` **Migrazione da JSON a SQLite:** Pianificare e implementare la transizione dal sistema di salvataggio basato su JSON (implementato in XIV.1) a un database SQLite.
-        * b. `[]` Progettare lo schema del database SQLite per `GameState`, `Character` (con UUID univoco come da V.7.b originale, ora fuso qui), oggetti del mondo dinamici, relazioni, e altre entità persistenti.
+    * 7. `[P]` **Persistenza Dati Avanzata con SQLite (Evoluzione di XV.1):** `[ELEC]` (Attualmente JSON, SQLite è futuro)
+        * a. `[]` **Migrazione da JSON a SQLite:** Pianificare e implementare la transizione dal sistema di salvataggio basato su JSON (implementato in XV.1) a un database SQLite.
+        * b. `[]` Progettare lo schema del database SQLite per `GameState`, `Character` (con UUID univoco come da VI.7.b originale, ora fuso qui), oggetti del mondo dinamici, relazioni, e altre entità persistenti.
         * c. `[]` Implementare la logica di mapping tra oggetti Python e tabelle SQLite (valutare ORM come SQLAlchemy a lungo termine).
         * d. `[]` Garantire la retrocompatibilità o un percorso di migrazione per i salvataggi JSON esistenti, se fattibile e desiderato.
         * e. `[]` Sfruttare le transazioni SQLite per garantire l'atomicità e l'integrità dei salvataggi.
         * f. `[x]` Il salvataggio/caricamento dei dati dei componenti è stato impostato nei rispettivi metodi `to_dict`/`from_dict`.
-        * g. `[]` Memorizzare statistiche aggregate di vita per ogni NPC e per la città di Anthalys (come da V.7.d originale, ora fuso qui).
+        * g. `[]` Memorizzare statistiche aggregate di vita per ogni NPC e per la città di Anthalys (come da VI.7.d originale, ora fuso qui).
 
-**VI. DINAMICHE SOCIALI E RELAZIONALI AVANZATE** (`RelationshipComponent`)
+**VII. DINAMICHE SOCIALI E RELAZIONALI AVANZATE** (`RelationshipComponent`)
     * 1. **Interazioni Sociali:** `[P]`
         * a. `[P]` Interazione "Intimità" base, Telefonare (azioni refactorizzate).
         * b. `[]` Interazioni sociali più varie.
@@ -185,7 +200,7 @@
     * 3. `[]` Dinamiche di Gruppo e Comunità.
     * 4. `[]` **Vacanze e Viaggi NPC.** `[NUOVO_USER]`
 
-**VII. SISTEMA ECONOMICO, LAVORO E WELFARE DI ANTHALYS** (`CareerComponent`, `FinanceComponent`)
+**VIII. SISTEMA ECONOMICO, LAVORO E WELFARE DI ANTHALYS** (`CareerComponent`, `FinanceComponent`)
     * 1. **Lavoro e Carriere per NPC:** `[P]` `[NUOVO_USER]`
         * a. `[P]` Definire tipi di lavoro e percorsi di carriera (`CareerComponent` con `CAREER_DEFINITIONS`).
         * b. `[P]` Implementare **Orario di Lavoro**.
@@ -209,12 +224,12 @@
         * c. `[]` Permessi per Malattia e Emergenze Familiari.
     * 5. `[]` **Tassa sui Rifiuti e Incentivi Economici.** `[NUOVO_USER]`
 
-**VIII. ABILITÀ (SKILLS) (`SkillComponent`)** `[P]`
+**IX. ABILITÀ (SKILLS) (`SkillComponent`)** `[P]`
     * a. `[P]` Le definizioni delle abilità e `SkillComponent` base sono pronti.
     * b. `[P]` IA per scelta sviluppo abilità (da collegare ad aspirazioni, carriera, tratti).
     * c. `[P]` Abilità influenzano successo azioni, carriera (da implementare nelle logiche specifiche).
 
-**IX. GRAFICA E AUDIO**
+**X. GRAFICA E AUDIO**
     * 1. **Grafica:** `[P]`
         * a. `[x]` Sprite NPC adulti (idle/walk), immagine letto, icone PNG base.
         * b. `[]` Spritesheets per altri stadi di vita/stati NPC.
@@ -230,41 +245,41 @@
         * e. `[]` Sincronizzazione Audio.
         * f. `[]` Effetti Sonori Ambientali e UI.
 
-**X. INTERFACCIA UTENTE (UI)**
+**XI. INTERFACCIA UTENTE (UI)**
     * 1. Elementi GUI Esistenti: `[P]` (Pannello inferiore, label ora, stato NPC base, pulsanti velocità, barre bisogni base).
     * 2. `[]` Miglioramenti GUI Ispirati da `simai/election`. `[ELEC]`
     * 3. `[P]` Miglioramenti Generali UI (layout barra di stato inferiore proposto con sezioni sinistra/centro/destra).
     * 4. `[]` **Interfaccia per Documento d'Identità e Servizi Correlati**.
 
-**XI. DOCUMENTO DI IDENTITÀ DI ANTHALYS E SERVIZI INTEGRATI** `[]` `[NUOVO_USER]`
+**XII. DOCUMENTO DI IDENTITÀ DI ANTHALYS E SERVIZI INTEGRATI** `[]` `[NUOVO_USER]`
     * a. `[]` Dati Documento, generazione **CIP** univoco.
     * b. `[]` Integrazione nel Personaggio.
     * c. `[]` Funzionalità Codice QR (Simulazione Accesso Base/Completo).
     * d. `[]` Caratteristiche di Sicurezza (Lore).
-    * e. `[]` **Carta di Pagamento Integrata** (collegata a VI).
+    * e. `[]` **Carta di Pagamento Integrata** (collegata a VII).
     * f. `[]` Accesso Dati per Titolare (Simulazione/UI Debug).
-    * g. `[]` Utilizzo per Punti Raccolta Rifiuti (vedi XII.2).
+    * g. `[]` Utilizzo per Punti Raccolta Rifiuti (vedi XIII.2).
 
-**XII. GESTIONE AMBIENTALE E CIVICA DI ANTHALYS** `[]` `[NUOVO_USER]`
+**XIII. GESTIONE AMBIENTALE E CIVICA DI ANTHALYS** `[]` `[NUOVO_USER]`
     * 1. **Sistema di Raccolta Differenziata Individuale.**
     * 2. **Sistema di Punti e Bonus per Raccolta Differenziata.**
     * 3. `[]` Trattamento e Riutilizzo dei Rifiuti (Narrativa).
     * 4. **Smaltitori Automatici Domestici.**
 
-**XIII. EVENTI CASUALI E SCENARI GUIDATI** `[]` (Ex Sezione X)
+**XIV. EVENTI CASUALI E SCENARI GUIDATI** `[]`
     * a. `[]` Eventi casuali.
     * b. `[]` IA NPC per reazione credibile, influenzata da bias/pensiero critico. `[ELEC]`
     * c. `[]` Piccoli scenari o storie emergenti.
     * d. `[]` Eventi legati a rifiuti, sostenibilità, scuola, lavoro.
 
-**XIV. SISTEMI TECNICI** `[P]`
+**XV. SISTEMI TECNICI** `[P]`
     * 1. Salvataggio e Caricamento Partita `[]` (**Priorità Alta**) (Includere tutti i nuovi sistemi). `[ELEC]`
     * 2. Opzioni di Gioco e Impostazioni `[]`.
 
-**XV. SISTEMI UNICI E AVANZATI (Idee Speciali per SimAI)** `[]` (Ex Sezione XIV)
+**XVI. SISTEMI UNICI E AVANZATI (Idee Speciali per SimAI)** `[]`
     * `[]` (Riflessione Interna, Cultura Emergente, Linguaggio Anthaliano Dinamico, IA Regista, Eredità, Sogni)
 
-**XVI. LOCALIZZAZIONE E MULTILINGUA** `[]`
+**XVII. LOCALIZZAZIONE E MULTILINGUA** `[]`
     * a. `[]` **Analisi e Scelta Sistema di Localizzazione**.
         * i. `[]` Valutare librerie Python per i18n/l10n (es. `gettext`, `fluent`, `polyglot`) o un sistema custom basato su file JSON/YAML.
         * ii.`[]` Strutturare i file di lingua (es. un file per lingua con coppie chiave-valore).
@@ -276,7 +291,7 @@
         * ii.`[]` File per l'Inglese (come prima lingua target per la traduzione).
     * d. `[]` **Implementare Logica di Caricamento Lingua**.
         * i. `[]` Funzione per caricare il file di lingua appropriato all'avvio o tramite opzioni.
-        * ii.`[]` Aggiungere opzione di gioco per cambiare lingua (vedi XIII.2).
+        * ii.`[]` Aggiungere opzione di gioco per cambiare lingua (vedi XV.2).
     * e. `[]` **Gestione Testo Dinamico e Pluralizzazione**.
         * i. `[]` Considerare come gestire stringhe che includono variabili (es. `f"NPC {nome} è {azione}"`) e la pluralizzazione (es. "1 giorno" vs "2 giorni").
     * f. `[]` **Font Support**.

@@ -19,8 +19,10 @@ from .relationship_statuses import RelationshipStatus
 from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
 from .social_interaction_types import SocialInteractionType
+from .action_types import ActionType
 
 __all__ = [
+    'ActionType',
     'AspirationType',
     'EventType',
     'FunActivityType',

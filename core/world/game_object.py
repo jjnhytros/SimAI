@@ -19,14 +19,13 @@ class GameObject:
     is_usable: bool = True
     is_in_use: bool = False
     user_npc_id: Optional[str] = None
+    is_water_source: bool = False # Indica se l'oggetto può essere usato per bere
     # required_skills_to_use: Dict['SkillName', int] = field(default_factory=dict)
     # effects_on_needs_direct: Dict[NeedType, float] = field(default_factory=dict)
     # provides_skill_gain: Optional['SkillName'] = None
 
-    def __str__(self) -> str:
-        return (f"GameObject(ID: {self.object_id}, Nome: \"{self.name}\", "
-                f"Tipo: {self.object_type.name}, Usabile: {self.is_usable}, In Uso: {self.is_in_use}"
-                f"{f' da {self.user_npc_id}' if self.user_npc_id else ''})")
+    def __str__(self):
+        return f"GameObject(ID: {self.object_id}, Nome: \"{self.name}\", Tipo: {self.object_type.name})"
 
     def start_use(self, npc_id: str) -> bool:
         # from core import settings # Import locale se serve DEBUG_MODE qui

@@ -1,37 +1,36 @@
 # core/modules/actions/action_base.py
 """
-Definizione della classe base astratta per tutte le azioni degli NPC in SimAI.
-Riferimento TODO: VI.1.a, VI.1.b
+Definizione della classe base astratta per tutte le Azioni.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any, TYPE_CHECKING # Aggiungi TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Dict
 
-# È probabile che BaseAction debba conoscere Character e NeedType
-# Evitiamo import circolari importando solo per type hinting se possibile,
-# o passando istanze complete dove necessario.
-# Per ora, assumiamo che l'NPC venga passato al costruttore.
+from core.enums import NeedType, ActionType # ActionType è usato qui
+
 if TYPE_CHECKING:
-    from core.character import Character # Questo import avviene solo durante l'analisi statica dei tipi
-from core.enums import NeedType      # Per effects_on_needs
-# from core import settings # Non direttamente usato qui, ma dalle azioni concrete
+    from core.character import Character
+    from core.simulation import Simulation
 
 class BaseAction(ABC):
-    def __init__(self, 
-                 npc: 'Character', 
+    """Classe base astratta per tutte le azioni che un NPC può compiere."""
+
+    def __init__(self,
+                 npc: 'Character',
                  action_type_name: str,
                  duration_ticks: int,
-                 simulation_context: Optional['Simulation'] = None, # <-- NUOVO ARGOMENTO OPZIONALE
+                 p_simulation_context: 'Simulation',
                  is_interruptible: bool = True,
-                 description: Optional[str] = None
+                 action_type_enum: Optional[ActionType] = None
                  ):
-        self.npc: 'Character' = npc # Anche qui puoi usare la stringa
+        self.npc: 'Character' = npc
         self.action_type_name: str = action_type_name
-        self.description: str = description if description else self.action_type_name
-        
-        self.duration_ticks: int = max(0, duration_ticks) # La durata non può essere negativa
+        self.duration_ticks: int = duration_ticks
+        self.sim_context: 'Simulation' = p_simulation_context
         self.is_interruptible: bool = is_interruptible
         
-        self.ticks_elapsed: int = 0
+        self.action_type_enum: Optional[ActionType] = action_type_enum # Memorizza l'enum se fornito
+
+        self.elapsed_ticks: int = 0
         self.is_started: bool = False
         self.is_finished: bool = False
         self.is_interrupted: bool = False
@@ -39,7 +38,7 @@ class BaseAction(ABC):
         # Effetti sui bisogni (possono essere definiti dalle sottoclassi)
         # Esempio: {NeedType.HUNGER: 50.0, NeedType.ENERGY: -5.0}
         self.effects_on_needs: Dict[NeedType, float] = {}
-        self.simulation_context: Optional['Simulation'] = simulation_context # <-- MEMORIZZA IL CONTESTO
+        self.simulation_context: Optional['Simulation'] = p_simulation_context # <-- MEMORIZZA IL CONTESTO
 
         # TODO VI.1.b: Aggiungere altri attributi previsti come:
         # self.required_objects: List[str] = []
@@ -65,7 +64,7 @@ class BaseAction(ABC):
         # In alternativa, passa settings o DEBUG_MODE a BaseAction se necessario
         from core import settings # Import locale se strettamente necessario e sicuro
         if settings.DEBUG_MODE:
-             print(f"    [Action START - {self.npc.name}] Inizio azione: {self.action_type_name} ({self.description})")
+            print(f"    [Action START - {self.npc.name}] Inizio azione: {self.action_type_name}")
         self.is_started = True
         self.is_finished = False
         self.is_interrupted = False

@@ -45,9 +45,13 @@ class Simulation:
     def _create_test_locations_and_objects(self):
         """Crea alcune locazioni e oggetti di esempio per il test."""
         cucina_max = Location(location_id="max_casa_cucina", name="Cucina di Max", location_type=LocationType.RESIDENTIAL_KITCHEN)
-        frigo = GameObject(object_id="frigo_max_01", name="Frigorifero di Max", object_type=ObjectType.REFRIGERATOR)
+
+        frigo = GameObject(object_id="frigo_max_01", name="Frigorifero di Max", object_type=ObjectType.REFRIGERATOR, is_water_source=True)
         fornelli = GameObject(object_id="fornelli_max_01", name="Fornelli di Max", object_type=ObjectType.STOVE)
-        cucina_max.add_object(frigo); cucina_max.add_object(fornelli)
+        lavandino_cucina = GameObject(object_id="lavandino_cucina_max_01", name="Lavandino della cucina", object_type=ObjectType.SINK, is_water_source=True)
+        cucina_max.add_object(frigo)
+        cucina_max.add_object(fornelli)
+        cucina_max.add_object(lavandino_cucina)
         self.add_location(cucina_max)
         self.world_objects[frigo.object_id] = frigo
         self.world_objects[fornelli.object_id] = fornelli

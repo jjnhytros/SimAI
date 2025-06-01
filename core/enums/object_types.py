@@ -45,6 +45,7 @@ class ObjectType(Enum):
     SHOWER = auto()
     BATHTUB = auto()
     TRASH_CAN = auto()
+    SINK = auto()
 
     # Oggetti per Skill/Lavoro/Studio
     WORKBENCH_CRAFTING = auto()

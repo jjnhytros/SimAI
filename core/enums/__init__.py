@@ -1,0 +1,39 @@
+# core/enums/__init__.py
+"""
+Questo file rende la cartella 'enums' un package Python.
+Viene utilizzato per importare ed esporre centralmente tutte le Enum
+definite nei moduli specifici all'interno di questo package.
+"""
+
+# Importa le Enum dai loro moduli specifici
+from .aspiration_types import AspirationType
+from .event_types import EventType
+from .fun_activity_types import FunActivityType 
+from .genders import Gender
+from .interests import Interest
+from .life_stages import LifeStage
+from .location_types import LocationType
+from .need_types import NeedType
+from .object_types import ObjectType
+from .relationship_statuses import RelationshipStatus 
+from .relationship_types import RelationshipType
+from .school_levels import SchoolLevel
+from .social_interaction_types import SocialInteractionType
+
+__all__ = [
+    'AspirationType',
+    'EventType',
+    'FunActivityType',
+    'Gender',
+    'Interest',
+    'LifeStage',
+    'LocationType',
+    'NeedType',
+    'ObjectType',
+    'RelationshipStatus',
+    'RelationshipType',
+    'SchoolLevel',
+    'SocialInteractionType',
+]
+
+print("  [Enums Package] Package 'core.enums' caricato.")

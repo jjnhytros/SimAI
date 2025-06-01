@@ -1,6 +1,61 @@
 """
-Configurazione dell'interfaccia utente e report
+Configurazioni specifiche per la TUI (Textual User Interface).
 """
+from core.enums import NeedType
+
+# Mappa che associa ogni NeedType a un dizionario di configurazione per la UI
+NEED_UI_CONFIG = {
+    NeedType.HUNGER: {
+        "icon": "🍔",
+        "color": "orange",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    NeedType.ENERGY: {
+        "icon": "⚡",
+        "color": "yellow",
+        "color_critical": "bright_red",
+        "color_low": "gold3",
+    },
+    NeedType.SOCIAL: {
+        "icon": "👥",
+        "color": "green",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    NeedType.FUN: {
+        "icon": "🎉",
+        "color": "magenta",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    NeedType.HYGIENE: {
+        "icon": "🧼",
+        "color": "cyan",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    NeedType.BLADDER: {
+        "icon": "🚽",
+        "color": "green_yellow",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    NeedType.INTIMACY: {
+        "icon": "💖",
+        "color": "hot_pink",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    # --- NUOVA VOCE PER THIRST ---
+    NeedType.THIRST: {
+        "icon": "💧",
+        "color": "dodger_blue",
+        "color_critical": "bright_red",
+        "color_low": "yellow",
+    },
+    # --- FINE NUOVA VOCE ---
+}
 
 # --- Interfaccia Utente ---
 HEADER_HEIGHT_CURSES = 3
@@ -41,3 +96,5 @@ class ANSIColors:
     EVENT_NEUTRAL_COLOR = "\033[94m"
     REPORT_TITLE_COLOR = "\033[1m\033[93m"
     DEBUG_COLOR = "\033[1m\033[93m"
+    
+# TODO: Aggiungere qui altre configurazioni UI come stili, layout, ecc.

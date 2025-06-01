@@ -5,7 +5,7 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.0.1"
+GAME_VERSION = "0.2.49-alpha_71"
 DEBUG_MODE = True
 
 # --- II. CALENDARIO E TEMPO DI ANTHALYS (Nomi variabili ESATTI come da config utente) ---
@@ -438,12 +438,26 @@ NEED_DECAY_RATES: dict[str, float] = {
     "SAFETY": -0.5,       # Esempio di tasso, da bilanciare
     "SOCIAL": -2.5,
     "SPIRITUALITY": -0.4, # Esempio
+    "THIRST": -3.5
 }
 
 # Soglie di criticità per i bisogni (quando un bisogno diventa un problema serio)
 NEED_CRITICAL_THRESHOLD: float = 10.0  # MODIFICATO: Sotto 10 è critico
 NEED_LOW_THRESHOLD: float = 25.0     # MODIFICATO: Sotto 25 è basso
 NEED_HIGH_THRESHOLD: float = 75.0    # Utile per bisogni come Comfort o Ambiente (bene stare sopra)
+
+# --- Valori Bisogni al Risveglio ---
+# Valori a cui i bisogni vengono impostati dopo un ciclo di sonno completo.
+# Questi valori possono essere usati per calcolare il delta da applicare.
+NEED_VALUE_ON_WAKE_HUNGER = 40.0  # L'NPC si sveglia affamato
+NEED_VALUE_ON_WAKE_THIRST = 30.0  # L'NPC si sveglia assetato
+NEED_VALUE_ON_WAKE_BLADDER = 20.0 # L'NPC si sveglia con la vescica piena
+
+EAT_ACTION_DURATION_TICKS: int = 30
+EAT_ACTION_HUNGER_GAIN: float = 75.0
+DRINK_WATER_DURATION_TICKS: int = 10
+DRINK_WATER_THIRST_GAIN: float = 80.0
+
 
 # Moltiplicatori di decadimento (potrebbero essere usati per tratti, età, ecc. in futuro)
 # Esempio: NEED_DECAY_MULTIPLIER_CHILD: float = 1.2 # I bambini potrebbero avere bisogni che decadono più velocemente

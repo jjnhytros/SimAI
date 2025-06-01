@@ -30,6 +30,14 @@ class HygieneNeed(BaseNeed):
         decay_rate = settings.NEED_DECAY_RATES.get(NeedType.HYGIENE.name, 0.0)
         super().__init__(NeedType.HYGIENE, initial_value, decay_rate_per_hour=decay_rate)
 
+class ThirstNeed(BaseNeed):
+    def __init__(self, need_type: NeedType = NeedType.THIRST, initial_value: Optional[float] = None):
+        decay_rate = settings.NEED_DECAY_RATES.get(NeedType.THIRST.name, 0.0)
+        # Assicurati che NeedType.THIRST esista e sia mappato in NEED_DECAY_RATES
+        if NeedType.THIRST.name not in settings.NEED_DECAY_RATES and settings.DEBUG_MODE:
+            print(f"    [WARN - ThirstNeed Init] Tasso di decadimento per THIRST non trovato in settings.NEED_DECAY_RATES. Userà 0.0.")
+        super().__init__(need_type, initial_value, decay_rate_per_hour=decay_rate)
+
 # Bisogni Sociali / Emotivi
 class SocialNeed(BaseNeed):
     def __init__(self, initial_value: Optional[float] = None):
@@ -47,8 +55,8 @@ class IntimacyNeed(BaseNeed):
         super().__init__(NeedType.INTIMACY, initial_value, decay_rate_per_hour=decay_rate)
 
     def decay(self, fraction_of_hour_elapsed: float, 
-              character_age_days: Optional[int] = None, # Aggiunto per il controllo età
-              character_name_for_log: Optional[str] = None):
+            character_age_days: Optional[int] = None, # Aggiunto per il controllo età
+            character_name_for_log: Optional[str] = None):
         """
         Sovrascrive il metodo decay per implementare la logica condizionale
         basata sull'età del personaggio.

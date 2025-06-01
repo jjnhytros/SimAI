@@ -1,89 +1,115 @@
 # core/modules/actions/energy_actions.py
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation 
 
-from core.enums import NeedType
+from core.enums import NeedType, ActionType # Importa ActionType
 from core import settings
 from .action_base import BaseAction
 
-# --- Costanti di Default a Livello di Modulo per SleepAction ---
-_MODULE_DEFAULT_SLEEP_ACTION_HOURS: float = 7.0    # Default se nient'altro è specificato
-_MODULE_DEFAULT_ENERGY_GAIN_PER_HOUR: float = 15.0 # Default se nient'altro è specificato
-                                                   # (7 ore * 15 = 105 energia)
+_MODULE_DEFAULT_SLEEP_ACTION_HOURS: float = 7.0
+_MODULE_DEFAULT_ENERGY_GAIN_PER_HOUR: float = 15.0
 
 class SleepAction(BaseAction):
-    """
-    Azione per l'NPC di dormire e recuperare Energia.
-    """
-    def __init__(self, npc: 'Character',
-                 duration_hours: Optional[float] = None, # Ore di sonno desiderate
-                 simulation_context: 'Simulation',
-                 action_type_override: Optional[ActionType] = None):
+    # ACTION_TYPE_NAME = "ACTION_SLEEP" # Non più necessario come costante di classe se usiamo l'enum
+    
+    def __init__(self, 
+                npc: 'Character', 
+                simulation_context: 'Simulation', 
+                duration_hours: Optional[float] = None, 
+                custom_duration_ticks: Optional[int] = None, 
+                energy_gain_per_hour: Optional[float] = None
+                ):
+        
+        actual_hours = duration_hours 
+        if actual_hours is None:
+            actual_hours = getattr(settings, 'SLEEP_ACTION_DEFAULT_HOURS', None)
+            if actual_hours is None:
+                actual_hours = _MODULE_DEFAULT_SLEEP_ACTION_HOURS 
+        
+        actual_duration_ticks = custom_duration_ticks 
+        if actual_duration_ticks is None:
+            actual_duration_ticks = int(actual_hours * settings.IXH)
+            
+        self.energy_gain_per_hour = energy_gain_per_hour 
+        if self.energy_gain_per_hour is None:
+            self.energy_gain_per_hour = getattr(settings, 'SLEEP_ACTION_ENERGY_GAIN_PER_HOUR', None)
+            if self.energy_gain_per_hour is None:
+                self.energy_gain_per_hour = _MODULE_DEFAULT_ENERGY_GAIN_PER_HOUR
 
-        # Determina la durata effettiva in ore e tick
-        actual_duration_hours = duration_hours if duration_hours is not None else _MODULE_DEFAULT_HOURS
-        actual_duration_ticks = int(actual_duration_hours * settings.IXH)
+        action_type_enum = ActionType.ACTION_SLEEP
+        super().__init__(
+            npc=npc,
+            action_type_name=action_type_enum.action_type_name,
+            action_type_enum=action_type_enum,
+            duration_ticks=actual_duration_ticks,
+            p_simulation_context=simulation_context, # Modificato
+            is_interruptible=True
+            # description=f"Sta dormendo (Durata pianificata: {actual_hours:.1f}h)." # description rimossa
+        )
         
-        super().__init__(npc=npc,
-                         action_type=action_type_override if action_type_override else ActionType.ACTION_SLEEP,
-                         duration_ticks=actual_duration_ticks,
-                         simulation_context=simulation_context,
-                         is_interruptible=True) # Il sonno può essere interrotto
-        
-        self.total_energy_to_gain = settings.NEED_MAX_VALUE - (self.npc.get_need_value(NeedType.ENERGY) or 0)
-        # Guadagno per tick, gestito in execute_tick
-        self.energy_gain_per_tick = self.total_energy_to_gain / self.duration_ticks if self.duration_ticks > 0 else 0
+        if settings.DEBUG_MODE:
+            print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata. "
+                f"Durata Effettiva: {actual_hours:.1f}h ({self.duration_ticks}t). Gain/ora: {self.energy_gain_per_hour:.1f}")
 
     def is_valid(self) -> bool:
-        """L'azione di dormire è quasi sempre valida, a meno che l'NPC non sia già pieno di energia."""
-        # Se l'NPC ha già molta energia, potrebbe non essere valido dormire
+        if not self.npc: return False
         current_energy = self.npc.get_need_value(NeedType.ENERGY)
-        if current_energy is not None and current_energy >= settings.NEED_HIGH_THRESHOLD:
-            if settings.DEBUG_MODE: print(f"  [SleepAction] '{self.npc.name}' ha già energia ({current_energy:.1f}). Non valido dormire.")
-            return False
-        return True
+        if current_energy is None: return False
+        threshold_to_sleep = getattr(settings, 'ENERGY_THRESHOLD_TO_CONSIDER_SLEEP', settings.NEED_LOW_THRESHOLD + 10)
+        can_sleep = current_energy < threshold_to_sleep
+        if not can_sleep and settings.DEBUG_MODE:
+            print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Non ha bisogno di dormire, energia ({current_energy:.1f}) >= soglia ({threshold_to_sleep:.1f})")
+        return can_sleep
 
     def on_start(self):
-        """Chiamato quando l'azione inizia."""
+        super().on_start()
         if settings.DEBUG_MODE:
-            duration_in_hours = self.duration_ticks / settings.IXH
-            print(f"  [SleepAction] '{self.npc.name}' inizia a dormire per {duration_in_hours:.1f} ore.")
+            print(f"    [{self.action_type_name} START - {self.npc.name}] Si è messo/a a dormire.")
 
     def execute_tick(self):
-        """Ad ogni tick di sonno, l'energia aumenta gradualmente."""
-        self.npc.change_need_value(NeedType.ENERGY, self.energy_gain_per_tick)
+        super().execute_tick()
+        if self.is_started and settings.DEBUG_MODE:
+            if self.ticks_elapsed > 0 and self.ticks_elapsed % settings.IXH == 0 and \
+            self.ticks_elapsed < self.duration_ticks and not self.is_finished:
+                hours_slept = self.ticks_elapsed // settings.IXH
+                print(f"    [{self.action_type_name} PROGRESS - {self.npc.name}] Sta dormendo... ({hours_slept} ore passate, {self.get_progress_percentage():.0%})")
+
+    def _calculate_energy_gain(self) -> float:
+        hours_slept = self.ticks_elapsed / settings.IXH
+        energy_gained = hours_slept * cast(float, self.energy_gain_per_hour)
+        return energy_gained
 
     def on_finish(self):
-        """
-        Chiamato quando l'azione è completata (l'NPC ha dormito abbastanza).
-        Imposta l'energia al massimo e regola gli altri bisogni fisiologici.
-        """
-        # 1. Imposta l'energia al massimo per sicurezza, nel caso il calcolo per tick non fosse perfetto.
-        self.npc.change_need_value(NeedType.ENERGY, settings.NEED_MAX_VALUE) # Questo lo imposta al massimo
-        
-        # 2. Regola gli altri bisogni usando le nuove costanti da settings.
-        needs_to_adjust = {
-            NeedType.HUNGER: settings.NEED_VALUE_ON_WAKE_HUNGER,
-            NeedType.THIRST: settings.NEED_VALUE_ON_WAKE_THIRST,
-            NeedType.BLADDER: settings.NEED_VALUE_ON_WAKE_BLADDER
-        }
+        if self.npc:
+            # Ricarica l'energia completamente al termine del sonno
+            self.npc.change_need_value(NeedType.ENERGY, settings.NEED_MAX_VALUE - (self.npc.get_need_value(NeedType.ENERGY) or 0))
 
-        for need_type, target_value in needs_to_adjust.items():
-            current_value = self.npc.get_need_value(need_type)
-            if current_value is not None:
-                delta = target_value - current_value
-                self.npc.change_need_value(need_type, delta)
-                if settings.DEBUG_MODE:
-                    print(f"    [SleepAction Finish - {self.npc.name}] Bisogno '{need_type.name}' al risveglio impostato a {target_value:.1f} (precedente: {current_value:.1f}, delta: {delta:.1f}).")
+            # Regola gli altri bisogni al risveglio
+            needs_to_adjust = {
+                NeedType.HUNGER: settings.NEED_VALUE_ON_WAKE_HUNGER,
+                NeedType.THIRST: settings.NEED_VALUE_ON_WAKE_THIRST,
+                NeedType.BLADDER: settings.NEED_VALUE_ON_WAKE_BLADDER
+            }
+            for need_type, target_value in needs_to_adjust.items():
+                current_value = self.npc.get_need_value(need_type)
+                if current_value is not None:
+                    delta = target_value - current_value
+                    self.npc.change_need_value(need_type, delta)
+                    if settings.DEBUG_MODE:
+                        print(f"    [SleepAction Finish - {self.npc.name}] Bisogno '{need_type.name}' al risveglio impostato a {target_value:.1f} (precedente: {current_value:.1f}, delta: {delta:.1f}).")
+        super().on_finish()
         if settings.DEBUG_MODE:
-            print(f"  [SleepAction] '{self.npc.name}' si è svegliato.")
+            print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Si è svegliato.")
 
-    def on_interrupt(self):
-        """Chiamato se l'azione viene interrotta."""
-        # L'energia guadagnata fino a questo punto rimane.
-        # Non è necessario fare altro, a meno di voler applicare un moodlet negativo.
-        if settings.DEBUG_MODE:
-            print(f"  [SleepAction] Il sonno di '{self.npc.name}' è stato interrotto.")
+
+    def on_interrupt_effects(self): # Corretto da _on_cancel
+        super().on_interrupt_effects()
+        if self.npc:
+            energy_gained_on_interrupt = self._calculate_energy_gain()
+            if settings.DEBUG_MODE:
+                print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Sonno interrotto. Tick dormiti: {self.ticks_elapsed}. Energia guadagnata: {energy_gained_on_interrupt:.2f}")
+            if energy_gained_on_interrupt > 0:
+                self.npc.change_need_value(NeedType.ENERGY, energy_gained_on_interrupt)

@@ -15,29 +15,29 @@ class ATHDateTimeInterface(ABC):
     """
 
     # --- COSTANTI CALENDARIO ANTHALEJANO (PLACEHOLDER/SEMPLIFICATE) ---
-    HXD_CALENDAR: int = 28          # Ore per giorno nel CALENDARIO
-    IXH: int = 60                   # Minuti Anthalejani in un'ora Anthalejana (uguale per calendario e astronomia)
-    SXI: int = 60                   # Secondi Anthalejani in un minuto Anthalejano (uguale per calendario e astronomia)
+    HXD_CALENDAR: int = 28  # Ore per giorno nel CALENDARIO
+    IXH_CALENDAR: int = 60  # Minuti Anthalejani in un'ora Anthalejana (uguale per calendario e astronomia)
+    SXI_CALENDAR: int = 60  # Secondi Anthalejani in un minuto Anthalejano (uguale per calendario e astronomia)
     
-    SXD_CALENDAR: int = HXD_CALENDAR * IXH * SXI # Secondi in un giorno CALENDARIALE (100800)
+    SXD_CALENDAR: int = HXD_CALENDAR * IXH_CALENDAR * SXI_CALENDAR # Secondi in un giorno CALENDARIALE (100800)
 
-    DXM: int = 24                   # Giorni Anthalejani in un mese CALENDARIALE
-    MXY: int = 18                   # Mesi Anthalejani in un anno CALENDARIALE
-    DXY_CALENDAR: int = MXY * DXM     # Giorni Anthalejani in un anno CALENDARIALE (432)
+    DXM_CALENDAR: int = 24                              # Giorni Anthalejani in un mese CALENDARIALE
+    MXY_CALENDAR: int = 18                              # Mesi Anthalejani in un anno CALENDARIALE
+    DXY_CALENDAR: int = MXY_CALENDAR * DXM_CALENDAR     # Giorni Anthalejani in un anno CALENDARIALE (432)
 
-    DXW: int = 7                    # Giorni Anthalejani in una settimana CALENDARIALE
+    DXW_CALENDAR: int = 7    # Giorni Anthalejani in una settimana CALENDARIALE
 
     # --- COSTANTI ASTRONOMICHE PRECISE (basate sulla fisica del pianeta) ---
     HXD_ASTRONOMICAL: float = 27.99951264782  # Durata precisa di un giorno Anthalejano in ore terrestri
     # IXH e SXI sono assunti uguali a quelli del calendario
-    SXD_ASTRONOMICAL: float = HXD_ASTRONOMICAL * IXH * SXI # Secondi terrestri in un giorno Anthalejano REALE
+    SXD_ASTRONOMICAL: float = HXD_ASTRONOMICAL * IXH_CALENDAR * SXI_CALENDAR # Secondi terrestri in un giorno Anthalejano REALE
 
     # Durata di un anno CALENDARIALE (432 giorni) espressa in secondi ASTRONOMICI REALI
-    CALENDAR_YEAR_IN_ASTRONOMICAL_SECONDS: float = DXY_CALENDAR * SXD_ASTRONOMICAL
+    CALENDAR_YEAR_IN_ASTRONOMICAL_SECONDS: float = SXD_ASTRONOMICAL * DXY_CALENDAR
 
     # Periodo Orbitale Fisico di Anthaleja (ORA ALLINEATO CON DXY_CALENDAR)
     # Definiamo che l'orbita dura esattamente 432 giorni Anthalejani REALI.
-    ORBITAL_PERIOD_EARTH_SECONDS: float = DXY_CALENDAR * SXD_ASTRONOMICAL
+    ORBITAL_PERIOD_EARTH_SECONDS: float = SXD_ASTRONOMICAL * DXY_CALENDAR
     
     # Periodo orbitale fisico espresso in giorni Anthalejani REALI
     # Questo ora sarà uguale a DXY_CALENDAR (cioè 432.0)

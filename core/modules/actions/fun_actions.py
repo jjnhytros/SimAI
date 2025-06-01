@@ -1,8 +1,4 @@
 # core/modules/actions/fun_actions.py
-"""
-Definizione dell'azione per divertirsi (HaveFunAction), 
-soddisfacendo il bisogno di FUN.
-"""
 from typing import Dict, Optional, TYPE_CHECKING
 import random 
 
@@ -10,21 +6,20 @@ if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
 
-from core.enums import NeedType, FunActivityType 
+from core.enums import NeedType, FunActivityType, ActionType # Importa ActionType
 from core import settings
 from .action_base import BaseAction
 
-# --- Costanti di Default a Livello di Modulo per HaveFunAction ---
 _MODULE_DEFAULT_HAVEFUNACTION_DURATION_TICKS: int = 60 
 _MODULE_DEFAULT_HAVEFUNACTION_FUN_GAIN: float = 35.0 
 
 class HaveFunAction(BaseAction):
-    ACTION_TYPE_NAME_PREFIX = "ACTION_HAVE_FUN_" # Prefisso per il nome del tipo di azione
+    # ACTION_TYPE_NAME_PREFIX = "ACTION_HAVE_FUN_" # Non più necessario come costante di classe
     
     def __init__(self, 
                  npc: 'Character', 
                  activity_type: FunActivityType, 
-                 simulation_context: Optional['Simulation'] = None, # Accetta simulation_context
+                 simulation_context: 'Simulation', 
                  duration_ticks: Optional[int] = None,
                  fun_gain: Optional[float] = None
                 ):
@@ -32,6 +27,7 @@ class HaveFunAction(BaseAction):
         self.activity_type: FunActivityType = activity_type
         
         _actual_duration = duration_ticks
+        # ... (logica per _actual_duration come prima) ...
         if _actual_duration is None:
             specific_duration_key = f"FUN_ACT_{activity_type.name}_DURATION_TICKS"
             _actual_duration = getattr(settings, specific_duration_key, None)
@@ -42,6 +38,7 @@ class HaveFunAction(BaseAction):
                     _actual_duration = _MODULE_DEFAULT_HAVEFUNACTION_DURATION_TICKS
         
         _actual_fun_gain = fun_gain
+        # ... (logica per _actual_fun_gain come prima) ...
         if _actual_fun_gain is None:
             specific_gain_key = f"FUN_ACT_{activity_type.name}_FUN_GAIN"
             _actual_fun_gain = getattr(settings, specific_gain_key, None)
@@ -53,17 +50,21 @@ class HaveFunAction(BaseAction):
         
         self.fun_gain = _actual_fun_gain 
 
+        action_type_enum = ActionType.ACTION_HAVE_FUN # Potrebbe essere più specifico se avessimo enum per ogni FunActivityType
+        action_name_str = f"ACTION_HAVE_FUN_{activity_type.name}"
+        
         super().__init__(
             npc=npc,
-            action_type_name=f"{self.ACTION_TYPE_NAME_PREFIX}{activity_type.name}", 
+            action_type_name=action_name_str, # Nome specifico basato sull'attività
+            action_type_enum=action_type_enum, # Enum generico per "Have Fun"
             duration_ticks=_actual_duration,
-            simulation_context=simulation_context, # Passa a super()
-            is_interruptible=True,
-            description=f"Si sta divertendo con: {activity_type.display_name_it()}."
+            p_simulation_context=simulation_context, # Modificato
+            is_interruptible=True
+            # description=f"Si sta divertendo con: {activity_type.display_name_it()}." # Rimosso
         )
         
         self.effects_on_needs: Dict[NeedType, float] = {
-            NeedType.FUN: self.fun_gain # Usiamo il guadagno determinato
+            NeedType.FUN: self.fun_gain
         }
         
         if settings.DEBUG_MODE:
@@ -71,8 +72,6 @@ class HaveFunAction(BaseAction):
                    f"Durata: {self.duration_ticks}t, Gain FUN: {self.fun_gain:.1f}")
 
     def is_valid(self) -> bool:
-        # if not super().is_valid(): return False # Se BaseAction avesse controlli
-
         if not self.npc: return False
         current_fun = self.npc.get_need_value(NeedType.FUN)
         if current_fun is None: return False
@@ -80,26 +79,27 @@ class HaveFunAction(BaseAction):
             if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] FUN ({current_fun:.1f}) già alto.")
             return False
 
-        # L'azione ha bisogno del simulation_context per accedere alle locazioni
-        if not self.simulation_context or not self.npc.current_location_id:
+        if not self.sim_context or not self.npc.current_location_id: # Usa self.sim_context
             if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Contesto di simulazione o locazione NPC mancante.")
-            return False # Non possiamo validare senza sapere dove si trova l'NPC o quali oggetti ci sono
+            return False
 
-        current_location = self.simulation_context.get_location_by_id(self.npc.current_location_id)
+        current_location = self.sim_context.get_location_by_id(self.npc.current_location_id) # Usa self.sim_context
         if not current_location:
             if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Impossibile trovare la locazione corrente.")
             return False
-
-        # Verifica se un oggetto che fornisce questa FunActivityType è disponibile
+        
         object_found_for_activity = False
-        for obj in current_location.objects_in_location:
+        # Assumendo che Location.objects sia un dict. In precedenza usavi .objects_in_location
+        # La definizione corretta è Location.get_objects() che restituisce una lista
+        for obj in current_location.get_objects(): 
             if self.activity_type in obj.provides_fun_activities:
-                if not obj.is_in_use: # L'oggetto deve essere libero
-                    object_found_for_activity = True
-                    if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Trovato oggetto '{obj.name}' per '{self.activity_type.display_name_it()}' in {current_location.name}.")
-                    break 
-                elif settings.DEBUG_MODE:
-                    print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Oggetto '{obj.name}' per '{self.activity_type.display_name_it()}' è già in uso.")
+                # TODO: Aggiungere un controllo se l'oggetto è in uso da un altro NPC
+                # if not obj.is_in_use: 
+                object_found_for_activity = True
+                if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Trovato oggetto '{obj.name}' per '{self.activity_type.display_name_it()}' in {current_location.name}.")
+                break 
+                # elif settings.DEBUG_MODE:
+                # print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Oggetto '{obj.name}' per '{self.activity_type.display_name_it()}' è già in uso.")
         
         if not object_found_for_activity:
             if settings.DEBUG_MODE:
@@ -127,12 +127,11 @@ class HaveFunAction(BaseAction):
         if self.npc:
             if settings.DEBUG_MODE:
                 print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Finito di: {self.activity_type.display_name_it()}. Applico effetti.")
-            # Usa self.fun_gain che è stato determinato nell'__init__
             self.npc.change_need_value(NeedType.FUN, self.fun_gain, is_decay_event=False)
         super().on_finish()
 
-    def _on_cancel(self): # Nome corretto
-        super()._on_cancel()
+    def on_interrupt_effects(self): # Corretto da _on_cancel
+        super().on_interrupt_effects()
         if self.npc and self.duration_ticks > 0:
             proportion_completed = self.ticks_elapsed / self.duration_ticks
             partial_gain = self.fun_gain * proportion_completed * 0.75 

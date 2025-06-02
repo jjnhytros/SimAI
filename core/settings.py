@@ -2,21 +2,26 @@
 """
 File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 """
+# --- IMPORTAZIONI DAL SISTEMA TEMPORALE DI ANTHALYS ---
+from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
+# Importa anche i nomi dei mesi/giorni se sono definiti altrove e ti servono qui
+# Se sono definiti come attributi di ATHDateTimeInterface, accedi tramite la classe.
+# Per ora, li lascio definiti manualmente sotto se non sono in ATHDateTimeInterface.
+# from core.world.ATHDateTime.ATHDateTimeInterface import MONTH_NAMES, DAY_NAMES, MONTH_ABBR, DAY_ABBR # Se fossero a livello di modulo
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.2.49-alpha_71"
+GAME_VERSION = "0.4.86-alpha_182"
 DEBUG_MODE = False
 
 # --- II. CALENDARIO E TEMPO DI ANTHALYS (Nomi variabili ESATTI come da config utente) ---
-HXD = 28        # Ore per Giorno
-DXM = 24        # Giorni per Mese
-MXY = 18        # Mesi per Anno
-DXW = 7         # Giorni per Settimana
-DXY = MXY * DXM # Giorni per Anno (432)
-
-IXH = 60        # mInuti per Ora
-SXI = 60        # secondi per mInuto
+HXD = ATHDateTimeInterface.HXD_CALENDAR     # Ore per Giorno
+DXM = ATHDateTimeInterface.DXM_CALENDAR     # Giorni per Mese
+MXY = ATHDateTimeInterface.MXY_CALENDAR     # Mesi per Anno
+DXW = ATHDateTimeInterface.DXW_CALENDAR     # Giorni per Settimana
+DXY = ATHDateTimeInterface.DXY_CALENDAR     # Giorni per Anno (432)
+IXH = ATHDateTimeInterface.IXH_CALENDAR     # mInuti per Ora
+SXI = ATHDateTimeInterface.SXI_CALENDAR     # secondi per mInuto
 
 # Costanti Derivate (Minuti)
 IXD = IXH * HXD       # Minuti per Giorno
@@ -51,9 +56,11 @@ DAY_ABBR = {name: name[:2] for name in DAY_NAMES}
 
 WEEKEND_DAY_NUMBERS = [6, 0] # Indici per Ĝejahr (Sabato) e Nijahr (Domenica/Giorno 0)
 
-# Costante per i tick di simulazione (usata in vari calcoli di durata)
-# Ipotizziamo 1 tick = 1 minuto di gioco, quindi 60 ticks per ora.
-SIMULATION_TICKS_PER_HOUR = IXH
+# Costanti per la simulazione e i tick
+TXH_SIMULATION = 1000 # Tick per Ora Simulazione
+
+SXI_GAME = IXH * SXI # Es. 3600
+SECONDS_PER_SIMULATION_TICK = SXI_GAME / TXH_SIMULATION # Es. 3600 / 1000 = 3.6
 
 # --- Costanti Lavorative (Rif. TODO XXII.1) ---
 STANDARD_WORK_HOURS_PER_DAY = 9
@@ -96,7 +103,7 @@ MAX_AGE_FOR_INTIMACY_DAYS = MAX_AGE_FOR_INTIMACY_YEARS * DXY
 PREGNANCY_CHANCE_FEMALE = 0.20
 PREGNANCY_DURATION_MONTHS_GAME = 9
 PREGNANCY_DURATION_DAYS_GAME = PREGNANCY_DURATION_MONTHS_GAME * DXM
-PREGNANCY_DURATION_TICKS = PREGNANCY_DURATION_DAYS_GAME * HXD * SIMULATION_TICKS_PER_HOUR
+PREGNANCY_DURATION_TICKS = PREGNANCY_DURATION_DAYS_GAME * HXD * TXH_SIMULATION
 
 MIN_AGE_START_PREGNANCY_FEMALE_YEARS = 14
 MIN_AGE_START_PREGNANCY_FEMALE_DAYS = MIN_AGE_START_PREGNANCY_FEMALE_YEARS * DXY
@@ -155,7 +162,7 @@ INFANT_CARE_MOOD_TRIGGER_NAME = "MISERABLE" # Assumendo che sia una stringa ID p
 PARENT_MIN_ENERGY_FOR_CARE = LOW_NEED_THRESHOLD + 5 # Es. 45
 PARENT_ENERGY_COST_FEEDING = 8
 # ... (altre costanti INFANT_CARE e PARENT_COST/GAIN andranno qui)
-DURATION_FEEDING_INFANT_TICKS = SIMULATION_TICKS_PER_HOUR // 2 # Esempio: 30 minuti
+DURATION_FEEDING_INFANT_TICKS = TXH_SIMULATION // 2 # Esempio: 30 minuti
 # ... (altre DURATION_INFANT_CARE_..._TICKS andranno qui)
 
 # --- Costanti relative alle Abilità (Skills) (Rif. TODO IX) ---
@@ -213,7 +220,7 @@ SCHOOL_MONTHS_PERIOD_2_END = 15
 # Orari e Compiti
 SCHOOL_HOURS_START = 8  # Orario inizio lezioni
 SCHOOL_HOURS_END = 15   # Orario fine lezioni
-HOMEWORK_DURATION_TICKS = SIMULATION_TICKS_PER_HOUR * 1 # 1 ora di gioco per i compiti
+HOMEWORK_DURATION_TICKS = TXH_SIMULATION * 1 # 1 ora di gioco per i compiti
 HOMEWORK_HOURS_START = 16 # Orario tipico per iniziare i compiti
 HOMEWORK_HOURS_END = 20   # Orario limite
 

@@ -7,8 +7,11 @@ from typing import TYPE_CHECKING
 
 from core.enums.trait_types import TraitType
 from core.enums.need_types import NeedType # Per identificare il bisogno di Energia
+from core.enums.action_types import ActionType
 from .base_trait import BaseTrait
-
+from core.settings import (
+    NEED_CRITICAL_THRESHOLD, NEED_LOW_THRESHOLD
+)
 if TYPE_CHECKING:
     from core.character import Character
 
@@ -26,24 +29,33 @@ class ActiveTrait(BaseTrait):
             character_owner=character_owner
         )
 
-    def get_need_decay_modifier(self, need_type: 'NeedType', base_decay_rate: float) -> float:
-        """
-        Modifica il tasso di decadimento del bisogno di Energia.
-        Un tasso di decadimento è tipicamente negativo (es. -5.0 all'ora per ENERGY).
-        Un modificatore di 0.8 lo renderà -4.0 (decade il 20% più lentamente).
-        """
+    def get_need_decay_modifier(self, need_type: NeedType, base_decay_rate: float) -> float: # Cambiato NeedTypeHint a NeedType
         if need_type == NeedType.ENERGY:
-            # Rallenta il decadimento dell'energia (moltiplica per un valore < 1)
-            # Se base_decay_rate è -5.0, restituisce -5.0 * 0.8 = -4.0
             return base_decay_rate * 0.8
-        
-        return base_decay_rate # Nessuna modifica per altri bisogni
+        return base_decay_rate
 
-    # Esempio per futuro effetto sul guadagno di energia (non implementato attivamente ora)
-    # def get_need_satisfaction_modifier(self, need_type: 'NeedType', base_satisfaction_gain: float) -> float:
-    #     """
-    #     Potrebbe leggermente aumentare l'efficacia del sonno o del riposo.
-    #     """
-    #     if need_type == NeedType.ENERGY and base_satisfaction_gain > 0: # Se è un guadagno di energia
-    #         return base_satisfaction_gain * 1.05 # 5% più efficace
-    #     return base_satisfaction_gain
+    def get_need_urgency_modifier(self, need_type: NeedType, current_urgency_score: float) -> float: # Cambiato NeedTypeHint a NeedType
+        if need_type == NeedType.ENERGY:
+            energy_value = self._character_owner.get_need_value(NeedType.ENERGY)
+            if energy_value is not None and energy_value > NEED_CRITICAL_THRESHOLD:
+                return current_urgency_score * 0.8
+        return current_urgency_score
+
+    def get_action_preference_modifier(self, action_type: ActionType, character: 'Character') -> float:
+        """
+        Aumenta la preferenza per azioni FUN attive (se l'azione è HaveFunAction e
+        l'activity_type è appropriato) e diminuisce leggermente quella per dormire se non stanco.
+        """
+        if action_type == ActionType.ACTION_HAVE_FUN:
+            # Per fare questo in modo più preciso, avremmo bisogno di accedere all'activity_type
+            # dell'azione specifica se `action_type` è solo l'enum generico.
+            # Per ora, potremmo dare un piccolo boost generale a HAVE_FUN,
+            # o la logica andrà in AIDecisionMaker quando considera specificamente HaveFunAction.
+            # Per ora, un piccolo boost generale al divertimento.
+            return 1.2 # 20% più propenso a divertirsi
+        
+        if action_type == ActionType.ACTION_SLEEP:
+            energy_value = character.get_need_value(NeedType.ENERGY)
+            if energy_value is not None and energy_value > NEED_LOW_THRESHOLD: # Se non è particolarmente stanco
+                return 0.7 # Meno propenso a dormire subito
+        return 1.0

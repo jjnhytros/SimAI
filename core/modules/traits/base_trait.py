@@ -10,7 +10,7 @@ from core.enums.trait_types import TraitType # Importa l'enum appena creato
 
 if TYPE_CHECKING:
     from core.character import Character
-    from core.enums import NeedType
+    from core.enums import NeedType, ActionType
     # Potrebbe servire importare anche ActionType o classi Azione specifiche
     # from core.modules.actions import BaseAction
 
@@ -68,6 +68,25 @@ class BaseTrait(ABC):
         Default: nessun modificatore.
         """
         return base_satisfaction_gain # Nessuna modifica di default
+
+    def get_need_urgency_modifier(self, need_type: 'NeedType', current_urgency_score: float) -> float:
+        """
+        Modifica il punteggio di urgenza calcolato per un bisogno.
+        Le sottoclassi possono sovrascrivere questo per aumentare o diminuire
+        l'urgenza percepita di certi bisogni.
+        Default: nessun modificatore.
+        """
+        return current_urgency_score # Restituisce l'urgenza invariata di default
+
+    def get_action_preference_modifier(self, action_type: 'ActionType', character: 'Character') -> float:
+        """
+        Restituisce un moltiplicatore per la "desiderabilità" di un tipo di azione.
+        Valori > 1.0 aumentano la preferenza, < 1.0 la diminuiscono.
+        Default: 1.0 (nessuna modifica).
+        Le sottoclassi sovrascriveranno questo.
+        'character' è l'NPC che possiede il tratto, per accesso contestuale se necessario.
+        """
+        return 1.0
 
     def get_action_choice_weight_modifier(self, action_type_name: str, base_weight: float) -> float:
         """

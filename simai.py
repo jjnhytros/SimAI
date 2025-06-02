@@ -39,7 +39,7 @@ def setup_test_simulation() -> Simulation:
     npc1_traits: Set[TraitType] = {TraitType.BOOKWORM, TraitType.LOGICAL, TraitType.LONER}
     npc1 = Character(
         npc_id="Max001", name="Max Power", initial_gender=Gender.MALE,
-        initial_age_days=28 * settings.DXY,
+        initial_age_days=16 * settings.DXY,
         initial_logical_x=2,  # Coordinate logiche per Max
         initial_logical_y=2,
         initial_interests=npc1_interests,
@@ -55,7 +55,7 @@ def setup_test_simulation() -> Simulation:
     npc2_traits: Set[TraitType] = {TraitType.ACTIVE, TraitType.SOCIAL, TraitType.OPTIMIST}
     npc2 = Character(
         npc_id="Erika002", name="Erika Sky", initial_gender=Gender.FEMALE,
-        initial_age_days=25 * settings.DXY,
+        initial_age_days=14 * settings.DXY,
         initial_logical_x=4,  # Coordinate logiche per Erika
         initial_logical_y=2,
         initial_interests=npc2_interests,
@@ -66,6 +66,9 @@ def setup_test_simulation() -> Simulation:
     sim.add_npc(npc2)
     
     if settings.DEBUG_MODE:
+        print(f"  [Setup] {npc1.name} si trova in locazione ID: {npc1.current_location_id}")
+        print(f"  [Setup] {npc2.name} si trova in locazione ID: {npc2.current_location_id}")
+
         print("\n--- Bisogni Iniziali NPC ---")
         for npc_obj in sim.npcs.values():
             npc_obj.print_needs_summary()
@@ -79,7 +82,6 @@ def main():
 
     simulation = setup_test_simulation()
 
-    # --- MODIFICA: Scelta tra GUI Pygame e Simulazione Testuale (TUI) ---
     if not settings.DEBUG_MODE: # Se DEBUG_MODE è False, avvia la GUI
         print("  Modalità GUI Pygame attivata.")
         renderer = Renderer(caption=f"{settings.GAME_NAME} - GUI Edition")
@@ -89,10 +91,9 @@ def main():
         print("  Modalità Testuale (TUI/Debug) attivata.")
         # Esegui per un numero limitato di tick per il test in modalità TUI
         # Oppure un loop più lungo se la TUI è interattiva
-        max_ticks_tui = 200 # Esempio, puoi cambiarlo o rimuoverlo per un loop infinito
+        max_ticks_tui = 200000000 # Esempio, puoi cambiarlo o rimuoverlo per un loop infinito
         print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
         simulation.run(max_ticks=max_ticks_tui)
-    # --- FINE MODIFICA ---
 
     print(f"--- Fine Simulazione {settings.GAME_NAME} ---")
 

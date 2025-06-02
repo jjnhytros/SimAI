@@ -16,7 +16,8 @@ from core.modules.needs.common_needs import (
 )
 # Importa BaseTrait quando sarà usato per istanziare oggetti tratto
 from core.modules.traits import (
-    BaseTrait, GluttonTrait, ActiveTrait
+    BaseTrait, 
+    ActiveTrait, BookwormTrait, GluttonTrait, LonerTrait,
 )
 
 from dataclasses import dataclass, field
@@ -37,7 +38,9 @@ class RelationshipInfo: # Manteniamo questa definizione
 
 TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type[BaseTrait]] = {
     TraitType.ACTIVE: ActiveTrait,
+    TraitType.BOOKWORM: BookwormTrait,
     TraitType.GLUTTON: GluttonTrait,
+    TraitType.LONER: LonerTrait,
 }
 
 
@@ -339,7 +342,7 @@ class Character:
                 low_thresh = getattr(settings, "NEED_LOW_THRESHOLD", 30.0)
                 if value <= critical_thresh: critical_status = " [!!! CRITICO !!!]"
                 elif value <= low_thresh: critical_status = " [! Basso !]"
-                print(f"  - {need_object.display_name()}: {value:.1f}{critical_status}")
+                print(f"  - {need_object.get_display_name()}: {value:.1f}{critical_status}")
 
     def decide_on_intimacy_proposal(self, initiator_npc: 'Character', simulation_context: 'Simulation') -> bool:
         if not initiator_npc: return False
@@ -405,11 +408,12 @@ class Character:
         if self.is_on_aromantic_spectrum: romantic_attraction_str = "Spettro Aromantico"
         relationship_status_name = self.relationship_status.display_name_it(); school_level_name = self.current_school_level.display_name_it()
         aspiration_name = self.aspiration.display_name_it() if self.aspiration else "Nessuna"
-        needs_summary = "; ".join([f"{nobj.display_name()}: {nobj.get_value():.0f}" for nobj in sorted(self.needs.values(), key=lambda x: x.get_value())[:3]]) if self.needs else "N/D"
+        needs_summary = "; ".join([f"{nobj.get_display_name()}: {nobj.get_value():.0f}" for nobj in sorted(self.needs.values(), key=lambda x: x.get_value())[:3]]) if self.needs else "N/D"
         current_action_str = self.current_action.action_type_name if self.current_action else "Nessuna"
         current_action_progress = f"({self.current_action.get_progress_percentage():.0%})" if self.current_action and self.current_action.is_started else ""
         queue_size = len(self.action_queue)
         location_info = f"LocID: {self.current_location_id}, Pos: ({self.logical_x},{self.logical_y})"
+        trait_display_names = [trait_obj.display_name for trait_obj in self.traits.values()]
         trait_names_str = ", ".join(sorted(trait_display_names)) if self.traits else "Nessuno"
 
         return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", Genere: {gender_name}, Età: {age_in_years_str} anni ({life_stage_name}))\n"

@@ -1,4 +1,5 @@
-# SimAI - TODO List Generale (Aggiornato al 29 Maggio 2025)
+# SimAI v0.4.86-alpha_182
+# TODO List Generale (Aggiornato al 02 Giugno 2025 16:59:25)
 
 **Legenda:**
 `[]`    Non ancorra implementato
@@ -52,20 +53,23 @@
 
 ## I. FONDAMENTA DEL GIOCO E MOTORE
 
-* **1. Core Grafico (Pygame):** `[P]` *(Struttura base per `Renderer` creata in `core/graphics/renderer.py` con inizializzazione finestra 1280x768 ridimensionabile, loop di gioco base, gestione eventi QUIT e VIDEORESIZE. Integrato in `simai.py` per avvio condizionale della GUI se `settings.DEBUG_MODE` è `False`.)*
+* **1. Core Grafico (Pygame):** `[P]` *(Struttura `Renderer` creata. Finestra ridimensionabile. Loop. Gestione eventi e input. Disegno placeholder NPC/Oggetti con stato base e colori specifici. Visualizza locazione selezionata con offset camera. Aggiunto pannello informativo laterale con info locazione e dettagli NPC (generali, personalità, azione, bisogni).)*
     * `[x]` a. Definire una classe `Renderer` (precedentemente `GraphicsManager`) che gestisca la finestra, il loop di rendering e gli input base. *(Classe `Renderer` creata in `core/graphics/renderer.py`)*
     * `[x]` b. Inizializzazione di Pygame, creazione della finestra di gioco (configurabile da `settings.py`). Titolo finestra. *(Fatto in `Renderer.__init__`, dimensioni iniziali 1280x768, titolo "SimAI - GUI Edition")*
-    * `[x]` c. Loop di gioco principale (gestione eventi, update logica, rendering). *(Implementato in `Renderer.run_game_loop()`)*
+    * `[P]` c. Loop di gioco principale (gestione eventi, update logica, rendering). *(Implementato in `Renderer.run_game_loop()`)*
         * `[x]` i. Gestione evento `QUIT`. *(Fatto in `Renderer._handle_events()`)*
         * `[x]` ii. Gestione evento `VIDEORESIZE` per finestra ridimensionabile. *(Fatto in `Renderer._handle_events()`)*
+        * `[P]` iii. Gestione input da tastiera base (es. ciclare viste/locazioni, scrolling, centrare camera). *(Implementato K_TAB per ciclare locazioni, FRECCE per offset camera con limiti, 'C' per centrare su NPC selezionato)*.
+        * `[P]` iv. Gestione input da mouse base (es. selezione NPC). *(Implementato click sinistro per selezionare NPC, che centra anche la telecamera)*.
     * `[x]` d. Funzione base di rendering: pulizia schermo, flip del display. *(`self.screen.fill()` e `pygame.display.flip()` in `Renderer._render_gui()`)*
     * `[x]` e. Clock per gestione FPS. *(`pygame.time.Clock()` usato in `Renderer`)*
     * `[x]` f. Integrazione pulita di `pygame.quit()` all'uscita. *(Chiamato in `Renderer._quit_pygame()`)*
-    * `[P]` g. Possibilità di visualizzare testo base sullo schermo (es. FPS, messaggi di debug se GUI attiva e DEBUG_MODE True). *(Testo "SimAI - Finestra Pygame Attiva" e FPS (se DEBUG_MODE True) mostrati in `Renderer._render_gui()`. Font di sistema base utilizzato, personalizzazione futura necessaria.)*
-    * `[]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
-        * `[]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
-        * `[]` ii. Funzione per disegnare un oggetto (es. un quadrato).
-    * `[]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
+    * `[P]` g. Possibilità di visualizzare testo base sullo schermo. *(FPS mostrati. Pannello informativo laterale ora visualizza: info locazione, e per l'NPC selezionato/default: nome, età, genere, stadio vita, azione corrente, tratti, aspirazione, interessi, e bisogni con barre di stato. Formattazione e wrapping del testo di base.)*
+    * `[P]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
+        * `[P]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
+        * `[P]` ii. Funzione per disegnare un oggetto (es. un quadrato).
+        * `[P]` iii. Implementare un sistema di "telecamera" o vista con offset per visualizzare porzioni di locazioni più grandi. *(Offset base `camera_offset_x/y` con limiti implementato. Aggiunta centratura su NPC selezionato via click/tasto 'C'. Aggiunto zoom con rotellina del mouse.)*
+    * `[P]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
     * `[x]` j. Sviluppare la GUI in parallelo alla TUI. *(Decisione presa e approccio avviato).*
     * `[x]` k. La TUI verrà utilizzata in caso di `DEBUG_MODE=True`. *(Implementato in `simai.py`)*.
     * `[x]` l. La finestra base è 1280x768 ridimensionabile e adattiva al contenuto (in futuro opzioni di risoluzione e fullscreen). *(Implementazione base per ridimensionabilità e dimensioni iniziali fatta in `Renderer`)*.
@@ -76,13 +80,7 @@
     * `[]` d. Gestione eventi globali (non legati a singoli NPC).
     * `[]` e. Meccanismo di pausa/play della simulazione.
     * `[]` f. Ottimizzazione del loop per performance (es. LOD per NPC/oggetti "off-screen" - Riferimento IV.4.h).
-* **3. Gestione del Tempo (`TimeManager` e `ATHDateTime`):** `[P]` *(TimeManager esiste e gestisce tick, data e ora. ATHDateTime è la libreria di riferimento per il calendario Anthalejano.)*
-    * `[x]` a. Classe `TimeManager` per tracciare il tempo di gioco (tick, minuti, ore, giorni, mesi, anni). *(Implementata in `core/modules/time_manager.py`)*.
-    * `[x]` b. Funzionalità per avanzare il tempo (es. `advance_tick()`). *(Implementata in `TimeManager`)*.
-    * `[]` c. Integrazione con le costanti del calendario Anthalejano da `ATHDateTimeInterface.py` in `settings.py` per tutte le definizioni temporali (IXH, HXD, DXY, ecc.). *(Discussa, parzialmente preparata in `settings.py` ma l'importazione diretta da `ATHDateTimeInterface` ha dato problemi, messa in pausa.)*
-    * `[]` d. Metodi per ottenere la data e l'ora formattate. *(`TimeManager.get_formatted_datetime_string()` esiste, ma potrebbe beneficiare dell'uso completo di `ATHDateTime` per formattazione avanzata)*.
-    * `[]` e. Gestione di eventi temporizzati (allarmi, callback a orari specifici).
-    * `[]` f. (Avanzato) Sistema di meteo e stagioni influenzato dal tempo (Rif. TODO XX).
+* **3. Sezione libera:** `[N]` *Sezione libera. Disponibile per future introduzioni*
 * **4. Architettura IA e Decisionale (`AICoordinator`, `AIDecisionMaker`):** `[P]` *(`AICoordinator` integrato strutturalmente. `AIDecisionMaker` implementa scelta azioni base per bisogni primari con un sistema di priorità pesata. Sottosistemi (`NeedsProcessor`, `DecisionSystem`, `ActionExecutor`) ancora scheletrici.)*
     * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA per ogni NPC. *(Creata e integrata in `Simulation._update_simulation_state`, attualmente delega a `npc.update_needs/action`)*.
     * `[P]` b. `AIDecisionMaker`: Logica di scelta delle azioni. *(Spostata da `Character`, implementa scelta per bisogni primari con priorità pesata)*.
@@ -365,10 +363,10 @@
         * `[]` v. Cimiteri, funerali, testamenti.
         * `[]` vi. (Opzionale, lore-specifico) Concetto di "passaggio" o ricordo degli antenati.
         * `[]` vii. Definire le condizioni che portano alla morte (vecchiaia, malattie, incidenti).
-        * `[]` viii. **(NOTA AGGIUNTA)** Sistema di Danno Non Letale: Implementare un sistema dove bisogni critici prolungati o eventi traumatici non portano alla morte immediata, ma a uno stato di "Danno" o "Inattività".
+        * `[]` viii. Sistema di Danno Non Letale: Implementare un sistema dove bisogni critici prolungati o eventi traumatici non portano alla morte immediata, ma a uno stato di "Danno" o "Inattività".
             * `[]` 1. L'NPC in stato "danneggiato" cessa le normali attività e potrebbe entrare in loop comportamentali degradati.
             * `[]` 2. Il recupero richiede un processo di "Reset/Riparazione".
-        * `[]` ix. **(NOTA AGGIUNTA)** Processo di Reset/Riparazione:
+        * `[]` ix. Processo di Reset/Riparazione:
             * `[]` 1. Triggerato automaticamente dopo un certo tempo o da un intervento esterno (altro NPC, evento).
             * `[]` 2. Ripristina i bisogni a valori di base/sicuri.
             * `[]` 3. Applica una "Cancellazione Selettiva dei Ricordi", rimuovendo o frammentando i ricordi legati al trauma, per simulare la resilienza e la continuità dell'NPC (impatta `IV.5. Sistema di Memoria`).
@@ -402,7 +400,7 @@
             * `[]` a. NPC adolescenti/giovani adulti potrebbero attraversare una fase di "esplorazione" o "scoperta" del proprio orientamento (attributo `is_exploring_orientation`).
             * `[]` b. Eventi o interazioni che permettono di solidificare o cambiare (entro certi limiti realistici) il proprio orientamento durante questa fase.
 * `[P]` **3. Caratteristiche Personaggio Approfondite:**
-    * `[]` a. **Sogni/Aspirazioni principali NPC:** *(Focus di implementazione corrente o successivo)* (Include vecchio `VII.3 Aspirazioni di Vita`) (`BaseAspiration.h`, `AspirationManager.h`, `aspiration_enums.h` creati; attributi in `Character.h`).
+    * `[P]` a. **Sogni/Aspirazioni principali NPC:** *(Focus di implementazione corrente o successivo)* (Include vecchio `VII.3 Aspirazioni di Vita`) (`BaseAspiration.h`, `AspirationManager.h`, `aspiration_enums.h` creati; attributi in `Character.h`).
         * `[]` i. Definire `AspirationType` Enum (es. `FAMILY_ORIENTED`, `WEALTH_BUILDER`). *(Nomi e concetti da rendere unici per SimAI)*.
         * `[]` ii. Aggiungere attributi `aspiration` e `aspiration_progress` a `Character` e `BackgroundNPCState`.
         * `[]` iii. Definire azioni/stati chiave ("milestone" semplificate) per ciascuna `AspirationType`. *(Definite milestone per FAMILY_ORIENTED e WEALTH_BUILDER)*.
@@ -429,7 +427,7 @@
                 * `[]` Hates Crowds (Odia le Folle)
                 * `[]` Incredibly Friendly
                 * `[]` Llamacrat & Plumbobican & NPCdipendant (Affiliazioni Politiche) -> Sociale/Personalità
-                * `[]` Loner (Solitario - meno estremo di Needs No One)
+                * `[P]` Loner (Solitario - meno estremo di Needs No One)
                 * `[]` Needs No One
                 * `[]` Outgoing (Estroverso)
                 * `[]` Party Animal (Animale da Festa)
@@ -447,7 +445,7 @@
                 * `[]` Arrogant (Arrogante)
                 * `[]` Artistic (Artistico - generico, ama l'arte)
                 * `[]` Body Positive
-                * `[]` Bookworm (Topo di Biblioteca)
+                * `[P]` Bookworm (Topo di Biblioteca)
                 * `[]` Brave
                 * `[]` Calm
                 * `[]` Carefree
@@ -3217,20 +3215,19 @@
 
 * `[]` **0. Obiettivo Principale: Raffinare il `TimeManager` Globale**
     * `[]` a. Implementare la gestione completa di festività, stagioni, ed eventi temporizzati, come dettagliato in questa sezione e in riferimento alla Sezione `XIV` (Eventi).
-* `[]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
-    * `[]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito nella Costituzione di Anthalys, `Art. 3`).
+* `[P]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
+    * `[x]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito in `settings.HOURS_PER_DAY` che deriva da `ATHDateTimeInterface.HXD_CALENDAR`). *(Logica gestita da ATHDateTime)*.
     * `[]` b. Suddivisione della giornata in fasi riconoscibili: Alba, Mattina, Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e impatto sulla luce ambientale e sulla routine degli NPC `IV.4.a`).
-* `[]` **2. Scala del Tempo e Gestione della Velocità di Gioco:**
-    * `[]` a. Definire la scala temporale standard della simulazione (es. 1 minuto di tempo reale = X minuti di tempo di gioco) per bilanciare il realismo con la giocabilità.
-    * `[]` b. Implementare controlli per il giocatore per accelerare, rallentare, o mettere in pausa il tempo di gioco (interfaccia utente definita in `XI.2.c.i`).
-* `[]` **3. Calendario Ufficiale di Anthalys: Anni, Mesi, Settimane e Giorni:**
-    * `[]` a. Struttura dell'Anno di Anthalys: 18 mesi, ogni mese composto da 24 giorni (per un totale di 432 giorni all'anno, come da `Art. 3` della Costituzione e `VI.6.b`).
-    * `[]` b. Nomi dei Giorni della Settimana e dei Mesi:
-        * `[]` i. Definire i nomi ufficiali dei 7 giorni della settimana di Anthalys (come da `Art. 3` Costituzione).
-        * `[]` ii. Definire i nomi ufficiali e il lore per ciascuno dei 18 mesi dell'anno di Anthalys.
-    * `[]` c. Sistema per calcolare e visualizzare la data completa corrente: Giorno della settimana, Giorno del mese (1-24), Mese (1-18), Anno (a partire dall'Anno di Fondazione 5775, `VI.1.c`).
+Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e impatto sulla luce ambientale e sulla routine degli NPC `IV.4.a`).
+* `[P]` **2. Scala del Tempo e Gestione della Velocità di Gioco:**
+    * `[x]` a. Definire la scala temporale standard della simulazione: 1 tick di simulazione = 3.6 secondi di tempo di gioco (`settings.SECONDS_PER_SIMULATION_TICK`). Con `TXH_SIMULATION = 1000`, ci sono 1000 tick per ora di gioco. *(Definito in `settings.py`)*.
+    * `[P]` b. Implementare controlli per il giocatore per accelerare, rallentare, o mettere in pausa il tempo di gioco (interfaccia utente definita in `XI.2.c.i`). *(Renderer ha `self.clock.tick(target_tps)` dove `target_tps` è l'obiettivo, attualmente 20. Meccanismo di pausa/velocità da UI non ancora implementato)*.
+* `[x]` **3. Calendario Ufficiale di Anthalys: Anni, Mesi, Settimane e Giorni:** *(Ora completamente gestito da `ATHDateTime` e costanti da `ATHDateTimeInterface` via `settings.py`)*.
+    * `[x]` a. Struttura dell'Anno di Anthalys: `settings.MONTHS_PER_YEAR` (18) mesi, ogni mese composto da `settings.DAYS_PER_MONTH` (24) giorni (per un totale di `settings.DAYS_PER_YEAR` (432) giorni all'anno).
+    * `[x]` b. Nomi dei Giorni della Settimana e dei Mesi: *(Definiti in `settings.py`, originati da `ATHDateTimeInterface` o definiti manualmente se non disponibili lì)*.
+    * `[x]` c. Sistema per calcolare e visualizzare la data completa corrente: Giorno della settimana, Giorno del mese, Mese, Anno. *(Gestito da `TimeManager` tramite `ATHDateTime`)*.
 * `[]` **4. Calcolo Età, Compleanni ed Eventi Anniversari:**
-    * `[]` a. Calcolo preciso dell'età degli NPC in anni di Anthalys, basato sulla loro data di nascita e sulla data corrente.
+    * `[]` a. Calcolo preciso dell'età degli NPC in anni di Anthalys, basato sulla loro data di nascita e sulla data corrente (richiede implementazione data di nascita in `Character` `IV.2.a.i`).
     * `[]` b. Gli NPC hanno una data di nascita specifica; i compleanni sono eventi annuali (`ANNUAL_BIRTHDAY_EVENT` `XIV.b`) che possono essere celebrati (astrattamente o con interazioni specifiche) e influenzare l'umore (`IV.4.i`).
     * `[]` c. (Avanzato) Anniversari significativi (es. matrimonio `IV.2.c`, data di assunzione in un lavoro importante, data di fondazione di un'azienda NPC `VIII.1.k`) possono essere tracciati e generare moodlet, interazioni speciali, o riflessioni per gli NPC.
 * `[]` **5. Calendario delle Festività e Tradizioni Culturali di Anthalys:** `[PUNTO AMPLIATO]`
@@ -3283,14 +3280,19 @@
     * `[]` b. Utilizzo delle fasi lunari per il calcolo di alcune festività mobili (`XXXII.5.c.i.2`).
     * `[]` c. (Avanzato) Possibilità di altri eventi cosmici periodici o rari (es. allineamenti planetari visibili, piogge di meteoriti annuali, passaggi di comete) che possono essere osservati dagli NPC, generare discussioni (`VII.1.c`), diventare parte del folklore, o avere un impatto culturale/psicologico minore (es. stupore, timore reverenziale). Questi eventi sarebbero annunciati dal `TimeManager` o da osservatori astronomici.
     * `[]` d. (Lore) Definizione delle costellazioni visibili nel cielo di Anthalys e loro eventuale significato culturale o astrologico (se presente e non considerato "paranormale").
-* `[]` **8. `TimeManager` Globale: Funzionalità e Metodi Helper:**
-    * `[]` a. Esistenza di un oggetto `TimeManager` centrale e autorevole che gestisce l'avanzamento del tempo (tick, minuti, ore, giorni, mesi, anni), la data e l'ora correnti.
-    * `[]` b. Il `TimeManager` notifica gli altri sistemi della simulazione (NPC, ambiente, economia, ecc.) degli aggiornamenti temporali rilevanti.
-    * `[]` c. Fornitura di una robusta API (metodi helper) in `TimeManager` per:
-        * `[]` i. Verificare se un dato giorno è lavorativo o scolastico, considerando i giorni della settimana (`XXXII.3.b.i`), le festività (`XXXII.5.a.iii`), e i calendari specifici (`V.1.d`, `VIII.1.b`).
-        * `[]` ii. Ottenere la stagione corrente (`XXXII.6.a`).
-        * `[]` iii. Calcolare la differenza tra due date, aggiungere/sottrarre periodi di tempo a una data.
+* `[x]` **8. `TimeManager` Globale: Funzionalità e Metodi Helper:** *(Refactoring completato: `TimeManager` ora funge da wrapper per un'istanza interna di `ATHDateTime`. Costanti di calendario centralizzate. Granularità tick aggiornata.)*
+    * `[x]` a. Esistenza di un oggetto `TimeManager` centrale e autorevole che gestisce l'avanzamento del tempo (tick, minuti, ore, giorni, mesi, anni), la data e l'ora correnti, delegando la logica complessa a `ATHDateTime`. *(Implementato)*.
+    * `[x]` b. Il `TimeManager` notifica gli altri sistemi della simulazione (NPC, ambiente, economia, ecc.) degli aggiornamenti temporali rilevanti (principalmente tramite il suo stato interrogabile e l'avanzamento del tick nel loop principale). *(Implementato)*.
+    * `[P]` c. Fornitura di una robusta API (metodi helper) in `TimeManager` per:
+        * `[P]` i. Verificare se un dato giorno è lavorativo o scolastico, considerando i giorni della settimana, le festività, e i calendari specifici. *(Metodo base `is_weekend` esiste e usa `ATHDateTime` o `settings`. `is_work_day/is_school_day` concettualizzati, da implementare pienamente con festività)*.
+        * `[]` ii. Ottenere la stagione corrente.
+        * `[x]` iii. Calcolare la differenza tra due date, aggiungere/sottrarre periodi di tempo a una data. *(Funzionalità fornita internamente da `ATHDateTime` e usata da `TimeManager.advance_tick()`)*.
         * `[]` iv. Gestire un sistema di "allarmi" o "eventi programmati a tempo" che possono essere impostati da altri moduli per triggerare logiche specifiche a date/orari futuri (es. scadenza tasse `VIII.2.c`, inizio eventi festivi `XXXII.5`, promemoria personali NPC su SoNet `XXIV.c.viii`).
+    * `[x]` d. Integrazione delle costanti del calendario di Anthalys da `ATHDateTimeInterface.py` in `settings.py` e metodi per ottenere data/ora formattate. *(Completato. `TimeManager` ha `get_formatted_datetime_string()` e `get_ath_detailed_datetime()` che usano `ATHDateTime`)*.
+    * `[P]` e. **Nuova Granularità dei Tick:** La velocità della simulazione è stata modificata a `TXH_SIMULATION = 1000` (1000 tick per ora di gioco).
+        * `[x]` i. Ogni tick di simulazione ora corrisponde a `3.6` secondi di tempo di gioco (`SECONDS_PER_SIMULATION_TICK`).
+        * `[x]` ii. Il calcolo del decadimento dei bisogni in `Character.update_needs` è stato aggiornato per usare la nuova granularità temporale.
+        * `[!]` iii. **(Task Fondamentale) Ricalcolare tutte le costanti di durata delle azioni e dei cooldown definite in tick (`_TICKS`)** in base alla nuova velocità (1 minuto di gioco ≈ 16.67 tick).
 
 ---
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from core.enums.trait_types import TraitType
 from core.enums.need_types import NeedType # Per identificare il bisogno di Fame
+from core.enums.action_types import ActionType
 from .base_trait import BaseTrait
 
 if TYPE_CHECKING:
@@ -25,17 +26,18 @@ class GluttonTrait(BaseTrait):
             character_owner=character_owner
         )
 
-    def get_need_decay_modifier(self, need_type: 'NeedType', base_decay_rate: float) -> float:
-        """
-        Modifica il tasso di decadimento del bisogno di Fame.
-        Un tasso di decadimento è tipicamente negativo (es. -4.0 all'ora).
-        Un modificatore di 1.5 lo renderà -6.0 (decade il 50% più velocemente).
-        """
+    def get_need_decay_modifier(self, need_type: NeedType, base_decay_rate: float) -> float: # Cambiato NeedTypeHint a NeedType
         if need_type == NeedType.HUNGER:
-            # Aumenta il tasso di decadimento (rende il valore più negativo se base_decay_rate è negativo)
-            # Ad esempio, se base_decay_rate è -4.0, restituisce -4.0 * 1.5 = -6.0
-            # Se base_decay_rate fosse positivo (improbabile per il decadimento), lo aumenterebbe.
-            # Assumiamo che base_decay_rate sia il valore orario da settings (es. -4.2 per HUNGER)
-            return base_decay_rate * 1.5 # Decade il 50% più velocemente
-        
-        return base_decay_rate # Nessuna modifica per altri bisogni
+            return base_decay_rate * 1.5
+        return base_decay_rate
+
+    def get_need_urgency_modifier(self, need_type: NeedType, current_urgency_score: float) -> float: # Cambiato NeedTypeHint a NeedType
+        if need_type == NeedType.HUNGER:
+            return current_urgency_score * 1.3 
+        return current_urgency_score
+
+    def get_action_preference_modifier(self, action_type: ActionType, character: 'Character') -> float:
+        """Aumenta la preferenza per l'azione di mangiare."""
+        if action_type == ActionType.ACTION_EAT:
+            return 1.5 # 50% più propenso a scegliere di mangiare (valore da bilanciare)
+        return 1.0

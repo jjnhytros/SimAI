@@ -1,5 +1,5 @@
-# SimAI v0.4.86-alpha_182
-# TODO List Generale (Aggiornato al 02 Giugno 2025 16:59:25)
+# SimAI v0.3.79-alpha_149
+# TODO List Generale (Aggiornato al 02 Giugno 2025 19:30:15)
 
 **Legenda:**
 `[]`    Non ancorra implementato
@@ -11,6 +11,8 @@
 `[0-9]`   Implementazione con priorità (0=Prioritaria, 1=Alta, 5=Media, 9=Bassa)
 
 ---
+
+
 
 ## 0. PRINCIPI GUIDA E FILOSOFIA DEL PROGETTO `[PRINCIPI]`
 
@@ -51,72 +53,15 @@
 
 ---
 
-## I. FONDAMENTA DEL GIOCO E MOTORE
 
-* **1. Core Grafico (Pygame):** `[P]` *(Struttura `Renderer` creata. Finestra ridimensionabile. Loop. Gestione eventi e input. Disegno placeholder NPC/Oggetti con stato base e colori specifici. Visualizza locazione selezionata con offset camera. Aggiunto pannello informativo laterale con info locazione e dettagli NPC (generali, personalità, azione, bisogni).)*
-    * `[x]` a. Definire una classe `Renderer` (precedentemente `GraphicsManager`) che gestisca la finestra, il loop di rendering e gli input base. *(Classe `Renderer` creata in `core/graphics/renderer.py`)*
-    * `[x]` b. Inizializzazione di Pygame, creazione della finestra di gioco (configurabile da `settings.py`). Titolo finestra. *(Fatto in `Renderer.__init__`, dimensioni iniziali 1280x768, titolo "SimAI - GUI Edition")*
-    * `[P]` c. Loop di gioco principale (gestione eventi, update logica, rendering). *(Implementato in `Renderer.run_game_loop()`)*
-        * `[x]` i. Gestione evento `QUIT`. *(Fatto in `Renderer._handle_events()`)*
-        * `[x]` ii. Gestione evento `VIDEORESIZE` per finestra ridimensionabile. *(Fatto in `Renderer._handle_events()`)*
-        * `[P]` iii. Gestione input da tastiera base (es. ciclare viste/locazioni, scrolling, centrare camera). *(Implementato K_TAB per ciclare locazioni, FRECCE per offset camera con limiti, 'C' per centrare su NPC selezionato)*.
-        * `[P]` iv. Gestione input da mouse base (es. selezione NPC). *(Implementato click sinistro per selezionare NPC, che centra anche la telecamera)*.
-    * `[x]` d. Funzione base di rendering: pulizia schermo, flip del display. *(`self.screen.fill()` e `pygame.display.flip()` in `Renderer._render_gui()`)*
-    * `[x]` e. Clock per gestione FPS. *(`pygame.time.Clock()` usato in `Renderer`)*
-    * `[x]` f. Integrazione pulita di `pygame.quit()` all'uscita. *(Chiamato in `Renderer._quit_pygame()`)*
-    * `[P]` g. Possibilità di visualizzare testo base sullo schermo. *(FPS mostrati. Pannello informativo laterale ora visualizza: info locazione, e per l'NPC selezionato/default: nome, età, genere, stadio vita, azione corrente, tratti, aspirazione, interessi, e bisogni con barre di stato. Formattazione e wrapping del testo di base.)*
-    * `[P]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
-        * `[P]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
-        * `[P]` ii. Funzione per disegnare un oggetto (es. un quadrato).
-        * `[P]` iii. Implementare un sistema di "telecamera" o vista con offset per visualizzare porzioni di locazioni più grandi. *(Offset base `camera_offset_x/y` con limiti implementato. Aggiunta centratura su NPC selezionato via click/tasto 'C'. Aggiunto zoom con rotellina del mouse.)*
-    * `[P]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
-    * `[x]` j. Sviluppare la GUI in parallelo alla TUI. *(Decisione presa e approccio avviato).*
-    * `[x]` k. La TUI verrà utilizzata in caso di `DEBUG_MODE=True`. *(Implementato in `simai.py`)*.
-    * `[x]` l. La finestra base è 1280x768 ridimensionabile e adattiva al contenuto (in futuro opzioni di risoluzione e fullscreen). *(Implementazione base per ridimensionabilità e dimensioni iniziali fatta in `Renderer`)*.
-* **2. Loop di Simulazione Principale (`Simulation.run()` e `Simulation._update_simulation_state()`):** `[P]` *(Loop base esistente. `AICoordinator` integrato strutturalmente per l'aggiornamento degli NPC. Logica di invecchiamento base presente. Ulteriori integrazioni necessarie con eventi, input GUI, e LOD.)*
-    * `[x]` a. Avanzamento del `TimeManager` ad ogni tick. *(Fatto in `Simulation._update_simulation_state()`)*.
-    * `[P]` b. Aggiornamento di tutti gli NPC (bisogni, azioni, IA). *(Parzialmente fatto tramite `AICoordinator` che chiama `npc.update_needs` e `npc.update_action`. `AIDecisionMaker` ha logica base per bisogni e priorità. Sottosistemi IA (`NeedsProcessor`, `ActionExecutor`, `DecisionSystem`) ancora scheletrici.)*
-    * `[]` c. Aggiornamento dello stato del mondo (oggetti, ambiente). *(Minimale, solo interazioni base con oggetti per azioni)*.
-    * `[]` d. Gestione eventi globali (non legati a singoli NPC).
-    * `[]` e. Meccanismo di pausa/play della simulazione.
-    * `[]` f. Ottimizzazione del loop per performance (es. LOD per NPC/oggetti "off-screen" - Riferimento IV.4.h).
-* **3. Sezione libera:** `[N]` *Sezione libera. Disponibile per future introduzioni*
-* **4. Architettura IA e Decisionale (`AICoordinator`, `AIDecisionMaker`):** `[P]` *(`AICoordinator` integrato strutturalmente. `AIDecisionMaker` implementa scelta azioni base per bisogni primari con un sistema di priorità pesata. Sottosistemi (`NeedsProcessor`, `DecisionSystem`, `ActionExecutor`) ancora scheletrici.)*
-    * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA per ogni NPC. *(Creata e integrata in `Simulation._update_simulation_state`, attualmente delega a `npc.update_needs/action`)*.
-    * `[P]` b. `AIDecisionMaker`: Logica di scelta delle azioni. *(Spostata da `Character`, implementa scelta per bisogni primari con priorità pesata)*.
-    * `[]` c. `NeedsProcessor`: Gestione avanzata del decadimento e aggiornamento dei bisogni. *(Scheletro presente)*.
-    * `[]` d. `ActionExecutor`: Esecuzione e monitoraggio delle azioni. *(Scheletro presente)*.
-    * `[]` e. `DecisionSystem` (Utility AI / Behaviour Tree): Sistema per decisioni più complesse. *(Scheletro presente per Utility AI, BT da definire)*.
-* **5. Salvataggio e Caricamento:** `[]`
-    * `[]` a. Definire formato dei dati di salvataggio (es. JSON, Pickle, database SQLite).
-    * `[]` b. Implementare la serializzazione dello stato della simulazione (NPC, mondo, tempo).
-    * `[]` c. Implementare la deserializzazione per caricare uno stato salvato.
-    * `[]` d. UI per salvare/caricare (slots di salvataggio).
-* **6. Gestione Input Utente (Globale):** `[]`
-    * `[]` a. Input da tastiera per comandi globali (pausa, velocità simulazione, menu).
-    * `[]` b. Input mouse per interazione con GUI.
-* **7. Configurazione e Internazionalizzazione:** `[P]`
-    * `[x]` a. File `settings.py` per costanti globali. *(Esistente e utilizzato)*.
-    * `[P]` b. Refactoring Architetturale - Configurazioni Modulari: Spostare costanti specifiche (es. `npc_config`, `ui_config`, `economy_config`) in file dedicati sotto `core/config/`. *(Iniziato con `ui_config.py`. `npc_config.py`, `time_config.py`, `social_config.py`, `school_config.py`, `environment_config.py`, `economy_config.py` creati ma da popolare/utilizzare sistematicamente)*.
-    * `[]` c. Sistema di logging avanzato (sostituire `print` con chiamate a un logger configurabile).
-    * `[]` d. Supporto per internazionalizzazione (i18n) per testi UI e contenuti di gioco.
-* **8. Gestione Oggetti di Gioco (`GameObject`):** `[P]` *(Classe base `GameObject` creata. Attributi base come `object_id`, `name`, `object_type`. Aggiunto `is_water_source` e `provides_fun_activities`. Interazione base per `DrinkWaterAction` e `HaveFunAction` implementata.)*
-    * `[P]` a. Definizione classe `GameObject` con attributi base. *(Fatto)*.
-    * `[P]` b. Capacità degli oggetti di influenzare bisogni o abilitare azioni. *(Implementato per `is_water_source` e `provides_fun_activities`)*.
-    * `[]` c. Stato degli oggetti (es. "in uso", "rotto", "sporco").
-    * `[]` d. Interazione NPC-Oggetto: logica per trovare e usare oggetti.
-* **9. Sistema di Locazioni (`Location`):** `[P]` *(Classe `Location` creata con gestione oggetti e NPC presenti. Tipo di locazione definito da `LocationType` enum.)*
-    * `[x]` a. Classe `Location` per rappresentare aree del mondo. *(Fatto)*.
-    * `[x]` b. Capacità delle locazioni di contenere oggetti e NPC. *(Fatto)*.
-    * `[]` c. Attributi della locazione (es. pulizia, livello di rumore, tipo di lotto).
-    * `[]` d. Navigazione NPC tra locazioni (Pathfinding - Rif. IV.4.f).
 
-* **2. Struttura Modulare del Codice:** `[]`
+## A. ARCHITETTURA CODICE E QUALITÀ
+* `[]` **1. Struttura Modulare del Codice:** `[]`
     * `[P]` a. Organizzazione cartelle base (incluse `core/`, `core/AI/`, `core/modules/`) (Definizione struttura cartelle ora concreta e discussa)
     * `[P]` b. Creazione file principali (`simai.py` (ex `main.py`), `core/simulation.py`, `core/settings.py` hanno uno scheletro/contenuto iniziale; `core/__init__.py` creato)
     * `[]` c. Definizione classe `Character` come nucleo degli NPC.
     * `[]` d. Implementazione `__init__.py` per package per facilitare importazioni modulari (es. `modules/traits/__init__.py`).
-    * `[]` e. **Nuovo - Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** `[PRIORITÀ: MEDIA-ALTA]` *(Concettualizzazione iniziata, implementazione per Tratti da iniziare)*
+    * `[]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** `[PRIORITÀ: MEDIA-ALTA]` *(Concettualizzazione iniziata, implementazione per Tratti da iniziare)*
         * `[]` i. **Tratti:**
             * `[]` **Task:** Definire e implementare `TraitName` / `TraitId` (vedi TODO IV.3.b).
             * `[]` 1. Creare `modules/traits/trait_enums.py` e spostarvi l'Enum `Trait` da `modules/enums.py`.
@@ -132,50 +77,57 @@
              * `[✓]` **Stato Attuale:** Il file contiene le Enum più piccole o quelle non ancora spostate.
              * `[x]` **Enum Già Implementate:** `Interest`, `LifeStage`, `Gender`, `RelationshipStatus`, `LocationType`, `NeedType`, `EventType`, `SchoolLevel`, `AspirationType`, `FunActivityType`, `SocialInteractionType`.
 
-* `[]` **3. Motore di Progressione Temporale di Base:** `[MODIFICATO]`
-    * `[]` a. Il sistema gestisce il flusso fondamentale del tempo di gioco, il ciclo giorno/notte di base (28 ore), e l'aggiornamento incrementale della simulazione (tick, minuti, ore).
-    * `[]` b. Per tutti i dettagli sul calendario specifico di Anthalys, la struttura di anni/mesi/giorni, le stagioni, le festività, gli eventi cosmici e la gestione avanzata del tempo, **vedi Sezione XXXII. IL TEMPO IN ANTHALYS: Calendario, Cicli Stagionali, Eventi Cosmici e Festività**.
+* `[P]` **2. Gestione delle Configurazioni e Settings:**
+    * `[x]` a. File `settings.py` per costanti globali. *(Esistente e utilizzato)*.
+    * `[P]` b. Refactoring Architetturale - Configurazioni Modulari: Spostare costanti specifiche (es. `npc_config`, `ui_config`, `economy_config`) in file dedicati sotto `core/config/`. *(Iniziato con `ui_config.py`. `npc_config.py`, `time_config.py`, `social_config.py`, `school_config.py`, `environment_config.py`, `economy_config.py` creati ma da popolare/utilizzare sistematicamente)*.
+    * `[]` c. Sistema di logging avanzato (sostituire `print` con chiamate a un logger configurabile).
+    * `[]` d. Supporto per internazionalizzazione (i18n) per testi UI e contenuti di gioco.
 
-* `[]` **4. Loop di Simulazione Principale (`Simulation.step()`):** *(`Simulation.h/.cpp` con `step()` creato)*.
-    * `[]` a. Avanzamento del tempo (`TimeManager.advance_time()`) (Metodo in `TimeManager` previsto).
-    * `[]` b. Aggiornamento bisogni NPC (dettagliati e `general_wellbeing` per background) (Previsto in `Character::updateNeeds`, `BackgroundNPCState` ha `generalWellbeing`).
-    * `[]` c. Logica decisionale (`AIDecisionMaker` per NPC dettagliati; routine/statistiche per background) (`AIDecisionMaker` scheletro concettualizzato, `Character::thinkAI` è hook).
-    * `[]` d. Esecuzione azioni (dettagliate e astratte) (`Character::executeCurrentAction` previsto).
-    * `[]` e. Integrazione sistema meteo e stagioni (impatto su NPC) - *(Dettagli meteo/stagioni ora in XXXII e XXVI)* (`WeatherManager.h/.cpp` scheletro creato).
-    * `[]` f. Gestione eventi di calendario (festività, compleanni) - *(Dettagli calendario ora in XXXII)* (`CalendarSystem.h/.cpp` scheletro creato).
-    * `[]` g. Orchestrazione Aggiornamenti NPC di Background (LOD3) - chiamate a `_perform_daily_background_update`, `_perform_periodic_background_update`, `_perform_annual_background_update` (`BackgroundNPCState` e metodi di update LOD in `Character` previsti).
-
-* `[]` **5. Salvataggio e Caricamento:**
-    * `[]` a. Salvare lo stato della simulazione (NPC, tempo, meteo) in JSON (`SaveLoadManager.h/.cpp` creato).
-    * `[]` b. Caricare uno stato salvato (`SaveLoadManager.h/.cpp` creato).
-    * `[]` c. **Nuovo - Salvataggi Multipli / Slot di Salvataggio:** Gestire più file di salvataggio (`SaveLoadManager.h/.cpp` prevede questa logica).
-    * `[]` d. Gestione errori e versioning dei salvataggi.
-
-* `[]` **6. Interfaccia Utente (TUI `curses`):** *(`TUIManager.h/.cpp`, `InputHandler.h/.cpp` creati)*. (Spostato da I.6 a I.6 per coerenza, il contenuto è da XI)
-    * *(Vedi Sezione XI per i dettagli completi dell'Interfaccia Utente)*
-
-* `[P]` **7. Gestione delle Configurazioni e Settings:**
-    * `[P]` a. File `settings.py` centrale per costanti globali (`core/settings.py` ora contiene molte costanti definite per tempo, calendario, NPC, bisogni, scuola, economia, ecc.)
-    * `[]` b. **Refactoring Architetturale - Configurazioni Modulari:**
-        * `[]` i. Spostare costanti specifiche di sistema in file `_config.py` dedicati (es. `careers_config.h` creato come esempio).
-        * `[]` ii. Obiettivo: `settings.py` più snello, migliore modularità.
-        * `[]` iii. Definire quali sistemi beneficerebbero di questa separazione (Scuola, Carriere, forse Meteo Avanzato).
-    * `[]` c. Menu impostazioni per modificare `settings.json` (o i futuri `_config.json`) (`SettingsManager.h/.cpp` creato).
-
-* `[]` **8. Struttura Modulare del Codice (Avanzata):**
-    * `[]` a. Organizzazione cartelle base e `__init__.py` per package (Struttura C++ directory e namespace è `[]`).
+* `[]` **3. Struttura Modulare del Codice (Avanzata):**
+    * `[]` a. Organizzazione cartelle base e `__init__.py` per package.
     * `[]` b. **Refactoring Architetturale - Logica di Sistema Modulare:**
-        * `[]` i. Valutare creazione di moduli Python dedicati per sistemi complessi (es. `school_system`, `career_system`, `economic_system`, `relationship_manager`) con logica (`_logic.py` o `_manager.py`) e config proprie. *(Scheletri per `CareerManager`, `WeatherManager`, `RelationshipManager` etc. creati in C++)*.
-        * `[]` ii. Ogni modulo esporrebbe API chiare (Obiettivo dei file `.h` creati).
-
-* `[]` **9. Interfaccia Utente (Logica di Input e Comandi):**
-    * `[]` a. Gestione input da tastiera (`input_handler.py`) (`InputHandler.h/.cpp` creato).
-    * `[]` b. Sistema di comandi utente più strutturato (collegato a Command Palette I.6.1.g) (`CommandProcessor.h/.cpp` creato).
+        * `[]` i. Valutare creazione di moduli Python dedicati per sistemi complessi (es. `school_system`, `career_system`, `economic_system`, `relationship_manager`) con logica (`_logic.py` o `_manager.py`) e config proprie. *(Scheletri per `career_manager.py`, `weather_manager.py`, `relationship_manager.py` etc. creati in Python)*.
+        * `[]` ii. Ogni modulo esporrebbe API chiare.
 
 ---
 
 
-## II. CREAZIONE DEL PERSONAGGIO GIOCABILE (SimAI Iniziale) `[]`
+## I. FONDAMENTA DEL GIOCO E MOTORE
+
+* **1. Loop di Simulazione Principale (`Simulation.run()` e `Simulation._update_simulation_state()`):** `[P]` *(Loop base esistente. `AICoordinator` integrato strutturalmente per l'aggiornamento degli NPC. Logica di invecchiamento base presente. Ulteriori integrazioni necessarie con eventi, input GUI, e LOD.)*
+    * `[x]` a. Avanzamento del `TimeManager` ad ogni tick. *(Fatto in `Simulation._update_simulation_state()`)*.
+    * `[P]` b. Aggiornamento di tutti gli NPC (bisogni, azioni, IA). *(Parzialmente fatto tramite `AICoordinator` che chiama `npc.update_needs` e `npc.update_action`. `AIDecisionMaker` ha logica base per bisogni e priorità. Sottosistemi IA (`NeedsProcessor`, `ActionExecutor`, `DecisionSystem`) ancora scheletrici.)*
+    * `[]` c. Aggiornamento dello stato del mondo (oggetti, ambiente). *(Minimale, solo interazioni base con oggetti per azioni)*.
+    * `[]` d. Gestione eventi globali (non legati a singoli NPC).
+    * `[]` e. Meccanismo di pausa/play della simulazione.
+    * `[]` f. Ottimizzazione del loop per performance (es. LOD per NPC/oggetti "off-screen" - Riferimento IV.4.h).
+* **2. Architettura IA e Decisionale (`AICoordinator`, `AIDecisionMaker`):** `[P]` *(`AICoordinator` integrato strutturalmente. `AIDecisionMaker` implementa scelta azioni base per bisogni primari con un sistema di priorità pesata. Sottosistemi (`NeedsProcessor`, `DecisionSystem`, `ActionExecutor`) ancora scheletrici.)*
+    * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA per ogni NPC. *(Creata e integrata in `Simulation._update_simulation_state`, attualmente delega a `npc.update_needs/action`)*.
+    * `[P]` b. `AIDecisionMaker`: Logica di scelta delle azioni. *(Spostata da `Character`, implementa scelta per bisogni primari con priorità pesata)*.
+    * `[]` c. `NeedsProcessor`: Gestione avanzata del decadimento e aggiornamento dei bisogni. *(Scheletro presente)*.
+    * `[]` d. `ActionExecutor`: Esecuzione e monitoraggio delle azioni. *(Scheletro presente)*.
+    * `[]` e. `DecisionSystem` (Utility AI / Behaviour Tree): Sistema per decisioni più complesse. *(Scheletro presente per Utility AI, BT da definire)*.
+* **3. Salvataggio e Caricamento:** `[]`
+    * `[]` a. Definire formato dei dati di salvataggio (es. JSON, Pickle, database SQLite). (`save_load_manager.py` creato).
+    * `[]` b. Implementare la serializzazione dello stato della simulazione (NPC, mondo, tempo).
+    * `[]` c. Implementare la deserializzazione per caricare uno stato salvato.
+    * `[]` d. UI per salvare/caricare (slots di salvataggio).
+* **4. Gestione Oggetti di Gioco (`GameObject`):** `[P]` *(Classe base `GameObject` creata. Attributi base come `object_id`, `name`, `object_type`. Aggiunto `is_water_source` e `provides_fun_activities`. Interazione base per `DrinkWaterAction` e `HaveFunAction` implementata.)*
+    * `[P]` a. Definizione classe `GameObject` con attributi base. *(Fatto)*.
+    * `[P]` b. Capacità degli oggetti di influenzare bisogni o abilitare azioni. *(Implementato per `is_water_source` e `provides_fun_activities`)*.
+    * `[]` c. Stato degli oggetti (es. "in uso", "rotto", "sporco").
+    * `[]` d. Interazione NPC-Oggetto: logica per trovare e usare oggetti.
+* **5. Sistema di Locazioni (`Location`):** `[P]` *(Classe `Location` creata con gestione oggetti e NPC presenti. Tipo di locazione definito da `LocationType` enum.)*
+    * `[x]` a. Classe `Location` per rappresentare aree del mondo. *(Fatto)*.
+    * `[x]` b. Capacità delle locazioni di contenere oggetti e NPC. *(Fatto)*.
+    * `[]` c. Attributi della locazione (es. pulizia, livello di rumore, tipo di lotto).
+    * `[]` d. Navigazione NPC tra locazioni (Pathfinding - Rif. IV.4.f).
+---
+
+
+
+
+## II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE `[]`
 
 * `[!]` **1. Filosofia della Creazione Iniziale:**
     * `[]` a. Permettere al giocatore di definire il punto di partenza della sua storia nella simulazione attraverso la creazione di uno o più personaggi giocabili iniziali (es. un single, una coppia, una famiglia).
@@ -185,13 +137,13 @@
     * `[]` e. Architettura della Coscienza dell'NPC:
         * `[]` i. Distinguere tra un'"Anima Digitale" (nucleo immutabile con ID, tratti fondamentali, memorie chiave) e una "Personalità Agente" (manifestazione comportamentale influenzata da bisogni, stato attuale, e memoria a breve termine).
 
-* `[]` **2. Interfaccia di Creazione del Personaggio/Famiglia (CAS - Create-A-Sim/Family):** (`CASManager.h/.cpp` creato)
-    * `[]` a. **Personalizzazione Aspetto Fisico Dettagliata:** (Utilizza gli stessi asset e logiche di `IV.0.a` per la generazione NPC, ma con interfaccia per il giocatore) (`AppearanceData.h` creato).
+* `[]` **2. Interfaccia di Creazione (Editor Personaggio/Nucleo Familiare):** (`editor_manager.py` creato)
+    * `[]` a. **Personalizzazione Aspetto Fisico Dettagliata:** (Utilizza gli stessi asset e logiche di `IV.0.a` per la generazione NPC, ma con interfaccia per il giocatore) (`appearance_data.py` creato).
         * `[]` i. Strumenti per modificare parti del viso (occhi, naso, bocca, forma viso, mascella, etc.) e del corpo (altezza, corporatura, percentuale muscoli/grasso).
         * `[]` ii. Ampia selezione di colori per pelle (con tonalità realistiche e fantasy se previste dal lore), capelli (acconciature e colori naturali e non), occhi (inclusa eterocromia opzionale).
         * `[]` iii. Opzioni per dettagli aggiuntivi: cicatrici, nei, vitiligine, efelidi, tatuaggi (collegamento a Skill Tatuaggi IX.e e carriera Tatuatore VIII.1.j), piercing.
         * `[]` iv. Sistema di anteprima dinamica del personaggio durante la personalizzazione.
-    * `[]` b. **Definizione Identità di Base:** (Utilizza gli stessi attributi di `IV.0.b, IV.0.g` e `IV.3.j`) (`Identity` struct in `Character.h` e `character_enums.h` creati).
+    * `[]` b. **Definizione Identità di Base:** (Utilizza gli stessi attributi di `IV.0.b, IV.0.g` e `IV.3.j`) (classe `Identity` in `character.py` e `core/enums/character_enums.py` creati).
         * `[]` i. Scelta Nome e Cognome (con suggerimenti opzionali basati sul lore di Anthalys).
         * `[]` ii. Scelta Età Iniziale (generalmente limitata a certi stadi di vita per i fondatori, es. `YOUNG_ADULT`, `ADULT`, o `CHILD`/`TEENAGER` se creati come parte di una famiglia con adulti) (Attributi in `Identity` e `LifeStage` enum).
         * `[]` iii. Scelta Sesso Biologico e Identità di Genere (opzioni flessibili e inclusive come da `IV.3.b.viii.11` e `IV.3.j`, con pronomi personalizzabili) (Enums e attributi creati).
@@ -199,15 +151,15 @@
         * `[]` v. Definizione Orientamento Sessuale e Romantico (come da `IV.3.j`, con opzione per "esplorazione" per personaggi più giovani) (Enums e attributi creati).
     * `[]` c. **Assegnazione Tratti di Personalità:** (Selezione dalla lista definita in `IV.3.b`) (`TraitManager` e `Character::addTrait` previsti).
         * `[]` i. Il giocatore assegna un numero limitato di tratti (es. 3-5, come da `IV.3.b.i`) scelti dalla lista completa e categorizzata dei tratti disponibili.
-        * `[]` ii. L'interfaccia CAS deve mostrare chiaramente le descrizioni dei tratti, i loro effetti principali e le eventuali incompatibilità o conflitti tra tratti selezionati (come da `IV.3.b.ix` e `IV.3.b.x.1`).
+        * `[]` ii. L'interfaccia di creazione deve mostrare chiaramente le descrizioni dei tratti, i loro effetti principali e le eventuali incompatibilità o conflitti tra tratti selezionati (come da `IV.3.b.ix` e `IV.3.b.x.1`).
     * `[]` d. **Scelta Aspirazione di Vita:** (Selezione dalle aspirazioni definite in `IV.3.a`) (`AspirationManager` e `Character::setAspiration` previsti).
         * `[]` i. Il giocatore sceglie un'Aspirazione di Vita a lungo termine per ogni personaggio giocabile creato.
-        * `[]` ii. L'interfaccia CAS mostra le diverse categorie di aspirazioni e le aspirazioni specifiche disponibili, con una descrizione dei loro obiettivi generali e delle ricompense (tratti bonus, soddisfazione).
-    * `[]` e. **Definizione Abbigliamento Iniziale:** (Utilizza il sistema di abbigliamento di `IV.0.f`) (`ClothingManager.h`, `Outfit.h`, `ClothingItem.h` creati; `Character` ha `wardrobe_`).
+        * `[]` ii. L'interfaccia di creazione mostra le diverse categorie di aspirazioni e le aspirazioni specifiche disponibili, con una descrizione dei loro obiettivi generali e delle ricompense (tratti bonus, soddisfazione).
+    * `[]` e. **Definizione Abbigliamento Iniziale:** (Utilizza il sistema di abbigliamento di `IV.0.f`) (`clothing_manager.py`, `outfit.py`, `clothing_item.py` creati; `Character` ha `wardrobe_`).
         * `[]` i. Selezione di outfit per ogni categoria richiesta (quotidiano, formale, sportivo, notte, feste, nuoto, freddo, caldo) da un guardaroba iniziale fornito.
         * `[]` ii. (Avanzato) Possibilità di personalizzare i colori/pattern di alcuni capi di vestiario base.
         * `[]` iii. Gli outfit scelti saranno il guardaroba base del personaggio all'inizio del gioco.
-    * `[]` f. **(Opzionale) Definizione Relazioni Iniziali (se si crea una famiglia/gruppo):** (`RelationshipManager.h`, `relationship_types.h` creati).
+    * `[]` f. **(Opzionale) Definizione Relazioni Iniziali (se si crea una famiglia/gruppo):** (`relationship_manager.py`, `enums/relationship_types.py` creati).
         * `[]` i. Se il giocatore crea più personaggi contemporaneamente (es. una famiglia, coinquilini), deve poter definire le loro relazioni iniziali (es. coniugi, partner, genitori-figli, fratelli, amici intimi).
         * `[]` ii. Impostazione dei punteggi di relazione iniziali (default positivi per familiari stretti, neutri o leggermente positivi per amici/coinquilini).
         * `[]` iii. Integrazione con l'Albero Genealogico (`IV.2.f`) per i membri della famiglia creati.
@@ -216,21 +168,21 @@
         * `[]` ii. Questi potrebbero assegnare piccole quantità di XP skill iniziali, influenzare la probabilità di certi tratti nascosti o acquisibili, o fornire memorie iniziali uniche (IV.5).
         * `[]` iii. (Alternativa) Consentire al giocatore di scrivere un breve testo di background che il gioco potrebbe (opzionalmente) analizzare in modo astratto per questi effetti.
 
-* `[]` **3. Sistema Genetico per Famiglie Iniziali e Discendenti:** (Stesso sistema di `IV.0.a.i`, `IV.2.c`, `IV.2.f`) (`GeneticsSystem.h/.cpp`, `Genome.h` creati).
-    * `[]` a. Durante la creazione di una famiglia in CAS, se si creano personaggi imparentati (es. genitori e figli, fratelli), l'aspetto dei figli (o la somiglianza tra fratelli) dovrebbe poter ereditare caratteristiche visibili dai genitori (o condividerle) in modo plausibile.
-        * `[]` i. Interfaccia per "generare" figli da due genitori in CAS, con possibilità di randomizzazione e ritocco.
+* `[]` **3. Sistema Genetico per Famiglie Iniziali e Discendenti:** (Stesso sistema di `IV.0.a.i`, `IV.2.c`, `IV.2.f`) (`genetics_system.py`, `genome.py` creati).
+    * `[]` a. Durante la creazione di una famiglia nell'editor, se si creano personaggi imparentati (es. genitori e figli, fratelli), l'aspetto dei figli (o la somiglianza tra fratelli) dovrebbe poter ereditare caratteristiche visibili dai genitori (o condividerle) in modo plausibile.
+        * `[]` i. Interfaccia per "generare" figli da due genitori nell'editor, con possibilità di randomizzazione e ritocco.
     * `[]` b. Questo stesso sistema genetico (aspetto fisico e potenziale ereditarietà dei tratti di personalità `IV.2.f.vi`) verrà utilizzato per tutti i nuovi NPC nati nel corso della simulazione (`IV.2.c`).
     * `[]` c. Possibilità di "gemelli identici" o "gemelli fraterni" se si creano figli multipli contemporaneamente.
-    * `[]` d. **Estensione "Total Realism" - Genetica Avanzata:** (Collegamento a `IV.2.f.vii` e `IV.1.g`) (`Genome.h` è un inizio).
-        * `[]` i. Ereditarietà di un range più ampio di caratteristiche fisiche (oltre l'aspetto base) e predisposizioni (es. talenti innati per certe skill `IV.3.f`, suscettibilità a malattie specifiche `IV.1.g`). *(Aggiornato stato a [] per la definizione di `Genome.h` e placeholder per malattie genetiche)*
+    * `[]` d. **Estensione "Total Realism" - Genetica Avanzata:** (Collegamento a `IV.2.f.vii` e `IV.1.g`) (`genome.py` è un inizio).
+        * `[]` i. Ereditarietà di un range più ampio di caratteristiche fisiche (oltre l'aspetto base) e predisposizioni (es. talenti innati per certe skill `IV.3.f`, suscettibilità a malattie specifiche `IV.1.g`). *(Aggiornato stato a [] per definizione di `genome.py` e placeholder per malattie genetiche)*
             * `[]` 1. Definire meccanismo per come i "tratti recessivi (potenzialmente negativi per la salute `IV.1.g` o altre caratteristiche `IV.3.b`)" sono rappresentati nel genoma astratto di un NPC.
             * `[]` 2. Implementare la logica di ereditarietà che aumenta la probabilità di espressione di questi tratti recessivi in caso di relazioni consanguinee (`VII.2.d.vi`), basata sul grado di parentela.
         * `[]` ii. (Molto Avanzato) Simulazione di mutazioni genetiche casuali (rare) con effetti variabili (positivi, negativi, neutri) che possono introdurre nuovi tratti o modificare quelli esistenti.
 
-* `[]` **4. Fase Finale: Scelta del Mondo/Lotto Iniziale e Fondi:** (`WorldManager.h`, `LotManager.h`, `PlayerHousehold.h` creati).
+* [] **4. Fase Finale: Scelta del Mondo/Lotto Iniziale e Fondi:** (`world_manager.py`, `lot_manager.py`, `player_household.py` creati).
     * `[]` a. Dopo la creazione della famiglia/personaggio giocabile, il giocatore seleziona un mondo o quartiere di partenza (se più di uno disponibile).
     * `[]` b. Il giocatore sceglie un lotto residenziale vuoto o una casa pre-costruita disponibile in cui trasferirsi (collegamento a `XVIII.5.j` Proprietà Immobiliari e `I. MONDO DI ANTHALYS E SIMULAZIONE GENERALE` per la struttura del mondo).
-    * `[]` c. Assegnazione di fondi iniziali ("Athel") alla famiglia/personaggio giocabile. L'ammontare potrebbe: (`PlayerHousehold` ha `currentFunds_`).
+    * `[P]` c. Assegnazione di fondi iniziali ("Athel") alla famiglia/personaggio giocabile. **Questi fondi sono un grant che rappresenta anche la prima erogazione del Reddito di Cittadinanza Universale (RCU), come previsto dall'Art. 11 della Costituzione.** L'ammontare potrebbe: (`PlayerHousehold` ha `currentFunds_`).
         * `[]` i. Essere uno standard fisso.
         * `[]` ii. Variare in base a "scenari di partenza" o difficoltà scelte dal giocatore.
         * `[]` iii. Essere influenzato dal numero di membri della famiglia o dal background scelto (II.2.g).
@@ -238,21 +190,23 @@
 
 * `[F]` **5. (Futuro) Scenari di Inizio Partita ("Story Mode Starters"):**
     * `[F]` a. Oltre alla creazione libera, offrire al giocatore scenari predefiniti con personaggi, relazioni, e situazioni iniziali uniche che presentano sfide o obiettivi specifici (es. "Single al verde in città nuova", "Famiglia con troppi figli e pochi soldi", "Erede di una fortuna misteriosa").
-    * `[F]` b. Questi scenari potrebbero utilizzare il CAS per la personalizzazione estetica dei personaggi predefiniti.
+    * `[F]` b. Questi scenari potrebbero utilizzare l'editor personaggio per la personalizzazione estetica dei personaggi predefiniti.
 
 ---
 
-## III. MONDO DI ANTHALYS (Open World e Costruzione) `[-]` *(Non applicabile)*
+
+## III. MONDO DI ANTHALYS (Open World e Costruzione) `[F]`
 
 ---
+
 
 ## IV. SIMULAZIONE NPC (Bisogni, IA, Ciclo Vita, Caratteristiche)
 
-* `[]` **0. Generazione e Creazione NPC (CAS per NPC):** (`NPCFactory.h/.cpp` scheletro creato, riutilizza CAS da II).
+* `[]` **0. Generazione Procedurale e Creazione NPC:** (`npc_factory.py` scheletro creato, riutilizza l'Editor Personaggio da II).
   * `[]` **1. Implementare la creazione di 2 NPC Random (di base per test).**
   * `[]` a. Personalizzazione aspetto fisico (viso, corpo, capelli, occhi, pelle).
-      * `[]` i. Sistema genetico per la creazione di figli con tratti ereditati. (Vedi anche `II.3` e `IV.2.f` per genetica avanzata). (`GeneticsSystem.h` creato).
-  * `[]` b. Scelta età, sesso, genere (opzioni flessibili). (`character_enums.h`, `Identity` in `Character.h`).
+      * `[]` i. Sistema genetico per la creazione di figli con tratti ereditati. (Vedi anche `II.3` e `IV.2.f` per genetica avanzata). (`genetics_system.py` creato).
+  * `[]` b. Scelta età, sesso, genere (opzioni flessibili). (`enums/character_enums.py`, classe `Identity` in `character.py`).
   * `[]` c. Assegnazione Tratti (vedi IV.3.b). (`TraitManager` e logica in `NPCFactory` previsti).
   * `[]` d. Scelta Aspirazione di Vita (obiettivi a lungo termine) (vedi IV.3.a). (`AspirationManager` e logica in `NPCFactory` previsti).
   * `[]` e. Definizione Voce. (Attributo in `Identity`).
@@ -266,7 +220,7 @@
     * `[]` e. Interazione dei bisogni con azioni.
     * `[]` e. Effetti dei bisogni critici su umore e decisioni IA.
     * `[P]` f. Aggiungere bisogni più complessi o secondari (menzionato `INTIMACY_DECAY_RATE` e `INTIMACY_LOW_THRESHOLD`, `INTIMACY_ACTION_GAIN` in `settings.py` - parziale configurazione)
-        * `[]` i. **Valutare e Implementare Bisogno di SPIRITUALITÀ:** `[PUNTO DI VALUTAZIONE]` (`SpiritualityNeed.h/.cpp` scheletro creato se opzione A).
+        * `[]` i. **Valutare e Implementare Bisogno di SPIRITUALITÀ:** `[PUNTO DI VALUTAZIONE]` (`spirituality_need.py` scheletro creato se opzione A).
             * **Opzione A (Approccio Sistemico come `NeedType`):**
                 * `[]` 1. Definire `SPIRITUALITY` come nuovo membro dell'Enum `NeedType`.
                 * `[]` 2. Definire tasso di decadimento base, valore iniziale, colore e icona.
@@ -279,16 +233,16 @@
                 * `[]` 2. Tratti spirituali danno moodlet positivi da azioni spirituali.
                 * `[]` 3. Assenza di pratiche spirituali per NPC con tratti spirituali può portare a moodlet negativi.
                 * `[]` 4. Preferenze per azioni spirituali guidate da tratti e moodlet.
-        * `[]` ii. Altri bisogni potenziali (es. `COMFORT`, `SICUREZZA`, `CREATIVITY_NEED`, `ACHIEVEMENT_NEED`). (Aggiunti a `NeedId` enum e `Character.cpp::initializeDefaultNeeds` come placeholder).
+        * `[]` ii. Altri bisogni potenziali (es. `COMFORT`, `SICUREZZA`, `CREATIVITY_NEED`, `ACHIEVEMENT_NEED`). (Aggiunti a `NeedId` enum e `Character.initializeDefaultNeeds` come placeholder).
     * `[]` g. Interdipendenze più profonde tra bisogni.
-    * `[]` h. **Sistema di Malattie e Salute Fisica:** (Vedi anche `IV.1.i` per Salute Mentale) (`Disease.h`, `HealthManager.h/.cpp`, `disease_enums.h` creati).
+    * `[]` h. **Sistema di Malattie e Salute Fisica:** (Vedi anche `IV.1.i` per Salute Mentale) (`disease.py`, `health_manager.py`, `enums/disease_enums.py` creati).
         * `[]` i. Definire malattie comuni e rare (infettive, croniche, legate all'età, incidenti).
         * `[]` ii. Sintomi, progressione, impatto su bisogni/umore/azioni, possibilità di cura (collegamento a Ospedale XVIII.5.h, Carriera Medico VIII.1.j, Skill Medical IX.e).
-        * `[]` iii. **Estensione "Total Realism" - Dettaglio Medico Avanzato:** (`Genome.h` per malattie genetiche).
-            * `[]` 1. Malattie specifiche con cause complesse (genetiche `IV.2.f.vii.1`, ambientali `XIII`, stile di vita), diagnosi (richiede skill `MEDICAL` avanzate, esami specifici), e percorsi di trattamento differenziati (farmaci specifici, terapie, chirurgia `IX.e`). *(Aggiornato stato a [] per definizione malattie genetiche in `Genome.h`)*
+        * `[]` iii. **Estensione "Total Realism" - Dettaglio Medico Avanzato:** (`genome.py` per malattie genetiche).
+            * `[]` 1. Malattie specifiche con cause complesse (genetiche `IV.2.f.vii.1`, ambientali `XIII`, stile di vita), diagnosi (richiede skill `MEDICAL` avanzate, esami specifici), e percorsi di trattamento differenziati (farmaci specifici, terapie, chirurgia `IX.e`). *(Aggiornato stato a [] per definizione malattie genetiche in `genome.py`)*
             * `[]` 2. (Molto Avanzato) Simulazione semplificata del sistema immunitario, efficacia di vaccini (se rilevanti per il lore), e potenziale sviluppo di resistenza a trattamenti.
             * `[]` 3. Impatto a lungo termine dello stile di vita (dieta – da sistema cibo `X.5`, esercizio – skill `FITNESS` `IX.e`, stress – da `IV.1.i`, vizi `IV.3.c`) sulla salute generale e sulla predisposizione a specifiche patologie.
-    * `[P]` i. **Nuovo Bisogno Primario - SETE (Thirst):** (Separato da Fame)
+    * `[P]` i. **Bisogno Primario - SETE (Thirst):** (Separato da Fame)
         * `[x]` i. Definire `THIRST` come nuovo membro dell'Enum `NeedType`. (`NeedType.THIRST` aggiunto, tasso di decadimento in `settings.py`, peso priorità in `AIDecisionMaker`).
         * `[x]` ii. Creare la classe `ThirstNeed(BaseNeed)` con logica specifica. (`ThirstNeed` creata in `common_needs.py`).
             * `[x]` 1. Tasso di decadimento base (influenzato da attività fisica, meteo/temperatura (I.3.f), tratti come `Heatproof`, consumo di cibi salati/secchi). *(Tasso base definito, influenze specifiche da implementare)*.
@@ -309,17 +263,17 @@
                 * `[]` a. Valutare nuovi tratti specifici (es. `HARDLY_THIRSTY` - decade più lentamente, `DESERT_ADAPTED` - tollera meglio la sete, `ALWAYS_PARCHED` - decade più velocemente, `WATER_CONNOISSEUR` - ottiene moodlet extra da acqua di qualità/bevande specifiche, `CAMEL_LIKE` - può bere molto e resistere a lungo).
                 * `[]` b. Adattare tratti esistenti: `Heatproof` potrebbe ridurre il tasso di aumento della sete in climi caldi. Tratti legati al metabolismo o all'attività fisica potrebbero influenzare la sete.
             * `[]` 3. Moodlet (IV.4.i): certi moodlet (es. da malattia, da attività fisica intensa) possono accelerare il decadimento della sete. (Sistema Moodlet creato).
-            * `[]` 4. Impatto ambientale: Meteo caldo/secco (I.3.f) aumenta significativamente il decadimento della sete. Disponibilità e tipo di fonti d'acqua/bevande nelle `Location` (XVIII) (es. rubinetti, frigoriferi con bevande, bar, distributori automatici, fontane pubbliche). (`WeatherManager` scheletro creato).
+            * `[]` 4. Impatto ambientale: Meteo caldo/secco (I.3.f) aumenta significativamente il decadimento della sete. Disponibilità e tipo di fonti d'acqua/bevande nelle `Location` (XVIII) (es. rubinetti, frigoriferi con bevande, bar, distributori automatici, fontane pubbliche). (`weather_manager.py` scheletro creato).
             * `[]` 5. Economia (VIII): Costo delle bevande acquistabili nei negozi, bar, distributori.
             * `[]` 6. Il bisogno `BLADDER` (Vescica) sarà influenzato più frequentemente dalla necessità di bere. (`Bladder` need esiste).
         * `[]` vi. Aggiornare la UI (XI.2.c.i Scheda "Bisogni") per visualizzare distintamente e tracciare il nuovo bisogno `SETE`.
         * `[]` vii. Rivedere il bilanciamento del bisogno `HUNGER` (Fame) per assicurare che ora si concentri esclusivamente sull'assunzione di cibo solido e le sue meccaniche siano distinte da quelle della Sete.
-    * `[]` j. **Estensione "Total Realism" - Salute Mentale Dettagliata e Meccanismi di Coping:** `[NUOVA SOTTOCATEGORIA]` (`MentalDisorder.h`, `MentalHealthManager.h`, `mental_disorder_enums.h` creati).
+    * `[]` j. **Estensione "Total Realism" - Salute Mentale Dettagliata e Meccanismi di Coping:**  (`mental_disorder.py`, `mental_health_manager.py`, `enums/mental_disorder_enums.py` creati).
         * `[]` 1. Definire disturbi mentali specifici (es. depressione clinica, vari disturbi d'ansia, PTSD post-eventi traumatici `XIV`, disturbi ossessivo-compulsivi) oltre ai tratti di personalità.
         * `[]` 2. Ogni disturbo avrebbe criteri diagnostici (astratti), cicli di manifestazione (es. episodi depressivi), impatti comportamentali specifici, e interazioni con tratti/bisogni/moodlet.
         * `[]` 3. Possibilità di trattamento: terapia (con NPC Psicologo/Terapeuta `VIII.1.j`), farmaci (con effetti collaterali), tecniche di auto-aiuto (legate a skill `WELLNESS` `IX.e` o specifiche azioni).
         * `[]` 4. Sviluppare un sistema di "Meccanismi di Coping": come gli NPC gestiscono stress acuto e cronico, traumi, o forti emozioni negative (es. ricerca di supporto sociale, isolamento, indulgenza in vizi, attività creative, negazione, razionalizzazione). Influenzato da tratti e memorie. (`CopingMechanismId` enum creato).
-    * `[]` k. **Gestione Scorte Domestiche e Comportamento d'Acquisto NPC:** `[NUOVO PUNTO]` (`HouseholdInventory.h/.cpp` creato).
+    * `[]` k. **Gestione Scorte Domestiche e Comportamento d'Acquisto NPC:** (`household_inventory.py` creato).
         * `[]` i. Gli NPC (o l'unità familiare) mantengono una "scorta" astratta o semi-dettagliata dei beni di consumo essenziali (cibo `X.5`, bevande `IV.1.h`, prodotti per l'igiene `IV.1.a`, ecc.) e materiali per hobby/lavoro (`X`, `C.9`).
         * `[]` ii. L'IA dell'NPC (`IV.4`) monitora questi livelli di scorta. Quando un bene scende sotto una soglia critica (influenzata da tratti come `PREPARED` (futuro), `FRUGAL` `IV.3.b`, o da abitudini), l'NPC inserisce quel bene nella sua "lista della spesa" (mentale o digitale tramite la Sezione Commercio "AION" di SoNet `XXIV.c.xi`). (`HouseholdInventory` ha `shoppingList_`).
         * `[]` iii. L'azione di acquisto (online tramite SoNet/AION o presso negozi fisici `XVIII.5.h`) rifornisce queste scorte domestiche.
@@ -327,7 +281,7 @@
         * `[]` v. Il sistema di "Inventario" del personaggio/famiglia (`XI.2.c.vi`) dovrebbe riflettere queste scorte di beni consumabili oltre agli oggetti unici.
 * `[]` **2. Ciclo Vita NPC:** (Include vecchio `I.2.d`, `I.2.e`)
     * `[P]` a. **Età NPC:** (`age` float e `age_in_days`...) (Le costanti per le soglie di età dei `LifeStage` sono ora in `settings.py`)
-        * `[]` i. **Raffinare l'invecchiamento in Character per usare una data di nascita.** *(Nota: Attualmente l'invecchiamento è un incremento giornaliero; una data di nascita permetterà calcoli più precisi e gestione di compleanni, ecc.)*
+        * `[]` i. **Raffinare l'invecchiamento in `character.py` per usare una data di nascita.** *(Nota: Attualmente l'invecchiamento è un incremento giornaliero; una data di nascita permetterà calcoli più precisi e gestione di compleanni, ecc.)*
     * `[P]` b. Meccanica di gravidanza:
         * `[]` i. Probabilità base di concepimento influenzata da fertilità dei partner e azione `BEING_INTIMATE`.
         * `[]` ii. Tratti `FERTILE`/`INFERTILE`/`ERECTILE_DYSFUNCTION`/`BABY_MAKER` (e simili) influenzano la probabilità. (Tratti concettualizzati).
@@ -335,13 +289,13 @@
         * `[P]` iv. Durata gravidanza (`PREGNANCY_DURATION_DAYS_GAME`), tracciamento `pregnancy_timer`. (Costanti `PREGNANCY_DURATION_MONTHS_GAME`, `PREGNANCY_DURATION_DAYS_GAME`, `PREGNANCY_DURATION_TICKS` definite in `settings.py`)
         * `[]` v. Impatto della gravidanza su bisogni, umore, azioni della madre.
         * `[]` vi. Possibilità di complicazioni o aborti spontanei.
-    * `[]` c. Nascita di nuovi NPC (creazione di istanze `Character` o `BackgroundNPCState` con legami familiari corretti). (Include parte di vecchio `I.2.e` Eventi della vita (nascite, morti, matrimoni, divorzi, trasferimenti).) (`NPCFactory` prevista).
+    * `[]` c. Nascita di nuovi NPC (creazione di istanze `Character` o `BackgroundNPCState` con legami familiari corretti). (Include parte di vecchio `I.2.e` Eventi della vita (nascite, morti, matrimoni, divorzi, trasferimenti).) (`npc_factory.py` prevista).
     * `[P]` d. Stadi di vita (`LifeStage` Enum: `INFANT`, `CHILD`, `TEENAGER`, `YOUNG_ADULT`, `ADULT`, `SENIOR`) definiti con soglie di età in `settings.py`. (Nove stadi di vita dettagliati e le loro soglie in giorni (`LIFE_STAGE_AGE_THRESHOLDS_DAYS`) sono stati definiti in `settings.py`)
         * `[]` i. Comportamenti e bisogni specifici per `INFANT` (logica di cura da parte dei genitori).
         * `[]` ii. Comportamenti e bisogni specifici più dettagliati per `CHILD` e `TEENAGER` (scuola, amicizie, sviluppo identità).
         * `[]` iii. Comportamenti e bisogni specifici dettagliati per `YOUNG_ADULT` (inizio carriera, indipendenza, relazioni serie).
         * `[]` iv. Comportamenti e bisogni specifici dettagliati per `ADULT` (consolidamento carriera, famiglia, crisi di mezza età - tratto futuro).
-        * `[]` v. **Maturazione Granulare ed Esperienze Specifiche per Età:** *(Concetto definito, da integrare con Sistema Memorie `MemoryObject.h` creato)*.
+        * `[]` v. **Maturazione Granulare ed Esperienze Specifiche per Età:** *(Concetto definito, da integrare con Sistema Memorie `memory_object.py` creato)*.
             * `[]` 1. Definire "età chiave" o "fasi di maturazione" interne ai `LifeStage`.
             * `[]` 2. Associare a queste età/fasi eventi di vita specifici, sfide o opportunità.
             * `[]` 3. Esperienze vissute a età specifiche registrate nel Sistema di Memorie (IV.5).
@@ -352,7 +306,7 @@
                 * `[]` c. Il tratto `BodyConscious` (se presente) può avere effetti amplificati o manifestazioni specifiche durante l'adolescenza. (Tratto concettualizzato).
                 * `[]` d. Interazioni sociali specifiche per adolescenti legate a questi temi (es. parlare con amici, chiedere consiglio ai genitori).
                 * `[]` e. Impatto sull'approccio alle prime esperienze romantiche/intime.
-    * `[]` e. Stadio di vita Anziano (`SENIOR`), morte naturale, e impatto psicologico dell'invecchiamento: (Include vecchio `II.3 Morte e Aldilà`) (Logica base in `Character.cpp`).
+    * `[]` e. Stadio di vita Anziano (`SENIOR`), morte naturale, e impatto psicologico dell'invecchiamento: (Include vecchio `II.3 Morte e Aldilà`) (Logica base in `character.py`).
         * `[]` i. Morte naturale per NPC dettagliati e di background. *(Logica base e per BG NPC concettualizzata)*. (Precedentemente `[]` a. Cause di morte (vecchiaia, incidenti - rari, malattie - se implementate).)
         * `[]` ii. Concetto di Pensionamento e calcolo pensione (vedi VIII e XXII). *(Logica per BG NPC concettualizzata)*.
         * `[]` iii. Impatto Psicologico dell'Invecchiamento: (Tratti e Moodlet concettualizzati).
@@ -363,7 +317,7 @@
         * `[]` v. Cimiteri, funerali, testamenti.
         * `[]` vi. (Opzionale, lore-specifico) Concetto di "passaggio" o ricordo degli antenati.
         * `[]` vii. Definire le condizioni che portano alla morte (vecchiaia, malattie, incidenti).
-        * `[]` viii. Sistema di Danno Non Letale: Implementare un sistema dove bisogni critici prolungati o eventi traumatici non portano alla morte immediata, ma a uno stato di "Danno" o "Inattività".
+        * `[]` viii. Sistema di Danno Non Letale: Implementare un sistema where bisogni critici prolungati o eventi traumatici non portano alla morte immediata, ma a uno stato di "Danno" o "Inattività".
             * `[]` 1. L'NPC in stato "danneggiato" cessa le normali attività e potrebbe entrare in loop comportamentali degradati.
             * `[]` 2. Il recupero richiede un processo di "Reset/Riparazione".
         * `[]` ix. Processo di Reset/Riparazione:
@@ -371,15 +325,15 @@
             * `[]` 2. Ripristina i bisogni a valori di base/sicuri.
             * `[]` 3. Applica una "Cancellazione Selettiva dei Ricordi", rimuovendo o frammentando i ricordi legati al trauma, per simulare la resilienza e la continuità dell'NPC (impatta `IV.5. Sistema di Memoria`).
     * `[]` f. Gestione dell'eredità e dell'impatto post-morte dell'NPC.
-    * `[]` g. Albero genealogico e gestione legami familiari. *(ID parenti/figli tracciati. `RelationshipType` Enum definita per relazioni vicine).*. (Include vecchio `II.2 Albero Genealogico e Relazioni Familiari`) (`RelationshipManager.h`, `relationship_types.h`, attributi in `Character.h` creati).
+    * `[]` g. Albero genealogico e gestione legami familiari. *(ID parenti/figli tracciati. `RelationshipType` Enum definita per relazioni vicine).*. (Include vecchio `II.2 Albero Genealogico e Relazioni Familiari`) (`relationship_manager.py`, `enums/relationship_types.py`, attributi in `character.py` creati).
         * `[]` i. Tracciamento delle relazioni (genitori, figli, fratelli, coniugi, ecc.).
         * `[]` ii. Impatto delle dinamiche familiari sulla vita dell'NPC.
         * `[]` iii. Espandere il tracciamento della genealogia per supportare **un numero elevato di generazioni (es. fino a 12 o più)**, permettendo di risalire agli antenati e tracciare i discendenti su larga scala. *(Questo è un obiettivo a lungo termine per la profondità del database relazionale).*.
         * `[]` iv. Implementare funzioni per **determinare dinamicamente relazioni familiari complesse** (es. "trisavolo", "cugino di secondo grado") navigando l'albero genealogico, invece di avere un `RelationshipType` Enum per ogni singola possibilità remota.
         * `[]` v. Visualizzazione/gestione dell'albero genealogico (TUI o futura GUI) che permetta di esplorare queste connessioni estese.
-        * `[]` vi. **Sistema di Ereditarietà Semplificata dei Tratti:** *(Concetto definito: probabilità di ereditare tratti dai genitori e nonni. L'ereditarietà da antenati più remoti sarebbe statisticamente irrilevante per la maggior parte dei tratti di personalità)*. (`GeneticsSystem` previsto).
-        * `[]` vii. **Estensione "Total Realism" - Genetica Avanzata:** (Collegamento a `II.3.d`) (`Genome.h` creato).
-            * `[]` 1. Oltre ai tratti di personalità, ereditarietà di predisposizioni a talenti specifici (skill `IX`), suscettibilità a malattie fisiche (`IV.1.g.iii.1`) e mentali (`IV.1.i`). *(Aggiornato stato a [] per `Genome.h` e placeholder per malattie)*
+        * `[]` vi. **Sistema di Ereditarietà Semplificata dei Tratti:** *(Concetto definito: probabilità di ereditare tratti dai genitori e nonni. L'ereditarietà da antenati più remoti sarebbe statisticamente irrilevante per la maggior parte dei tratti di personalità)*. (`genetics_system.py` previsto).
+        * `[]` vii. **Estensione "Total Realism" - Genetica Avanzata:** (Collegamento a `II.3.d`) (`genome.py` creato).
+            * `[]` 1. Oltre ai tratti di personalità, ereditarietà di predisposizioni a talenti specifici (skill `IX`), suscettibilità a malattie fisiche (`IV.1.g.iii.1`) e mentali (`IV.1.i`). *(Aggiornato stato a [] per `genome.py` e placeholder per malattie)*
             * `[]` 2. (Molto Avanzato) Possibilità di mutazioni genetiche casuali (rare) alla nascita, che potrebbero introdurre nuovi piccoli modificatori comportamentali o fisici.
     * `[P]` h. **Sistema Ciclo Mestruale e Fertilità (per NPC Femminili):** (Costanti `MIN_AGE_PUBERTY_FERTILITY_DAYS`, `MIN_AGE_START_PREGNANCY_FEMALE_DAYS`, `MAX_AGE_FERTILE_FEMALE_DAYS`, `AGE_START_MENSTRUAL_CYCLE_DAYS_SET`, `AGE_MENOPAUSE_DAYS_SET` definite in `settings.py`)
         * `[]` i. Definizione Parametri del Ciclo e inizio pubertà/fertilità (allineato con `MIN_AGE_FOR_PREGNANCY`).
@@ -396,11 +350,11 @@
         * `[]` 4. **Consapevolezza e Gestione dei Cambiamenti Corporei "Intimi" durante l'Adolescenza:**
             * `[]` a. NPC adolescenti (specialmente con tratti come `BodyConscious`, `Curious`, `Shy`) possono avere pensieri, moodlet o cercare informazioni (azioni future) riguardo ai cambiamenti del proprio corpo, inclusi gli aspetti più intimi. (Tratti e Moodlet concettualizzati).
             * `[]` b. Questo NON implica la simulazione di atti sessuali espliciti per minori, ma la rappresentazione delle loro insicurezze, curiosità e del processo di comprensione del proprio corpo in evoluzione.
-        * `[]` 5. **Esplorazione dell'Identità di Genere e dell'Orientamento Sessuale/Romantico durante l'Adolescenza/Giovane Età Adulta:** (Attributi in `Character.h`).
+        * `[]` 5. **Esplorazione dell'Identità di Genere e dell'Orientamento Sessuale/Romantico durante l'Adolescenza/Giovane Età Adulta:** (Attributi in `character.py`).
             * `[]` a. NPC adolescenti/giovani adulti potrebbero attraversare una fase di "esplorazione" o "scoperta" del proprio orientamento (attributo `is_exploring_orientation`).
             * `[]` b. Eventi o interazioni che permettono di solidificare o cambiare (entro certi limiti realistici) il proprio orientamento durante questa fase.
 * `[P]` **3. Caratteristiche Personaggio Approfondite:**
-    * `[P]` a. **Sogni/Aspirazioni principali NPC:** *(Focus di implementazione corrente o successivo)* (Include vecchio `VII.3 Aspirazioni di Vita`) (`BaseAspiration.h`, `AspirationManager.h`, `aspiration_enums.h` creati; attributi in `Character.h`).
+    * `[P]` a. **Sogni/Aspirazioni principali NPC:** *(Focus di implementazione corrente o successivo)* (Include vecchio `VII.3 Aspirazioni di Vita`) (`base_aspiration.py`, `aspiration_manager.py`, `enums/aspiration_enums.py` creati; attributi in `character.py`).
         * `[]` i. Definire `AspirationType` Enum (es. `FAMILY_ORIENTED`, `WEALTH_BUILDER`). *(Nomi e concetti da rendere unici per SimAI)*.
         * `[]` ii. Aggiungere attributi `aspiration` e `aspiration_progress` a `Character` e `BackgroundNPCState`.
         * `[]` iii. Definire azioni/stati chiave ("milestone" semplificate) per ciascuna `AspirationType`. *(Definite milestone per FAMILY_ORIENTED e WEALTH_BUILDER)*.
@@ -409,7 +363,7 @@
         * `[]` vi. Visualizzare aspirazione e progresso nella TUI.
         * `[]` vii. (Avanzato) Sotto-obiettivi o "questline" strutturate.
         * `[]` viii. (Avanzato) Permettere cambio aspirazione.
-    * `[P]` b. **Tratti di Personalità.** *(L'Enum `Trait` e le classi tratto verranno spostate in `modules/traits/` come da I.2.e.i)*. (Questa sezione ora include tutto il vecchio `III. TRATTI DEGLI NPC`) (`BaseTrait.h`, `TraitManager.h`, `trait_enums.h` creati; attributi in `Character.h`; esempi di tratti individuali creati).
+    * `[P]` b. **Tratti di Personalità.** *(L'Enum `Trait` e le classi tratto verranno spostate in `modules/traits/` come da I.2.e.i)*. (Questa sezione ora include tutto il vecchio `III. TRATTI DEGLI NPC`) (`base_trait.py`, `trait_manager.py`, `enums/trait_enums.py` creati; attributi in `character.py`; esempi di tratti individuali creati).
         * `[]` i. Ogni NPC ha un numero limitato di tratti (es. 3-5) che definiscono la sua personalità e comportamento.
         * `[]` ii. I tratti influenzano scelte autonome, whims, interazioni disponibili/preferite, apprendimento skill, reazioni emotive. *(Logica base implementata nelle classi dei tratti)*
         * `[]` iii. Alcuni tratti possono essere innati, altri acquisiti durante la vita.
@@ -426,7 +380,7 @@
                 * `[]` Good Friend (Buon Amico - leale, supportivo)
                 * `[]` Hates Crowds (Odia le Folle)
                 * `[]` Incredibly Friendly
-                * `[]` Llamacrat & Plumbobican & NPCdipendant (Affiliazioni Politiche) -> Sociale/Personalità
+                * `[]` [Ideologie Politiche da Definire] (Affiliazioni Politiche) -> Sociale/Personalità
                 * `[P]` Loner (Solitario - meno estremo di Needs No One)
                 * `[]` Needs No One
                 * `[]` Outgoing (Estroverso)
@@ -569,7 +523,7 @@
                 * `[]` Absent-Minded (Distratto - diverso da Oblivious, più dimenticanze)
                 * `[]` Genius (Genio - apprendimento skill molto veloce)
                 * `[]` Oblivious
-                * `[]` Observant (Osservatore) (`ObservantTrait.h/.cpp` potrebbe essere un esempio)
+                * `[]` Observant (Osservatore) (`observant_trait.py` potrebbe essere un esempio)
                 * `[]` Quick Learner (Apprende Velocemente)
                 * `[]` Savant (Savant - genio in un'area specifica, ma difficoltà in altre) -> Mentale/Cognitivo
                 * `[]` Slow Learner (Apprende Lentamente)
@@ -626,16 +580,16 @@
             * `[]` 7. (Opzionale Molto Futuro / Tematica Adulta) **Voyeur-like Behaviors**.
             * `[]` 8. **Tratti legati alla Nudità e al Pudore** (es. `NATURIST`, `PRUDE`, `EXHIBITIONIST`).
             * `[]` 9. **Nosy (Ficcanaso):** (richiede azioni di gossip/snooping).
-            * `[]` 10. **Sistema di Dipendenze Comportamentali/da Sostanze:** Richiesto per il pieno funzionamento di `AddictivePersonalityTrait` e `Clubber`/`StraightEdge`. (`AddictionManager` scheletro creato).
+            * `[]` 10. **Sistema di Dipendenze Comportamentali/da Sostanze:** Richiesto per il pieno funzionamento di `AddictivePersonalityTrait` e `Clubber`/`StraightEdge`. (`addiction_manager.py` scheletro creato).
             * `[]` 11. **Rappresentazione Approfondita dell'Identità di Genere `TRANSGENDER` e `NON_BINARY`:** Definire meccaniche specifiche (oltre alla semplice Enum `Gender`) per il vissuto e le possibili transizioni (sociali, mediche - astratte) di questi NPC, e come la società di Anthalys reagisce.
-            * `[] [F_DLC_C.5]` 12. **Nuovo - Animal Whisperer:** Interazioni avanzate con animali (richiede Sistema di Animali Domestici/Selvatici `C.5`). *(Classe tratto definita concettualmente)*.
+            * `[] [F_DLC_C.5]` 12. **Animal Whisperer:** Interazioni avanzate con animali (richiede Sistema di Animali Domestici/Selvatici `C.5`). *(Classe tratto definita concettualmente)*.
         * `[]` ix. Implementare meccaniche di conflitto tra tratti durante l'assegnazione.
         * `[]` x. Integrare pienamente gli effetti di ogni nuovo tratto definito (su IA, bisogni, skill, moodlet, interazioni).
             * `[]` 1. Definire esplicitamente set di tratti incompatibili in `settings.py`.
             * `[]` 2. Logica di assegnazione dei tratti (`constructors.assign_character_traits`) per prevenire conflitti. *(Concetto definito, implementazione da finalizzare)*.
             * `[]` 3. Valutare logica per tratti specifici dell'età o acquisibili dinamicamente.
             * `[]` 4. Sinergie tra tratti compatibili emergono da effetti combinati.
-    * `[]` c. **Vizi e Dipendenze:** `[]` *(Questo punto esisteva, ora lo colleghiamo esplicitamente ad AddictivePersonalityTrait e al futuro sistema di dipendenze)*. (`Addiction.h`, `AddictionManager.h`, `addiction_enums.h` creati).
+    * `[]` c. **Vizi e Dipendenze:** `[]` *(Questo punto esisteva, ora lo colleghiamo esplicitamente ad AddictivePersonalityTrait e al futuro sistema di dipendenze)*. (`addiction.py`, `addiction_manager.py`, `enums/addiction_enums.py` creati).
         * `[]` i. Sviluppare un sistema di progressione per dipendenze specifiche (es. gioco d'azzardo, shopping, lavoro, sostanze astratte).
         * `[]` ii. Azioni per indulgere, resistere, cercare aiuto.
         * `[]` iii. Impatto su salute, finanze, relazioni.
@@ -644,18 +598,18 @@
     * `[]` f. Talenti Innati / Inclinazioni Naturali per abilità.
     * `[]` g. Valori Fondamentali/Etica.
     * `[]` h. **Estensione "Total Realism" - Sviluppo Dinamico della Personalità e Valori:**
-        * `[]` i. Oltre ai tratti assegnati alla nascita/CAS, NPC possono sviluppare o modificare leggermente sfaccettature della loro personalità o sistema di valori nel tempo in risposta a esperienze di vita significative (eventi `XIV`, relazioni `VII`, successi/fallimenti carriera `VIII`, traumi `IV.1.i`). (Collegamento a Sistema Memorie `IV.5` - `MemoryObject.h` creato).
+        * `[]` i. Oltre ai tratti assegnati alla nascita/creazione personaggio, NPC possono sviluppare o modificare leggermente sfaccettature della loro personalità o sistema di valori nel tempo in risposta a esperienze di vita significative (eventi `XIV`, relazioni `VII`, successi/fallimenti carriera `VIII`, traumi `IV.1.i`). (Collegamento a Sistema Memorie `IV.5` - `memory_object.py` creato).
         * `[]` ii. Questo non implica cambi drastici di tratti fondamentali, ma evoluzioni e maturazioni realistiche.
     * `[]` i. Propensione all'Onestà Radicale/Autenticità (Tratti definiti).
     * `[P]` j. Orientamento Sessuale e Romantico. (Costanti di probabilità per orientamenti e spettro asessuale/aromantico definite in `settings.py`)
-        * `[]` i. Aggiungere attributi a `Character` e `BackgroundNPCState`: `sexually_attracted_to_genders: Set[Gender]`, `romantically_attracted_to_genders: Set[Gender]`, `is_asexual_romantic_spectrum: bool`, `is_aromantic_spectrum: bool`. *(Attributi definiti concettualmente in `Character.h`)*.
+        * `[]` i. Aggiungere attributi a `Character` e `BackgroundNPCState`: `sexually_attracted_to_genders: Set[Gender]`, `romantically_attracted_to_genders: Set[Gender]`, `is_asexual_romantic_spectrum: bool`, `is_aromantic_spectrum: bool`. *(Attributi definiti concettualmente in `character.py`)*.
         * `[]` ii. Implementare l'assegnazione di questi orientamenti alla creazione dell'NPC (in `constructors.assign_character_orientations`) con una distribuzione probabilistica. *(Logica e probabilità base definite concettualmente, funzione da implementare)*.
             * `[]` 1. Definire chiaramente come l'orientamento "etero/omo" si applica a NPC `NON_BINARY` e `TRANSGENDER`.
         * `[]` iii. Definire e implementare tratti specifici come `ASEXUAL_TRAIT`, `AROMANTIC_TRAIT` con i loro effetti su bisogni e comportamento (se i flag booleani non sono sufficienti).
         * `[!]` iv. **L'IA (`AIDecisionMaker`) DEVE rispettare rigorosamente l'orientamento sessuale/romantico dell'NPC** nella scelta di target per azioni di flirt, `BEING_INTIMATE`, e formazione di coppie romantiche. *(Questo è un requisito fondamentale per l'IA)*.
         * `[]` v. Le interazioni sociali (es. ricevere flirt) devono considerare l'orientamento di entrambi gli NPC per determinare l'esito.
         * `[]` vi. (Futuro) Gestire l'esplorazione e la potenziale evoluzione (limitata) dell'orientamento durante l'adolescenza/giovane età adulta (vedi IV.2.i.5). (Attributo `is_exploring_orientation` previsto).
-    * `[]` k. **Background e Storia Pregressa degli NPC:** (`NPCFactory` e `MemoryObject` previsti).
+    * `[]` k. **Background e Storia Pregressa degli NPC:** (`npc_factory.py` e `memory_object.py` previsti).
         * `[]` i. Generare storia pregressa astratta per NPC non neonati.
         * `[]` ii. Storia pregressa registrata come memorie iniziali (vedi IV.5).
         * `[]` iii. Il BG influenza skill iniziali, relazioni, probabilità tratti.
@@ -722,7 +676,8 @@
         * `[]` i. Ogni moodlet ha un'intensità (positiva/negativa) e una durata. *(Implementato nei tratti)*
         * `[]` ii. Moodlet possono accumularsi o annullarsi a vicenda.
     * `[]` m. Espressioni facciali e animazioni che riflettono l'umore attuale. (Da vecchio `VI.d`)
-    * `[]` n. **Nuovo - Sistema di Osservazione (da file TODO utente):** (Come prima)
+    * `[]` n. **Sistema di Osservazione (da file TODO utente):** (Come prima)
+
 * **5. Sistema di Memorie NPC:** `[]` *(Concettualizzazione Iniziale, inclusa gestione per NPC background e legame con maturazione)*.
     * `[]` a. Definire struttura dati per `MemoryObject`.
     * `[]` b. Implementare la registrazione di memorie significative per NPC Dettagliati (LOD1/2):
@@ -745,17 +700,20 @@
     * `[]` j. (Avanzato) Meccanismi di oblio o modifica carica emotiva memorie.
     * `[]` k. (Avanzato) Impatto di tratti (`ABSENT_MINDED`) o condizioni mediche su memorie.
     * `[]` l. (Avanzato) Memorie passate influenzano decisioni future IA per NPC dettagliati.
+
 * **6. Sistema di Consapevolezza Sociale e Scoperta Tratti:** `[]` *(Concettualizzazione Iniziale)*.
     * `[]` a. Attributo `Character.known_npc_traits`. (Include save/load).
     * `[]` b. Logica base per NPC *non Osservatori* per scoprire tratti.
     * `[]` c. Tratto `OBSERVANT` permette scoperta immediata/accelerata. *(Classe tratto definita)*.
     * `[]` d. L'IA (`AIDecisionMaker`) utilizza `known_npc_traits`.
     * `[]` e. (Avanzato) NPC potrebbero "sbagliare" a interpretare tratti.
+
 * **7. Sistema di Storyline Generate dall'IA:** `[]`
     * `[]` a. Definire una struttura dati per "Storyline" (es. una sequenza di obiettivi, scene, e azioni chiave).
-    * `[]` b. Creare un motore (`ScenarioManager` o simile) che possa generare dinamicamente o selezionare da template delle storyline di base per gli NPC.
+    * `[]` b. Creare un motore (`scenario_manager.py` o simile) che possa generare dinamicamente o selezionare da template delle storyline di base per gli NPC.
     * `[]` c. Le storyline assegnano ruoli e "script" (sequenze di azioni suggerite) agli NPC, che il loro `AIDecisionMaker` tenterà di seguire.
     * `[]` d. L'interazione con oggetti specifici può agire come trigger per avanzare le fasi di una storyline.
+
 * **8. Comportamenti Emergenti e "Riverie" (Deviazioni Comportamentali):** `[]`
     * `[]` a. Origine delle Riverie: Progettare meccanismi per cui le "riverie" possano emergere da:
         * `[]` i. Memorie Residue/Frammentate (vedi `IV.5.c.iv`).
@@ -767,7 +725,175 @@
         * `[]` iii. Momenti di esitazione o apparente confusione.
     * `[]` c. Impatto sull'IA: Le "riverie" agiscono come impulsi a bassa priorità nel `AIDecisionMaker`, capaci di creare comportamenti realistici e non deterministici, suggerendo una profondità psicologica emergente.
 
+* **9. Evoluzione Culturale e Dinamiche Sociali Complesse:** `[]`
+    * `[]` a. **Nascita, Diffusione e Declino di Mode e Trend Culturali:**
+        * `[]` i. Implementare un sistema per cui mode (abbigliamento `II.2.e`, musica `IX.e`, hobby `X`, gergo, ideologie `VI.1.d`) emergono organicamente (o sono introdotte da NPC "influencer" o eventi `XIV`), guadagnano popolarità, e poi svaniscono o diventano classici.
+        * `[]` ii. NPC (specialmente `TEENAGER` e `YOUNG_ADULT`) adottano o rifiutano queste mode in base ai loro tratti (`TREND_FOLLOWER` vs `NONCONFORMIST` - futuri), gruppo sociale, e influenza dei media (`VI.2.e.ii`).
+    * `[]` b. **Formazione e Interazione di Sottoculture:**
+        * `[]` i. NPC con interessi (`X`), valori (`IV.3.g`), tratti (`IV.3.b`), o esperienze comuni (`IV.5`) possono formare sottoculture riconoscibili (es. "artisti bohémien", "attivisti ecologici radicali", "tech-nerd", "tradizionalisti conservatori") con stili di vita, luoghi di ritrovo (`XVIII.5`), e norme interne distinti.
+        * `[]` ii. Dinamiche di accettazione, conflitto, o scambio culturale tra diverse sottoculture e la cultura dominante.
+    * `[]` c. **Evoluzione a Lungo Termine delle Norme Sociali e dei Valori Collettivi:**
+        * `[]` i. Le norme sociali (su famiglia `XX`, lavoro `VIII`, relazioni `VII`, moralità `IV.3.g`) della società di Anthalys possono evolvere lentamente attraverso le generazioni, influenzate da eventi storici (`XIV`), scoperte scientifiche/tecnologiche (`C.3`), movimenti sociali guidati da NPC (`VI.2.f`), e l'impatto aggregato delle scelte individuali.
+        * `[]` ii. Questo potrebbe cambiare la percezione e l'accettabilità di certi comportamenti o leggi (`XXII`) nel tempo.
+
+* **10. Simulazione Ambientale Globale e Gestione delle Risorse Limitate:** `[]`
+    * `[]` a. **Risorse Naturali Finite su Larga Scala:**
+        * `[]` i. Introdurre un inventario globale (o regionale, se Anthalys ha diverse regioni) di risorse naturali chiave (es. acqua potabile, minerali per l'industria, combustibili fossili se usati, terreni fertili).
+        * `[]` ii. L'estrazione e il consumo di queste risorse da parte dell'economia di Anthalys (`VIII.1.k`, `VIII.5.d.i`) le depauperano nel tempo.
+        * `[]` iii. L'esaurimento delle risorse può portare a crisi economiche, aumento dei prezzi, conflitti sociali (astratti), e spingere verso la ricerca di alternative o tecnologie più sostenibili (`C.3`).
+    * `[]` b. **Impatto Climatico e Ambientale su Vasta Scala (Estensione di `XIII.1.a.iv`):**
+        * `[]` i. L'attività industriale e il consumo di risorse aggregate nel lungo periodo possono influenzare il clima globale/regionale di Anthalys (cambiamenti nei pattern meteorologici `I.3.f`, aumento frequenza eventi estremi, innalzamento livello del mare se Anthalys è costiera).
+        * `[]` ii. Richiede politiche governative (`XIII.2.c`, `XXII.7.a`) a lungo termine per mitigare o adattarsi a questi cambiamenti.
+    * `[]` c. **Fisica Ambientale Avanzata (Estensione di `XVIII.2.d.iv`):**
+        * `[]` i. (Molto Avanzato) Simulazione più dettagliata di fluidodinamica (es. correnti d'aria che trasportano inquinanti `XIII.1.a`, cicli idrologici che influenzano falde acquifere e fiumi).
+        * `[]` ii. (Molto Avanzato) Erosione del suolo, impatto della deforestazione (se implementata) su microclimi e stabilità del terreno.
+
+* **11. Ricerca Scientifica, Innovazione Tecnologica e Progresso Sociale Guidato dalla Conoscenza:** `[]`
+    * `[]` a. **Sistema di Ricerca e Sviluppo (R&S) Attivo:**
+        * `[]` i. NPC con carriere scientifiche (`VIII.1.j` Scienziato/Ricercatore) e alte skill (`IX.e` Scienza, Logica, specifiche discipline) possono lavorare attivamente su "progetti di ricerca" in università (`V.2.h`) o istituti di ricerca (`LocationType.RESEARCH_INSTITUTE`).
+        * `[]` ii. La ricerca richiede tempo, fondi (governativi `VI.1` o privati `VIII.1.k`), e collaborazione.
+    * `[]` b. **Scoperte Scientifiche e Tecnologiche che Cambiano il Gioco:**
+        * `[]` i. Il successo nei progetti di ricerca può portare a scoperte scientifiche (nuove comprensioni del mondo di Anthalys) o innovazioni tecnologiche (nuovi oggetti, processi produttivi, fonti energetiche, trattamenti medici `IV.1.g`, strumenti).
+        * `[]` ii. Queste scoperte non sono solo "lore", ma sbloccano attivamente nuove azioni, carriere, oggetti craftabili (`X.4`), soluzioni a problemi ambientali (`XIII`) o sanitari, o modificano l'efficienza di sistemi esistenti.
+        * `[]` iii. Esempi: scoperta di nuovi materiali, sviluppo di IA più avanzate per robot (skill `Robotics` `IX.e`), energie pulite, cure per malattie prima incurabili.
+    * `[]` c. **Progresso Tecnologico e Sociale della Società di Anthalys:**
+        * `[]` i. La società di Anthalys nel suo complesso può attraversare diverse "ere" tecnologiche o livelli di progresso basati sulle scoperte accumulate.
+        * `[]` ii. Il progresso può portare a cambiamenti nello stile di vita degli NPC, nell'economia, nelle infrastrutture urbane (`XIII.5`), e persino nelle norme sociali o etiche (dibattiti su nuove tecnologie).
+
+* **12. (Opzionale Estensione Mondo) Geopolitica, Commercio e Investimenti Internazionali:**     * `[]` a. Se il mondo di gioco si estende oltre la singola nazione di Anthalys, implementare altre nazioni simulate (con culture, governi, economie, e livelli tecnologici propri).
+    * `[]` b. Sistemi di diplomazia, trattati, alleanze, e potenziali conflitti (economici, politici, o militari – astratti o simulati) tra Anthalys e le altre nazioni.
+    * `[]` c. Eventi globali (pandemie, crisi economiche mondiali, scoperte scientifiche in altre nazioni) che influenzano Anthalys.
+    * `[]` d. Possibilità per gli NPC di viaggiare o emigrare in altre nazioni (con sfide di adattamento culturale).
+    * `[]` e. **Politiche di Commercio Internazionale di Anthalys:** 
+        * `[!]` i. Anthalys è aperta al commercio internazionale, con politiche governative (`VIII.2.d.vii`) che mirano a promuovere attivamente le esportazioni dei prodotti di Anthalys (`C.9`) e ad attrarre investimenti esteri diretti (IED).
+        * `[]` ii. **Accordi Commerciali:**
+            * `[]` 1. Simulazione (astratta o tramite eventi `XIV`) della negoziazione e stipula da parte del Governo di Anthalys (`VI.1`) di accordi di libero scambio o partenariati economici con vari paesi o blocchi economici esterni.
+            * `[]` 2. Questi accordi facilitano l'accesso ai mercati esteri per i prodotti realizzati in Anthalys (es. beni di AION `VIII.6`, prodotti artigianali/agricoli da `C.9`), potenzialmente aumentando la domanda e influenzando l'economia interna.
+            * `[]` 3. Gli accordi possono anche influenzare i dazi doganali sull'importazione di beni non disponibili o non prodotti efficientemente in Anthalys.
+        * `[]` iii. **Zone Economiche Speciali (ZES) di Anthalys:**
+            * `[]` 1. Designazione da parte del Governo di aree geografiche specifiche all'interno di Anthalys (potenzialmente all'interno o adiacenti ai Distretti Industriali `XXV.1.d` o Portuali `XXV.3.d`) come Zone Economiche Speciali.
+            * `[]` 2. Le ZES offrono un pacchetto di vantaggi fiscali (es. aliquote CSC-A (`VIII.2.e`) ridotte per un periodo limitato, esenzioni su tasse di importazione per macchinari/materie prime) e semplificazioni regolatorie (nel rispetto dei principi fondamentali `XXII.A`) per attrarre investimenti diretti da imprese estere.
+            * `[]` 3. Obiettivo delle ZES: promuovere l'industrializzazione in settori specifici, l'innovazione tecnologica (`C.3`), la creazione di posti di lavoro (`VIII.1`), e il trasferimento di know-how.
+            * `[]` 4. Le imprese estere che si insediano nelle ZES devono comunque rispettare gli standard ambientali (`XIII`) e lavorativi (`XXII.1`) di Anthalys.
+    * `[]` f. **Investimenti Esteri e Multinazionali NPC:**
+        * `[]` i. Possibilità che NPC o aziende "straniere" (simulate astrattamente) investano in Anthalys, aprendo filiali, stabilimenti produttivi (specialmente nelle ZES), o acquisendo quote di aziende locali (`VIII.1.k`).
+        * `[]` ii. Impatto di questi investimenti sull'occupazione, sull'economia locale, e sul trasferimento tecnologico.
+
+* **13. SISTEMA DI ANIMALI DOMESTICI E FAUNA SELVATICA**
+    * `[]` a. Skill come `ANIMAL_HANDLING` (da definire in `IX.e`) e `PET_TRAINING` (già in `IX.e`, ma la cui efficacia dipende da questo DLC) influenzano in modo cruciale il successo e gli esiti delle interazioni con tutti i tipi di animali. *(Principio generale del sistema)*
+    * `[]` 1. **Tipi di Animali NPC:**
+        * `[]` a. Definire tipi di Animali Domestici (es. Cani di varie razze specifiche per Anthalys, Gatti di varie razze, Uccelli da compagnia, Piccoli roditori, forse rettili esotici o animali da fattoria minori come galline se adatti al contesto urbano/suburbano).
+        * `[]` b. Definire tipi di Animali da Fattoria (se economia agricola sviluppata e lotti rurali presenti, es. "Grak" per lana/latte, "Ploof" per uova, "Snortlehog" per carne). (Collegamento a `VIII.1.j` Carriera Contadino/Allevatore).
+        * `[]` c. Definire tipi di Fauna Selvatica unica per Anthalys, con diverse rarità e habitat (es. "Skitterwing" notturni nelle foreste, "River-Snouts" acquatici nei fiumi, "Glimmer-Moths" nelle praterie fiorite, predatori e prede). (Collegamento a `XIII.2.d` Ecosistema).
+        * `[]` d. Ogni tipo di animale ha comportamenti, bisogni (fame specifica per dieta, sete `IV.1.h`, sonno, igiene, sociale/branco, gioco/stimolo), e interazioni specifiche con l'ambiente e altri NPC/animali.
+    * `[]` 2. **Meccaniche per Animali Domestici:**
+        * `[]` a. NPC (specialmente con tratti `ANIMAL_LOVER` (IV.3.b), `CAT_PERSON`, `DOG_PERSON` (IV.3.b), o aspirazioni legate agli animali) possono adottare/acquistare animali domestici da rifugi (`LocationType.ANIMAL_SHELTER`) o allevatori (se presenti).
+        * `[]` b. Gli animali domestici hanno bisogni primari (`IV.1`) e sociali/emotivi che devono essere soddisfatti dai proprietari.
+        * `[]` c. NPC devono prendersi cura dei loro animali: fornire cibo/acqua di qualità, pulire lettiere/gabbie, offrire gioco/esercizio, cure veterinarie (vedi `C.5.4.a`), addestramento. La negligenza ha conseguenze (malattie, comportamento distruttivo, fuga, intervento servizi animali).
+        * `[]` d. Interazioni specifiche tra NPC e animali (es. accarezzare, giocare con giocattoli, addestrare comandi base/avanzati, portare a spasso, parlare – l'animale reagisce al tono).
+        * `[]` e. Gli animali domestici sviluppano una relazione (punteggio e tipo `VII.2`) con i singoli NPC della famiglia, con preferenze e antipatie.
+        * `[]` f. Gli animali possono avere tratti di personalità unici (es. giocoso, pigro, affettuoso, timido, aggressivo, intelligente, testardo, leale, indipendente) che influenzano il loro comportamento e la facilità di addestramento. Alcuni tratti potrebbero essere specifici della "razza".
+        * `[]` g. Ciclo di vita per gli animali (cucciolo/gattino, adolescente, adulto, anziano) con cambiamenti comportamentali e di salute, e morte (naturale o per malattia/incidente). NPC proveranno lutto (`IV.2.e.iv`).
+        * `[]` h. Addestramento di abilità per animali (Skill `PET_TRAINING` per l'NPC `IX.e`; l'animale stesso potrebbe avere livelli di "obbedienza" o imparare "trucchi" o comportamenti specifici). Cani da lavoro (es. cani poliziotto, cani da pastore) potrebbero avere set di skill uniche.
+        * `[]` i. Impatto significativo degli animali domestici sull'umore (`IV.4.c`), sul benessere (`WELLNESS` skill `IX.e`), e sulla routine quotidiana (`IV.4.g`) degli NPC proprietari.
+        * `[]` j. (Avanzato) Riproduzione degli animali domestici (se controllata dall'NPC), con genetica (`II.3`) per la trasmissione di aspetto e tratti alla prole. Problema del randagismo se non gestito.
+    * `[]` 3. **Fauna Selvatica e Interazioni Ambientali (Estensione "Total Realism"):**
+        * `[]` a. La fauna selvatica popola determinate aree del mondo (`XVIII.5`) e `Location` naturali (`XIII.2.d`) in base al bioma, alla stagione (`I.3.f`), e all'ora del giorno/notte. La loro presenza e densità dipendono dalla salute dell'ecosistema (`XIII.2.d.i`).
+        * `[]` b. NPC possono osservare la fauna selvatica (azione `OBSERVE_WILDLIFE`, che potrebbe dare moodlet positivi, specialmente per `NATURE_LOVER` o `Inspired Explorer` (IV.3.b), o contribuire a una skill `NATURALISM` futura). Fotografia naturalistica (skill `PHOTOGRAPHY` `IX.e`).
+        * `[]` c. Interazioni dirette con la fauna selvatica generalmente limitate e potenzialmente rischiose (es. un `Daredevil` (IV.3.b) potrebbe tentare di avvicinarsi troppo a un animale selvatico, con possibili conseguenze negative). Tratto `ANIMAL_WHISPERER` (IV.3.b) potrebbe permettere interazioni più sicure o uniche.
+        * `[]` d. **Ecosistema Dinamico (Fauna):**
+            * `[]` i. Gli animali selvatici hanno comportamenti specifici: ricerca di cibo (dieta specifica), acqua (`IV.1.h`), riparo, riproduzione (nascita di cuccioli selvatici), migrazioni stagionali (per alcune specie).
+            * `[]` ii. Implementazione di una catena alimentare semplificata: predatori cacciano prede. La popolazione di prede influenza la popolazione di predatori e viceversa. (Collegamento a `XIII.2.d.iii`).
+            * `[]` iii. L'impatto umano (inquinamento `XIII.1.a.iii`, distruzione habitat per sviluppo urbano `XIII.5`, caccia/bracconaggio se implementati) influenza la popolazione e la distribuzione della fauna selvatica.
+            * `[]` iv. Alcuni animali selvatici potrebbero interagire con i lotti degli NPC (es. cervi che mangiano in giardino `X.6`, procioni che rovistano nella spazzatura `XIII.3.a`).
+        * `[]` e. (Opzionale, a seconda del lore) Caccia sostenibile (skill `HUNTING` `IX.e`) o bracconaggio (illegale) come attività, con impatto sulle popolazioni animali e possibili conseguenze legali (`VI.1.iii.2`).
+        * `[]` f. Politiche di conservazione della fauna (`XIII.2.d.iv`) da parte dell'`AnthalysGovernment` per proteggere specie a rischio o gestire parchi naturali.
+    * `[]` 4. **(Carriera Futura) Veterinario e Servizi per Animali:**
+        * `[]` a. Carriera `VETERINARIAN` (definita in `VIII.1.j`, ma dipendente da questo DLC `C.5`) con skill `VETERINARIAN` (`IX.e`, anch'essa dipendente da `C.5`).
+        * `[]` b. `LocationType.VETERINARY_CLINIC`: NPC portano i loro animali domestici malati o per controlli/vaccinazioni. Servizi di emergenza veterinaria.
+        * `[]` c. (Futuro) Negozi di animali (`LocationType.PET_STORE`) per acquisto di cibo di varie qualità, accessori (giocattoli, cucce, guinzagli), e animali stessi (con implicazioni etiche vs adozione da rifugio `C.5.2.a`).
+        * `[]` d. (Futuro) Altri servizi: toelettatura (`PET_GROOMING_SALON`), dog/cat-sitting, centri di addestramento.
+
+* **14. "SimAI: Eredità Artigiana e Generazioni di Maestria" `[F]`**
+    * `[]` a. **Concetto:** Un'immersione profonda nell'artigianato, nell'arte, e nel concetto di "opera magna" o di un'eredità familiare costruita attorno a un'abilità o creazione unica.
+    * `[]` b. **Unicità/Originalità SimAI:** Focus sul *processo* creativo, ispirazione, lotta per la maestria, trasmissione di conoscenze/abilità uniche attraverso le generazioni. NPC potrebbero sviluppare stili irripetibili o inventare nuove forme nel loro mestiere.
+    * `[]` c. **Possibili Meccaniche Chiave:**
+        * `[]` i. **Sistema di Ispirazione Profonda:** NPC necessitano di stati emotivi (`IV.4.c`), esperienze (memorie `IV.5`), o "muse" per opere uniche.
+        * `[]` ii. **Sviluppo e Riconoscimento di Stili Unici:** Maestri sviluppano uno "stile" distintivo che influenza creazioni e percezione.
+        * `[]` iii. **L'"Opera Magna" (Opus Magnum):** Aspirazione di vita (`IV.3.a`) per un capolavoro che definisca eredità, richiedendo dedizione, risorse rare, e skill al culmine (`IX.f`).
+        * `[]` iv. **Eredità e Apprendistato Dettagliato:** Sistema avanzato maestro-apprendista (estensione `VII.8`), trasmissione di skill, tecniche segrete, stili, strumenti, reputazione della "bottega" (`IV.2.f`).
+        * `[]` v. **Impatto Culturale Duraturo:** Opere eccezionali influenzano cultura locale (`IV.9`), diventano pezzi da museo (`XVIII.5.h`), definiscono "scuole" artistiche/artigianali.
+
+* **15. "SimAI: Psiche e Società - Dinamiche Complesse di Influenza e Resilienza Mentale" `[F]`**
+    * `[]` a. **Concetto:** Esplorare complessità della psicologia avanzata, dinamiche sociali di gruppo, meccanismi di influenza, e resilienza mentale individuale.
+    * `[]` b. **Unicità/Originalità SimAI:** Simulazione impatto psicologico a lungo termine, dinamiche di potere/conformismo nei gruppi, movimenti sociali emergenti, persuasione/manipolazione basate su psicologia.
+    * `[]` c. **Possibili Meccaniche Chiave:**
+        * `[]` i. **Sistema di Resilienza Psicologica Dinamica:** NPC sviluppano/modificano resilienza a stress/traumi (`IV.1.i`) basata su tratti, esperienze (`IV.5`), relazioni di supporto (`VII.2.h`), coping appreso (`IV.1.i.4`).
+        * `[]` ii. **Dinamiche di Gruppo Complesse e Leadership:** Formazione gruppi formali/informali (club `X.1`, attivisti `VI.2.f`, iniziative comunitarie `XIII.4.d`) con gerarchie, lotte per leadership, groupthink, azione collettiva.
+        * `[]` iii. **"Ingegneria Sociale" e Influenza su Larga Scala (Astratta):** NPC con alte skill (`INFLUENCE` `IX.e`, etc.) tentano di plasmare opinione pubblica, lanciare campagne, gestire reputazioni (`XVI.5`).
+        * `[]` iv. **Terapie Avanzate e Percorsi di Crescita Personale:** Espansione ruolo Psicologo/Terapeuta (`VIII.1.j`, `IV.1.i.3`) con diversi approcci per superare disturbi, modificare comportamenti, raggiungere crescita personale (`IV.3.a`).
+        * `[]` v. **Sviluppo Approfondito dell'Identità e dei Valori nel Tempo:** Formazione/rinegoziazione senso di sé, valori (`IV.3.g`), "scopo nella vita" in risposta a esperienze.
+
+* **16. "SimAI: Il Corpo Umano - Micro-Simulazione di Salute, Invecchiamento e Fisicità" `[F]`**
+    * `[]` a. **Concetto:** Simulazione dettagliata (ma gestibile) di fisiologia umana, invecchiamento realistico, malattie complesse (non soprannaturali), e impatto profondo dello stile di vita sul corpo.
+    * `[]` b. **Unicità/Originalità SimAI:** Superare semplici barre di salute per simulare sistemi corporei interconnessi, predisposizioni genetiche dettagliate, fragilità e resilienza del corpo.
+    * `[]` c. **Possibili Meccaniche Chiave:**
+        * `[]` i. **Sistema Fisiologico Interconnesso (Astratto):** Stato di salute sistemi maggiori (cardiovascolare, respiratorio, etc.) influenzato da genetica (`II.3.d`, `IV.2.f.vii`), dieta (`X.5`), esercizio (`IX.e Fitness`), sonno (`IV.1.a Energia`), stress (`IV.1.i`), ambiente (`XIII.1.a`), età (`IV.2`).
+        * `[]` ii. **Invecchiamento Realistico e Progressivo:** Declino graduale funzioni fisiche/cognitive (`IV.2.e`), suscettibilità a malattie età-correlate (`IV.1.g.iii.1`), cambiamenti aspetto dettagliati.
+        * `[]` iii. **Malattie Complesse, Croniche e Degenerative:** Simulazione dettagliata (ipertensione, diabete, artrite, demenze) con fattori di rischio, progressione, gestione a lungo termine.
+        * `[]` iv. **Impatto Cumulativo e a Lungo Termine dello Stile di Vita:** Conseguenze tracciabili di dieta, esercizio, sonno, stress, vizi (`IV.3.c`) su salute e longevità.
+        * `[]` v. **Medicina Preventiva, Diagnostica Avanzata e Riabilitazione:** Importanza check-up, screening, terapie riabilitative (`PHYSIOTHERAPY_SESSION` azione) post-malattie/infortuni.
+
+* **17. Sistema di Produzione Sostenibile di Anthalys (Alimenti, Beni Naturali e Prodotti Artigianali) `[F]`**
+    * `[]` a. **Introduzione e Principi Fondamentali:**
+        * `[]` i. Definire un sistema di produzione alimentare e di beni di consumo primari ad Anthalys basato su principi di alta sostenibilità, rispetto ambientale, etica e salute.
+        * `[]` ii. Il sistema combina tecniche agricole/produttive moderne con pratiche tradizionali eco-compatibili.
+    * `[]` b. **Componenti Generali del Sistema di Produzione Primaria:**
+        * `[]` i. **Agricoltura Sostenibile:**
+            * `[]` 1. Implementare tecniche di coltivazione: agricoltura biologica, permacultura, agricoltura sinergica.
+            * `[]` 2. Meccanica di rotazione delle colture per mantenere la fertilità del suolo e prevenire l'erosione.
+            * `[]` 3. Uso di compost (`XIII.1.c.i`, `XIII.6.a.i`) e fertilizzanti naturali.
+            * `[]` 4. **Definizione Entità "Fattoria Agricola" (Farm Model - Agriculture):**
+                * `[]` d. **Salute del Suolo (Soil Health) e Impatto sulla Resa:** 
+                    * `[]` 1. L'attributo `soil_health` (decimal, 0.0-1.0) di una `Fattoria Agricola` o di specifici appezzamenti influisce direttamente sulla resa (`yield`) delle colture (`C.9.b.vi.1`).
+                    * `[]` 2. Un `soil_health` basso (es. < 0.3) riduce significativamente la resa e può aumentare il rischio di fallimento del raccolto o malattie delle piante (`IV.1.g`).
+                    * `[]` 3. Implementare un sistema per la rigenerazione graduale della `soil_health` attraverso: Rotazione delle colture, Uso di compost, Uso di fertilizzanti naturali, Tecniche di agricoltura sostenibile.
+                    * `[]` 4. Pratiche agricole intensive o errate possono degradare la `soil_health`.
+        * `[]` ii. **Serre Tecnologiche e Coltivazioni Verticali Urbane:** 
+            * `[]` 1. Implementare oggetti `SERRA_AVANZATA`.
+            * `[]` 2. **Definizione Entità "Serra" (Greenhouse Model):** (Attributi: id, farm_id/lot_id, name, type, energy_source, yield_multiplier, internal_environment_control, cultivable_area_internal).
+            * `[]` 3. **Coltivazioni Verticali Urbane ("Vertical Farms"):** (LocationType, meccaniche specifiche).
+        * `[]` iii. **Allevamento Etico e Sostenibile di Bestiame:** (Dettagliato in `C.9.e`)
+            * `[]` 1. Pratiche di allevamento etiche, ciclo chiuso nutrienti.
+            * `[]` 2. **Definizione Entità "Fattoria di Allevamento" (Farm Model - Livestock):** (Attributi: id, name, owner, location, type, pasture_quality, animal_welfare_index, max_animal_capacity, overall_farm_efficiency).
+        * `[]` iv. **Acquacoltura e Idroponica Avanzata:**
+            * `[]` 1. Sistemi di acquacoltura integrata, coltivazione idroponica.
+            * `[]` 2. **Definizione Entità "Impianto di Acquacoltura/Idroponica":** (Attributi: id, name, owner, location, type, water_quality_index, system_type, overall_facility_efficiency).
+        * `[]` v. **Tecnologie Agricole Avanzate e Automazione:** 
+            * `[]` 1. **Monitoraggio e Automazione Basati su Sensori:** (Monitoraggio suolo, serre, acqua, colture/animali; automazione irrigazione, fertilizzazione, clima).
+            * `[]` 2. **Droni Agricoli e Robotica:** (Droni per monitoraggio/applicazioni; Robot per semina, diserbo, raccolta).
+            * `[]` 3. **Ottimizzazione Generale dell'Uso delle Risorse.**
+        * `[]` vi. **Nuove Risorse Agricole (Definizione Dettagliata di Colture, Animali, Specie Acquatiche):**
+            * `[]` 1. **Modello "Coltura" (Crop Model):** (Attributi: id, name, type, growth_time, base_yield, ideal_soil/climate/water, seasons, outputs, byproducts).
+            * `[]` 2. **Modello "Animale da Allevamento" (Animal Model):** (Attributi: id, name, type, time_to_maturity, primary_yield, base_yield, feed_req, housing_needs, lifespan).
+            * `[]` 3. **Modello "Specie da Acquacoltura" (Aquaculture Species Model):** (Attributi: id, name, type, growth_time, base_yield, water_req, feed_req).
+    * `[]` c. **Processo Generale e Logica di Produzione Alimentare:** 
+        * `[]` i. **Pianificazione e Preparazione:** (Analisi suolo/acqua, scelta colture/bestiame).
+        * `[]` ii. **Coltivazione e Allevamento:** (Tecniche sostenibili, monitoraggio).
+        * `[]` iii. **Raccolta e Produzione Primaria:** (Tecniche manuali/meccanizzate, lavorazione naturale).
+        * `[]` iv. **Distribuzione e Vendita dei Prodotti di Anthalys:** (Mercati Locali, Piattaforme Online/AION, Logistica Avanzata).
+        * `[]` v. **Aggiornamento Automatico della Produzione e Calcolo Resa:** (Aggiornamento stato crescita, calcolo resa effettiva, aggiunta a inventario).
+        * `[]` vi. **Notifiche di Stato Relative alla Produzione:** (Notifiche per completamento cicli, problemi critici, allerte carenza).
+        * `[]` vii. **Tracciabilità, Reportistica e Statistiche sulla Produzione e Vendita:** (Tracciabilità per consumatori, report per produttori, statistiche aggregate per governo/AION, monitoraggio vendite, dashboard).
+        * `[]` viii. **Interazione Avanzata con i Cittadini Consumatori:** (Feedback/recensioni dettagliate, sistemi di fidelizzazione).
+        * `[]` ix. **Gestione Avanzata delle Crisi e Simulazioni:** (Simulazioni eventi inattesi, gestione crisi alimentari).
+    * `[]` d. **Filiera di Produzione: Prodotti Specifici di Anthalys:** (Lista dettagliata da `i` a `xxxvi` di prodotti come Tabacco, Birra, Formaggi, Tessuti, Kit Fai-da-Te, etc.).
+    * `[]` e. **Processo Dettagliato di Allevamento del Bestiame Sostenibile di Anthalys:** (Selezione razze, gestione, salute, riproduzione, gestione rifiuti, produzione, distribuzione).
+    * `[]` f. **Materiali Sostenibili e Prodotti Artigianali Non Alimentari di Anthalys:** (Materiali edilizia ecologici, prodotti cura persona naturali, oggetti arredo artigianali, strumenti musicali).
+    * `[!]` g. **Coerenza con il Mercato e Consumo:** (Integrazione con sistema consumo NPC, disponibilità su AION/mercati, prezzi, influenza tratti consumatore).
+
 ---
+
 
 ## V. SISTEMA SCOLASTICO DI ANTHALYS `[]`
 
@@ -777,8 +903,7 @@
     * `[P]` b. Implementare Calendario Scolastico Annuale (basato su 18 mesi). (Costanti per i mesi di inizio/fine dei periodi scolastici (`SCHOOL_MONTHS_PERIOD_...`) definite in `settings.py`)
     * `[]` c. (Obsoleto, integrato in V.1.b) Implementare Pause Scolastiche definite (Primaverile 12gg, Estiva 72gg). *(Le pause sono ora definite dalla struttura 6 mesi scuola / 3 mesi pausa)*.
     * `[]` d. Integrare il calendario scolastico (periodi di lezione, pause) nella logica di frequenza degli NPC (`TimeManager.is_school_day()`). *(Metodo in `TimeManager` concettualizzato)*.
-    * `[]` e. **Gestione Iscrizioni e Percorsi Formativi tramite SoNet:** `[NUOVO PUNTO]`
-        * `[]` i. Le procedure di iscrizione ai cicli scolastici obbligatori sono gestite centralmente con il DID (`XII`).
+    * `[]` e. **Gestione Iscrizioni e Percorsi Formativi tramite SoNet:**         * `[]` i. Le procedure di iscrizione ai cicli scolastici obbligatori sono gestite centralmente con il DID (`XII`).
         * `[]` ii. L'iscrizione a livelli facoltativi (es. Superior Facoltativo `V.2.g`, Università `V.2.h`), corsi di formazione continua (`V.2.h` implicitamente), o la scelta di istituti specifici (se meccanica implementata) avverrà tramite la **Sezione Istruzione e Formazione del portale SoNet (`XXIV.c.iv.2`)**.
         * `[]` iii. SoNet fornirà informazioni sull'offerta formativa disponibile (corsi, requisiti di accesso).
 
@@ -817,8 +942,7 @@
         * `[]` iii. Facoltà e Materie Esempio (Scienze/Tecnologia, Arti/Lettere, Economia/Gestione, Ingegneria, Medicina/Scienze Salute).
         * `[]` iv. Programmi di Scambio.
         * `[]` v. Impatto: Acquisizione skill altamente specializzate, percorsi di carriera di alto livello.
-    * `[]` i. **Registrazione Ufficiale Titoli di Studio e Carriera Accademica:** `[NUOVO PUNTO]`
-        * `[]` 1. I diplomi, le lauree e le altre certificazioni ufficiali ottenute al completamento dei cicli di studio sono registrate digitalmente e associate al DID (`XII`) del cittadino.
+    * `[]` i. **Registrazione Ufficiale Titoli di Studio e Carriera Accademica:**         * `[]` 1. I diplomi, le lauree e le altre certificazioni ufficiali ottenute al completamento dei cicli di studio sono registrate digitalmente e associate al DID (`XII`) del cittadino.
         * `[]` 2. Questi documenti sono consultabili dal titolare come parte del proprio storico accademico e nell'archivio certificazioni all'interno del portale **SoNet (rispettivamente `XXIV.c.iv.1` e `XXIV.c.i.5`)**.
 
 * **3. Meccaniche Scolastiche per NPC:** `[]`
@@ -835,13 +959,12 @@
     * `[]` f. Viaggi educativi.
     * `[]` g. Supporto agli Studenti.
     * `[]` h. Report Scolastici in TUI (come da tuo file TODO) *(Rappresentano la documentazione corrente/annuale, mentre lo storico ufficiale è su SoNet)*.
-    * `[]` i. **Nuovo - Dinamiche di "Bocciatura" e Ripetizione Anno:** *(Da TODO interno che hai menzionato)*.
+    * `[]` i. **Dinamiche di "Bocciatura" e Ripetizione Anno:** *(Da TODO interno che hai menzionato)*.
         * `[]` 1. Definire criteri per la bocciatura (es. `school_performance` troppo bassa per troppo tempo, troppe assenze ingiustificate).
         * `[]` 2. Se un NPC viene "bocciato", ripete l'anno scolastico corrente (o un segmento di esso).
         * `[]` 3. Limite di età per la ripetizione (es. fino ai 18 anni come da tua nota).
         * `[]` 4. Impatto sull'umore, sulle relazioni (con genitori/coetanei) e sulle aspirazioni future.
-    * `[]` j. **Accesso a Informazioni e Servizi Scolastici tramite SoNet:** `[NUOVO PUNTO]`
-        * `[]` i. Gli NPC studenti (o i loro tutori) possono utilizzare SoNet per visualizzare comunicazioni dalla scuola (es. calendario eventi, circolari - via `XXIV.c.viii`), consultare (astrattamente) materiale didattico online fornito dalla scuola, o interagire con alcuni servizi amministrativi scolastici (se implementati).
+    * `[]` j. **Accesso a Informazioni e Servizi Scolastici tramite SoNet:**         * `[]` i. Gli NPC studenti (o i loro tutori) possono utilizzare SoNet per visualizzare comunicazioni dalla scuola (es. calendario eventi, circolari - via `XXIV.c.viii`), consultare (astrattamente) materiale didattico online fornito dalla scuola, o interagire con alcuni servizi amministrativi scolastici (se implementati).
 
 ---
 
@@ -862,7 +985,7 @@
             * `[]` 1. Definire la struttura del sistema giudiziario (tribunali, giudici).
             * `[]` 2. **Estensione "Total Realism" - Sistema Giudiziario Approfondito:**
                 * `[]` a. Implementare `LocationType.COURTHOUSE` (Tribunale).
-                * `[]` b. Nuova Carriera: `LAWYER` (Avvocato) e `JUDGE` (Giudice) (Estensione di VIII.1.j).
+                * `[]` b. Carriera: `LAWYER` (Avvocato) e `JUDGE` (Giudice) (Estensione di VIII.1.j).
                 * `[]` c. NPC possono intentare cause civili.
                 * `[]` d. (Se implementato sistema criminale) Processi penali.
                 * `[]` e. Sentenze variabili.
@@ -931,7 +1054,7 @@
     * `[]` a. "Pensieri" politici degli NPC.
     * `[]` b. (Futuro) Generazione di slogan elettorali, sunti di discorsi, o "notizie" simulate sugli esiti delle elezioni/referendum (questi ultimi potrebbero essere comunicati ufficialmente tramite **SoNet `XXIV.c.viii`**).
 
-* **6. Simboli Nazionali e Culturali (Nuovo punto basato sulla Costituzione):** `[]`
+* **6. Simboli Nazionali e Culturali (Punto basato sulla Costituzione):** `[]`
     * `[]` a. **Bandiera di Anthal:** Tre bande verticali blu, azzurro, blu, con una "A" bianca al centro. *(Art. 2 Costituzione)*. (Da considerare per futura rappresentazione visiva o descrizioni).
     * `[]` b. **Calendario Ufficiale:** 432 giorni, 18 mesi, 24 giorni/mese, 28 ore/giorno, settimana di 7 giorni specifici. *(Art. 3 Costituzione)*.
     * `[]` c. **Inno Nazionale:** "Sempre Liberi". *(Art. 13 Costituzione)*. (Potrebbe dare moodlet se "ascoltato" in eventi).
@@ -1087,13 +1210,9 @@
     * `[]` b. Sistema di "reputazione" per ogni NPC (affidabile, donnaiolo, etc.) influenzato da azioni e pettegolezzi.
     * `[]` c. La reputazione influenza le interazioni future. Tratti come `JUDGMENTAL` o `NOSY` interagiscono con questo sistema.
 
-
-
-
-
-
-
 ---
+
+
 
 ## VIII. SISTEMA ECONOMICO, LAVORO E WELFARE DI ANTHALYS `[]` (Include vecchio `VIII. CARRIERE E LAVORO` e `I.1.d`)
 
@@ -1112,8 +1231,7 @@
     * `[!]` i. Il sistema bancario di Anthalys è solido, tecnologicamente avanzato (basato su Athel digitale `VIII.A`) e ben regolamentato per garantire stabilità e integrità.
     * `[]` ii. **Banca Centrale di Anthalys (BCA):**
         * `[]` 1. Definire la Banca Centrale di Anthalys come l'autorità monetaria e di vigilanza principale. (Potrebbe essere un'entità governativa (`VI.1`) o semi-indipendente). La sua sede è un `LocationType` specifico nel Distretto Amministrativo (`XXV.1.e`).
-        * `[]` 2. **Funzioni della BCA:** `[PUNTO AMPLIATO]`
-            * `[]` a. Conduzione della politica monetaria per mantenere la stabilità economica, controllare l'inflazione e sostenere la crescita sostenibile.
+        * `[]` 2. **Funzioni della BCA:**             * `[]` a. Conduzione della politica monetaria per mantenere la stabilità economica, controllare l'inflazione e sostenere la crescita sostenibile.
                 * `[]` i. Utilizzo di strumenti come la definizione dei tassi di interesse di riferimento (che influenzano i tassi delle banche commerciali `VIII.5.d.iii`).
                 * `[]` ii. Gestione delle riserve obbligatorie per le banche commerciali.
                 * `[]` iii. (Avanzato) Conduzione di operazioni di mercato aperto (astrattamente simulate) per influenzare la liquidità del sistema.
@@ -1136,7 +1254,6 @@
     * `[]` iv. **Altri Istituti Finanziari (Opzionale):**
         * `[]` 1. (Futuro) Compagnie di assicurazione (per salute integrativa `XXII.5.c`, proprietà, vita).
         * `[]` 2. (Futuro) Società di gestione del risparmio o fondi pensione privati.
-
 
 * **1. Lavoro e Carriere per NPC:** `[]` (Vecchio `VIII.1. Sistema delle Carriere`)
     * `[]` a. **Struttura delle Carriere e dei Lavori:** *(Concettualizzazione dettagliata e struttura file in corso)*. (Vecchio `VIII.1.a` Percorsi di carriera multipli con livelli di promozione.)
@@ -1202,11 +1319,11 @@
         * `[]` DJ
         * `[]` Forze dell'Ordine / Detective
         * `[]` Influencer / Creatore di Contenuti Digitali
-        * `[]` Ispettore (Sanitario, Lavoro, Ambientale) (collegamento a `XXII.8.n.i`) `[NUOVA CARRIERA SUGGERITA]`
+        * `[]` Ispettore (Sanitario, Lavoro, Ambientale) (collegamento a `XXII.8.n.i`) 
         * `[]` Insegnante (Teacher) *(Implementata)*
         * `[]` Medico (Doctor) *(Implementata)*
         * `[]` Musicista (vari strumenti/generi)
-        * `[]` Netturbino / Operatore Ecologico (collegamento a `XIII.3.a.ii`) `[NUOVA CARRIERA SUGGERITA]`
+        * `[]` Netturbino / Operatore Ecologico (collegamento a `XIII.3.a.ii`) 
         * `[]` Politico / Servizio Civile
         * `[]` Pompiere
         * `[]` Psicologo / Terapeuta
@@ -1250,7 +1367,7 @@
     * `[P]` c. **Procedure di Dichiarazione e Riscossione del CSC:**
         * `[]` i. Gestire procedure di dichiarazione dei redditi (per la Componente CSC-R) e riscossione delle varie componenti del CSC ogni 9 mesi (216 giorni), o su base annuale simulata. (`TAX_COLLECTION_PERIOD_DAYS` definito in `settings.py`)
         * `[]` ii. Le comunicazioni relative a scadenze fiscali, pagamenti dovuti, e rimborsi per il cittadino avvengono tramite notifiche e la sezione dedicata su **SoNet (`XXIV.c.viii` e `XXIV.c.ii`)**.
-    * `[]` d. **Entità "Governo di Anthalys" e Gestione Finanze Pubbliche:** `[SOTTOPUNTO AMPLIATO]`
+    * `[]` d. **Entità "Governo di Anthalys" e Gestione Finanze Pubbliche:** 
         * `[]` i. Definire classe/oggetto `AnthalysGovernment`.
         * `[]` ii. Attributo `treasury: float` (tesoreria, in **Ꜳ**) per tracciare le entrate da tutte le componenti del CSC e le uscite per i servizi.
         * `[]` iii. Tutte le componenti del CSC raccolte dagli NPC e dalle imprese confluiscono in `AnthalysGovernment.treasury`.
@@ -1265,7 +1382,7 @@
                 * `[]` b. **Incentivi per l’Innovazione:** Erogazione di crediti d’imposta (sulla CSC-A `VIII.2.e.iii`) e sovvenzioni dirette per ricerca e sviluppo, tecnologie verdi (`XXV.4`), e progetti innovativi.
                 * `[]` c. **Agevolazioni per le Energie Rinnovabili:** Concessione di esenzioni o riduzioni fiscali e/o sussidi per l'installazione di sistemi di energia rinnovabile.
                 * `[]` d. **Agevolazioni e Sostegno per il Settore Agricolo:** Erogazione di sussidi diretti e supporto tecnico/logistico ai produttori agricoli (`C.9`), con particolare attenzione alla produzione sostenibile e all'accesso ai mercati di esportazione (`C.4.e.ii`).
-            * `[]` 4. **Sviluppo Economico Internazionale:** `[NUOVO PUNTO]` Le politiche economiche del governo includono anche strategie attive per:
+            * `[]` 4. **Sviluppo Economico Internazionale:** Le politiche economiche del governo includono anche strategie attive per:
                 * `[]` a. Promuovere il commercio internazionale attraverso la negoziazione di accordi commerciali vantaggiosi (`C.4.e.ii`).
                 * `[]` b. Attrarre investimenti esteri diretti, ad esempio attraverso la creazione e la regolamentazione di Zone Economiche Speciali (ZES) (`C.4.e.iii`).
     * `[]` e. **CSC-A (Componente su Attività Commerciali):** `[NOME STANDARDIZZATO E PUNTO AMPLIATO]`
@@ -1338,7 +1455,7 @@
                 * `[]` 2. Manutenzione hardware critica o aggiornamenti architetturali IA da tecnici esterni specializzati (eventi rari).
                 * `[]` 3. Mandato iniziale e obiettivi a lungo termine definiti alla creazione dell'IA.
             * `[]` iii. **Realismo (Comportamento IA):** Simulare possibili "derive algoritmiche" o interpretazioni sub-ottimali dell'IA, specialmente di fronte a crisi o dati anomali, con potenziali effetti collaterali che richiedono intervento correttivo dall'ente di supervisione o generano dibattito.
-        * `[]` d. **Piattaforma di Acquisto e Vendita per Produttori Cittadini/Locali (C2A/B2A via SoNet):** `[NUOVO PUNTO INTEGRATO]`
+        * `[]` d. **Piattaforma di Acquisto e Vendita per Produttori Cittadini/Locali (C2A/B2A via SoNet):**
             * `[]` i. **AION**, tramite una sezione dedicata su **SoNet (`XXIV.c.xi` o una nuova sezione "Vendi su AION")**, offre un'interfaccia attraverso cui i cittadini produttori (artigiani `C.9`, agricoltori `C.9`, piccole imprese `VIII.1.k`) possono proporre i propri prodotti per la vendita.
             * `[]` ii. L'IA di AION valuta i prodotti proposti in base a: qualità (verificabile astrattamente o tramite campioni/certificazioni `XXII.8`), potenziale domanda (stimata dai dati di SoNet), coerenza con standard etici/sostenibili di AION, prezzo richiesto dal produttore, capacità produttiva.
             * `[]` iii. Modelli di collaborazione: AION può acquistare direttamente dai produttori (definendo prezzi di acquisto all'ingrosso equi) e/o operare come marketplace prendendo una commissione sulla vendita, gestendo comunque la logistica e la presentazione su SoNet.
@@ -1433,6 +1550,7 @@
         * `[]` d. Il feedback aggregato e le azioni correttive di **AION** potrebbero essere comunicate ai cittadini tramite la sezione notizie di SoNet (`XXIV.c.viii`).
 
 ---
+
 
 
 ## IX. ABILITÀ (SKILLS) `[]`
@@ -1616,45 +1734,45 @@
     * `[]` Weather Forecasting (Previsioni Meteo) -> Mental/Cognitive
     * `[]` Woodworking (Lavorazione Legno - parte di Handiness, ma potrebbe essere più specifica) -> Crafting/Practical
     * `[]` Yoga (Yoga - parte di Wellness, ma potrebbe essere skill a sé) -> Physical/Wellness
-    * `[F_DLC_C.9]` **Nuove Abilità legate al "Sistema di Produzione Sostenibile di Anthalys" (DLC C.9):** `[NUOVA SEZIONE SKILL]`
-        * `[]` **Apiculture (Apicoltura):** `[NUOVA]`
+    * **Abilità legate al "Sistema di Produzione Sostenibile di Anthalys":** 
+        * `[]` **Apiculture (Apicoltura):** 
             * Gestione arnie, raccolta miele (`C.9.d.xv`), cera d'api, propoli. Cura delle api.
             * Livelli alti sbloccano tipi di miele più rari o prodotti dell'alveare di maggiore qualità.
-        * `[]` **Cheesemaking (Caseificazione):** `[NUOVA]`
+        * `[]` **Cheesemaking (Caseificazione):** 
             * Lavorazione del latte (`C.9.d.xii`) per produrre vari tipi di formaggi artigianali (freschi, stagionati).
             * Include la gestione di fermenti, caglio, tecniche di stagionatura.
-        * `[]` **Charcuterie (Salumeria Artigianale):** `[NUOVA]`
+        * `[]` **Charcuterie (Salumeria Artigianale):** 
             * Preparazione e stagionatura di salumi e insaccati naturali (`C.9.d.xiii`) da carni sostenibili.
             * Include la conoscenza di spezie, tecniche di conservazione naturale.
-        * `[]` **Preserving (Tecniche di Conservazione Alimentare):** `[NUOVA]`
+        * `[]` **Preserving (Tecniche di Conservazione Alimentare):** 
             * Creazione di conserve, marmellate, sottaceti, essiccati (`C.9.d.xi`).
             * Include sterilizzazione, pastorizzazione, gestione pH, tecniche di essiccazione.
-        * `[]` **Mycology (Micologia Applicata):** `[NUOVA]`
+        * `[]` **Mycology (Micologia Applicata):** 
             * Coltivazione di funghi commestibili (`C.9.d.xvi.1`).
             * Identificazione e raccolta sicura di funghi selvatici commestibili (se Foraging non è abbastanza specifico).
-        * `[]` **Advanced Baking & Pastry (Alta Pasticceria e Panificazione Avanzata):** `[NUOVA O ESTENSIONE]` (Espande `Baking`)
+        * `[]` **Advanced Baking & Pastry (Alta Pasticceria e Panificazione Avanzata):** (Espande `Baking`)
             * Creazione di prodotti da forno complessi, pani speciali (`C.9.d.x`), dolci elaborati, uso di lievito madre.
-        * `[]` **Artisanal Chocolate Making (Cioccolateria Artigianale):** `[NUOVA]`
+        * `[]` **Artisanal Chocolate Making (Cioccolateria Artigianale):** 
             * Lavorazione fave di cacao importate, temperaggio cioccolato, creazione praline, tavolette aromatizzate (`C.9.d.xvii`).
-        * `[]` **Herbal Cosmetics & Soapmaking (Cosmesi Naturale e Saponificazione):** `[NUOVA]`
+        * `[]` **Herbal Cosmetics & Soapmaking (Cosmesi Naturale e Saponificazione):** 
             * Creazione di saponi (`C.9.f.ii.1`), creme, unguenti, oli essenziali (`C.9.f.ii.3`) con ingredienti naturali e erbe (`C.9.f.ii.2`). Collegata a `Herbalism`.
-        * `[]` **Sustainable Textile Arts (Arti Tessili Sostenibili):** `[NUOVA O ESTENSIONE]` (Espande `Knitting`, `Cross-Stitch`)
+        * `[]` **Sustainable Textile Arts (Arti Tessili Sostenibili):** (Espande `Knitting`, `Cross-Stitch`)
             * Filatura di fibre naturali (`C.9.d.ix.3`), tessitura manuale/telaio (`C.9.d.ix.4`), tintura naturale (`C.9.d.ix.5`), creazione di capi complessi.
-        * `[]` **Leatherworking (Lavorazione della Pelle Sostenibile):** `[NUOVA]`
+        * `[]` **Leatherworking (Lavorazione della Pelle Sostenibile):** 
             * Tecniche di taglio, cucitura, modellatura e finitura di pelli conciate vegetalmente (`C.9.d.viii`) per creare abbigliamento e accessori.
-        * `[]` **Sustainable Forestry & Woodcrafting (Silvicoltura Sostenibile e Artigianato del Legno):** `[NUOVA O ESTENSIONE]` (Espande `Woodworking`)
+        * `[]` **Sustainable Forestry & Woodcrafting (Silvicoltura Sostenibile e Artigianato del Legno):** (Espande `Woodworking`)
             * Gestione sostenibile di piccole aree boschive (se NPC possiedono terreni), selezione e lavorazione di Legno Certificato di Anthalys (`C.9.f.i.3`) per mobili, intaglio, tornitura.
-        * `[]` **Bio-composite Material Crafting (Lavorazione Materiali Bio-compositi):** `[NUOVA]`
+        * `[]` **Bio-composite Material Crafting (Lavorazione Materiali Bio-compositi):** 
             * Creazione e modellazione di materiali bio-compositi e a base di micelio (`C.9.f.i.1`, `C.9.f.i.2`) per oggetti di design o usi specifici.
-        * `[]` **Local Stone & Mineral Crafting (Artigianato della Pietra e dei Minerali Locali):** `[NUOVA]`
+        * `[]` **Local Stone & Mineral Crafting (Artigianato della Pietra e dei Minerali Locali):** 
             * Lavorazione di pietre e minerali locali (`C.9.f.i.4`) per scultura, edilizia decorativa, gioielleria.
-        * `[]` **Artisanal Pottery & Clayworking (Ceramica Artistica e Lavorazione Argilla Avanzata):** `[NUOVA O ESTENSIONE]` (Espande `Pottery`)
+        * `[]` **Artisanal Pottery & Clayworking (Ceramica Artistica e Lavorazione Argilla Avanzata):** (Espande `Pottery`)
             * Tecniche avanzate di lavorazione argille locali (`C.9.f.i.5`), smaltatura con pigmenti naturali (`C.9.f.i.4`), cottura in forni specifici.
-        * `[]` **Basket Weaving & Fiber Arts (Intreccio Cesti e Arti delle Fibre Vegetali):** `[NUOVA]`
+        * `[]` **Basket Weaving & Fiber Arts (Intreccio Cesti e Arti delle Fibre Vegetali):** 
             * Creazione di cesti, stuoie, e altri oggetti intrecciati utilizzando fibre vegetali locali (`C.9.f.iii.4`).
-        * `[]` **Artisanal Instrument Making (Liuteria Artigianale di Anthalys):** `[NUOVA]`
+        * `[]` **Artisanal Instrument Making (Liuteria Artigianale di Anthalys):** 
             * Costruzione di strumenti musicali tradizionali o unici di Anthalys utilizzando materiali locali (`C.9.f.iv`).
-* `[]` f. **Estensione "Total Realism" - Apprendimento Contestuale, Maestria e Impatto Reale delle Abilità:** `[NUOVA SOTTOCATEGORIA]`
+* `[]` f. **Estensione "Total Realism" - Apprendimento Contestuale, Maestria e Impatto Reale delle Abilità:** 
     * `[]` i. **Apprendimento Basato sull'Esperienza e la Sfida:**
         * `[]` 1. Oltre al guadagno di XP da azioni ripetitive, implementare un guadagno di XP significativamente maggiore (o sblocco di livelli/perk unici) quando le abilità vengono applicate con successo in situazioni complesse, rischiose, o per risolvere problemi reali per l'NPC (es. un NPC con alta skill `HANDINESS` che ripara un oggetto cruciale durante un'emergenza guadagna più di una semplice riparazione di routine).
         * `[]` 2. L'apprendimento potrebbe essere accelerato da "fallimenti costruttivi" dove l'NPC impara cosa non fare.
@@ -1711,15 +1829,14 @@
 * `[]` **7. Sistema di Collezionismo:**
     * `[]` a. NPC con tratto `OBSESSIVE_COLLECTOR` (IV.3.b) sono spinti a collezionare oggetti.
     * `[]` b. Definire tipi di collezionabili (es. pietre, francobolli, action figure, arte) con rarità.
-    * `[]` c. **Collezionismo di Athel Fisico Obsoleto:** `[NUOVO PUNTO]`
-        * `[]` i. Le vecchie banconote e monete di Athel (`VIII.A.v`) sono considerate oggetti da collezione.
+    * `[]` c. **Collezionismo di Athel Fisico Obsoleto:**         * `[]` i. Le vecchie banconote e monete di Athel (`VIII.A.v`) sono considerate oggetti da collezione.
         * `[]` ii. NPC (specialmente con tratto `OBSESSIVE_COLLECTOR` o `OLD_SOUL` IV.3.b) possono cercare, acquistare, vendere o scambiare Athel fisico.
         * `[]` iii. Il valore collezionistico dipende dalla rarità, dalla conservazione e dal taglio della banconota/moneta.
     * `[]` d. Implementare azioni per trovare/acquistare/scambiare collezionabili.
     * `[]` e. Gli NPC necessitano di un `Inventario` (`XI.2.c.vi`) per conservare i collezionabili.
     * `[]` f. Completare una collezione dà un forte moodlet positivo/senso di realizzazione.
     * `[]` g. Azione `ADMIRE_COLLECTION`.
-* `[]` **8. Estensione "Total Realism" - Profondità, Unicità e Impatto Culturale degli Hobby e delle Creazioni:** `[NUOVA SOTTOCATEGORIA]`
+* `[]` **8. Estensione "Total Realism" - Profondità, Unicità e Impatto Culturale degli Hobby e delle Creazioni:** 
     * `[]` a. **Sviluppo Personale attraverso gli Hobby:**
         * `[]` i. Gli hobby non solo soddisfano `FUN` o sviluppano skill, ma possono diventare una parte centrale dell'identità di un NPC, influenzando le sue scelte di vita, relazioni e benessere a lungo termine (collegamento a `IV.3.a Aspirazioni`).
         * `[]` ii. NPC potrebbero sviluppare una vera "passione" per un hobby, dedicandovi tempo significativo e cercando attivamente di migliorare o esplorare nuove sfaccettature.
@@ -1741,7 +1858,7 @@
     * `[]` Practice Musical Instrument (Esercitati con Strumento Musicale) *(Definita concettualmente)*
     * `[]` Read Book (Leggi un Libro) *(Definita concettualmente)*
     * `[]` Attend Concert/Show (Partecipa a Concerto/Spettacolo) *(Definita concettualmente)*
-    * `[]` **Azioni per soddisfare la Sete (collegamento a `IV.1.h`):** `[NUOVA CATEGORIA AZIONI]`
+    * `[]` **Azioni per soddisfare la Sete (collegamento a `IV.1.h`):**
         * `[]` i. `DRINK_WATER_TAP` (Bere Acqua dal Rubinetto) - Soddisfa Sete, costo nullo, disponibile in lotti con lavandini.
         * `[]` ii. `DRINK_WATER_BOTTLE` (Bere Acqua in Bottiglia) - Soddisfa Sete, richiede oggetto "Acqua in Bottiglia" (acquistabile o da frigo).
         * `[]` iii. `DRINK_JUICE` (Bere Succo) - Soddisfa Sete, piccolo bonus `FUN` o `ENERGY`, richiede oggetto "Succo".
@@ -1755,15 +1872,38 @@
 
 ---
 
-## XI. INTERFACCIA UTENTE (TUI) `[]` *(UI `curses`)*
 
-* **1. Core UI (Struttura e Componenti Base):** `[]`
+
+## XI. INTERFACCIA UTENTE (UI) E INTERAZIONE GIOCATORE
+
+* **1. Interfaccia Grafica (GUI - Pygame):** `[P]` *(Spostato da I.1. Ora include tutti i sotto-punti relativi alla GUI, come la classe Renderer, il loop di rendering, la gestione degli eventi, il disegno degli elementi di gioco e il pannello informativo.)*
+    * `[x]` a. Definire una classe `Renderer` (precedentemente `GraphicsManager`) che gestisca la finestra, il loop di rendering e gli input base. *(Classe `Renderer` creata in `core/graphics/renderer.py`)*
+    * `[x]` b. Inizializzazione di Pygame, creazione della finestra di gioco (configurabile da `settings.py`). Titolo finestra. *(Fatto in `Renderer.__init__`, dimensioni iniziali 1280x768, titolo "SimAI - GUI Edition")*
+    * `[P]` c. Loop di gioco principale (gestione eventi, update logica, rendering). *(Implementato in `Renderer.run_game_loop()`)*
+        * `[x]` i. Gestione evento `QUIT`. *(Fatto in `Renderer._handle_events()`)*
+        * `[x]` ii. Gestione evento `VIDEORESIZE` per finestra ridimensionabile. *(Fatto in `Renderer._handle_events()`)*
+        * `[P]` iii. Gestione input da tastiera base (es. ciclare viste/locazioni, scrolling, centrare camera). *(Implementato K_TAB per ciclare locazioni, FRECCE per offset camera con limiti, 'C' per centrare su NPC selezionato)*.
+        * `[P]` iv. Gestione input da mouse base (es. selezione NPC). *(Implementato click sinistro per selezionare NPC, che centra anche la telecamera)*.
+    * `[x]` d. Funzione base di rendering: pulizia schermo, flip del display. *(`self.screen.fill()` e `pygame.display.flip()` in `Renderer._render_gui()`)*
+    * `[x]` e. Clock per gestione FPS. *(`pygame.time.Clock()` usato in `Renderer`)*
+    * `[x]` f. Integrazione pulita di `pygame.quit()` all'uscita. *(Chiamato in `Renderer._quit_pygame()`)*
+    * `[P]` g. Possibilità di visualizzare testo base sullo schermo. *(FPS mostrati. Pannello informativo laterale ora visualizza: info locazione, e per l'NPC selezionato/default: nome, età, genere, stadio vita, azione corrente, tratti, aspirazione, interessi, e bisogni con barre di stato. Formattazione e wrapping del testo di base.)*
+    * `[P]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
+        * `[P]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
+        * `[P]` ii. Funzione per disegnare un oggetto (es. un quadrato).
+        * `[P]` iii. Implementare un sistema di "telecamera" o vista con offset per visualizzare porzioni di locazioni più grandi. *(Offset base `camera_offset_x/y` con limiti implementato. Aggiunta centratura su NPC selezionato via click/tasto 'C'. Aggiunto zoom con rotellina del mouse.)*
+    * `[P]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
+    * `[x]` j. Sviluppare la GUI in parallelo alla TUI. *(Decisione presa e approccio avviato).*
+    * `[x]` k. La TUI verrà utilizzata in caso di `DEBUG_MODE=True`. *(Implementato in `simai.py`)*.
+    * `[x]` l. La finestra base è 1280x768 ridimensionabile e adattiva al contenuto (in futuro opzioni di risoluzione e fullscreen). *(Implementazione base per ridimensionabilità e dimensioni iniziali fatta in `Renderer`)*.
+
+* **2. TUI: Core UI (Struttura e Componenti Base):** `[]`
     * `[]` a. Scheletro UI `curses` con finestre principali: Header (Info Gioco/Tempo), Log Eventi/Pensieri, Pannello Inferiore (Lista NPC, Dettagli NPC), Command Bar.
     * `[]` b. Gestione input da tastiera (`input_handler.py`) per navigazione e comandi base. *(Funzionalità base implementata, da espandere)*.
-    * `[]` c. **Command Palette (Nuova Feature):** (Precedentemente `I.6.1.g`)
+    * `[]` c. **Command Palette:**
         * `[]` i. Implementare una palette di comandi attivabile (es. con `Ctrl+P` o simile) per accesso rapido a funzioni (es. "velocità X", "cerca NPC Y", "salva", "esci").
         * `[]` ii. Lista comandi definita in `settings.py` o dinamicamente.
-    * `[]` d. **Widget Personalizzati (Nuova Feature):** (Precedentemente `I.6.1.h`)
+    * `[]` d. **Widget Personalizzati:**
         * `[]` i. Creare un modulo `modules/ui/widgets.py` per componenti UI riutilizzabili.
         * `[]` ii. Esempio: `NeedBar` per visualizzare i bisogni. *(Concettualmente già presente con le barre di progressione attuali, ma potrebbe essere formalizzata come widget)*.
         * `[]` iii. (Futuro) Widget per grafici semplici, tabelle formattate.
@@ -1771,7 +1911,7 @@
     * `[]` f. Adattabilità della UI a diverse dimensioni del terminale (entro limiti ragionevoli).
     * `[]` g. Feedback visivo per l'utente (es. evidenziazione elemento selezionato, messaggi di stato/errore nella command bar).
 
-* **2. Visualizzazione Dati e Informazioni NPC:** `[]` (Precedentemente anche `I.6.2`)
+* **3. TUI: Visualizzazione Dati e Informazioni NPC:** `[]`
     * `[]` a. **Lista NPC (Pannello Sinistro Inferiore):**
         * `[]` i. Mostra nome, genere (icona), stadio vita (abbrev.), azione corrente (abbrev.), umore (icona).
         * `[]` ii. Mostra icone per ciclo mestruale e fertilità (se attivi).
@@ -1780,7 +1920,7 @@
         * `[]` v. (Opzionale) Aggiungere una piccola scrollbar visiva.
         * `[]` vi. (Futuro) Filtri o opzioni di ordinamento per la lista NPC.
     * `[]` b. **Log Eventi/Pensieri (Pannello Centrale):** Visualizzazione dinamica con auto-scrolling e scrollbar manuale.
-    * `[]` c. **Schede Dettagli NPC (Pannello Destro Inferiore):** (Precedentemente `I.6.5 Struttura Finestre Esistente`)
+    * `[]` c. **Schede Dettagli NPC (Pannello Destro Inferiore):**
         * `[]` i. Scheda "Bisogni" (😊) con icone, valori percentuali e barre di progressione.
         * `[]` ii. Scheda "Lavoro/Scuola" (💼) con informazioni su lavoro/livello e status/performance scolastica. *(Da espandere con dettagli carriera e report scolastici)*.
         * `[]` iii. Scheda "Abilità" (🛠️) con visualizzazione delle skill e dei loro livelli (e XP se si decide di mostrarla). *(Da aggiornare per il sistema di classi Skill e per mostrare più skill)*.
@@ -1789,27 +1929,29 @@
         * `[]` vi. Scheda "Inventario" (🎒): Visualizzare l'inventario dell'NPC (oggetti, collezionabili - placeholder attuale, meccanica non implementata).
         * `[]` vii. Scheda "Tratti" (🧠): Elencare i tratti dell'NPC con le loro icone e brevi descrizioni.
         * `[]` viii. Scheda "Memorie" (📜): Visualizzare memorie significative dell'NPC (se il sistema di memorie è implementato).
-        * `[]` ix. Implementare scrolling verticale *all'interno* delle singole schede se il contenuto è troppo lungo. *(Precedentemente XI.6.d)*.
-    * `[]` d. **Nuovo - Diagrammi Relazioni Semplificati (Testuali):** (Precedentemente `I.6.2.a`)
+        * `[]` ix. Implementare scrolling verticale *all'interno* delle singole schede se il contenuto è troppo lungo.
+    * `[]` d. **Diagrammi Relazioni Semplificati (Testuali):**
         * `[]` i. Visualizzare una rappresentazione testuale semplice delle relazioni dirette dell'NPC selezionato (es. partner, figli, genitori).
-    * `[]` e. **Nuovo - Timeline Eventi NPC (Semplificata):** (Precedentemente `I.6.2.b`)
+    * `[]` e. **Timeline Eventi NPC (Semplificata):**
         * `[]` i. Scheda o visualizzazione che mostra gli eventi di vita più significativi (memorie) dell'NPC selezionato in ordine cronologico.
 
-* **3. Dashboard di Sistema (Informazioni Globali):** `[]` (Precedentemente `I.6.3`)
+* **4. TUI: Dashboard di Sistema (Informazioni Globali):** `[]`
     * `[]` a. Creare una nuova schermata/pannello accessibile per visualizzare statistiche globali della simulazione.
     * `[]` b. Informazioni da mostrare: Numero totale NPC, numero famiglie, NPC occupati/studenti, nascite/morti del giorno, stato dell'economia (futuro), anno/mese/giorno corrente.
     * `[]` c. (Futuro) Grafici testuali semplici per l'evoluzione di alcune statistiche.
 
-* **4. Navigazione e Interattività Avanzata:** `[]` (Precedentemente `I.6.4` e `I.6.7 Migliorare Interattività`)
+* **5. TUI: Navigazione e Interattività Avanzata:** `[]`
     * `[]` a. Navigazione focus tra pannelli principali (Lista NPC, Log, Schede NPC) con TAB. *(Implementata base)*.
     * `[]` b. Navigazione tra le schede NPC con frecce SINISTRA/DESTRA. *(Implementata base)*.
     * `[]` c. Tasti rapidi per accedere a schede specifiche (es. 'B' per Bisogni).
     * `[]` d. Rendere il feedback visivo sul focus del pannello/elemento più chiaro ed evidente. *(Base presente, da migliorare)*.
     * `[]` e. Shortcut contestuali visualizzati nella Command Bar.
-    * `[]` f. Menu impostazioni (`curses`) per modificare `settings.json`. *(Implementato base, da espandere)*. (Precedentemente `I.6.6 Menu Impostazioni`)
+    * `[]` f. Menu impostazioni (`curses`) per modificare `settings.json`. *(Implementato base, da espandere)*.
         * `[]` i. Espandere opzioni modificabili nel menu (più tassi di decadimento, soglie, opzioni di debug).
 
 ---
+
+
 
 ## XII. DOCUMENTO DI IDENTITÀ DI ANTHALYS E SERVIZI INTEGRATI `[]` *(Revisione completa della sezione)*
 
@@ -2004,7 +2146,7 @@
     * `[]` a. Eventi locali ricorrenti o una tantum: mercati contadini settimanali (NPC vendono prodotti da giardinaggio `X.6` o artigianato `X.4`), fiere di quartiere (con giochi, cibo, musica), piccole celebrazioni culturali specifiche di Anthalys, raccolte fondi comunitarie.
     * `[]` b. NPC partecipano attivamente: allestiscono bancarelle, si esibiscono (skill musicali/artistiche `IX.e`), socializzano (`VII`), comprano/vendono beni (`VIII`).
     * `[]` c. Questi eventi rafforzano il senso di comunità (`capital_sociale` per il quartiere), offrono opportunità di divertimento (`FUN` `IV.1.e`), e possono stimolare l'economia locale.
-* `[]` **6. Smaltitori Automatici Domestici per Rifiuti:** `[NUOVA SOTTOCATEGORIA]` *(Integrazione nuovi dettagli utente)*
+* `[]` **6. Smaltitori Automatici Domestici per Rifiuti:**  *(Integrazione nuovi dettagli utente)*
     * `[]` a. **Funzionamento e Tipologie:** (Nuovi oggetti `XVIII.1`)
         * `[]` i. **Compostatori Domestici Avanzati:** Per il trattamento dei rifiuti organici (`XIII.2.b.i.1`). Producono compost utilizzabile per giardini/orti domestici (`X.6`). Azione: `UTILIZZA_COMPOSTATORE_DOMESTICO`.
         * `[]` ii. **Mini-Riciclatori Domestici (Plastica Bio / Vetro):** Per il trattamento della plastica bio (`XIII.2.b.i.3`) e del vetro (`XIII.2.b.i.4`). Frantumano e compattano i materiali, o (avanzato) li trasformano in granuli/materiali base riutilizzabili per crafting semplice (`X.4`). Azione: `UTILIZZA_MINI_RICICLATORE`.
@@ -2078,7 +2220,7 @@
     * `[]` c. (Da I.7.b) **Refactoring Architetturale - Configurazioni Modulari:** *(Concettualizzato, da implementare)*.
         * `[]` i. Spostare costanti specifiche di sistema in file `_config.py` dedicati (es. `modules/school_system/school_config.py`, `modules/careers/careers_config.py`).
         * `[]` ii. Obiettivo: `settings.py` più snello, migliore modularità.
-* `[]` **3. Ottimizzazione Performance e Gestione Popolazione Vasta:** `[NUOVO PUNTO AGGIORNATO]`
+* `[]` **3. Ottimizzazione Performance e Gestione Popolazione Vasta:**
     * `[]` a. Architettura per supportare diversi Livelli di Dettaglio (LOD) per l'IA e la simulazione degli NPC. *(Design LOD e simulazione "Off-Screen" per NPC di background ulteriormente dettagliata - vedi IV.4.h).*.
     * `[]` b. Implementazione di Time Slicing / Staggered Updates per gli NPC attivi (LOD Fascia 1 e 2) per distribuire il carico della CPU.
     * `[]` c. Tecniche di caching per calcoli ripetitivi e costosi (se necessario).
@@ -2118,7 +2260,7 @@
     * `[]` c. La reputazione influenza come gli altri NPC (specialmente quelli che non lo conoscono direttamente) lo trattano inizialmente, parlano di lui, o sono disposti a interagire/collaborare/fidarsi.
     * `[]` d. Tratti come `ARROGANT`, `POMPOUS`, `SINCERE`, `HONEST_TO_A_FAULT` (futuro), `MANIPULATIVE` (futuro), `HEARTLESS`, `WARM_HEARTED` hanno un forte impatto sulla costruzione (o distruzione) della reputazione.
     * `[]` e. (Avanzato) Meccaniche di "influenza sociale": NPC con alta reputazione, carisma (`IX.e`), o posizioni di potere (`VI.1`, `VIII.1`) possono influenzare più facilmente le opinioni e le azioni di altri NPC.
-* `[]` **6. Estensione "Total Realism" - Generazione NPC di Opere Intellettuali e Creative Uniche:** `[NUOVA SOTTOCATEGORIA]`
+* `[]` **6. Estensione "Total Realism" - Generazione NPC di Opere Intellettuali e Creative Uniche:** 
     * `[]` a. NPC con alti livelli di skill rilevanti (`WRITING`, `PAINTING`, `MUSICIANSHIP`, `PROGRAMMING`, `PHILOSOPHY` - tratto o futura skill `IX.e`) e tratti creativi/intellettuali (`CREATIVE_VISIONARY`, `PHILOSOPHER`, `GENIUS` `IV.3.b`) possono non solo creare opere di "alta qualità", ma opere che hanno un (semplificato) "contenuto" o "tema" unico generato proceduralmente.
     * `[]` b. **Letteratura:** NPC potrebbero scrivere romanzi, poesie, saggi con titoli generati, temi astratti (es. "amore e perdita in tempo di guerra", "critica sociale sulla disuguaglianza", "esplorazione filosofica del libero arbitrio"), e un impatto variabile sulla cultura (alcuni libri diventano classici discussi per generazioni, altri vengono dimenticati).
     * `[]` c. **Arte Visiva:** NPC potrebbero dipingere quadri o creare sculture con stili e soggetti astratti descritti testualmente (es. "un paesaggio astratto con colori tumultuosi", "un ritratto realistico che cattura la malinconia del soggetto").
@@ -2157,8 +2299,7 @@
     * `[]` a. NPC possono interagire con oggetti specifici nelle `Location` (es. TV, letto, frigorifero, computer, libri, specchio, strumenti musicali, attrezzatura sportiva, giochi da tavolo, lavandini/rubinetti, fontane pubbliche, macchine del caffè/bollitori, distributori automatici di bevande).
     * `[]` b. Le interazioni soddisfano bisogni, danno moodlet, o sviluppano skill (es. leggere un libro (`READ_BOOK` `X.9`) aumenta `KNOWLEDGE_GENERAL` (futura skill `IX.e`) e soddisfa `FUN` `IV.1.e`; usare un computer può sviluppare skill `PROGRAMMING` `IX.e` o `VIDEOGAMING` `IX.e`, o permettere accesso alla Sezione Commercio "AION" di SoNet `XXIV.c.xi`; usare un rubinetto per `DRINK_WATER_TAP` soddisfa `THIRST` `IV.1.h`).
     * `[]` c. Qualità e stato degli oggetti possono influenzare l'efficacia dell'interazione (es. un letto comodo dà un moodlet migliore `COMFORT` `IV.1.e`; un frigorifero ben fornito offre più opzioni per placare fame e sete e riflette le scorte domestiche `IV.1.j`).
-    * `[]` d. **Oggetti Contenitori per Scorte Domestiche:** `[NUOVO PUNTO]`
-        * `[]` i. Oggetti come Frigoriferi, Dispense, Armadietti del bagno (`XVIII.1.a`) non solo permettono l'interazione (es. `PRENDI_CIBO_DAL_FRIGO`) ma rappresentano visivamente (astrattamente) la capacità e il livello delle scorte domestiche (`IV.1.j`).
+    * `[]` d. **Oggetti Contenitori per Scorte Domestiche:**         * `[]` i. Oggetti come Frigoriferi, Dispense, Armadietti del bagno (`XVIII.1.a`) non solo permettono l'interazione (es. `PRENDI_CIBO_DAL_FRIGO`) ma rappresentano visivamente (astrattamente) la capacità e il livello delle scorte domestiche (`IV.1.j`).
         * `[]` ii. La "capacità" di questi contenitori potrebbe essere un fattore (es. una famiglia numerosa necessita di un frigo più grande o di fare la spesa più spesso). Potrebbe essere un attributo dell'oggetto (es. `storage_capacity`).
 * **2. Usura, Manutenzione e Dinamica degli Oggetti:** `[]` (Revisione di "Usura e Manutenzione Oggetti")
     * `[]` a. Oggetti possono "usurarsi" o "rompersi" con l'uso frequente o a causa di eventi (es. un NPC `CLUMSY` `IV.3.b` che lo usa, sbalzi di tensione per oggetti elettronici). *(Logica base di rottura implementata per alcuni oggetti)*
@@ -2259,7 +2400,7 @@
 * **4. Sistema dei Casinò:** `[]`
     * `[]` a. **Tipologie di Casinò:**
         * `[]` i. **Casinò Fisici:**
-            * `[]` 1. Creare nuovo `LocationType.CASINO` e definire lotti specifici in città.
+            * `[]` 1. Creare `LocationType.CASINO` e definire lotti specifici in città.
             * `[]` 2. Implementare oggetti/azioni interagibili per giochi da casinò (slot machine, poker, roulette).
             * `[]` 3. Meccanismo di controllo età rigoroso all'ingresso (NPC < 18 anni non possono entrare/giocare).
         * `[]` ii. **Casinò Online:**
@@ -2304,9 +2445,9 @@
 
 ---
 
-## XX. ATTEGGIAMENTI CULTURALI/FAMILIARI E SVILUPPO `[]` *(Nuova sezione nel tuo file TODO)*
+## XX. ATTEGGIAMENTI CULTURALI/FAMILIARI E SVILUPPO `[]`
 
-* `[]` **1. Atteggiamento Familiare e Personale verso la Nudità:** `[NUOVO PUNTO DI VALUTAZIONE]` *(Concettualizzazione iniziata, si lega a IV.3.b.ii.8)*
+* `[]` **1. Atteggiamento Familiare e Personale verso la Nudità:** *(Concettualizzazione iniziata, si lega a IV.3.b.ii.8)*
     * `[]` a. Aggiungere attributo `Character.is_nude: bool`.
     * `[]` b. Azioni che possono portare a/da nudità (es. `SLEEPING`, `USING_BATHROOM` - doccia, `BEING_INTIMATE`, future `GET_DRESSED`/`UNDRESS`).
     * `[]` c. Definire "contesti privati appropriati" per la nudità (es. casa propria, certe stanze).
@@ -2316,7 +2457,7 @@
 * `[]` **2. Insegnare e Apprendere l'Onestà:**
     * `[]` a. Interazioni genitore-figlio specifiche per insegnare il valore dell'onestà o, al contrario, comportamenti disonesti (se i genitori hanno tratti come `DISHONEST`).
     * `[]` b. Impatto a lungo termine di questi insegnamenti sulla probabilità che il figlio sviluppi tratti come `SINCERE` o `DISHONEST`.
-* `[]` **3. (Avanzato/Opzionale) Sistema di Nudità Pubblica e Reazioni Sociali Complesse:** `[NUOVO PUNTO DI VALUTAZIONE]`
+* `[]` **3. (Avanzato/Opzionale) Sistema di Nudità Pubblica e Reazioni Sociali Complesse:**
     * `[]` a. Definire logica e conseguenze per nudità in contesti pubblici inappropriati (moodlet per testimoni, impatto sulla reputazione).
     * `[]` b. Azioni specifiche come "Streaking" o comportamenti esibizionisti (legati a tratti specifici).
     * `[]` c. Questo richiederebbe un'attenta valutazione del tono del gioco e meccaniche di privacy/consenso.
@@ -2337,7 +2478,7 @@
     * `[]` b. Stabilire benchmark per misurare l'impatto delle modifiche al codice sulle performance.
     * `[]` c. Check periodici delle performance, specialmente con l'aumento del numero di NPC e della complessità dei sistemi.
 
-* `[]` **3. Comandi Cheat-Code per Sviluppo e Testing:** `[NUOVO SOTTOPUNTO]`
+* `[]` **3. Comandi Cheat-Code per Sviluppo e Testing:** 
     * `[]` a. Implementare un meccanismo per inserire comandi cheat (es. tramite una console di debug nella TUI o comandi specifici da tastiera in una "modalità developer").
     * `[]` b. **Comandi di Manipolazione NPC:**
         * `[]` i. Modificare bisogni di un NPC selezionato (es. `cheat_need <need_type> <value>`).
@@ -2369,7 +2510,7 @@
 
 ## XXII. SISTEMA REGOLAMENTARE GLOBALE E GOVERNANCE DI ANTHALYS `[]` *(Concetti base e parametri definiti, implementazione in corso)*
 
-* `[]` **A. Principi Fondamentali (basati sulla Costituzione):** `[NUOVO SOTTO-BLOCCO]`
+* `[]` **A. Principi Fondamentali (basati sulla Costituzione):**
     * `[!]` i. Le normative devono promuovere la dignità umana, la libertà, la giustizia e la solidarietà. *(Art. 1 Costituzione)*.
     * `[!]` ii. Le normative devono garantire i diritti fondamentali: vita, libertà, sicurezza, proprietà privata (con eccezioni legali), istruzione, assistenza sanitaria, partecipazione civica. *(Art. 8, 9, 10 Costituzione)*.
     * `[!]` iii. Le normative economiche devono promuovere un'economia equa, sostenibile e orientata al benessere, combattendo povertà e ingiustizia sociale. *(Art. 11, 12 Costituzione)*.
@@ -2432,16 +2573,12 @@
         * `[]` vii. Gestire transizione allo stato di "pensionato" e inizio erogazione pensione.
     * `[]` c. **Indennità di Maternità/Paternità:** Definire durata, importo (% dello stipendio), e condizioni di accesso (es. mesi minimi di contribuzione).
     * `[]` d. **Norme su Sicurezza sul Lavoro e Indennizzi:** Meccanismi di prevenzione infortuni e malattie professionali, e sistema di indennizzo/supporto in caso di accadimento.
-    * `[]` e. **Assistenza Sanitaria e Supporto Specifico per Disabilità e Malattie Croniche:** `[NUOVO PUNTO]`
-        * `[]` i. Programmi speciali e dedicati per garantire l'accesso a cure continuative, terapie riabilitative (`XXIII.b.ii`), ausili tecnici, e supporto psicologico (`IV.1.i`) per cittadini con disabilità (fisiche o mentali) o affetti da malattie croniche invalidanti.
+    * `[]` e. **Assistenza Sanitaria e Supporto Specifico per Disabilità e Malattie Croniche:**         * `[]` i. Programmi speciali e dedicati per garantire l'accesso a cure continuative, terapie riabilitative (`XXIII.b.ii`), ausili tecnici, e supporto psicologico (`IV.1.i`) per cittadini con disabilità (fisiche o mentali) o affetti da malattie croniche invalidanti.
         * `[]` ii. Questi programmi integrano e vanno oltre la copertura sanitaria di base (`XXII.5`), potendo includere assistenza domiciliare o supporto per i caregiver.
-    * `[]` f. **Sussidi per Famiglie a Basso Reddito con Figli:** `[NUOVO PUNTO]`
-        * `[]` i. Definire criteri di idoneità (basati su reddito familiare, numero di figli).
+    * `[]` f. **Sussidi per Famiglie a Basso Reddito con Figli:**         * `[]` i. Definire criteri di idoneità (basati su reddito familiare, numero di figli).
         * `[]` ii. Erogazione di un sussidio economico periodico (in **Ꜳ**) per supportare le spese di crescita ed educazione dei minori.
-    * `[]` g. **Assistenza per Genitori Single:** `[NUOVO PUNTO]`
-        * `[]` i. Programmi specifici di supporto economico, consulenza e servizi (es. accesso prioritario ad asili nido `V.2.a`) per madri e padri single, specialmente se a basso reddito.
-    * `[]` h. **Supporto per Genitori con Disabilità o Malattie Degenerative:** `[NUOVO PUNTO]`
-        * `[]` i. Servizi di assistenza pratica (es. aiuto domestico, trasporto) e supporto psicologico per genitori con disabilità o malattie che limitano la loro capacità di cura dei figli.
+    * `[]` g. **Assistenza per Genitori Single:**         * `[]` i. Programmi specifici di supporto economico, consulenza e servizi (es. accesso prioritario ad asili nido `V.2.a`) per madri e padri single, specialmente se a basso reddito.
+    * `[]` h. **Supporto per Genitori con Disabilità o Malattie Degenerative:**         * `[]` i. Servizi di assistenza pratica (es. aiuto domestico, trasporto) e supporto psicologico per genitori con disabilità o malattie che limitano la loro capacità di cura dei figli.
 
 * **5. Copertura Sanitaria per Cittadini a Basso Reddito (Gestita tramite il Governo):** `[]` *(Parametri definiti, logica da implementare)*
     * `[]` a. Identificare cittadini idonei (reddito annuo < 6.000 **Ꜳ** - `LOW_INCOME_HEALTH_COVERAGE_THRESHOLD`).
@@ -2455,7 +2592,7 @@
     * `[]` d. Permessi per Malattia retribuiti (definire meccanica: durata, certificazione - astratta, impatto su performance).
     * `[]` e. Permessi per Emergenze Familiari retribuiti (definire meccanica: tipi di emergenze, durata).
 
-* `[]` **7. Estensione "Total Realism" - Evoluzione, Applicazione e Impatto Sociale delle Normative:** `[NUOVA SOTTOCATEGORIA]`
+* `[]` **7. Estensione "Total Realism" - Evoluzione, Applicazione e Impatto Sociale delle Normative:** 
     * `[]` a. **Dinamicità delle Regolamentazioni:**
         * `[]` i. Le normative globali definite in questa sezione (orari di lavoro, tasse, welfare) non sono statiche, ma possono essere soggette a revisione e modifica nel tempo da parte dell'`AnthalysGovernment` (`VI.1`) in risposta a:
             * Cambiamenti economici (`VIII.5.b`).
@@ -2472,7 +2609,7 @@
     * `[]` d. **Equità e Accessibilità del Sistema:**
         * `[]` i. Valutare come le normative impattano diversamente NPC con diversi livelli di reddito, tratti, o situazioni familiari, e se il sistema nel suo complesso promuove l'equità (Principio `XXII.A.iii`).
         * `[]` ii. L'accesso ai benefici (sanità `XXII.5`, pensioni `XXII.4.b`) dovrebbe essere chiaro e, per quanto possibile, non eccessivamente burocratico per gli NPC (meccanica di richiesta astratta via SoNet `XXIV.c.ix`).
-* `[]` **8. Regolamentazione su Prodotti Alimentari, Bevande e Beni di Consumo di Anthalys:** `[NUOVA INTEGRAZIONE]` *(Basata sul "Regolamento Alimentare di Anthal" e documenti specifici forniti)*
+* `[]` **8. Regolamentazione su Prodotti Alimentari, Bevande e Beni di Consumo di Anthalys:** *(Basata sul "Regolamento Alimentare di Anthal" e documenti specifici forniti)*
     * `[!]` a. **Articolo 1: Scopo e Applicabilità:**
         * `[]` i. Stabilire norme per produzione, distribuzione, vendita, conservazione e consumo di prodotti alimentari, bevande (alcoliche e non), e altri beni di consumo primari per garantire sicurezza, qualità e protezione dei consumatori.
         * `[]` ii. Le normative si applicano a tutti gli operatori del settore (produttori `C.9`, distributori `VIII.6`, venditori `XVIII.5.h`) e ai consumatori finali (`IV`).
@@ -2536,7 +2673,9 @@
 
 ---
 
-## XXIII. SISTEMA SANITARIO APPROFONDITO: Patologie, Ricerca Medica e Dinamiche Ospedaliere `[NUOVA SEZIONE]` `[]`
+
+
+## XXIII. SISTEMA SANITARIO APPROFONDITO: Patologie, Ricerca Medica e Dinamiche Ospedaliere `[]`
 
 *Questo sistema andrà oltre i "Servizi Sanitari Essenziali" (`XXII.5`) e l'accesso tramite SoNet (`XXIV.c.iii`), dettagliando malattie specifiche (genetiche `II`, infettive, croniche, legate allo stile di vita o all'ambiente `XIII.1.a`), sintomi, trattamenti avanzati, ricerca medica (collegata alla G.A.O. `XXV.5.b.ii`), la gestione interna degli ospedali (`XXV.5.a`), carriere mediche specialistiche (`VIII.1.j`), e l'impatto della salute sulla vita degli NPC.*
 
@@ -2564,7 +2703,8 @@
 
 ---
 
-## XXIV. SoNet - Portale Unico dei Servizi al Cittadino di Anthalys `[NUOVA SEZIONE]`
+
+## XXIV. SoNet - Portale Unico dei Servizi al Cittadino di Anthalys
 * `[]` a. **Definizione Concettuale e Architettura del Portale SoNet:**
     * `[]` i. SoNet è il portale web/app ufficiale del Governo di Anthalys (`VI.1`) che fornisce un punto di accesso unico e sicuro per i cittadini (`IV`) a una vasta gamma di servizi pubblici e informazioni personali. *(Concetto base definito nel documento myanthalysid_app_def e qui)*
     * `[]` ii. La sezione "Identità" di SoNet sostituisce ed espande le funzionalità precedentemente concettualizzate per "MyAnthalysID app" (vedi `XII.4` aggiornato).
@@ -2605,14 +2745,14 @@
     * `[]` viii. **Area Notifiche e Comunicazioni Ufficiali Personali:**
         * `[]` 1. Casella di posta sicura per ricevere comunicazioni ufficiali dal Governo di Anthalys (`VI.1`), scadenze fiscali (`XXII.3.d`), notifiche sanitarie (`XXII.4.c`), avvisi di servizio (es. interruzioni trasporti, allerte meteo `I.3.f`), risultati elettorali (`VI.3.e`).
         * `[]` 2. Storico delle comunicazioni consultabile.
-    * `[]` ix. **Sezione Welfare e Supporto Sociale:** `[NUOVA SOTTOCATEGORIA]` (Collegamento a `VIII.3`, `XXII.4`, `XXII.5`)
+    * `[]` ix. **Sezione Welfare e Supporto Sociale:**  (Collegamento a `VIII.3`, `XXII.4`, `XXII.5`)
         * `[]` 1. Consultazione dei propri diritti e delle prestazioni di welfare disponibili.
         * `[]` 2. Presentazione e monitoraggio (semplificato) di richieste per sussidi di disoccupazione (`XXII.4`).
         * `[]` 3. Visualizzazione dello stato dei propri contributi pensionistici e stima della pensione futura (`XXII.4.b`).
         * `[]` 4. Richiesta/gestione indennità di maternità/paternità (`XXII.4.c`).
         * `[]` 5. Informazioni e (eventuale) richiesta per supporti legati a invalidità o malattie a lungo termine (`XXII.4`).
         * `[]` 6. Accesso a programmi di supporto per famiglie a basso reddito (`XXII.4.d`) o per la copertura sanitaria tramite "Istituti Fondine" (`XXII.5`).
-    * `[]` x. **Sezione Informazioni Legali e Normative per il Cittadino:** `[NUOVA SOTTOCATEGORIA]` (Collegamento a `XXII`)
+    * `[]` x. **Sezione Informazioni Legali e Normative per il Cittadino:**  (Collegamento a `XXII`)
         * `[]` 1. Accesso a un compendio semplificato e ricercabile dei diritti e doveri fondamentali del cittadino di Anthalys (`XXII.A`).
         * `[]` 2. Consultazione di normative chiave di interesse pubblico (es. sintesi del Regolamento Alimentare `XXII.8`, normative sul lavoro `XXII.1`, norme sulla privacy e uso del DID `XII.7`).
         * `[]` 3. FAQ e guide interattive su procedure amministrative comuni (es. come registrare un cambio di residenza, come richiedere un certificato).
@@ -2623,13 +2763,12 @@
         * `[]` 3. Pagamento sicuro tramite il sistema finanziario integrato nel DID/SoNet (`XII.5`, `XXIV.c.i.3`).
         * `[]` 4. Gestione delle opzioni di consegna (a domicilio o ritiro presso Punti di Raccolta AION `VIII.6.3.b`).
         * `[]` 5. Accesso e gestione dei Programmi di Fidelizzazione AION (`VIII.6.3.c`).
-        * `[]` 6. **Ordini Ricorrenti e Liste della Spesa Automatizzate (Abbonamenti AION):** `[NUOVO PUNTO]`
-            * `[]` a. Gli NPC (tramite questa sezione di SoNet) possono impostare ordini ricorrenti (es. settimanali, mensili) per beni di consumo essenziali da AION.
+        * `[]` 6. **Ordini Ricorrenti e Liste della Spesa Automatizzate (Abbonamenti AION):**             * `[]` a. Gli NPC (tramite questa sezione di SoNet) possono impostare ordini ricorrenti (es. settimanali, mensili) per beni di consumo essenziali da AION.
             * `[]` b. Possibilità di creare "liste della spesa intelligenti" che AION può processare automaticamente o con conferma dell'NPC quando le scorte domestiche (`IV.1.j`) sono basse (se l'NPC acconsente alla condivisione di questi dati con l'IA di AION per questo servizio).
             * `[]` c. Sconti o vantaggi per chi aderisce a programmi di consegna regolare/abbonamento.
         * `[]` 7. Funzionalità per inviare feedback e valutazioni su prodotti e servizi AION (`VIII.6.12.a`).
         * `[]` 8. Storico ordini, gestione resi (se implementata), interfaccia per supporto clienti (gestito dall'IA di AION `VIII.6.1.c`).
-    * `[P]` xii. **Sezione Servizi Sociali e Connessioni ("Amori Curati"):** `[NUOVA SOTTOCATEGORIA]`
+    * `[P]` xii. **Sezione Servizi Sociali e Connessioni ("Amori Curati"):** 
         * `[P]` 1. **Servizio "Trova Amici e Partner Romantici":**
             * `[P]` a. **Ricerca Partner Romantici:** Il backend in `Simulation` (`get_eligible_dating_candidates`) e l'handler base in `SoNetPortal` (`_handle_amori_curati_matchmaking_phase2`) sono implementati e testati con successo utilizzando le preferenze esplicite.
                 * `[]` _TODO Futuro:_ Algoritmi di punteggio più complessi, influenza dei tratti di personalità.
@@ -2650,8 +2789,7 @@
     * `[]` iii. Misure contro frodi, phishing e accessi non autorizzati.
 * `[]` g. **Accessibilità del Portale SoNet:**
     * `[]` i. Assicurare che il design dell'interfaccia (TUI o futura GUI) segua principi di accessibilità per permettere l'utilizzo da parte di NPC con diverse abilità (se simulate).
-* `[]` h. **Sistema di Gestione Feedback e Valutazioni per SoNet e Servizi Governativi:** `[NUOVO PUNTO]`
-    * `[]` i. **Canali di Raccolta Feedback Integrati:**
+* `[]` h. **Sistema di Gestione Feedback e Valutazioni per SoNet e Servizi Governativi:**     * `[]` i. **Canali di Raccolta Feedback Integrati:**
         * `[]` 1. Implementare funzionalità all'interno di ogni sezione di servizio di SoNet (`XXIV.c`) per permettere agli NPC di inviare feedback (es. valutazione a stelle, scelta multipla su aspetti specifici, campo di testo per commenti brevi e astratti).
         * `[]` 2. Possibilità di segnalare problemi tecnici o di usabilità relativi al portale SoNet stesso.
     * `[]` ii. **Processamento e Analisi del Feedback (Astratto):**
@@ -2668,9 +2806,11 @@
 
 ---
 
-## XXV. INFRASTRUTTURE E URBANISTICA DI ANTHALYS `[NUOVA SEZIONE]` `[]`
 
-* `[]` **1. Struttura Urbana e Distretti di Anthalys:** `[PUNTO DETTAGLIATO]`
+
+## XXV. INFRASTRUTTURE E URBANISTICA DI ANTHALYS `[]`
+
+* `[]` **1. Struttura Urbana e Distretti di Anthalys:**
     * `[]` a. **Organizzazione Generale della Città:**
         * `[]` i. Anthalys è suddivisa in 12 distretti principali, ognuno caratterizzato da una funzione urbanistica prevalente e una densità di popolazione variabile.
         * `[]` ii. La pianificazione dei distretti mira a ottimizzare l'uso del suolo, garantire la sicurezza dei cittadini, promuovere una vita comunitaria attiva e integrata, e assicurare un'equa distribuzione dei servizi essenziali.
@@ -2688,8 +2828,7 @@
             * `[]` 1. Localizzati prevalentemente nelle aree periferiche della città per minimizzare l'impatto sulla qualità della vita dei distretti residenziali.
             * `[]` 2. Ospitano fabbriche (`VIII.1.k`), magazzini logistici (`VIII.6.6`), laboratori artigianali, e altre strutture produttive e industriali.
             * `[]` 3. Anthalys si impegna a mantenere questi distretti il più possibile ecologicamente sostenibili, promuovendo l'adozione di tecnologie per il controllo delle emissioni, il trattamento dei reflui, il riciclo dei materiali di scarto (`XIII.1.b`), e l'efficienza energetica.
-            * `[]` 4. Alcuni di questi distretti industriali, o specifiche aree al loro interno strategicamente posizionate (es. vicino a porti `XXV.3.d` o aeroporti `XXV.3.d`), potrebbero essere designati come **Zone Economiche Speciali (ZES)** per attrarre investimenti esteri e promuovere settori industriali chiave, con vantaggi fiscali e regolatori specifici (come definito in `C.4.e.iii`). `[NUOVO PUNTO]`
-        * `[]` iv. **Distretti Amministrativi e Governativi:**
+            * `[]` 4. Alcuni di questi distretti industriali, o specifiche aree al loro interno strategicamente posizionate (es. vicino a porti `XXV.3.d` o aeroporti `XXV.3.d`), potrebbero essere designati come **Zone Economiche Speciali (ZES)** per attrarre investimenti esteri e promuovere settori industriali chiave, con vantaggi fiscali e regolatori specifici (come definito in `C.4.e.iii`).         * `[]` iv. **Distretti Amministrativi e Governativi:**
             * `[]` 1. Concentrano gli edifici governativi centrali e le principali istituzioni pubbliche.
             * `[]` 2. Includono il Municipio (o Palazzo del Governatore `VI.1.i`), le sedi dei ministeri o dipartimenti cittadini, i tribunali (`VI.1.iii.1`), la sede della Banca Centrale di Anthalys (`VIII.6.4.a`), e altri uffici pubblici di rilevanza nazionale/cittadina.
         * `[]` v. **Distretti Culturali e Storici:**
@@ -2700,7 +2839,7 @@
         * `[]` i. Gli NPC si muovono tra i distretti per lavoro (`VIII.1`), istruzione (`V`), acquisti (`VIII.6`), svago (`X`), e altre attività, utilizzando la rete di trasporti (`XXV.3`).
         * `[]` ii. La pianificazione urbanistica mira a bilanciare l'autosufficienza di base dei singoli distretti con la necessità di interconnessione per servizi specializzati.
 
-* `[]` **2. Architettura e Design Urbano di Anthalys:** `[PUNTO DETTAGLIATO]`
+* `[]` **2. Architettura e Design Urbano di Anthalys:**
     * `[]` a. **Filosofia Architettonica:** L’architettura di Anthalys è caratterizzata da una distintiva combinazione di elementi stilistici che richiamano l'epoca medievale (nel rispetto del suo patrimonio storico) con tecnologie e materiali costruttivi moderni e avanzati. Tutti gli edifici, nuovi e ristrutturati, sono progettati per armonizzarsi con l'ambiente circostante (naturale e costruito) e per rispettare rigorosi principi di sostenibilità ed efficienza energetica.
     * `[]` b. **Edifici Residenziali:**
         * `[]` i. Le tipologie abitative variano per soddisfare diverse esigenze: dalle case unifamiliari o a schiera (spesso con piccoli giardini privati `XVIII.5.j`) nei quartieri meno densi, a moderni ed efficienti complessi residenziali e appartamenti di varie dimensioni nei distretti più centrali o di nuova concezione.
@@ -2732,7 +2871,7 @@
             * `[]` 3. I treni sono climatizzati (riscaldamento/raffrescamento) per il comfort dei passeggeri.
             * `[]` 4. Offerta di connessione Wi-Fi gratuita nelle stazioni e sui treni, permettendo l'accesso a **SoNet (`XXIV`)** e altri servizi online durante il viaggio.
         * `[]` v. **Interazione NPC:** Gli NPC utilizzano la metropolitana per i loro spostamenti quotidiani (lavoro `VIII.1`, scuola `V`, tempo libero `X`) in base alla disponibilità delle linee, ai costi (`XXV.3.e.ii`), e ai tempi di percorrenza.
-    * `[]` b. **Rete di Autobus e Tram di Anthalys:** `[PUNTO DETTAGLIATO]`
+    * `[]` b. **Rete di Autobus e Tram di Anthalys:**
         * `[!]` i. L’estesa rete di autobus e tram copre le aree della città non servite capillarmente dalla metropolitana, assicurando che ogni parte di Anthalys sia facilmente raggiungibile.
         * `[]` ii. **Rete di Autobus:**
             * `[]` 1. **Linee e Percorsi:** Definire e mappare una rete completa di linee di autobus che attraversano l'intera città, con un focus sul collegamento efficace delle periferie con i distretti centrali e i nodi di interscambio (`XXV.3.e.i`).
@@ -2755,7 +2894,7 @@
                 * `[]` b. Piena accessibilità per tutti i passeggeri, incluse persone con mobilità ridotta (`XXV.3.g`).
                 * `[]` c. Display informativi e annunci sonori per le fermate e le informazioni di servizio.
         * `[]` iv. **Interazione NPC:** Gli NPC utilizzano autobus e tram per i loro spostamenti, scegliendo il mezzo più conveniente in base a destinazione, costo, tempo di percorrenza e accessibilità dalla loro posizione.
-    * `[]` c. **Rete Stradale e Autostradale di Anthalys:** `[PUNTO DETTAGLIATO]`
+    * `[]` c. **Rete Stradale e Autostradale di Anthalys:**
         * `[!]` i. Le strade e le autostrade di Anthalys sono progettate, costruite e mantenute per facilitare un flusso di traffico efficiente e sicuro per tutti gli utenti, integrando principi di sostenibilità.
         * `[]` ii. **Infrastruttura Stradale Urbana e Principale:**
             * `[]` 1. **Materiali e Costruzione Sostenibile:**
@@ -2814,7 +2953,7 @@
             * `[]` 1. **Carriere:** Nuove carriere o specializzazioni (`VIII.1.j`): Capitano di traghetto/nave commerciale, operatore portuale lacustre/fluviale, guida turistica per crociere, personale di bordo, costruttore/manutentore navale.
             * `[]` 2. **Turismo via Acqua:** Gli NPC (`IV`) e il giocatore (se applicabile) possono viaggiare verso le isole o altre destinazioni lacustri/fluviali per vacanza (`X`) o affari, utilizzando i servizi di trasporto acquatico. (Collegamento a `XIV` per eventi turistici).
             * `[]` 3. **Commercio via Acqua:** AION (`VIII.6`) e altre imprese (`VIII.1.k`) utilizzano le vie d'acqua come principali rotte logistiche per l'approvvigionamento e la distribuzione di beni in tutto il continente.
-    * `[]` e. **Integrazione dei Sistemi di Trasporto di Anthalys:** `[PUNTO DETTAGLIATO]`
+    * `[]` e. **Integrazione dei Sistemi di Trasporto di Anthalys:**
         * `[!]` i. Il sistema di trasporto di Anthalys è progettato per essere altamente integrato, garantendo la fluidità degli spostamenti tra i vari mezzi di trasporto e promuovendo l'uso del trasporto pubblico.
         * `[]` ii. **Interscambio Modale Facilitato:**
             * `[]` 1. Progettare le principali stazioni della metropolitana (`XXV.3.a`), degli autobus (`XXV.3.b`) e dei tram (`XXV.3.b`) come veri e propri hub di interscambio, con percorsi chiari e brevi per facilitare i trasferimenti tra le diverse linee e mezzi.
@@ -3029,7 +3168,9 @@
 
 ---
 
-## XXVI. CLIMA, EVENTI ATMOSFERICI DETTAGLIATI E IMPATTO AMBIENTALE DINAMICO `[NUOVA SEZIONE]` `[]`
+
+
+## XXVI. CLIMA, EVENTI ATMOSFERICI DETTAGLIATI E IMPATTO AMBIENTALE DINAMICO `[]`
 
 *Questo sistema andrà oltre il generico impatto del meteo (`I.3.f`), definendo un ciclo stagionale più marcato (se rilevante per Anthalys), eventi atmosferici specifici (tempeste, ondate di calore/freddo, siccità, neve), e il loro impatto diretto su agricoltura (`C.9`), consumi energetici (`XXV.4.a`), salute e umore degli NPC (`IV.1`), attività all'aperto (`X`), e possibili disastri naturali su piccola scala.*
 
@@ -3053,7 +3194,9 @@
 
 ---
 
-## XXVII. SISTEMA LEGALE, CRIMINALITÀ E GIUSTIZIA PENALE `[NUOVA SEZIONE]` `[]`
+
+
+## XXVII. SISTEMA LEGALE, CRIMINALITÀ E GIUSTIZIA PENALE `[]`
 
 *Questo sistema espanderà significativamente il "Sistema Giudiziario Approfondito" accennato in `VI.1.iii.2`, definendo tipi di crimini (da piccoli furti a reati più gravi), le indagini della polizia (`VI.1.iii.2.d`), il ruolo degli avvocati (`VIII.1.j`), i processi penali (con giurie, testimoni), le sentenze (multe, servizio comunitario, detenzione in `LocationType.PRISON`), e il sistema carcerario/rieducativo.*
 
@@ -3086,7 +3229,9 @@
 
 ---
 
-## XXVIII. VITA FAMILIARE AVANZATA E DINAMICHE INTERGENERAZIONALI `[NUOVA SEZIONE]` `[]`
+
+
+## XXVIII. VITA FAMILIARE AVANZATA E DINAMICHE INTERGENERAZIONALI `[]`
 
 *Questa sezione si concentrerà sull'approfondimento delle complessità delle relazioni familiari, andando oltre la genetica di base e la formazione di coppie, per esplorare le sfumature della vita quotidiana in famiglia, l'impatto a lungo termine dell'educazione, e le dinamiche che si estendono attraverso le generazioni.*
 
@@ -3114,7 +3259,8 @@
 
 ---
 
-## XXIX. MEDIA, INFORMAZIONE E PAESAGGIO CULTURALE DI ANTHALYS `[NUOVA SEZIONE]` `[]`
+
+## XXIX. MEDIA, INFORMAZIONE E PAESAGGIO CULTURALE DI ANTHALYS `[]`
 
 *Questa sezione si focalizzerà sulla creazione di un ecosistema mediatico e informativo dinamico in Anthalys, esplorando come l'informazione viene prodotta, diffusa, consumata, e come influenza la cultura, le opinioni e i comportamenti degli NPC.*
 
@@ -3151,7 +3297,8 @@
 
 ---
 
-## XXX. FLORA DI ANTHALYS: Ecosistemi Vegetali, Biodiversità e Interazioni `[NUOVA SEZIONE]` `[]`
+
+## XXX. FLORA DI ANTHALYS: Ecosistemi Vegetali, Biodiversità e Interazioni `[]`
 
 *Questa sezione si concentrerà sulla definizione dettagliata della vita vegetale di Anthalys, dai grandi ecosistemi alle singole specie, includendo il loro ciclo vitale, il ruolo ecologico, e le interazioni con l'ambiente e gli NPC.*
 
@@ -3181,7 +3328,8 @@
 
 ---
 
-## XXXI. FAUNA DI ANTHALYS: Specie Selvatica, Comportamenti ed Ecosistemi Animali `[NUOVA SEZIONE]` `[]`
+
+## XXXI. FAUNA DI ANTHALYS: Specie Selvatica, Comportamenti ed Ecosistemi Animali `[]`
 
 *(NOTA: Questa sezione si concentra sugli aspetti ecologici e di simulazione della fauna selvatica nel mondo principale di Anthalys. Le meccaniche dettagliate per gli animali domestici e l'allevamento sono previste nel DLC `C.DLC_Animali` e `C.5`, ma questa sezione può fornire le basi per le specie selvatiche e il loro comportamento naturale, che interagiranno anche con le attività umane e le infrastrutture come i sottopassi `XXV.7.c`.)*
 
@@ -3210,28 +3358,29 @@
 
 ---
 
+
 ## XXXII. IL TEMPO IN ANTHALYS: Calendario, Cicli Stagionali, Eventi Cosmici e Festività `[]`
 *Questa sezione centralizza tutte le meccaniche relative alla misurazione del tempo, al calendario ufficiale di Anthalys, all'alternarsi delle stagioni, agli eventi astronomici rilevanti e alla gestione delle festività, che influenzano profondamente la vita degli NPC e le dinamiche del mondo di gioco.*
 
 * `[]` **0. Obiettivo Principale: Raffinare il `TimeManager` Globale**
     * `[]` a. Implementare la gestione completa di festività, stagioni, ed eventi temporizzati, come dettagliato in questa sezione e in riferimento alla Sezione `XIV` (Eventi).
-* `[P]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
-    * `[x]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito in `settings.HOURS_PER_DAY` che deriva da `ATHDateTimeInterface.HXD_CALENDAR`). *(Logica gestita da ATHDateTime)*.
+* `[]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
+    * `[]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito nella Costituzione di Anthalys, `Art. 3`).
     * `[]` b. Suddivisione della giornata in fasi riconoscibili: Alba, Mattina, Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e impatto sulla luce ambientale e sulla routine degli NPC `IV.4.a`).
-Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e impatto sulla luce ambientale e sulla routine degli NPC `IV.4.a`).
-* `[P]` **2. Scala del Tempo e Gestione della Velocità di Gioco:**
-    * `[x]` a. Definire la scala temporale standard della simulazione: 1 tick di simulazione = 3.6 secondi di tempo di gioco (`settings.SECONDS_PER_SIMULATION_TICK`). Con `TXH_SIMULATION = 1000`, ci sono 1000 tick per ora di gioco. *(Definito in `settings.py`)*.
-    * `[P]` b. Implementare controlli per il giocatore per accelerare, rallentare, o mettere in pausa il tempo di gioco (interfaccia utente definita in `XI.2.c.i`). *(Renderer ha `self.clock.tick(target_tps)` dove `target_tps` è l'obiettivo, attualmente 20. Meccanismo di pausa/velocità da UI non ancora implementato)*.
-* `[x]` **3. Calendario Ufficiale di Anthalys: Anni, Mesi, Settimane e Giorni:** *(Ora completamente gestito da `ATHDateTime` e costanti da `ATHDateTimeInterface` via `settings.py`)*.
-    * `[x]` a. Struttura dell'Anno di Anthalys: `settings.MONTHS_PER_YEAR` (18) mesi, ogni mese composto da `settings.DAYS_PER_MONTH` (24) giorni (per un totale di `settings.DAYS_PER_YEAR` (432) giorni all'anno).
-    * `[x]` b. Nomi dei Giorni della Settimana e dei Mesi: *(Definiti in `settings.py`, originati da `ATHDateTimeInterface` o definiti manualmente se non disponibili lì)*.
-    * `[x]` c. Sistema per calcolare e visualizzare la data completa corrente: Giorno della settimana, Giorno del mese, Mese, Anno. *(Gestito da `TimeManager` tramite `ATHDateTime`)*.
+* `[]` **2. Scala del Tempo e Gestione della Velocità di Gioco:**
+    * `[]` a. Definire la scala temporale standard della simulazione (es. 1 minuto di tempo reale = X minuti di tempo di gioco) per bilanciare il realismo con la giocabilità.
+    * `[]` b. Implementare controlli per il giocatore per accelerare, rallentare, o mettere in pausa il tempo di gioco (interfaccia utente definita in `XI.2.c.i`).
+* `[]` **3. Calendario Ufficiale di Anthalys: Anni, Mesi, Settimane e Giorni:**
+    * `[]` a. Struttura dell'Anno di Anthalys: 18 mesi, ogni mese composto da 24 giorni (per un totale di 432 giorni all'anno, come da `Art. 3` della Costituzione e `VI.6.b`).
+    * `[]` b. Nomi dei Giorni della Settimana e dei Mesi:
+        * `[]` i. Definire i nomi ufficiali dei 7 giorni della settimana di Anthalys (come da `Art. 3` Costituzione).
+        * `[]` ii. Definire i nomi ufficiali e il lore per ciascuno dei 18 mesi dell'anno di Anthalys.
+    * `[]` c. Sistema per calcolare e visualizzare la data completa corrente: Giorno della settimana, Giorno del mese (1-24), Mese (1-18), Anno (a partire dall'Anno di Fondazione 5775, `VI.1.c`).
 * `[]` **4. Calcolo Età, Compleanni ed Eventi Anniversari:**
-    * `[]` a. Calcolo preciso dell'età degli NPC in anni di Anthalys, basato sulla loro data di nascita e sulla data corrente (richiede implementazione data di nascita in `Character` `IV.2.a.i`).
+    * `[]` a. Calcolo preciso dell'età degli NPC in anni di Anthalys, basato sulla loro data di nascita e sulla data corrente.
     * `[]` b. Gli NPC hanno una data di nascita specifica; i compleanni sono eventi annuali (`ANNUAL_BIRTHDAY_EVENT` `XIV.b`) che possono essere celebrati (astrattamente o con interazioni specifiche) e influenzare l'umore (`IV.4.i`).
     * `[]` c. (Avanzato) Anniversari significativi (es. matrimonio `IV.2.c`, data di assunzione in un lavoro importante, data di fondazione di un'azienda NPC `VIII.1.k`) possono essere tracciati e generare moodlet, interazioni speciali, o riflessioni per gli NPC.
-* `[]` **5. Calendario delle Festività e Tradizioni Culturali di Anthalys:** `[PUNTO AMPLIATO]`
-    * `[]` a. **Sistema di Gestione delle Festività:**
+* `[]` **5. Calendario delle Festività e Tradizioni Culturali di Anthalys:**     * `[]` a. **Sistema di Gestione delle Festività:**
         * `[]` i. Meccanismo centrale per registrare e gestire tutte le festività (nome, tipo [fissa/mobile], data/regola di calcolo, lore, impatti di base).
         * `[]` ii. Integrazione con `TimeManager` (`XXXII.8`) per identificare correttamente i giorni festivi e attivare gli effetti associati.
         * `[]` iii. Impatto automatico di base delle festività riconosciute: giorno non lavorativo per la maggior parte delle carriere (`VIII.1.b`, `XXII.1.e`), chiusura scuole (`V.1.d`), potenziale chiusura o orari ridotti per alcuni negozi/servizi (impatto su `XVIII.5.h` e `VIII.6`).
@@ -3280,23 +3429,19 @@ Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e imp
     * `[]` b. Utilizzo delle fasi lunari per il calcolo di alcune festività mobili (`XXXII.5.c.i.2`).
     * `[]` c. (Avanzato) Possibilità di altri eventi cosmici periodici o rari (es. allineamenti planetari visibili, piogge di meteoriti annuali, passaggi di comete) che possono essere osservati dagli NPC, generare discussioni (`VII.1.c`), diventare parte del folklore, o avere un impatto culturale/psicologico minore (es. stupore, timore reverenziale). Questi eventi sarebbero annunciati dal `TimeManager` o da osservatori astronomici.
     * `[]` d. (Lore) Definizione delle costellazioni visibili nel cielo di Anthalys e loro eventuale significato culturale o astrologico (se presente e non considerato "paranormale").
-* `[x]` **8. `TimeManager` Globale: Funzionalità e Metodi Helper:** *(Refactoring completato: `TimeManager` ora funge da wrapper per un'istanza interna di `ATHDateTime`. Costanti di calendario centralizzate. Granularità tick aggiornata.)*
-    * `[x]` a. Esistenza di un oggetto `TimeManager` centrale e autorevole che gestisce l'avanzamento del tempo (tick, minuti, ore, giorni, mesi, anni), la data e l'ora correnti, delegando la logica complessa a `ATHDateTime`. *(Implementato)*.
-    * `[x]` b. Il `TimeManager` notifica gli altri sistemi della simulazione (NPC, ambiente, economia, ecc.) degli aggiornamenti temporali rilevanti (principalmente tramite il suo stato interrogabile e l'avanzamento del tick nel loop principale). *(Implementato)*.
-    * `[P]` c. Fornitura di una robusta API (metodi helper) in `TimeManager` per:
-        * `[P]` i. Verificare se un dato giorno è lavorativo o scolastico, considerando i giorni della settimana, le festività, e i calendari specifici. *(Metodo base `is_weekend` esiste e usa `ATHDateTime` o `settings`. `is_work_day/is_school_day` concettualizzati, da implementare pienamente con festività)*.
-        * `[]` ii. Ottenere la stagione corrente.
-        * `[x]` iii. Calcolare la differenza tra due date, aggiungere/sottrarre periodi di tempo a una data. *(Funzionalità fornita internamente da `ATHDateTime` e usata da `TimeManager.advance_tick()`)*.
+* `[]` **8. `TimeManager` Globale: Funzionalità e Metodi Helper:**
+    * `[]` a. Esistenza di un oggetto `TimeManager` centrale e autorevole che gestisce l'avanzamento del tempo (tick, minuti, ore, giorni, mesi, anni), la data e l'ora correnti.
+    * `[]` b. Il `TimeManager` notifica gli altri sistemi della simulazione (NPC, ambiente, economia, ecc.) degli aggiornamenti temporali rilevanti.
+    * `[]` c. Fornitura di una robusta API (metodi helper) in `TimeManager` per:
+        * `[]` i. Verificare se un dato giorno è lavorativo o scolastico, considerando i giorni della settimana (`XXXII.3.b.i`), le festività (`XXXII.5.a.iii`), e i calendari specifici (`V.1.d`, `VIII.1.b`).
+        * `[]` ii. Ottenere la stagione corrente (`XXXII.6.a`).
+        * `[]` iii. Calcolare la differenza tra due date, aggiungere/sottrarre periodi di tempo a una data.
         * `[]` iv. Gestire un sistema di "allarmi" o "eventi programmati a tempo" che possono essere impostati da altri moduli per triggerare logiche specifiche a date/orari futuri (es. scadenza tasse `VIII.2.c`, inizio eventi festivi `XXXII.5`, promemoria personali NPC su SoNet `XXIV.c.viii`).
-    * `[x]` d. Integrazione delle costanti del calendario di Anthalys da `ATHDateTimeInterface.py` in `settings.py` e metodi per ottenere data/ora formattate. *(Completato. `TimeManager` ha `get_formatted_datetime_string()` e `get_ath_detailed_datetime()` che usano `ATHDateTime`)*.
-    * `[P]` e. **Nuova Granularità dei Tick:** La velocità della simulazione è stata modificata a `TXH_SIMULATION = 1000` (1000 tick per ora di gioco).
-        * `[x]` i. Ogni tick di simulazione ora corrisponde a `3.6` secondi di tempo di gioco (`SECONDS_PER_SIMULATION_TICK`).
-        * `[x]` ii. Il calcolo del decadimento dei bisogni in `Character.update_needs` è stato aggiornato per usare la nuova granularità temporale.
-        * `[!]` iii. **(Task Fondamentale) Ricalcolare tutte le costanti di durata delle azioni e dei cooldown definite in tick (`_TICKS`)** in base alla nuova velocità (1 minuto di gioco ≈ 16.67 tick).
 
 ---
 
-## XXXIII. VITA MILITARE, DIFESA NAZIONALE E CERIMONIE DI STATO DI ANTHALYS `[NUOVA SEZIONE]` `[]`
+
+## XXXIII. VITA MILITARE, DIFESA NAZIONALE E CERIMONIE DI STATO DI ANTHALYS `[]`
 
 * `[!]` a. **Principio Generale:** Definire il sistema di difesa nazionale di Anthalys, includendo il servizio di leva obbligatorio, la vita militare, le cerimonie e i regolamenti associati, in modo coerente con i valori di disciplina, rispetto, servizio civico e i principi fondamentali della Costituzione di Anthalys (`XXII.A`).
 
@@ -3513,532 +3658,6 @@ Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e imp
 
 
 
-## C. PROGETTI FUTURI E DLC (Espansioni Sistemiche Maggiori per "Total Realism") `[]`
-
-* **1. Evoluzione Culturale e Dinamiche Sociali Complesse:** `[]`
-    * `[]` a. **Nascita, Diffusione e Declino di Mode e Trend Culturali:**
-        * `[]` i. Implementare un sistema per cui mode (abbigliamento `II.2.e`, musica `IX.e`, hobby `X`, gergo, ideologie `VI.1.d`) emergono organicamente (o sono introdotte da NPC "influencer" o eventi `XIV`), guadagnano popolarità, e poi svaniscono o diventano classici.
-        * `[]` ii. NPC (specialmente `TEENAGER` e `YOUNG_ADULT`) adottano o rifiutano queste mode in base ai loro tratti (`TREND_FOLLOWER` vs `NONCONFORMIST` - futuri), gruppo sociale, e influenza dei media (`VI.2.e.ii`).
-    * `[]` b. **Formazione e Interazione di Sottoculture:**
-        * `[]` i. NPC con interessi (`X`), valori (`IV.3.g`), tratti (`IV.3.b`), o esperienze comuni (`IV.5`) possono formare sottoculture riconoscibili (es. "artisti bohémien", "attivisti ecologici radicali", "tech-nerd", "tradizionalisti conservatori") con stili di vita, luoghi di ritrovo (`XVIII.5`), e norme interne distinti.
-        * `[]` ii. Dinamiche di accettazione, conflitto, o scambio culturale tra diverse sottoculture e la cultura dominante.
-    * `[]` c. **Evoluzione a Lungo Termine delle Norme Sociali e dei Valori Collettivi:**
-        * `[]` i. Le norme sociali (su famiglia `XX`, lavoro `VIII`, relazioni `VII`, moralità `IV.3.g`) della società di Anthalys possono evolvere lentamente attraverso le generazioni, influenzate da eventi storici (`XIV`), scoperte scientifiche/tecnologiche (`C.3`), movimenti sociali guidati da NPC (`VI.2.f`), e l'impatto aggregato delle scelte individuali.
-        * `[]` ii. Questo potrebbe cambiare la percezione e l'accettabilità di certi comportamenti o leggi (`XXII`) nel tempo.
-
-* **2. Simulazione Ambientale Globale e Gestione delle Risorse Limitate:** `[]`
-    * `[]` a. **Risorse Naturali Finite su Larga Scala:**
-        * `[]` i. Introdurre un inventario globale (o regionale, se Anthalys ha diverse regioni) di risorse naturali chiave (es. acqua potabile, minerali per l'industria, combustibili fossili se usati, terreni fertili).
-        * `[]` ii. L'estrazione e il consumo di queste risorse da parte dell'economia di Anthalys (`VIII.1.k`, `VIII.5.d.i`) le depauperano nel tempo.
-        * `[]` iii. L'esaurimento delle risorse può portare a crisi economiche, aumento dei prezzi, conflitti sociali (astratti), e spingere verso la ricerca di alternative o tecnologie più sostenibili (`C.3`).
-    * `[]` b. **Impatto Climatico e Ambientale su Vasta Scala (Estensione di `XIII.1.a.iv`):**
-        * `[]` i. L'attività industriale e il consumo di risorse aggregate nel lungo periodo possono influenzare il clima globale/regionale di Anthalys (cambiamenti nei pattern meteorologici `I.3.f`, aumento frequenza eventi estremi, innalzamento livello del mare se Anthalys è costiera).
-        * `[]` ii. Richiede politiche governative (`XIII.2.c`, `XXII.7.a`) a lungo termine per mitigare o adattarsi a questi cambiamenti.
-    * `[]` c. **Fisica Ambientale Avanzata (Estensione di `XVIII.2.d.iv`):**
-        * `[]` i. (Molto Avanzato) Simulazione più dettagliata di fluidodinamica (es. correnti d'aria che trasportano inquinanti `XIII.1.a`, cicli idrologici che influenzano falde acquifere e fiumi).
-        * `[]` ii. (Molto Avanzato) Erosione del suolo, impatto della deforestazione (se implementata) su microclimi e stabilità del terreno.
-
-* **3. Ricerca Scientifica, Innovazione Tecnologica e Progresso Sociale Guidato dalla Conoscenza:** `[]`
-    * `[]` a. **Sistema di Ricerca e Sviluppo (R&S) Attivo:**
-        * `[]` i. NPC con carriere scientifiche (`VIII.1.j` Scienziato/Ricercatore) e alte skill (`IX.e` Scienza, Logica, specifiche discipline) possono lavorare attivamente su "progetti di ricerca" in università (`V.2.h`) o istituti di ricerca (`LocationType.RESEARCH_INSTITUTE`).
-        * `[]` ii. La ricerca richiede tempo, fondi (governativi `VI.1` o privati `VIII.1.k`), e collaborazione.
-    * `[]` b. **Scoperte Scientifiche e Tecnologiche che Cambiano il Gioco:**
-        * `[]` i. Il successo nei progetti di ricerca può portare a scoperte scientifiche (nuove comprensioni del mondo di Anthalys) o innovazioni tecnologiche (nuovi oggetti, processi produttivi, fonti energetiche, trattamenti medici `IV.1.g`, strumenti).
-        * `[]` ii. Queste scoperte non sono solo "lore", ma sbloccano attivamente nuove azioni, carriere, oggetti craftabili (`X.4`), soluzioni a problemi ambientali (`XIII`) o sanitari, o modificano l'efficienza di sistemi esistenti.
-        * `[]` iii. Esempi: scoperta di nuovi materiali, sviluppo di IA più avanzate per robot (skill `Robotics` `IX.e`), energie pulite, cure per malattie prima incurabili.
-    * `[]` c. **Progresso Tecnologico e Sociale della Società di Anthalys:**
-        * `[]` i. La società di Anthalys nel suo complesso può attraversare diverse "ere" tecnologiche o livelli di progresso basati sulle scoperte accumulate.
-        * `[]` ii. Il progresso può portare a cambiamenti nello stile di vita degli NPC, nell'economia, nelle infrastrutture urbane (`XIII.5`), e persino nelle norme sociali o etiche (dibattiti su nuove tecnologie).
-
-* `[F_DLC_C.4]` **4. (Opzionale Estensione Mondo) Geopolitica, Commercio e Investimenti Internazionali:** `[PUNTO AMPLIATO]`
-    * `[]` a. Se il mondo di gioco si estende oltre la singola nazione di Anthalys, implementare altre nazioni simulate (con culture, governi, economie, e livelli tecnologici propri).
-    * `[]` b. Sistemi di diplomazia, trattati, alleanze, e potenziali conflitti (economici, politici, o militari – astratti o simulati) tra Anthalys e le altre nazioni.
-    * `[]` c. Eventi globali (pandemie, crisi economiche mondiali, scoperte scientifiche in altre nazioni) che influenzano Anthalys.
-    * `[]` d. Possibilità per gli NPC di viaggiare o emigrare in altre nazioni (con sfide di adattamento culturale).
-    * `[]` e. **Politiche di Commercio Internazionale di Anthalys:** `[NUOVO SOTTOPUNTO]`
-        * `[!]` i. Anthalys è aperta al commercio internazionale, con politiche governative (`VIII.2.d.vii`) che mirano a promuovere attivamente le esportazioni dei prodotti di Anthalys (`C.9`) e ad attrarre investimenti esteri diretti (IED).
-        * `[]` ii. **Accordi Commerciali:**
-            * `[]` 1. Simulazione (astratta o tramite eventi `XIV`) della negoziazione e stipula da parte del Governo di Anthalys (`VI.1`) di accordi di libero scambio o partenariati economici con vari paesi o blocchi economici esterni.
-            * `[]` 2. Questi accordi facilitano l'accesso ai mercati esteri per i prodotti realizzati in Anthalys (es. beni di AION `VIII.6`, prodotti artigianali/agricoli da `C.9`), potenzialmente aumentando la domanda e influenzando l'economia interna.
-            * `[]` 3. Gli accordi possono anche influenzare i dazi doganali sull'importazione di beni non disponibili o non prodotti efficientemente in Anthalys.
-        * `[]` iii. **Zone Economiche Speciali (ZES) di Anthalys:**
-            * `[]` 1. Designazione da parte del Governo di aree geografiche specifiche all'interno di Anthalys (potenzialmente all'interno o adiacenti ai Distretti Industriali `XXV.1.d` o Portuali `XXV.3.d`) come Zone Economiche Speciali.
-            * `[]` 2. Le ZES offrono un pacchetto di vantaggi fiscali (es. aliquote CSC-A (`VIII.2.e`) ridotte per un periodo limitato, esenzioni su tasse di importazione per macchinari/materie prime) e semplificazioni regolatorie (nel rispetto dei principi fondamentali `XXII.A`) per attrarre investimenti diretti da imprese estere.
-            * `[]` 3. Obiettivo delle ZES: promuovere l'industrializzazione in settori specifici, l'innovazione tecnologica (`C.3`), la creazione di posti di lavoro (`VIII.1`), e il trasferimento di know-how.
-            * `[]` 4. Le imprese estere che si insediano nelle ZES devono comunque rispettare gli standard ambientali (`XIII`) e lavorativi (`XXII.1`) di Anthalys.
-    * `[]` f. **Investimenti Esteri e Multinazionali NPC:**
-        * `[]` i. Possibilità che NPC o aziende "straniere" (simulate astrattamente) investano in Anthalys, aprendo filiali, stabilimenti produttivi (specialmente nelle ZES), o acquisendo quote di aziende locali (`VIII.1.k`).
-        * `[]` ii. Impatto di questi investimenti sull'occupazione, sull'economia locale, e sul trasferimento tecnologico.
-
-* **5. SISTEMA DI ANIMALI DOMESTICI E FAUNA SELVATICA `[F_DLC_C.5]`** *(Precedentemente Sezione XXIII)*
-    * `[]` a. Skill come `ANIMAL_HANDLING` (da definire in `IX.e`) e `PET_TRAINING` (già in `IX.e`, ma la cui efficacia dipende da questo DLC) influenzano in modo cruciale il successo e gli esiti delle interazioni con tutti i tipi di animali. *(Principio generale del sistema)*
-    * `[]` 1. **Tipi di Animali NPC:**
-        * `[]` a. Definire tipi di Animali Domestici (es. Cani di varie razze specifiche per Anthalys, Gatti di varie razze, Uccelli da compagnia, Piccoli roditori, forse rettili esotici o animali da fattoria minori come galline se adatti al contesto urbano/suburbano).
-        * `[]` b. Definire tipi di Animali da Fattoria (se economia agricola sviluppata e lotti rurali presenti, es. "Grak" per lana/latte, "Ploof" per uova, "Snortlehog" per carne). (Collegamento a `VIII.1.j` Carriera Contadino/Allevatore).
-        * `[]` c. Definire tipi di Fauna Selvatica unica per Anthalys, con diverse rarità e habitat (es. "Skitterwing" notturni nelle foreste, "River-Snouts" acquatici nei fiumi, "Glimmer-Moths" nelle praterie fiorite, predatori e prede). (Collegamento a `XIII.2.d` Ecosistema).
-        * `[]` d. Ogni tipo di animale ha comportamenti, bisogni (fame specifica per dieta, sete `IV.1.h`, sonno, igiene, sociale/branco, gioco/stimolo), e interazioni specifiche con l'ambiente e altri NPC/animali.
-    * `[]` 2. **Meccaniche per Animali Domestici:**
-        * `[]` a. NPC (specialmente con tratti `ANIMAL_LOVER` (IV.3.b), `CAT_PERSON`, `DOG_PERSON` (IV.3.b), o aspirazioni legate agli animali) possono adottare/acquistare animali domestici da rifugi (nuova `LocationType.ANIMAL_SHELTER`) o allevatori (se presenti).
-        * `[]` b. Gli animali domestici hanno bisogni primari (`IV.1`) e sociali/emotivi che devono essere soddisfatti dai proprietari.
-        * `[]` c. NPC devono prendersi cura dei loro animali: fornire cibo/acqua di qualità, pulire lettiere/gabbie, offrire gioco/esercizio, cure veterinarie (vedi `C.5.4.a`), addestramento. La negligenza ha conseguenze (malattie, comportamento distruttivo, fuga, intervento servizi animali).
-        * `[]` d. Interazioni specifiche tra NPC e animali (es. accarezzare, giocare con giocattoli, addestrare comandi base/avanzati, portare a spasso, parlare – l'animale reagisce al tono).
-        * `[]` e. Gli animali domestici sviluppano una relazione (punteggio e tipo `VII.2`) con i singoli NPC della famiglia, con preferenze e antipatie.
-        * `[]` f. Gli animali possono avere tratti di personalità unici (es. giocoso, pigro, affettuoso, timido, aggressivo, intelligente, testardo, leale, indipendente) che influenzano il loro comportamento e la facilità di addestramento. Alcuni tratti potrebbero essere specifici della "razza".
-        * `[]` g. Ciclo di vita per gli animali (cucciolo/gattino, adolescente, adulto, anziano) con cambiamenti comportamentali e di salute, e morte (naturale o per malattia/incidente). NPC proveranno lutto (`IV.2.e.iv`).
-        * `[]` h. Addestramento di abilità per animali (Skill `PET_TRAINING` per l'NPC `IX.e`; l'animale stesso potrebbe avere livelli di "obbedienza" o imparare "trucchi" o comportamenti specifici). Cani da lavoro (es. cani poliziotto, cani da pastore) potrebbero avere set di skill uniche.
-        * `[]` i. Impatto significativo degli animali domestici sull'umore (`IV.4.c`), sul benessere (`WELLNESS` skill `IX.e`), e sulla routine quotidiana (`IV.4.g`) degli NPC proprietari.
-        * `[]` j. (Avanzato) Riproduzione degli animali domestici (se controllata dall'NPC), con genetica (`II.3`) per la trasmissione di aspetto e tratti alla prole. Problema del randagismo se non gestito.
-    * `[]` 3. **Fauna Selvatica e Interazioni Ambientali (Estensione "Total Realism"):**
-        * `[]` a. La fauna selvatica popola determinate aree del mondo (`XVIII.5`) e `Location` naturali (`XIII.2.d`) in base al bioma, alla stagione (`I.3.f`), e all'ora del giorno/notte. La loro presenza e densità dipendono dalla salute dell'ecosistema (`XIII.2.d.i`).
-        * `[]` b. NPC possono osservare la fauna selvatica (azione `OBSERVE_WILDLIFE`, che potrebbe dare moodlet positivi, specialmente per `NATURE_LOVER` o `Inspired Explorer` (IV.3.b), o contribuire a una skill `NATURALISM` futura). Fotografia naturalistica (skill `PHOTOGRAPHY` `IX.e`).
-        * `[]` c. Interazioni dirette con la fauna selvatica generalmente limitate e potenzialmente rischiose (es. un `Daredevil` (IV.3.b) potrebbe tentare di avvicinarsi troppo a un animale selvatico, con possibili conseguenze negative). Tratto `ANIMAL_WHISPERER` (IV.3.b) potrebbe permettere interazioni più sicure o uniche.
-        * `[]` d. **Ecosistema Dinamico (Fauna):**
-            * `[]` i. Gli animali selvatici hanno comportamenti specifici: ricerca di cibo (dieta specifica), acqua (`IV.1.h`), riparo, riproduzione (nascita di cuccioli selvatici), migrazioni stagionali (per alcune specie).
-            * `[]` ii. Implementazione di una catena alimentare semplificata: predatori cacciano prede. La popolazione di prede influenza la popolazione di predatori e viceversa. (Collegamento a `XIII.2.d.iii`).
-            * `[]` iii. L'impatto umano (inquinamento `XIII.1.a.iii`, distruzione habitat per sviluppo urbano `XIII.5`, caccia/bracconaggio se implementati) influenza la popolazione e la distribuzione della fauna selvatica.
-            * `[]` iv. Alcuni animali selvatici potrebbero interagire con i lotti degli NPC (es. cervi che mangiano in giardino `X.6`, procioni che rovistano nella spazzatura `XIII.3.a`).
-        * `[]` e. (Opzionale, a seconda del lore) Caccia sostenibile (skill `HUNTING` `IX.e`) o bracconaggio (illegale) come attività, con impatto sulle popolazioni animali e possibili conseguenze legali (`VI.1.iii.2`).
-        * `[]` f. Politiche di conservazione della fauna (`XIII.2.d.iv`) da parte dell'`AnthalysGovernment` per proteggere specie a rischio o gestire parchi naturali.
-    * `[]` 4. **(Carriera Futura) Veterinario e Servizi per Animali:**
-        * `[]` a. Carriera `VETERINARIAN` (definita in `VIII.1.j`, ma dipendente da questo DLC `C.5`) con skill `VETERINARIAN` (`IX.e`, anch'essa dipendente da `C.5`).
-        * `[]` b. `LocationType.VETERINARY_CLINIC`: NPC portano i loro animali domestici malati o per controlli/vaccinazioni. Servizi di emergenza veterinaria.
-        * `[]` c. (Futuro) Negozi di animali (`LocationType.PET_STORE`) per acquisto di cibo di varie qualità, accessori (giocattoli, cucce, guinzagli), e animali stessi (con implicazioni etiche vs adozione da rifugio `C.5.2.a`).
-        * `[]` d. (Futuro) Altri servizi: toelettatura (`PET_GROOMING_SALON`), dog/cat-sitting, centri di addestramento.
-
-* **6. "SimAI: Eredità Artigiana e Generazioni di Maestria"** `[F_DLC_C.6]`
-    * `[]` a. **Concetto:** Un'immersione profonda nell'artigianato, nell'arte, e nel concetto di "opera magna" o di un'eredità familiare costruita attorno a un'abilità o creazione unica.
-    * `[]` b. **Unicità/Originalità SimAI:** Focus sul *processo* creativo, ispirazione, lotta per la maestria, trasmissione di conoscenze/abilità uniche attraverso le generazioni. NPC potrebbero sviluppare stili irripetibili o inventare nuove forme nel loro mestiere.
-    * `[]` c. **Possibili Meccaniche Chiave:**
-        * `[]` i. **Sistema di Ispirazione Profonda:** NPC necessitano di stati emotivi (`IV.4.c`), esperienze (memorie `IV.5`), o "muse" per opere uniche.
-        * `[]` ii. **Sviluppo e Riconoscimento di Stili Unici:** Maestri sviluppano uno "stile" distintivo che influenza creazioni e percezione.
-        * `[]` iii. **L'"Opera Magna" (Opus Magnum):** Aspirazione di vita (`IV.3.a`) per un capolavoro che definisca eredità, richiedendo dedizione, risorse rare, e skill al culmine (`IX.f`).
-        * `[]` iv. **Eredità e Apprendistato Dettagliato:** Sistema avanzato maestro-apprendista (estensione `VII.8`), trasmissione di skill, tecniche segrete, stili, strumenti, reputazione della "bottega" (`IV.2.f`).
-        * `[]` v. **Impatto Culturale Duraturo:** Opere eccezionali influenzano cultura locale (`C.1`), diventano pezzi da museo (`XVIII.5.h`), definiscono "scuole" artistiche/artigianali.
-
-* **7. "SimAI: Psiche e Società - Dinamiche Complesse di Influenza e Resilienza Mentale"** `[F_DLC_C.7]`
-    * `[]` a. **Concetto:** Esplorare complessità della psicologia avanzata, dinamiche sociali di gruppo, meccanismi di influenza, e resilienza mentale individuale.
-    * `[]` b. **Unicità/Originalità SimAI:** Simulazione impatto psicologico a lungo termine, dinamiche di potere/conformismo nei gruppi, movimenti sociali emergenti, persuasione/manipolazione basate su psicologia.
-    * `[]` c. **Possibili Meccaniche Chiave:**
-        * `[]` i. **Sistema di Resilienza Psicologica Dinamica:** NPC sviluppano/modificano resilienza a stress/traumi (`IV.1.i`) basata su tratti, esperienze (`IV.5`), relazioni di supporto (`VII.2.h`), coping appreso (`IV.1.i.4`).
-        * `[]` ii. **Dinamiche di Gruppo Complesse e Leadership:** Formazione gruppi formali/informali (club `X.1`, attivisti `VI.2.f`, iniziative comunitarie `XIII.4.d`) con gerarchie, lotte per leadership, groupthink, azione collettiva.
-        * `[]` iii. **"Ingegneria Sociale" e Influenza su Larga Scala (Astratta):** NPC con alte skill (`INFLUENCE` `IX.e`, etc.) tentano di plasmare opinione pubblica, lanciare campagne, gestire reputazioni (`XVI.5`).
-        * `[]` iv. **Terapie Avanzate e Percorsi di Crescita Personale:** Espansione ruolo Psicologo/Terapeuta (`VIII.1.j`, `IV.1.i.3`) con diversi approcci per superare disturbi, modificare comportamenti, raggiungere crescita personale (`IV.3.a`).
-        * `[]` v. **Sviluppo Approfondito dell'Identità e dei Valori nel Tempo:** Formazione/rinegoziazione senso di sé, valori (`IV.3.g`), "scopo nella vita" in risposta a esperienze.
-
-* **8. "SimAI: Il Corpo Umano - Micro-Simulazione di Salute, Invecchiamento e Fisicità"** `[F_DLC_C.8]`
-    * `[]` a. **Concetto:** Simulazione dettagliata (ma gestibile) di fisiologia umana, invecchiamento realistico, malattie complesse (non soprannaturali), e impatto profondo dello stile di vita sul corpo.
-    * `[]` b. **Unicità/Originalità SimAI:** Superare semplici barre di salute per simulare sistemi corporei interconnessi, predisposizioni genetiche dettagliate, fragilità e resilienza del corpo.
-    * `[]` c. **Possibili Meccaniche Chiave:**
-        * `[]` i. **Sistema Fisiologico Interconnesso (Astratto):** Stato di salute sistemi maggiori (cardiovascolare, respiratorio, etc.) influenzato da genetica (`II.3.d`, `IV.2.f.vii`), dieta (`X.5`), esercizio (`IX.e Fitness`), sonno (`IV.1.a Energia`), stress (`IV.1.i`), ambiente (`XIII.1.a`), età (`IV.2`).
-        * `[]` ii. **Invecchiamento Realistico e Progressivo:** Declino graduale funzioni fisiche/cognitive (`IV.2.e`), suscettibilità a malattie età-correlate (`IV.1.g.iii.1`), cambiamenti aspetto dettagliati.
-        * `[]` iii. **Malattie Complesse, Croniche e Degenerative:** Simulazione dettagliata (ipertensione, diabete, artrite, demenze) con fattori di rischio, progressione, gestione a lungo termine.
-        * `[]` iv. **Impatto Cumulativo e a Lungo Termine dello Stile di Vita:** Conseguenze tracciabili di dieta, esercizio, sonno, stress, vizi (`IV.3.c`) su salute e longevità.
-        * `[]` v. **Medicina Preventiva, Diagnostica Avanzata e Riabilitazione:** Importanza check-up, screening, terapie riabilitative (`PHYSIOTHERAPY_SESSION` azione) post-malattie/infortuni.
-* **9. Sistema di Produzione Sostenibile di Anthalys (Alimenti, Beni Naturali e Prodotti Artigianali)** `[F_DLC_C.9]`
-    * `[]` a. **Introduzione e Principi Fondamentali:**
-        * `[]` i. Definire un sistema di produzione alimentare e di beni di consumo primari ad Anthalys basato su principi di alta sostenibilità, rispetto ambientale, etica e salute.
-        * `[]` ii. Il sistema combina tecniche agricole/produttive moderne con pratiche tradizionali eco-compatibili.
-    * `[]` b. **Componenti Generali del Sistema di Produzione Primaria:**
-        * `[]` i. **Agricoltura Sostenibile:**
-            * `[]` 1. Implementare tecniche di coltivazione: agricoltura biologica, permacultura, agricoltura sinergica.
-            * `[]` 2. Meccanica di rotazione delle colture per mantenere la fertilità del suolo e prevenire l'erosione.
-            * `[]` 3. Uso di compost (`XIII.1.c.i`, `XIII.6.a.i`) e fertilizzanti naturali.
-            * `[]` 4. **Definizione Entità "Fattoria Agricola" (Farm Model - Agriculture):**
-                * ... (come definito precedentemente) ...
-                * `[]` d. **Salute del Suolo (Soil Health) e Impatto sulla Resa:** `[NUOVO DETTAGLIO]`
-                    * `[]` 1. L'attributo `soil_health` (decimal, 0.0-1.0) di una `Fattoria Agricola` o di specifici appezzamenti influisce direttamente sulla resa (`yield`) delle colture (`C.9.b.vi.1`).
-                    * `[]` 2. Un `soil_health` basso (es. < 0.3) riduce significativamente la resa e può aumentare il rischio di fallimento del raccolto o malattie delle piante (`IV.1.g`).
-                    * `[]` 3. Implementare un sistema per la rigenerazione graduale della `soil_health` attraverso:
-                        * `[]` Rotazione delle colture (`C.9.b.i.2`).
-                        * `[]` Uso di compost domestico (`XIII.1.d.i.1`) o municipale (`XIII.1.c.i`).
-                        * `[]` Uso di fertilizzanti naturali specifici (prodotti da NPC o acquistabili, vedi `C.9.d`).
-                        * `[]` Tecniche di agricoltura sostenibile (es. sovescio, pacciamatura).
-                    * `[]` 4. Pratiche agricole intensive o errate (monocoltura senza rotazione, mancata fertilizzazione organica) possono degradare la `soil_health`.
-        * `[]` ii. **Serre Tecnologiche e Coltivazioni Verticali Urbane:** `[SOTTOPUNTO AMPLIATO]`
-            * `[]` 1. Implementare oggetti `SERRA_AVANZATA` per lotti agricoli/residenziali (con giardino), che permettono di estendere la stagione di crescita e migliorare la resa di specifiche colture (`C.9.b.vi.1`).
-            * `[]` 2. **Definizione Entità "Serra" (Greenhouse Model):**
-                * `[]` a. Attributi base: `greenhouse_id`, `farm_id` (se parte di una fattoria) o `lot_id` (se struttura indipendente), `name`.
-                * `[]` b. `type` (string/enum, es. "Serra Climatizzata Solare", "Tunnel di Sviluppo Rapido", "Serra Idroponica Integrata").
-                * `[]` c. `energy_source` (string/enum: `SOLAR_PANELS_INTEGRATED`, `GEOTHERMAL_CONNECTION`, `GRID_RENEWABLE_ENERGY_OPTIMIZED`). (Collegamento a `XXV.4.a`).
-                * `[]` d. `yield_multiplier` (decimal, es. 1.1 - 1.5) che modifica la resa base delle colture idonee al suo interno.
-                * `[]` e. `internal_environment_control` (boolean, permette controllo temperatura/umidità/luce, riducendo impatto stagionale `XXXII.6` e meteo `XXVI.b`).
-                * `[]` f. `cultivable_area_internal` (float, mq).
-            * `[]` 3. **Coltivazioni Verticali Urbane ("Vertical Farms"):**
-                * `[]` a. Implementare `LocationType.VERTICAL_FARM_URBAN` o strutture speciali edificabili/acquistabili nei distretti urbani (`XXV.1`), specialmente quelli commerciali o residenziali ad alta densità.
-                * `[]` b. Meccaniche specifiche:
-                    * `[]` Ottimizzazione dell'uso dello spazio verticale per la coltivazione (principalmente ortaggi a foglia, erbe, piccole fruttifere).
-                    * `[]` Rendimenti potenzialmente elevati per unità di superficie occupata al suolo.
-                    * `[]` Riduzione dell'impatto del trasporto alimentare grazie alla produzione in loco.
-                    * `[]` Richiedono input energetici significativi (per illuminazione artificiale, controllo climatico), da bilanciare con fonti rinnovabili (`XXV.4.a`).
-        * `[]` iii. **Allevamento Etico e Sostenibile di Bestiame:** (Dettagliato in `C.9.e`)
-            * `[]` 1. Pratiche di allevamento etiche.
-            * `[]` 2. Ciclo chiuso dei nutrienti.
-            * `[]` 3. **Definizione Entità "Fattoria di Allevamento" (Farm Model - Livestock):** `[NUOVO DETTAGLIO]`
-                * `[]` a. Attributi base: `farm_id`, `name`, `owner_npc_id`, `location`, `type` (`LIVESTOCK_RANCHING`).
-                * `[]` b. Attributi specifici: `pasture_quality` (qualità pascolo), `animal_welfare_index` (indice benessere animale), `max_animal_capacity`.
-                * `[]` c. `overall_farm_efficiency` (decimal, 0.0-1.0).
-        * `[]` iv. **Acquacoltura e Idroponica Avanzata:**
-            * `[]` 1. Sistemi di acquacoltura integrata.
-            * `[]` 2. Coltivazione idroponica.
-            * `[]` 3. **Definizione Entità "Impianto di Acquacoltura/Idroponica" (Farm Model - Aquaculture/Hydroponics):** `[NUOVO DETTAGLIO]`
-                * `[]` a. Attributi base: `facility_id`, `name`, `owner_npc_id`, `location`, `type` (enum: `AQUACULTURE_FISH`, `AQUAPONICS_INTEGRATED`, `HYDROPONICS_PLANTS`).
-                * `[]` b. Attributi specifici: `water_quality_index`, `system_type` (es. vasche, stagni, NFT, DWC).
-                * `[]` c. `overall_facility_efficiency` (decimal, 0.0-1.0).
-        * `[]` v. **Tecnologie Agricole Avanzate e Automazione:** `[SOTTOPUNTO AMPLIATO]`
-            * `[]` 1. **Monitoraggio e Automazione Basati su Sensori:**
-                * `[]` a. Implementare una rete di sensori (astratti o come oggetti posizionabili) nelle fattorie (`C.9.b.i.4`), serre (`C.9.b.ii.2`), e impianti di acquacoltura/idroponica (`C.9.b.iv.3`) per monitorare in tempo reale:
-                    * Condizioni del suolo (umidità, nutrienti, pH - per `soil_health` `C.9.b.i.4.d`).
-                    * Condizioni ambientali interne alle serre (temperatura, umidità, CO2, intensità luminosa).
-                    * Qualità dell'acqua nei sistemi di acquacoltura/idroponica.
-                    * Stato di salute e crescita delle colture/animali (rilevamento precoce di stress o malattie).
-                * `[]` b. Sistemi di automazione che utilizzano i dati dei sensori per:
-                    * Ottimizzare l'irrigazione di precisione (riducendo sprechi idrici `XXV.4.c`).
-                    * Gestire la fertilizzazione mirata (con fertilizzanti naturali `C.9.b.i.3`).
-                    * Controllare il clima all'interno delle serre (ventilazione, riscaldamento/raffrescamento, illuminazione supplementare).
-            * `[]` 2. **Droni Agricoli e Robotica:**
-                * `[]` a. Implementare l'uso di droni agricoli (oggetti acquistabili/servizio per fattorie) per:
-                    * Monitoraggio aereo dei campi e raccolta dati (mappatura vigore colturale, rilevamento stress idrico o parassitario).
-                    * (Avanzato) Applicazioni di precisione (es. rilascio mirato di bio-pesticidi o nutrienti).
-                * `[]` b. Implementare l'uso di robot agricoli specializzati (oggetti costosi per fattorie tecnologicamente avanzate o servizi centralizzati) per:
-                    * Semina e trapianto di precisione.
-                    * Diserbo meccanico o laser (riducendo necessità di erbicidi).
-                    * Raccolta selettiva di alcuni tipi di frutta o verdura.
-            * `[]` 3. **Ottimizzazione Generale dell'Uso delle Risorse:** L'integrazione di queste tecnologie mira a massimizzare l'efficienza produttiva (`farm_efficiency` `C.9.b.i.4.c`) minimizzando l'uso di acqua, energia, fertilizzanti e manodopera, in linea con i principi di sostenibilità.
-        * `[]` vi. **Nuove Risorse Agricole (Definizione Dettagliata di Colture, Animali, Specie Acquatiche):**
-            * `[]` 1. **Modello "Coltura" (Crop Model):**
-                * `[]` `crop_id` (univoco), `name` (string, es. "Grano Antico di Anthalys", "Pomodoro Cuore Rosso").
-                * `[]` `type` (enum: CEREALE, ORTAGGIO_FRUTTO, ORTAGGIO_FOGLIA, RADICE_TUBERO, FRUTTA_ALBERO, FRUTTA_ARBUSTO, ERBA_AROMATICA, FIBRA_TESSILE, FIORE_OFFICINALE, FUNGO_COLTIVATO).
-                * `[]` `growth_time_days` (integer, giorni di Anthalys per raggiungere la maturità).
-                * `[]` `base_yield_per_sq_meter` (decimal, resa base in kg o unità per metro quadro).
-                * `[]` `ideal_soil_type` (enum), `ideal_climate_conditions` (`XXVI`), `water_needs_level` (basso/medio/alto).
-                * `[]` `plantable_seasons` (lista di stagioni `XXXII.6.a` in cui può essere piantato).
-                * `[]` `outputs_product_id` (riferimento al prodotto finale, es. "Farina di Grano", "Pomodori Freschi").
-                * `[]` `byproducts_product_id` (riferimento a sottoprodotti, es. "Paglia", "Foglie di Pomodoro per Compost").
-            * `[]` 2. **Modello "Animale da Allevamento" (Animal Model):**
-                * `[]` `animal_species_id` (univoco), `name` (string, es. "Mucca da Latte di Anthalys", "Grak da Lana").
-                * `[]` `type` (enum: BOVINO_LATTE, BOVINO_CARNE, OVINO_LANA, OVINO_CARNE, SUINO, AVICOLO_UOVA, AVICOLO_CARNE).
-                * `[]` `time_to_maturity_days` (integer, giorni per raggiungere la maturità produttiva/da macello).
-                * `[]` `primary_yield_type` (enum: LATTE, CARNE, UOVA, LANA, PELLE).
-                * `[]` `base_yield_amount_per_cycle` (decimal, es. litri latte/giorno, kg carne/capo, uova/settimana).
-                * `[]` `feed_requirements` (tipo e quantità di mangime).
-                * `[]` `housing_space_needs_sq_meter` (spazio necessario per capo).
-                * `[]` `lifespan_days` (durata vita media).
-            * `[]` 3. **Modello "Specie da Acquacoltura" (Aquaculture Species Model):**
-                * `[]` `aqua_species_id` (univoco), `name` (string, es. "Trota Lacustre di Anthalys", "Alga Spirulina di Fiume").
-                * `[]` `type` (enum: PESCE_ACQUA_DOLCE, CROSTACEO, MOLLUSCO, ALGA_COMMESTIBILE).
-                * `[]` `growth_time_days_per_cycle` (integer, giorni per ciclo di raccolta).
-                * `[]` `base_yield_per_cycle_unit` (decimal, resa in kg o unità per ciclo/vasca).
-                * `[]` `water_conditions_requirements` (temperatura, pH, ossigeno).
-                * `[]` `feed_requirements` (per pesci/crostacei).
-    * `[]` c. **Processo Generale e Logica di Produzione Alimentare:** `[TITOLO MODIFICATO]`
-        * `[]` i. **Pianificazione e Preparazione:**
-            * `[]` 1. Analisi del Suolo e dell'Acqua (azione per NPC agricoltori, o parametro del lotto che influenza `soil_health` iniziale e `water_quality_index`).
-            * `[]` 2. Scelta delle Colture e del Bestiame (NPC agricoltori/allevatori scelgono cosa piantare/allevare in base a stagione `XXXII.6`, `soil_health`, domanda di mercato `VIII.5.b`, skill `IX.e`, e redditività attesa).
-        * `[]` ii. **Coltivazione e Allevamento:**
-            * `[]` 1. Implementazione delle tecniche sostenibili.
-            * `[]` 2. Monitoraggio continuo.
-        * `[]` iii. **Raccolta e Produzione Primaria:**
-            * `[]` 1. Combinazione di tecniche manuali e meccanizzate.
-            * `[]` 2. Metodi naturali per lavorazione e conservazione.
-        * `[]` iv. **Distribuzione e Vendita dei Prodotti di Anthalys:** `[PUNTO AMPLIATO]`
-            * `[]` 1. **Mercati Locali e Distrettuali:**
-                * `[]` a. Implementare un sistema di gestione per i Mercati Agricoli Distrettuali (`C.9.c.iii` precedente, ora qui come `LocationType.MARKET_DISTRICT_FARMERS` o `LocationType.MARKET_STALL_PRODUCE` in `XVIII.5.h`).
-                * `[]` b. Logica per NPC produttori per affittare stalli, trasportare merci, definire prezzi iniziali (influenzati da costi di produzione e qualità `C.9.c.v.2`), e vendere direttamente ai consumatori NPC.
-                * `[]` c. Gestione delle scorte disponibili nei singoli mercati/stalli, con aggiornamenti in tempo reale basati su acquisti e nuove forniture.
-            * `[]` 2. **Piattaforme di Vendita Online (Filiera Corta e AION):**
-                * `[]` a. Sviluppare una o più piattaforme online dedicate (`C.9.c.iv` precedente) per la vendita diretta dei prodotti freschi dalle fattorie (`C.9.b`) ai cittadini. Accessibili tramite **SoNet (`XXIV.c.xi` Shopping Online)**.
-                * `[]` b. Integrazione con **AION (`VIII.6`)**: AION potrebbe ospitare una sezione "Prodotti Freschi di Anthalys" o agire come aggregatore logistico/marketplace per più produttori locali, offrendo una vetrina più ampia.
-                * `[]` c. **Funzionalità Avanzate per Ordini Online:** (Dettagli per `VIII.6.4.b` e piattaforme `C.9`)
-                    * `[]` Gestione completa degli ordini: creazione, conferma (con controllo disponibilità e prevenzione race conditions), modifiche, cancellazioni, storico ordini per utente.
-                    * `[]` Invio di notifiche via SoNet (`XXIV.c.viii`) o email simulate per conferme/cancellazioni ordine.
-                    * `[]` Visualizzazione recensioni e rating dei prodotti (`X.5.e`) all'interno delle schede prodotto e nello storico ordini.
-                    * `[]` Filtri avanzati per la ricerca prodotti (per categoria, produttore, certificazione `C.9.h`, prezzo, popolarità).
-                    * `[]` Integrazione con sistemi di pagamento sicuri basati su Athel (`VIII.A`, `VIII.B.iii.a`).
-            * `[]` 3. **Logistica Avanzata per la Distribuzione:** (Espansione di `VIII.6.6`)
-                * `[]` a. Sistemi di trasporto (refrigerato se necessario) per trasferire prodotti da zone di produzione rurali ai mercati urbani o ai centri di smistamento AION.
-                * `[]` b. (Avanzato) Logistica predittiva e trasferimento automatizzato delle risorse tra distretti/magazzini AION in base a domanda stimata, consumi storici, livelli di scorte, e gestione di emergenze/crisi (`C.9.c.ix`).
-        * `[]` v. **Aggiornamento Automatico della Produzione e Calcolo Resa:** `[NUOVO DETTAGLIO]`
-            * `[]` 1. Implementare un sistema (es. giornaliero o settimanale nel `Simulation.step()`) che aggiorna lo stato di crescita di colture (`C.9.b.vi.1`), animali (`C.9.b.vi.2`), e specie acquatiche (`C.9.b.vi.3`) in base al loro `growth_time_days`.
-            * `[]` 2. Al raggiungimento della maturità, calcolare la resa (`yield`) effettiva basata su:
-                * `base_yield` della specie.
-                * `soil_health` (per colture terrestri).
-                * `overall_farm_efficiency` o `overall_facility_efficiency` (che include infrastrutture, tecnologie `C.9.b.v`, skill del personale).
-                * Eventuali `yield_multiplier` da serre (`C.9.b.ii.3.d`).
-                * Impatto di eventi climatici (`XXVI.c.i`), malattie (`IV.1.g`), o altri fattori (es. corretta irrigazione/fertilizzazione).
-            * `[]` 3. I prodotti raccolti vengono aggiunti all'inventario della fattoria/produttore.
-        * `[]` vi. **Notifiche di Stato Relative alla Produzione:** `[NUOVO DETTAGLIO]`
-            * `[]` 1. Sistema di notifiche (per NPC manager/proprietari di fattorie, potenzialmente visibili anche al giocatore se interagisce con il sistema agricolo, o al governo/AION per la pianificazione delle scorte):
-                * Completamento di cicli di crescita/raccolta.
-                * Problemi critici: calo drastico di `soil_health`, scarsità di acqua per irrigazione, malattie diffuse tra colture/animali, guasti a tecnologie essenziali (serre, robot).
-                * Allerte per carenza di risorse a livello regionale/nazionale (se la produzione aggregata scende sotto soglie critiche).
-            * `[]` 2. Queste notifiche possono essere inviate tramite **SoNet (`XXIV.c.viii`)** per i produttori registrati o enti di monitoraggio governativi.
-        * `[]` vii. **Tracciabilità, Reportistica e Statistiche sulla Produzione e Vendita:** `[PUNTO AMPLIATO]`
-            * `[]` 1. Espandere il sistema di Tracciabilità Completa (`C.9.h.ii`) per permettere ai consumatori di visualizzare (tramite SoNet/AION) informazioni dettagliate sull'origine e il percorso dei prodotti.
-            * `[]` 2. **Report sulla Produzione per Produttori:**
-                * `[]` Generazione automatica (settimanale/mensile/per ciclo) di report per le singole fattorie/impianti (`C.9.b`) includendo: produzione totale per coltura/animale, efficienza (`C.9.b.i.4.c`), salute del suolo (`C.9.b.i.4.d`), costi, ricavi, e performance rispetto a obiettivi.
-            * `[]` 3. **Statistiche Aggregate per Enti Governativi/AION:**
-                * `[]` Report consolidati sulla produzione agricola nazionale/regionale, livelli di scorte strategiche, risultati dell'allevamento e della coltivazione verticale, efficienza media del settore.
-                * `[]` Dati utili per la pianificazione economica, la gestione della sicurezza alimentare, e la valutazione delle politiche agricole (`VIII.2.d.vii.3.d`). Visibili tramite interfacce dedicate (`VIII.2.d.vi`).
-            * `[]` 4. **Monitoraggio delle Vendite e Dinamiche di Mercato:** (Espansione di `VIII.6.5` e `VIII.5.b`)
-                * `[]` Statistiche e grafici in tempo reale (o quasi) sulle vendite dei prodotti alimentari nei mercati locali e online.
-                * `[]` Analisi dei trend di consumo, popolarità dei prodotti, impatto di promozioni o eventi (`XIV`).
-                * `[]` Variazioni dinamiche dei prezzi dei prodotti alimentari in base a domanda aggregata NPC (`IV.1.a`, `X.5`), offerta (produzione `C.9`), stagionalità (`XXXII.6`), e scorte.
-            * `[]` 5. **Sistema di Visualizzazione Statistiche (Dashboard):**
-                * `[]` Creazione di dashboard grafiche su SoNet (`XXIV`) o interfacce gestionali AION/Governo per visualizzare in modo intuitivo le statistiche di produzione, distribuzione, vendita, ed efficienza delle fattorie.
-        * `[]` viii. **Interazione Avanzata con i Cittadini Consumatori:** `[NUOVO PUNTO]`
-            * `[]` 1. **Sistema di Feedback e Recensioni Dettagliato:** (Espansione di `X.5.e`)
-                * `[]` I cittadini NPC (e il giocatore) possono lasciare recensioni (testuali e con rating a stelle) per i prodotti alimentari acquistati tramite mercati o piattaforme online.
-                * `[]` Il feedback può influenzare la reputazione del produttore/prodotto e le future scelte d'acquisto di altri NPC.
-            * `[]` 2. **Sistema di Fidelizzazione Clienti:**
-                * `[]` Programmi fedeltà (promossi da AION, singole fattorie o associazioni di produttori) che premiano i cittadini che acquistano regolarmente prodotti locali, biologici (`C.9.h.i`), o a filiera corta.
-                * `[]` Premi possono includere: sconti, accesso anticipato a prodotti stagionali, inviti a eventi nelle fattorie.
-        * `[]` ix. **Gestione Avanzata delle Crisi e Simulazioni:** `[NUOVO PUNTO]`
-            * `[]` 1. **Simulazioni Avanzate di Eventi Inattesi:** (Integrazione con `XIV` e `XXVI`)
-                * `[]` Implementare l'impatto di eventi climatici estremi (siccità, gelate tardive, alluvioni), disastri naturali (`XXVI.d`), o epidemie fitosanitarie/zoosanitarie sulla produzione agricola e la disponibilità di cibo.
-            * `[]` 2. **Gestione delle Crisi Alimentari:** (Integrazione con `VIII.5.c` e `VI.1.k`)
-                * `[]` Meccanismi per la gestione della carenza di risorse alimentari (razionamento controllato, importazioni di emergenza se `C.4` attivo, incentivi alla diversificazione produttiva).
-                * `[]` Gestione della sovrapproduzione (creazione di scorte strategiche, trasformazione dei prodotti, export agevolato se `C.4` attivo, donazioni).
-                * `[]` Integrazione con piani di emergenza nazionali per bilanciare domanda e offerta durante le crisi.
-    * `[]` d. **Filiera di Produzione: Prodotti Specifici di Anthalys:**
-        * `[]` i. **Tabacco Naturale Non Tossico:**
-            * `[]` 1. Coltivazione: Selezione varietà non OGM, terreno/clima specifici, agricoltura biologica, irrigazione a goccia.
-            * `[]` 2. Raccolta: Manuale, selezione foglie.
-            * `[]` 3. Essiccazione: Solare/naturale, controllo umidità.
-            * `[]` 4. Fermentazione Naturale: Sviluppo aromi, riduzione irritanti.
-            * `[]` 5. Trattamento Non Tossico: Tecniche innovative (lore/processo astratto) per rimuovere sostanze nocive, aggiunta aromi naturali.
-            * `[]` 6. Produzione e Confezionamento: Taglio (sigarette, sigari, sfuso), confezionamento sostenibile, controllo qualità.
-            * `[]` 7. *Nota: Il concetto di "non tossico" per il tabacco da fumo, pur auspicabile, è complesso nel realismo. Si intenderà "a ridotta tossicità" o privo di additivi chimici nocivi, ma il fumo in sé comporta rischi. Questo aspetto dovrà essere bilanciato con il sistema di salute `IV.1.g` e le dipendenze `IV.3.c`.*
-        * `[]` ii. **Birra Naturale:**
-            * `[]` 1. Coltivazione Ingredienti Bio: Orzo, luppolo locali; lievito selezionato; acqua pura.
-            * `[]` 2. Maltazione: Ammollo, germinazione, essiccazione, tostatura.
-            * `[]` 3. Macinazione del malto.
-            * `[]` 4. Ammostamento: Miscelazione con acqua calda, conversione amidi, filtrazione mosto.
-            * `[]` 5. Bollitura e Luppolatura: Sterilizzazione, aggiunta luppolo, filtrazione.
-            * `[]` 6. Fermentazione: Raffreddamento, aggiunta lievito, fermentazione primaria.
-            * `[]` 7. Maturazione: Fermentazione secondaria, condizionamento.
-            * `[]` 8. Confezionamento: Filtrazione finale, carbonatazione (naturale o aggiunta), imbottigliamento/infustamento sostenibile.
-        * `[]` iii. **Whisky Locale:**
-            * `[]` 1. Coltivazione Ingredienti Bio: Orzo locale; acqua pura; lievito selezionato.
-            * `[]` 2. Maltazione.
-            * `[]` 3. Macinazione.
-            * `[]` 4. Ammostamento.
-            * `[]` 5. Fermentazione (wash).
-            * `[]` 6. Distillazione (doppia: low wine, new make spirit) in alambicchi di rame.
-            * `[]` 7. Maturazione: Minimo 3 anni in botti di rovere, monitoraggio.
-            * `[]` 8. Miscelazione (se necessario) e Imbottigliamento: Filtrazione, imbottigliamento sostenibile.
-        * `[]` iv. **Bourbon (Stile Anthalys):**
-            * `[]` 1. Coltivazione Ingredienti Bio: Min. 51% Mais locale; segale, orzo, grano locali; acqua pura; lievito.
-            * `[]` 2. Maltazione (per orzo).
-            * `[]` 3. Macinazione.
-            * `[]` 4. Ammostamento.
-            * `[]` 5. Fermentazione.
-            * `[]` 6. Distillazione (doppia).
-            * `[]` 7. Maturazione: Minimo 2 anni in botti nuove di rovere carbonizzate.
-            * `[]` 8. Miscelazione e Imbottigliamento.
-        * `[]` v. **Sambuca (Stile Anthalys):**
-            * `[]` 1. Raccolta Ingredienti Bio/Naturali: Anice stellato, finocchio selvatico, liquirizia, erbe aromatiche/spezie locali; alcol da cereali bio.
-            * `[]` 2. Estrazione Oli Essenziali: Macerazione, filtrazione.
-            * `[]` 3. Preparazione Mix: Miscelazione estratti con alcol puro, acqua, zucchero naturale.
-            * `[]` 4. Distillazione a Vapore.
-            * `[]` 5. Maturazione: In serbatoi di acciaio, controllo qualità.
-            * `[]` 6. Imbottigliamento sostenibile.
-        * `[]` vi. **Zucchero Naturale:**
-            * `[]` 1. Coltivazione Bio: Canna da zucchero e/o barbabietola da zucchero (varietà selezionate, preparazione terreno, rotazione, irrigazione a goccia, controllo parassiti bio).
-            * `[]` 2. Raccolta.
-            * `[]` 3. Estrazione Succo: Lavaggio, frantumazione, pressatura.
-            * `[]` 4. Purificazione Succo: Filtrazione, chiarificazione naturale.
-            * `[]` 5. Evaporazione e Cristallizzazione.
-            * `[]` 6. Separazione Cristalli (centrifugazione) e Essiccazione.
-            * `[]` 7. Raffinazione (opzionale per zucchero bianco, altrimenti zucchero grezzo).
-            * `[]` 8. Confezionamento sostenibile.
-        * `[]` vii. **Sale Naturale:**
-            * `[]` 1. **Raccolta Sale Marino:** Selezione aree, preparazione saline, riempimento bacini, evaporazione naturale, raccolta cristalli, lavaggio, essiccazione.
-            * `[]` 2. **Raccolta Sale di Miniera (Se applicabile al lore di Anthalys):** Identificazione miniere, estrazione sostenibile, trasporto, pulizia, essiccazione.
-            * `[]` 3. Macina e Raffinazione (opzionale).
-            * `[]` 4. Confezionamento sostenibile.
-        * `[]` viii. **Pelli Sostenibili:**
-            * `[]` 1. Da Allevamento Sostenibile (`C.9.e`): Selezione animali, gestione pascoli, alimentazione naturale, macellazione etica, utilizzo completo.
-            * `[]` 2. Concia delle Pelli: Preparazione, concia vegetale (con tannini naturali), finitura.
-            * `[]` 3. Lavorazione Pelli: Taglio, cucitura (per vestiti `II.2.e`, scarpe, accessori), colorazione naturale.
-            * `[]` 4. Confezionamento sostenibile.
-        * `[]` ix. **Tessuti Naturali e Sostenibili:**
-            * `[]` 1. Coltivazione Fibre Naturali: Cotone biologico, lino, canapa; allevamento bachi da seta, pecore per lana (da `C.9.e`).
-            * `[]` 2. Raccolta e Preparazione Fibre: Manuale, pulizia, cardatura.
-            * `[]` 3. Filatura: Tradizionale e/o meccanica ecologica.
-            * `[]` 4. Tessitura: Manuale e/o meccanica; design e motivi.
-            * `[]` 5. Tintura Naturale: Coloranti vegetali, tecniche sostenibili.
-            * `[]` 6. Finissaggio e Confezionamento sostenibile.
-        * `[]` x. **Prodotti da Forno Artigianali di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Pane Artigianale: Varie tipologie (es. lievito madre, con grani antichi di Anthalys, farine integrali locali, pani regionali specifici).
-            * `[]` 2. Dolci da Forno: Torte, biscotti, pasticcini realizzati con ingredienti locali (frutta di stagione, miele di Anthalys, farine speciali).
-            * `[]` 3. Prodotti Salati da Forno: Focacce con erbe locali, torte salate con verdure di stagione, cracker artigianali.
-        * `[]` xi. **Conserve e Preparazioni Artigianali di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Marmellate, Confetture e Gelatine: Prodotte con frutta locale di stagione e dolcificanti naturali (`C.9.d.vi`).
-            * `[]` 2. Sottaceti e Sottoli: Verdure locali conservate con aceti artigianali (`C.9.d.xix`) e oli locali.
-            * `[]` 3. Salse e Condimenti Speciali: Pesti (con erbe aromatiche di Anthalys), chutney, mostarde, salse agrodolci con ingredienti unici.
-            * `[]` 4. Frutta e Verdura Essiccata: Metodi di essiccazione naturale per conservare prodotti stagionali.
-        * `[]` xii. **Formaggi e Latticini Artigianali di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Formaggi a Latte Crudo o Pastorizzato: Da latte di mucca, capra, o "Grak" (`C.9.e`), con diverse stagionature (freschi, semi-stagionati, stagionati, erborinati).
-            * `[]` 2. Yogurt Naturale e Aromatizzato: Con latte locale e fermenti selezionati, possibile aggiunta di frutta o miele di Anthalys.
-            * `[]` 3. Burro e Panna Artigianali: Da latte fresco di alta qualità.
-            * `[]` 4. Alternative Vegetali Fermentate: "Formaggi" e "yogurt" a base di frutta secca locale (noci, mandorle di Anthalys) o legumi.
-        * `[]` xiii. **Salumi e Insaccati Naturali di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Produzione da carni di allevamento sostenibile (`C.9.e`), lavorate con sale naturale di Anthalys (`C.9.d.vii`), spezie ed erbe locali.
-            * `[]` 2. Tecniche di stagionatura naturale, senza conservanti chimici (o con uso minimo di conservanti naturali approvati).
-            * `[]` 3. Tipologie: Prosciutti crudi e cotti, salami, salsicce fresche e stagionate, bresaole e altre specialità locali di Anthalys.
-        * `[]` xiv. **Pasta Fresca, Secca e Ripiena Artigianale di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Pasta prodotta con farine di cereali locali (grano duro/tenero, farro, segale di Anthalys, grani antichi riscoperti).
-            * `[]` 2. Pasta fresca all'uovo (da uova di allevamenti etici `C.9.e`).
-            * `[]` 3. Ripieni per pasta fresca basati su ingredienti stagionali e locali (verdure, formaggi artigianali `C.9.d.xii`, carni sostenibili).
-        * `[]` xv. **Miele e Prodotti dell'Alveare di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Miele Monoflora e Poliflora: Basato sulla specifica flora locale di Anthalys (`XIII.2.d`), con caratteristiche organolettiche uniche.
-            * `[]` 2. Altri prodotti: Polline, propoli, pappa reale, cera d'api grezza (per candele `C.9.f.iii` o cosmesi `C.9.f.ii`).
-            * `[]` 3. (Richiede implementazione dell'Apicoltura come attività agricola sostenibile in `C.9.b.i`, con arnie, NPC apicoltori).
-        * `[]` xvi. **Funghi Coltivati e Selvatici Comestibili di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Coltivazione sostenibile di funghi (es. champignon, pleurotus, shiitake, cardoncelli adattati al clima di Anthalys) su substrati organici locali.
-            * `[]` 2. Raccolta regolamentata e sostenibile di funghi selvatici commestibili dalle foreste e praterie di Anthalys (richiede skill `FORAGING` o `MYCOLOGY` - futura `IX.e`, e zone di raccolta specifiche `XVIII.5`).
-        * `[]` xvii. **Cioccolato Artigianale e Derivati di Anthalys:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Lavorazione artigianale di fave di cacao importate eticamente (da `VIII.6.1.b.ii`).
-            * `[]` 2. Produzione di tavolette (fondente, al latte, bianco, aromatizzato), praline, creme spalmabili.
-            * `[]` 3. Utilizzo di ingredienti e inclusioni locali uniche: frutta secca di Anthalys, spezie, erbe, sale floreale.
-        * `[]` xviii. **Bevande Speciali Fermentate e Analcoliche Artigianali:** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Kombucha prodotta con tè e colture locali, aromatizzata con frutta/erbe di Anthalys.
-            * `[]` 2. Kefir d'acqua e di latte (da latte sostenibile `C.9.e`).
-            * `[]` 3. Idromele tradizionale e aromatizzato con miele locale (`C.9.d.xv`).
-            * `[]` 4. Bevande leggermente frizzanti da fermentazione naturale di frutta, fiori o radici locali.
-            * `[]` 5. Sciroppi e nettari da frutta/fiori per diluizione.
-        * `[]` xix. **Elaborati Gastronomici Pronti ("Gastronomia Locale di Anthalys"):** `[NUOVA ESPANSIONE]`
-            * `[]` 1. Piatti pronti (freschi o da conservare brevemente) che riflettono la cucina tradizionale o innovativa di Anthalys.
-            * `[]` 2. Esempi: Zuppe di legumi e cereali locali, sformati di verdure, lasagne con ragù di carne sostenibile, insalate composte con prodotti dell'orto, piatti unici regionali.
-            * `[]` 3. Venduti presso mercati locali (`XIII.5.a`), negozi di specialità alimentari (`XVIII.5.h`), o servizi di catering NPC.
-        * `[]` xx. **Oli Vegetali Pregiati e Aromatizzati di Anthalys:** `[NUOVO]`
-            * `[]` 1. Olio extravergine da olive autoctone di Anthalys (se presenti).
-            * `[]` 2. Oli da semi locali (girasole, lino, canapa `C.9.d.ix`) spremuti a freddo.
-            * `[]` 3. Oli aromatizzati con erbe fresche di Anthalys (basilico, rosmarino, peperoncino locali).
-        * `[]` xxi. **Farine Speciali Macinate a Pietra e Miscele per Panificazione:** `[NUOVO]`
-            * `[]` 1. Farine da grani antichi e cereali minori coltivati ad Anthalys (es. farro, segale, avena, grano saraceno locali).
-            * `[]` 2. Farina di castagne (se presenti castagneti gestiti sostenibilmente).
-            * `[]` 3. Farine di legumi locali (ceci, lenticchie) per prodotti da forno proteici o addensanti.
-            * `[]` 4. Miscele di farine bilanciate per specifici tipi di pane o dolci.
-        * `[]` xxii. **Aceti Artigianali Aromatizzati e Balsamici di Anthalys:** `[NUOVO]`
-            * `[]` 1. Aceto di vino (da vini locali `C.9.j.ii`).
-            * `[]` 2. Aceto di mele (da meleti locali).
-            * `[]` 3. Aceti infusi con erbe, spezie o frutta di Anthalys.
-            * `[]` 4. (Avanzato) Produzione di "Aceto Balsamico Tradizionale di Anthalys" con lungo invecchiamento.
-        * `[]` xxiii. **Prodotti a Base di Lavanda o Altre Erbe Officinali di Anthalys:** `[NUOVO]`
-            * `[]` 1. Olio essenziale di lavanda (o altre erbe come menta, melissa, camomilla locali) (`C.9.f.ii.3`).
-            * `[]` 2. Sacchetti profumati per biancheria/ambienti.
-            * `[]` 3. Acqua distillata aromatica (idrolato) di lavanda/fiori locali.
-            * `[]` 4. Tisane e infusi specifici (`C.9.d.xviii`).
-        * `[]` xxiv. **Tinture Madri, Oleoliti e Preparati Erboristici Curativi:** `[NUOVO]`
-            * `[]` 1. Estratti da piante medicinali autoctone di Anthalys (collegamento a skill `HERBALISM` `IX.e` e `Natural Medicine`).
-            * `[]` 2. Utilizzo per il benessere personale (astrattamente) o come ingredienti per cosmesi (`C.9.f.ii`).
-        * `[]` xxv. **Prodotti a Base di Alghe Marine o d'Acqua Dolce di Anthalys:** `[NUOVO]`
-            * `[]` 1. Alghe commestibili essiccate o fresche (se Anthalys ha accesso a risorse acquatiche sostenibili) per uso alimentare (zuppe, insalate, condimenti).
-            * `[]` 2. Estratti di alghe per cosmetici naturali (`C.9.f.ii`) o fertilizzanti organici (`C.9.b.i.3`).
-        * `[]` xxvi. **Spezie Pure e Miscele Aromatiche Tradizionali di Anthalys:** `[NUOVO]`
-            * `[]` 1. Coltivazione e/o raccolta sostenibile di erbe e spezie endemiche o particolarmente adattate al territorio di Anthalys.
-            * `[]` 2. Creazione e commercializzazione di miscele di spezie tradizionali per piatti tipici.
-        * `[]` xxvii. **Incensi Naturali, Resine Aromatiche e Pot-pourri:** `[NUOVO]`
-            * `[]` 1. Da piante resinose locali, legni aromatici, erbe e fiori essiccati.
-            * `[]` 2. Per profumare ambienti o per pratiche meditative/spirituali (se `SPIRITUALITY` `IV.1.e.i` include tali aspetti).
-        * `[]` xxviii. **Pigmenti e Coloranti Naturali per Uso Artistico e Artigianale:** `[NUOVO]`
-            * `[]` 1. Estratti da terre colorate locali, minerali (`C.9.f.i.4`), piante tintorie (per tessuti `C.9.d.ix`, pittura `IX.e Painting`, ceramiche `IX.e Pottery`).
-        * `[]` xxix. **Giocattoli Educativi e Artigianali per Bambini:** `[NUOVO]`
-            * `[]` 1. Realizzati con legno certificato di Anthalys (`C.9.f.i.3`), tessuti naturali (`C.9.d.ix`), e vernici atossiche/naturali.
-            * `[]` 2. Design semplice, che stimola la creatività e l'apprendimento, ispirato alla fauna e flora di Anthalys.
-        * `[]` xxx. **Salse Pronte Artigianali (Ketchup, Maionese, BBQ di Anthalys):** `[NUOVO]`
-            * `[]` 1. Ketchup con pomodori maturi locali, aceto artigianale e spezie dolci.
-            * `[]` 2. Maionese con uova da allevamento etico (`C.9.e`), olio di semi locali e senape artigianale.
-            * `[]` 3. Salse Barbecue con ingredienti affumicati naturalmente e melassa locale (se prodotta da `C.9.d.vi`).
-        * `[]` xxxi. **Mostarde Artigianali Aromatizzate di Anthalys:** `[NUOVO]`
-            * `[]` 1. Con semi di senape coltivati localmente.
-            * `[]` 2. Aromatizzate con miele di Anthalys (`C.9.d.xv`), birra locale (`C.9.d.ii`), frutta o erbe specifiche.
-        * `[]` xxxii. **Liquori Dolci e Amari d'Erbe Tradizionali di Anthalys:** `[NUOVO]`
-            * `[]` 1. Basati su antiche ricette locali, utilizzando un'ampia varietà di erbe, radici, fiori e frutti di Anthalys, macerati in alcol di cereali bio.
-            * `[]` 2. Esempi: Nocino (se noci presenti), genzianella, liquirizia, amari digestivi.
-        * `[]` xxxiii. **Sidro di Frutta Mista e Fermentati Innovativi:** `[NUOVO]`
-            * `[]` 1. Sidro di pere, mele cotogne, o altri frutti pomacei locali.
-            * `[]` 2. Fermentati di bacche selvatiche raccolte in modo sostenibile (`FORAGING` skill).
-            * `[]` 3. "Vini" di fiori o vegetali (es. dente di leone, sambuco).
-        * `[]` xxxiv. **"Formaggi" Vegetali Stagionati e Complessi (Vegan):** `[NUOVO]` (Espansione di `C.9.d.xii.4`)
-            * `[]` 1. Utilizzo di tecniche avanzate di fermentazione (es. con rejuvelac, miso) e stagionatura (anche con l'uso di muffe nobili controllate e sicure) per anacardi, mandorle o altri semi/legumi locali.
-            * `[]` 2. Prodotti con consistenze e sapori che mimano formaggi tradizionali complessi.
-        * `[]` xxxv. **Prodotti da Forno e Dolci Crudisti (Raw Food):** `[NUOVO]`
-            * `[]` 1. Barrette energetiche, cracker, "formaggi" spalmabili di semi, torte e dolci realizzati con ingredienti non sottoposti a cottura superiore a 40-45°C (frutta secca, semi, cocco, cacao crudo, datteri).
-            * `[]` 2. Per NPC con specifiche preferenze dietetiche (`VEGAN`, `RAW_FOODIST` - futuri tratti `IV.3.b`) o molto attenti alla salute.
-        * `[]` xxxvi. **Kit per la Coltivazione Domestica/Artigianato Fai-da-Te:** `[NUOVO]`
-            * `[]` 1. Kit per coltivare piccole quantità di erbe aromatiche (`X.6`), micro-ortaggi, o funghi commestibili (`C.9.d.xvi`) in casa/balcone.
-            * `[]` 2. Kit per la produzione casalinga di birra (`C.9.d.ii`), formaggio fresco (`C.9.d.xii`), sapone (`C.9.f.ii.1`), o piccole candele (`C.9.f.iii.1`), con ingredienti pre-dosati e istruzioni.
-            * `[]` 3. Promuovono l'autosufficienza, l'apprendimento di skill (`IX.e`) e la sostenibilità.
-    * `[]` e. **Processo Dettagliato di Allevamento del Bestiame Sostenibile di Anthalys:** (Espansione di `C.9.b.iii`)
-        * `[]` i. Selezione delle Razze: Adatte al clima locale, caratteristiche genetiche (resistenza malattie, qualità carne/latte).
-        * `[]` ii. Allevamento e Gestione: Rotazione pascoli, alimentazione naturale/biologica, ampi spazi aperti.
-        * `[]` iii. Salute e Benessere Animale: Controlli veterinari (`Veterinario` carriera `VIII.1.j`, skill `IX.e`), gestione gentile, riduzione stress.
-        * `[]` iv. Riproduzione e Cura Cuccioli: Programmi controllati, assistenza al parto, cure neonatali.
-        * `[]` v. Gestione Rifiuti Animali e Impatto Ambientale: Compostaggio reflui (`XIII.1.c.i`), gestione efficiente acqua, uso energie rinnovabili.
-        * `[]` vi. Produzione Carne e Latte: Macellazione etica, trattamento/lavorazione igienica latte, conservazione e trasformazione.
-        * `[]` vii. Confezionamento e Distribuzione sostenibile.
-    * `[]` f. **Materiali Sostenibili e Prodotti Artigianali Non Alimentari di Anthalys:** `[NUOVA CATEGORIA]`
-        * `[]` i. **Materiali da Costruzione e Design Ecologici:**
-            * `[]` 1. Bio-compositi: Da fibre naturali locali (canapa, lino `C.9.d.ix`) e resine bio-based per oggetti, arredi (`XVIII.1`), edilizia leggera.
-            * `[]` 2. Micelio: Materiali da funghi (`C.9.d.xvi`) per imballaggi ecologici (alternativa a quelli di **AION** `VIII.6.5.b.i`), isolanti termici/acustici per edilizia, alternative alla pelle (`C.9.d.viii`).
-            * `[]` 3. Legno Certificato di Anthalys: Da foreste (`XIII.2.d`) gestite sostenibilmente, per mobili, artigianato (`X.4`), strutture edilizie.
-            * `[]` 4. Pietre e Minerali Locali di Anthalys: Estratti in modo responsabile (collegamento a `C.2 Risorse Limitate`), per edilizia, scultura (`X.4`), pavimentazioni, gioielleria (`X.4`).
-            * `[]` 5. Argille Locali Selezionate: Per ceramiche artistiche e funzionali (`IX.e Pottery`), mattoni e intonaci ecologici per bioedilizia.
-        * `[]` ii. **Prodotti per la Cura della Persona Naturali e Artigianali:**
-            * `[]` 1. Saponi Solidi e Liquidi: Realizzati con metodo a freddo/caldo, utilizzando oli vegetali locali (oliva, girasole di Anthalys), liscivia (da ceneri di legna), erbe aromatiche e curative locali, miele (`C.9.d.xv`), latte (`C.9.d.xii`).
-            * `[]` 2. Cosmetici Naturali: Creme idratanti, unguenti, balsami labbra, maschere viso con ingredienti come cera d'api (`C.9.d.xv`), oli vegetali, estratti floreali e di erbe di Anthalys, argille (`C.9.f.i.5`).
-            * `[]` 3. Oli Essenziali e Idrolati: Distillati da piante aromatiche e medicinali autoctone di Anthalys (richiede skill `HERBALISM` `IX.e` e alambicco `XVIII.1`).
-            * `[]` 4. Shampoo, Balsami Solidi e Deodoranti Naturali: Formulazioni ecologiche senza additivi chimici.
-        * `[]` iii. **Oggetti d'Arredo e Utensili Domestici Artigianali:**
-            * `[]` 1. Candele Artigianali: In pura cera d'api locale (`C.9.d.xv`), cere vegetali (soia coltivata localmente), stoppini naturali, profumate con oli essenziali (`C.9.f.ii.3`).
-            * `[]` 2. Oggetti in Legno Intagliato/Tornito: Utensili da cucina (cucchiai, taglieri), ciotole, giocattoli per bambini, piccole sculture, elementi decorativi, da legno certificato (`C.9.f.i.3`). Richiede skill `WOODWORKING` (`IX.e`).
-            * `[]` 3. Gioielli Artigianali Unici: Creati con metalli riciclati o estratti localmente (`C.9.f.i.4`), pietre semi-preziose di Anthalys, semi, legno, ceramica (`IX.e Pottery`), vetro riciclato (`XIII.1.c.iv`). Richiede skill `JEWELRY_MAKING` (`X.4`).
-            * `[]` 4. Cesti e Contenitori Intrecciati: Utilizzando fibre vegetali locali (vimini, paglia di cereali `C.9.d.x`, foglie di piante acquatiche). Richiede skill `BASKET_WEAVING` (nuova `IX.e`).
-            * `[]` 5. Carta Riciclata Artigianale: Prodotta da scarti di carta (`XIII.1.c.ii`) o fibre vegetali, per usi artistici, rilegatura, cancelleria.
-        * `[]` iv. **Strumenti Musicali Artigianali di Anthalys:** (Se il lore lo permette)
-            * `[]` 1. Utilizzo di legni locali certificati (`C.9.f.i.3`), pelli (`C.9.d.viii`), e altri materiali naturali per creare strumenti a corda, a percussione o a fiato tipici della cultura di Anthalys. (Richiede skill `INSTRUMENT_MAKING` - nuova `IX.e`).
-    * `[!]` g. **Coerenza con il Mercato e Consumo:**
-        * `[]` i. Questi prodotti (alimenti, bevande, tabacco, pelli, tessuti) devono essere integrati nel sistema di consumo degli NPC (`IV.1` bisogni, `X.5` cibo, `II.2.e` vestiti), disponibili per l'acquisto tramite **AION** (`VIII.6`) e/o mercati locali/negozi specializzati (`XVIII.5.h`).
-        * `[]` ii. I prezzi rifletteranno la qualità "sostenibile/artigianale" e i costi di produzione.
-        * `[]` iii. Le scelte dei consumatori NPC (`IV.4`) potrebbero essere influenzate dalla provenienza/qualità di questi prodotti (tratti `FOODIE`, `ENVIRONMENTALLY_CONSCIOUS`, `HEALTH_CONSCIOUS` - IV.3.b).
-
----
-
-Prompt per Descrivere SimAI a un'IA:
-
-"Sto sviluppando un gioco di simulazione di vita testuale estremamente dettagliato e ambizioso chiamato SimAI, ambientato nel mondo tecnologicamente avanzato e socialmente complesso di Anthalys. L'obiettivo primario è creare una simulazione profonda e realistica della vita e del comportamento degli NPC (Non-Player Characters), con un forte accento sull'autonomia degli NPC, sulla coerenza del mondo e sull'originalità delle meccaniche di gioco. L'ispirazione principale è la "vita reale", filtrata attraverso una lente creativa unica per Anthalys, evitando la replica diretta di meccaniche di altri giochi.
-
-Filosofia e Principi Guida Chiave di SimAI:
-
-Unicità e Originalità: Creare un'esperienza distintiva, coerente con il lore di Anthalys.
-Coerenza del Mondo e della Simulazione: NPC esclusivi per posizione/azione, tempo continuo con conseguenze.
-Profondità e Complessità Emergente: Preferire sistemi interconnessi che generano comportamenti emergenti.
-Realismo Credibile e Immersivo: Bilanciare realismo con giocabilità, con peculiarità di Anthalys (giornata di 28 ore, valuta Ꜳ).
-Modularità e Scalabilità: Progettare sistemi espandibili.
-Focus sugli NPC Autonomi: L'obiettivo è simulare vite NPC ricche e guidate da motivazioni interne.
-Attenzione all'Etica e alla Rappresentazione: Affrontare temi complessi con sensibilità, promuovendo diversità e inclusività.
-Caratteristiche Principali del Mondo e della Simulazione di Anthalys:
-
-Geografia: La città di Anthalys sorge su un lago immenso che copre i 3/4 del continente da nord a sud. Sono presenti fiumi navigabili e tre grandi isole a sud del lago, mete turistiche e commerciali.
-Tempo e Calendario: Una giornata dura 28 ore, l'anno è composto da 18 mesi di 24 giorni ciascuno. Esiste un calendario dettagliato con stagioni, festività fisse e mobili (calcolate anche su cicli lunari), e un motore astronomico di base.
-Simulazione NPC: NPC con un ciclo di vita completo (dall'infanzia all'anzianità, inclusa la morte), bisogni fisiologici, sociali ed emotivi/mentali complessi (Fame, Sete, Energia, Igiene, Vescica, Sociale, Divertimento, Comfort, Sicurezza, Creatività, Realizzazione, Spiritualità). Possiedono un vasto set di tratti di personalità (~150-200 tratti categorizzati), aspirazioni di vita con obiettivi progressivi, e un sistema di umore e moodlet dinamico. L'IA è progettata per essere avanzata, con routine personalizzate, gestione di imprevisti, e simulazione "off-screen" (LOD).
-Creazione del Personaggio (CAS): Un sistema dettagliato per la personalizzazione fisica (viso, corpo, capelli, occhi, pelle, dettagli come cicatrici/tatuaggi), identità (nome, età, sesso biologico, identità di genere, pronomi, voce, orientamento sessuale/romantico), assegnazione tratti e aspirazioni, scelta abbigliamento e background narrativo. Include un sistema genetico per l'ereditarietà.
-Abilità e Interessi: Un sistema completo con numerose skill (~80+) suddivise in categorie (Sociale, Mentale, Fisica, Creativa, Pratica, ecc.), ognuna con livelli, XP, e impatti specifici. Gli NPC sviluppano interessi e hobby, possono collezionare oggetti e dedicarsi a un crafting amatoriale.
-Sistema Economico "AION": L'economia è dominata da "AION", una grande azienda di import/export online controllata al 100% da IA. AION gestisce un vasto catalogo prodotti, prezzi accessibili, logistica con droni-cargo invisibili e magazzini sotterranei ultra-tecnologici. Facilita anche la vendita di prodotti di cittadini/piccole imprese. La valuta è l'Athel (Ꜳ) digitale.
-Banche e Finanza: Esiste una Banca Centrale di Anthalys (politica monetaria, stabilità, regolamentazione) e banche commerciali che offrono conti, prestiti, mutui e investimenti, tutto gestito digitalmente.
-Lavoro e Imprenditoria: Numerose carriere specialistiche con progressione, performance lavorativa, eventi. Gli NPC possono anche avviare e gestire le proprie attività.
-Sistema Fiscale (CSC): Basato sul "Contributo al Sostentamento Civico" (CSC) con componenti progressive su Reddito Personale (CSC-R), Attività Commerciali (CSC-A), Scommesse (CSC-S), Proprietà (CSC-P), e Consumo (CSC-C al 12%).
-Welfare e Servizi Sociali: Sistema di previdenza sociale con pensioni, assistenza sanitaria universale (con programmi speciali e copertura per basso reddito), sussidi per famiglie e minori, indennità varie.
-Identità Digitale (DID) e Portale SoNet: Ogni cittadino ha un DID avanzato che integra identificazione, funzioni amministrative, finanziarie (carta di pagamento) e accesso a servizi. "SoNet" è il portale unico online per tutti i servizi al cittadino (tasse, sanità, istruzione, voto, mobilità, gestione rifiuti, commercio con AION, comunicazioni ufficiali).
-Urbanistica e Infrastrutture: Anthalys è suddivisa in 12 distretti funzionali (Residenziali, Commerciali, Industriali, Amministrativi, Culturali). L'architettura combina elementi medievali con tecnologie moderne sostenibili. Sistema di trasporti integrato (Metropolitana a 3 linee, Autobus/Tram ecologici, Strade/Autostrade intelligenti, Aeroporto, Porti lacustri/fluviali). Estese zone pedonali e ciclabili.
-Sostenibilità: Forte enfasi su energie rinnovabili (solare, eolica), raccolta differenziata avanzata con incentivi, gestione risorse idriche (desalinizzazione, raccolta piovana), materiali ecologici.
-Produzione Alimentare e Beni Sostenibile: Un sistema dettagliato di produzione (agricoltura, allevamento, acquacoltura, artigianato) con filiere per numerosi prodotti specifici di Anthalys (tabacco "non tossico", birra, whisky, bourbon, sambuca, zucchero, sale, pelli, tessuti, ecc.), basato su pratiche biologiche e tecnologie avanzate.
-Sistema Regolamentare e Legale: Costituzione che garantisce diritti e definisce la struttura dello stato. Normative dettagliate per lavoro, fisco, welfare, sanità, e un complesso Regolamento Alimentare. Previste basi per un sistema legale e di giustizia penale (crimini, indagini, processi, pene).
-Vita Militare e Cerimonie: Servizio di leva obbligatorio di 18 mesi (per ragazzi e ragazze, reparti separati), con addestramento, licenze, regolamenti dettagliati sulla vita in caserma, cerimonie (alzabandiera, giuramento, congedo con partecipazione del Governatore).
-Interfaccia Utente per il motore in fase di sviluppo: Inizialmente una TUI (Text User Interface) basata su curses.
-Linguaggio di programmazione: C++
 
 ## Lore per Anthalys
 

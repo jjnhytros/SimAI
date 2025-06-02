@@ -11,7 +11,7 @@ from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.4.86-alpha_182"
+GAME_VERSION = "0.3.79-alpha_149"
 DEBUG_MODE = False
 
 # --- II. CALENDARIO E TEMPO DI ANTHALYS (Nomi variabili ESATTI come da config utente) ---

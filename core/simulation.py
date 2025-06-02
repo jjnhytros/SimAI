@@ -39,44 +39,66 @@ class Simulation:
         ]
         if settings.DEBUG_MODE: print(f"  [Simulation INIT] Inizializzati {len(self.social_hubs)} social hub.")
 
-        if settings.DEBUG_MODE:
-            self._create_test_locations_and_objects()
+        self._create_test_locations_and_objects()
 
     def _create_test_locations_and_objects(self):
         """Crea alcune locazioni e oggetti di esempio per il test."""
-        cucina_max = Location(location_id="max_casa_cucina", name="Cucina di Max", location_type=LocationType.RESIDENTIAL_KITCHEN)
-
-        frigo = GameObject(object_id="frigo_max_01", name="Frigorifero di Max", object_type=ObjectType.REFRIGERATOR, is_water_source=True)
-        fornelli = GameObject(object_id="fornelli_max_01", name="Fornelli di Max", object_type=ObjectType.STOVE)
-        lavandino_cucina = GameObject(object_id="lavandino_cucina_max_01", name="Lavandino della cucina", object_type=ObjectType.SINK, is_water_source=True)
+        cucina_max = Location(
+            location_id="max_casa_cucina", 
+            name="Cucina di Max", 
+            location_type=LocationType.RESIDENTIAL_KITCHEN,
+            logical_width=10, # Esempio: cucina 10x8 celle
+            logical_height=8
+        )
+        # Assegna coordinate logiche agli oggetti (come prima, assicurati siano nei limiti)
+        frigo = GameObject(object_id="frigo_max_01", name="Frigorifero", object_type=ObjectType.REFRIGERATOR, is_water_source=True, logical_x=1, logical_y=1)
+        fornelli = GameObject(object_id="fornelli_max_01", name="Fornelli", object_type=ObjectType.STOVE, logical_x=3, logical_y=1)
+        lavandino_cucina = GameObject(object_id="lavandino_cucina_max_01", name="Lavandino Cucina", object_type=ObjectType.SINK, is_water_source=True, logical_x=5, logical_y=1)
+        
         cucina_max.add_object(frigo)
         cucina_max.add_object(fornelli)
         cucina_max.add_object(lavandino_cucina)
         self.add_location(cucina_max)
         self.world_objects[frigo.object_id] = frigo
         self.world_objects[fornelli.object_id] = fornelli
+        self.world_objects[lavandino_cucina.object_id] = lavandino_cucina
 
-        soggiorno_max = Location(location_id="max_casa_soggiorno", name="Soggiorno di Max", location_type=LocationType.RESIDENTIAL_LIVING_ROOM)
-        tv_max = GameObject(object_id="tv_max_01", name="TV Grande di Max", object_type=ObjectType.TV,
-                            provides_fun_activities=[FunActivityType.WATCH_TV])
-        divano_max = GameObject(object_id="divano_max_01", name="Divano Comodo di Max", object_type=ObjectType.SOFA, comfort_value=7)
-        libreria_max = GameObject(object_id="libreria_max_01", name="Libreria di Max", object_type=ObjectType.BOOKSHELF,
-                                provides_fun_activities=[FunActivityType.READ_BOOK_FOR_FUN])
-        soggiorno_max.add_object(tv_max); soggiorno_max.add_object(divano_max); soggiorno_max.add_object(libreria_max)
+        soggiorno_max = Location(
+            location_id="max_casa_soggiorno", 
+            name="Soggiorno di Max", 
+            location_type=LocationType.RESIDENTIAL_LIVING_ROOM,
+            logical_width=15, # Esempio: soggiorno 15x10 celle
+            logical_height=10
+        )
+        tv_max = GameObject(object_id="tv_max_01", name="TV", object_type=ObjectType.TV, provides_fun_activities=[FunActivityType.WATCH_TV], logical_x=2, logical_y=3)
+        divano_max = GameObject(object_id="divano_max_01", name="Divano", object_type=ObjectType.SOFA, comfort_value=7, logical_x=4, logical_y=3)
+        libreria_max = GameObject(object_id="libreria_max_01", name="Libreria", object_type=ObjectType.BOOKSHELF, provides_fun_activities=[FunActivityType.READ_BOOK_FOR_FUN], logical_x=6, logical_y=3)
+        
+        soggiorno_max.add_object(tv_max)
+        soggiorno_max.add_object(divano_max)
+        soggiorno_max.add_object(libreria_max)
         self.add_location(soggiorno_max)
         self.world_objects[tv_max.object_id] = tv_max
         self.world_objects[divano_max.object_id] = divano_max
         self.world_objects[libreria_max.object_id] = libreria_max
 
-        bagno_max = Location(location_id="max_casa_bagno", name="Bagno di Max", location_type=LocationType.RESIDENTIAL_BATHROOM)
-        wc_max = GameObject(object_id="wc_max_01", name="WC", object_type=ObjectType.TOILET)
-        doccia_max = GameObject(object_id="doccia_max_01", name="Doccia", object_type=ObjectType.SHOWER)
-        bagno_max.add_object(wc_max); bagno_max.add_object(doccia_max)
+        bagno_max = Location(
+            location_id="max_casa_bagno", 
+            name="Bagno di Max", 
+            location_type=LocationType.RESIDENTIAL_BATHROOM,
+            logical_width=8, # Esempio: bagno 8x6 celle
+            logical_height=6
+        )
+        wc_max = GameObject(object_id="wc_max_01", name="WC", object_type=ObjectType.TOILET, logical_x=1, logical_y=5)
+        doccia_max = GameObject(object_id="doccia_max_01", name="Doccia", object_type=ObjectType.SHOWER, logical_x=3, logical_y=5)
+        
+        bagno_max.add_object(wc_max)
+        bagno_max.add_object(doccia_max)
         self.add_location(bagno_max)
         self.world_objects[wc_max.object_id] = wc_max
         self.world_objects[doccia_max.object_id] = doccia_max
 
-        if settings.DEBUG_MODE: print(f"  [Simulation INIT] Create {len(self.locations)} locazioni di test con oggetti.")
+        if settings.DEBUG_MODE: print(f"  [Simulation INIT] Create {len(self.locations)} locazioni di test con oggetti e coordinate logiche.")
 
     def add_location(self, location: Location):
         if location.location_id not in self.locations:

@@ -17,7 +17,9 @@ class Location:
     name: str
     location_type: LocationType
     description: str = ""
-    
+    logical_width: int = 20  # Default: 20 celle di larghezza
+    logical_height: int = 15 # Default: 15 celle di altezza
+
     # Dizionario degli oggetti presenti in questa locazione (object_id -> GameObject)
     objects: Dict[str, GameObject] = field(default_factory=dict)
     
@@ -50,6 +52,7 @@ class Location:
 
     def __str__(self):
         return (f"Location(ID: {self.location_id}, Name: \"{self.name}\", "
+                f"Size: ({self.logical_width}x{self.logical_height}), " # Aggiunto Size
                 f"NPCs: {len(self.npcs_present_ids)}, Objects: {len(self.objects)})")
 
     # def get_object_by_id(self, object_id: str) -> Optional[GameObject]:

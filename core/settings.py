@@ -6,7 +6,7 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
 GAME_VERSION = "0.2.49-alpha_71"
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 # --- II. CALENDARIO E TEMPO DI ANTHALYS (Nomi variabili ESATTI come da config utente) ---
 HXD = 28        # Ore per Giorno

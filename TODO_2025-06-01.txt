@@ -58,14 +58,16 @@
     * `[x]` c. Loop di gioco principale (gestione eventi, update logica, rendering). *(Implementato in `Renderer.run_game_loop()`)*
         * `[x]` i. Gestione evento `QUIT`. *(Fatto in `Renderer._handle_events()`)*
         * `[x]` ii. Gestione evento `VIDEORESIZE` per finestra ridimensionabile. *(Fatto in `Renderer._handle_events()`)*
+        * `[P]` iii. Gestione input da tastiera base (es. ciclare viste/locazioni). *(Implementato K_TAB per ciclare locazioni visibili)*.
     * `[x]` d. Funzione base di rendering: pulizia schermo, flip del display. *(`self.screen.fill()` e `pygame.display.flip()` in `Renderer._render_gui()`)*
     * `[x]` e. Clock per gestione FPS. *(`pygame.time.Clock()` usato in `Renderer`)*
     * `[x]` f. Integrazione pulita di `pygame.quit()` all'uscita. *(Chiamato in `Renderer._quit_pygame()`)*
     * `[P]` g. Possibilità di visualizzare testo base sullo schermo (es. FPS, messaggi di debug se GUI attiva e DEBUG_MODE True). *(Testo "SimAI - Finestra Pygame Attiva" e FPS (se DEBUG_MODE True) mostrati in `Renderer._render_gui()`. Font di sistema base utilizzato, personalizzazione futura necessaria.)*
-    * `[]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
-        * `[]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
-        * `[]` ii. Funzione per disegnare un oggetto (es. un quadrato).
-    * `[]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
+    * `[P]` h. Struttura per disegnare entità base della simulazione (NPC, oggetti semplici) come forme geometriche placeholder.
+        * `[P]` i. Funzione per disegnare un NPC (es. un cerchio con un colore).
+        * `[P]` ii. Funzione per disegnare un oggetto (es. un quadrato).
+        * `[P]` iii. Implementare un sistema di "telecamera" o vista con offset per visualizzare porzioni di locazioni più grandi. *(Offset base `camera_offset_x/y` implementato, controllabile con frecce e limitato dalle dimensioni logiche della locazione corrente e dalla dimensione dello schermo)*.
+    * `[P]` i. Collegamento con `Simulation.run()`: la GUI dovrebbe guidare il loop principale, chiamando `Simulation._update_simulation_state()` ad ogni frame o a intervalli definiti. *(Attualmente il loop GUI in `Renderer.run_game_loop()` è separato, `_update_game_state` nella GUI è un placeholder. `simulation` è passato a `run_game_loop` per uso futuro.)*
     * `[x]` j. Sviluppare la GUI in parallelo alla TUI. *(Decisione presa e approccio avviato).*
     * `[x]` k. La TUI verrà utilizzata in caso di `DEBUG_MODE=True`. *(Implementato in `simai.py`)*.
     * `[x]` l. La finestra base è 1280x768 ridimensionabile e adattiva al contenuto (in futuro opzioni di risoluzione e fullscreen). *(Implementazione base per ridimensionabilità e dimensioni iniziali fatta in `Renderer`)*.

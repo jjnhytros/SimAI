@@ -43,7 +43,10 @@ class RelationshipInfo: # Manteniamo questa definizione
 class Character:
     def __init__(self,
                 npc_id: str, name: str, initial_gender: Gender,
-                initial_age_days: int = 0, initial_interests: Optional[Set[Interest]] = None,
+                initial_age_days: int = 0, 
+                initial_logical_x: int = 0, 
+                initial_logical_y: int = 0,
+                initial_interests: Optional[Set[Interest]] = None,
                 initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_romantically_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_is_on_asexual_spectrum: bool = False, initial_is_on_aromantic_spectrum: bool = False,
@@ -78,11 +81,11 @@ class Character:
         self.current_action: Optional[BaseAction] = None
         self.is_busy: bool = False
         self.current_location_id: Optional[str] = initial_location_id
-
+        self.logical_x: int = initial_logical_x
+        self.logical_y: int = initial_logical_y
         self.pending_intimacy_proposal_from: Optional[str] = None
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
-
         self.ai_decision_maker = AIDecisionMaker(npc=self)
 
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
@@ -124,8 +127,7 @@ class Character:
         }
         for need_type_enum in NeedType:
             if need_type_enum in need_class_map:
-                # --- MODIFICA: Passa need_type_enum al costruttore del bisogno ---
-                self.needs[need_type_enum] = need_class_map[need_type_enum](need_type=need_type_enum)
+                self.needs[need_type_enum] = need_class_map[need_type_enum](need_type_enum)
             elif settings.DEBUG_MODE:
                 # Non loggare per THIRST se non è ancora in need_class_map
                 if need_type_enum.name != "THIRST": # Esempio, o un modo più generico per gestire bisogni futuri
@@ -148,7 +150,7 @@ class Character:
         
         if new_calculated_stage is not None:
             if not current_life_stage_exists or self.life_stage != new_calculated_stage:
-                old_stage_name_for_log = self.life_stage.name if current_life_stage_exists else "Nessuno"
+                old_stage_name_for_log = self.life_stage.name if current_life_stage_exists else "Nessuno" # type: ignore
                 self.life_stage = new_calculated_stage
                 if settings.DEBUG_MODE:
                     age_in_years_for_log = self.get_age_in_years_float()
@@ -376,7 +378,9 @@ class Character:
         current_action_str = self.current_action.action_type_name if self.current_action else "Nessuna"
         current_action_progress = f"({self.current_action.get_progress_percentage():.0%})" if self.current_action and self.current_action.is_started else ""
         queue_size = len(self.action_queue)
+        location_info = f"LocID: {self.current_location_id}, Pos: ({self.logical_x},{self.logical_y})"
         return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", Genere: {gender_name}, Età: {age_in_years_str} anni ({life_stage_name})\n"
+                f"  {location_info}\n" # Modificato per includere la nuova stringa location_info
                 f"  Scuola: {school_level_name}, Aspirazione: {aspiration_name} ({self.aspiration_progress:.0%})\n"
                 f"  Stato Sent.: {relationship_status_name}, Interessi: {interest_names}\n"
                 f"  Attr. Sessuale: {sexual_attraction_str}, Attr. Romantica: {romantic_attraction_str}\n"

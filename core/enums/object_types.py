@@ -18,13 +18,29 @@ class ObjectType(Enum):
     EASEL = auto() # Per dipingere (hobby artistico)
     DANCE_FLOOR = auto() # Oggetto o tipo di superficie in una location
 
+    # Oggetti Personali
+    PHONE = auto()              # <-- AGGIUNTO
+
+    # Oggetti di svago
+    GUITAR = auto()             # <-- AGGIUNTO
+    PIANO = auto()              # <-- AGGIUNTO
+    CHESS_TABLE = auto()        # <-- AGGIUNTO
+
+    # Oggetti Commerciali / Comunitari
+    CASH_REGISTER = auto()      # <-- AGGIUNTO
+    VENDING_MACHINE = auto()    # <-- AGGIUNTO
+    BAR_COUNTER = auto()        # <-- AGGIUNTO
+
     # Oggetti per il Comfort
     CHAIR_DINING = auto()
     CHAIR_OFFICE = auto()
     SOFA = auto()
     ARMCHAIR = auto()
+    BED = auto()
     BED_SINGLE = auto()
     BED_DOUBLE = auto()
+    TABLE = auto()
+    CHAIR = auto()
 
     # Oggetti per l'Ambiente/Decorazione
     PLANT_DECORATIVE = auto()

@@ -2,43 +2,44 @@
 """
 Definizione della classe Character, il nucleo per gli NPC in SimAI.
 """
-from dataclasses import dataclass, field
-from typing import Dict, Set, Optional, Tuple, List
-import collections
-import random
-
 from core.enums import (
     Interest, LifeStage, Gender, RelationshipStatus, RelationshipType,
-    SchoolLevel, AspirationType, NeedType, FunActivityType, SocialInteractionType
+    SchoolLevel, AspirationType, NeedType, FunActivityType, SocialInteractionType,
+    ActionType, TraitType,
 )
 from core.modules.actions import BaseAction
-from core.modules.actions import (
-    EatAction, SleepAction, UseBathroomAction, HaveFunAction, SocializeAction,
-    EngageIntimacyAction,
-)
-
-from core import settings
-from core.modules.time_manager import TimeManager
-# Import per la nuova struttura dei bisogni
-from core.modules.needs import BaseNeed
-from core.modules.needs import (
+from core.modules.needs import BaseNeed, ThirstNeed
+from core.modules.needs.common_needs import (
     HungerNeed, EnergyNeed, SocialNeed, FunNeed, HygieneNeed, BladderNeed, IntimacyNeed,
     ComfortNeed, EnvironmentNeed, SafetyNeed, CreativityNeed, LearningNeed,
     SpiritualityNeed, AutonomyNeed, AchievementNeed
 )
+# Importa BaseTrait quando sarà usato per istanziare oggetti tratto
+from core.modules.traits import (
+    BaseTrait, GluttonTrait, ActiveTrait
+)
+
+from dataclasses import dataclass, field
 from core.AI.ai_decision_maker import AIDecisionMaker
-# È necessario importare Simulation per il type hinting, ma questo crea dipendenza circolare
-# se Simulation importa Character. Useremo una stringa per il type hint.
-from typing import TYPE_CHECKING
+from core import settings # Aggiunto import mancante
+from core.modules.time_manager import TimeManager
+from typing import Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
+import collections
 if TYPE_CHECKING:
-    from core.simulation import Simulation # Solo per type hinting
-    from core.world.location import Location # <-- MODIFICA: Importa Location per il type hinting
+    from core.simulation import Simulation
+    from core.world.location import Location
 
 # Struttura per le informazioni di relazione
 @dataclass
 class RelationshipInfo: # Manteniamo questa definizione
     target_npc_id: str; type: RelationshipType; score: int = 0
     def __str__(self): return f"({self.type.display_name_it() if self.type else 'N/D'} con {self.target_npc_id}, Score: {self.score})"
+
+TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type[BaseTrait]] = {
+    TraitType.ACTIVE: ActiveTrait,
+    TraitType.GLUTTON: GluttonTrait,
+}
+
 
 class Character:
     def __init__(self,
@@ -53,7 +54,9 @@ class Character:
                 initial_relationship_status: RelationshipStatus = RelationshipStatus.SINGLE,
                 initial_school_level: SchoolLevel = SchoolLevel.NONE,
                 initial_location_id: Optional[str] = None,
-                initial_aspiration: Optional[AspirationType] = None):
+                initial_aspiration: Optional[AspirationType] = None,
+                initial_traits: Optional[Set[TraitType]] = None,
+            ):
 
         self.npc_id: str = npc_id; self.name: str = name
         if not isinstance(initial_gender, Gender): raise ValueError(f"initial_gender per {name} non valido")
@@ -86,6 +89,11 @@ class Character:
         self.pending_intimacy_proposal_from: Optional[str] = None
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
+        self.traits: Dict[TraitType, BaseTrait] = {} # Ora un dizionario di oggetti tratto
+        self._initialize_traits(initial_traits or set())
+
+        self._initialize_needs() # Deve essere chiamato dopo l'inizializzazione dei tratti se i tratti influenzano i valori iniziali dei bisogni
+        self._calculate_and_set_life_stage()
         self.ai_decision_maker = AIDecisionMaker(npc=self)
 
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
@@ -115,6 +123,17 @@ class Character:
             from core.world.location import Location # <-- MODIFICA: Importazione effettiva se non solo per TYPE_CHECKING
             return simulation.get_location_by_id(self.current_location_id)
         return None
+
+    def _initialize_traits(self, initial_trait_types: Set[TraitType]):
+        """Inizializza gli oggetti tratto dell'NPC."""
+        for trait_type_enum in initial_trait_types:
+            trait_class = TRAIT_TYPE_TO_CLASS_MAP.get(trait_type_enum) # Per GLUTTON, trait_class è GluttonTrait
+            if trait_class:
+                self.traits[trait_type_enum] = trait_class(character_owner=self) # Chiama GluttonTrait(character_owner=self)
+                if settings.DEBUG_MODE:
+                    print(f"    [Character Traits - {self.name}] Aggiunto tratto: {trait_type_enum.name}")
+            elif settings.DEBUG_MODE:
+                print(f"    [Character Traits WARN - {self.name}] Classe non trovata per TraitType.{trait_type_enum.name} in TRAIT_TYPE_TO_CLASS_MAP.")
 
     def _initialize_needs(self):
         need_class_map: Dict[NeedType, type[BaseNeed]] = {
@@ -161,6 +180,18 @@ class Character:
                         except KeyError: old_life_stage_display_name = old_stage_name_for_log
                     print(f"  [Character LIFE STAGE] {self.name} (età {age_in_years_for_log:.1f} anni) è ora {current_life_stage_display_name} (precedente: {old_life_stage_display_name}).")
         elif settings.DEBUG_MODE: print(f"  [Character ERROR] Impossibile determinare LifeStage per {self.name} (età {age_days}gg).")
+
+    def has_trait(self, trait_type: TraitType) -> bool:
+        """Verifica se l'NPC possiede un tratto specifico."""
+        return trait_type in self.traits # Ora self.traits è un dizionario
+
+    def get_trait(self, trait_type: TraitType) -> Optional[BaseTrait]:
+        """Restituisce l'oggetto tratto se l'NPC lo possiede, altrimenti None."""
+        return self.traits.get(trait_type)
+
+    def get_trait_types(self) -> Set[TraitType]:
+        """Restituisce un set dei tipi di tratto che l'NPC possiede."""
+        return set(self.traits.keys())
 
     def get_age_in_days(self) -> int: return self._age_in_days
 
@@ -379,9 +410,12 @@ class Character:
         current_action_progress = f"({self.current_action.get_progress_percentage():.0%})" if self.current_action and self.current_action.is_started else ""
         queue_size = len(self.action_queue)
         location_info = f"LocID: {self.current_location_id}, Pos: ({self.logical_x},{self.logical_y})"
-        return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", Genere: {gender_name}, Età: {age_in_years_str} anni ({life_stage_name})\n"
-                f"  {location_info}\n" # Modificato per includere la nuova stringa location_info
+        trait_names_str = ", ".join(sorted(trait_display_names)) if self.traits else "Nessuno"
+
+        return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", Genere: {gender_name}, Età: {age_in_years_str} anni ({life_stage_name}))\n"
+                f"  {location_info}\n"
                 f"  Scuola: {school_level_name}, Aspirazione: {aspiration_name} ({self.aspiration_progress:.0%})\n"
+                f"  Tratti: [{trait_names_str}]\n"
                 f"  Stato Sent.: {relationship_status_name}, Interessi: {interest_names}\n"
                 f"  Attr. Sessuale: {sexual_attraction_str}, Attr. Romantica: {romantic_attraction_str}\n"
                 f"  Bisogni (Top Bassi): [{needs_summary}]\n"

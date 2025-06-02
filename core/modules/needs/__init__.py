@@ -2,6 +2,7 @@
 """
 Package per la gestione dei singoli oggetti Bisogno (Need).
 """
+from core.settings import DEBUG_MODE
 from .need_base import BaseNeed
 from .common_needs import (
     AchievementNeed,
@@ -16,6 +17,7 @@ from .common_needs import (
     HygieneNeed,
     IntimacyNeed,
     LearningNeed,
+    ThirstNeed,
     SafetyNeed,
     SocialNeed,
     SpiritualityNeed,
@@ -33,6 +35,7 @@ __all__ = [
     'FunNeed',
     'HungerNeed', 
     'HygieneNeed',
+    'ThirstNeed',
     'IntimacyNeed',
     'LearningNeed',
     'SafetyNeed',
@@ -41,4 +44,4 @@ __all__ = [
     # ...
 ]
 
-print("  [Needs Package] Package 'core.modules.needs' caricato (con bisogni specifici).")
+if DEBUG_MODE: print("  [Needs Package] Package 'core.modules.needs' caricato (con bisogni specifici).")

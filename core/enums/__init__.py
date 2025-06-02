@@ -5,7 +5,10 @@ Viene utilizzato per importare ed esporre centralmente tutte le Enum
 definite nei moduli specifici all'interno di questo package.
 """
 
+from core.settings import DEBUG_MODE
+
 # Importa le Enum dai loro moduli specifici
+from .action_types import ActionType
 from .aspiration_types import AspirationType
 from .event_types import EventType
 from .fun_activity_types import FunActivityType 
@@ -19,7 +22,7 @@ from .relationship_statuses import RelationshipStatus
 from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
 from .social_interaction_types import SocialInteractionType
-from .action_types import ActionType
+from .trait_types import TraitType
 
 __all__ = [
     'ActionType',
@@ -36,6 +39,7 @@ __all__ = [
     'RelationshipType',
     'SchoolLevel',
     'SocialInteractionType',
+    'TraitType',
 ]
 
-print("  [Enums Package] Package 'core.enums' caricato.")
+if DEBUG_MODE: print("  [Enums Package] Package 'core.enums' caricato.")

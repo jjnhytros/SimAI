@@ -22,8 +22,7 @@ class BaseTrait(ABC):
     """
     def __init__(self, trait_type: TraitType, character_owner: 'Character'):
         self._trait_type: TraitType = trait_type
-        self._character_owner: 'Character' = character_owner # Riferimento all'NPC che possiede il tratto
-        # self._description: str = self._get_default_description() # Descrizione caricata da file di config?
+        self._character_owner: 'Character' = character_owner
 
     @property
     def trait_type(self) -> TraitType:

@@ -5,22 +5,21 @@ Punto di ingresso principale per l'applicazione.
 """
 import sys
 import os
-import random # Aggiunto per i test
-from typing import Set # Aggiunto per i test
+import random
+from typing import Set
 
-# Assicura che la directory 'core' sia nel sys.path
-# Questo permette importazioni come 'from core import settings'
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir) # Assumendo che simai.py sia in una sottocartella del progetto
+project_root = os.path.dirname(current_dir) 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Importa i moduli principali dopo aver sistemato il path
 try:
     from core import settings
     from core.simulation import Simulation
     from core.character import Character
-    from core.enums import Gender, Interest, RelationshipStatus, AspirationType
+    from core.enums import (
+        Gender, Interest, RelationshipStatus, AspirationType, TraitType
+    )
     from core.graphics import Renderer
 except ImportError as e:
     print(f"Errore di importazione: {e}. Assicurati che i moduli siano nel PYTHONPATH.")
@@ -37,6 +36,7 @@ def setup_test_simulation() -> Simulation:
 
     npc1_interests: Set[Interest] = {Interest.READING, Interest.MUSIC_PLAYING, Interest.TECHNOLOGY}
     npc1_attr_genders: Set[Gender] = {Gender.FEMALE, Gender.NON_BINARY}
+    npc1_traits: Set[TraitType] = {TraitType.BOOKWORM, TraitType.LOGICAL, TraitType.LONER}
     npc1 = Character(
         npc_id="Max001", name="Max Power", initial_gender=Gender.MALE,
         initial_age_days=28 * settings.DXY,
@@ -46,12 +46,13 @@ def setup_test_simulation() -> Simulation:
         initial_sexually_attracted_to_genders=npc1_attr_genders,
         initial_romantically_attracted_to_genders=npc1_attr_genders,
         initial_relationship_status=RelationshipStatus.SINGLE,
-        initial_aspiration=AspirationType.KNOWLEDGE_SEEKER
-        # initial_location_id non serve se add_npc lo gestisce con default_starting_location_id
+        initial_aspiration=AspirationType.KNOWLEDGE_SEEKER,
+        initial_traits=npc1_traits
     )
     sim.add_npc(npc1)
 
     npc2_interests: Set[Interest] = {Interest.SPORTS_ACTIVE, Interest.GAMING}
+    npc2_traits: Set[TraitType] = {TraitType.ACTIVE, TraitType.SOCIAL, TraitType.OPTIMIST}
     npc2 = Character(
         npc_id="Erika002", name="Erika Sky", initial_gender=Gender.FEMALE,
         initial_age_days=25 * settings.DXY,
@@ -59,7 +60,8 @@ def setup_test_simulation() -> Simulation:
         initial_logical_y=2,
         initial_interests=npc2_interests,
         initial_sexually_attracted_to_genders={Gender.MALE},
-        initial_romantically_attracted_to_genders={Gender.MALE}
+        initial_romantically_attracted_to_genders={Gender.MALE},
+        initial_traits=npc2_traits
     )
     sim.add_npc(npc2)
     

@@ -22,6 +22,7 @@ from core.modules.traits import (
 
 from dataclasses import dataclass, field
 from core.AI.ai_decision_maker import AIDecisionMaker
+from core.config import time_config, npc_config
 from core import settings # Aggiunto import mancante
 from core.modules.time_manager import TimeManager
 from typing import Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
@@ -59,6 +60,7 @@ class Character:
                 initial_location_id: Optional[str] = None,
                 initial_aspiration: Optional[AspirationType] = None,
                 initial_traits: Optional[Set[TraitType]] = None,
+                simulation_context: Optional['Simulation'] = None
             ):
 
         self.npc_id: str = npc_id; self.name: str = name
@@ -97,8 +99,7 @@ class Character:
 
         self._initialize_needs() # Deve essere chiamato dopo l'inizializzazione dei tratti se i tratti influenzano i valori iniziali dei bisogni
         self._calculate_and_set_life_stage()
-        self.ai_decision_maker = AIDecisionMaker(npc=self)
-
+        self.ai_decision_maker: Optional[AIDecisionMaker] = None
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
 
     def set_location(self, new_location_id: str, simulation: 'Simulation'):
@@ -132,7 +133,10 @@ class Character:
         for trait_type_enum in initial_trait_types:
             trait_class = TRAIT_TYPE_TO_CLASS_MAP.get(trait_type_enum) # Per GLUTTON, trait_class è GluttonTrait
             if trait_class:
-                self.traits[trait_type_enum] = trait_class(character_owner=self) # Chiama GluttonTrait(character_owner=self)
+                self.traits[trait_type_enum] = trait_class(
+                    character_owner=self, 
+                    trait_type=trait_type_enum
+                )
                 if settings.DEBUG_MODE:
                     print(f"    [Character Traits - {self.name}] Aggiunto tratto: {trait_type_enum.name}")
             elif settings.DEBUG_MODE:
@@ -297,7 +301,7 @@ class Character:
             return False
 
     def update_needs(self, time_manager: TimeManager, ticks_elapsed_since_last_update: int):
-        fraction_of_hour_elapsed = ticks_elapsed_since_last_update / settings.IXH
+        fraction_of_hour_elapsed = ticks_elapsed_since_last_update / time_config.IXH
         for need_type_enum_member in self.needs:
             need_object = self.needs[need_type_enum_member]
             if need_type_enum_member == NeedType.INTIMACY and isinstance(need_object, IntimacyNeed):

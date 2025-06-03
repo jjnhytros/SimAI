@@ -6,7 +6,7 @@ from .fun_actions import HaveFunAction
 from .hunger_actions import EatAction 
 from .intimacy_actions import EngageIntimacyAction
 from .social_actions import SocializeAction
-from .thirst_actions import DrinkWaterAction
+from .thirst_actions import DrinkAction
 
 __all__ = [
     'BaseAction',
@@ -15,7 +15,7 @@ __all__ = [
     'HaveFunAction',
     'SleepAction',
     'SocializeAction',
-    'DrinkWaterAction',
+    'DrinkAction',
     'UseBathroomAction',
 ]
 print("  [Actions Package] Package 'core.modules.actions' caricato.")

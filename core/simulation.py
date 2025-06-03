@@ -24,7 +24,7 @@ class Simulation:
 
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
-
+        self.game_speed: float = 1.0
         self.default_starting_location_id: Optional[str] = None
         self._initialize_world_data()
 
@@ -274,7 +274,7 @@ class Simulation:
             self.current_tick += 1
             return
 
-        self.time_manager.advance_tick()
+        self.time_manager.advance_time(self.game_speed) 
 
         if settings.DEBUG_MODE and self.time_manager.get_current_minute() == 0 :
             print(f"      [SimTime] Ora: {self.time_manager.get_formatted_datetime_string()} (Tick Sim: {self.current_tick})")

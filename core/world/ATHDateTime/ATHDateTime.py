@@ -12,7 +12,7 @@ from .ath_timezone_config import get_default_ath_timezone
 # from ..ath_helpers import get_default_ath_timezone 
 
 if TYPE_CHECKING:
-    from .ATHDateTimeZoneInterface import ATHDateTimeZoneInterface as ATHDateTimeZoneInterface_hint
+    from .ATHDateTimeZoneInterface import ATHDateTimeZoneInterface
 
 try:
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,7 +34,7 @@ class ATHDateTime(ATHDateTimeInterface):
     _earth_datetime_origin_utc: datetime 
     _earth_timestamp_origin: float
     _seconds_since_A_epoch: float
-    _ath_timezone_obj: Optional['ATHDateTimeZoneInterface_hint']
+    _ath_timezone_obj: Optional['ATHDateTimeZoneInterface']
     _year: int
     _month_index: int
     _month_name: str
@@ -47,7 +47,7 @@ class ATHDateTime(ATHDateTimeInterface):
     _seconds_in_day: float
 
     def __init__(self, earth_date: Optional[datetime] = None, 
-                ath_timezone_obj: Optional['ATHDateTimeZoneInterface_hint'] = None) -> None:
+                ath_timezone_obj: Optional['ATHDateTimeZoneInterface'] = None) -> None:
         
         effective_timezone_obj = ath_timezone_obj
         if effective_timezone_obj is None: effective_timezone_obj = get_default_ath_timezone()
@@ -108,16 +108,16 @@ class ATHDateTime(ATHDateTimeInterface):
         
         # Calcola l'indice del mese DEL CALENDARIO (0-indexed).
         # DXM è il numero di giorni in un mese DEL CALENDARIO.
-        self._month_index = day_of_calendar_year // ATHDateTimeInterface.DXM
+        self._month_index = day_of_calendar_year // ATHDateTimeInterface.DXM_CALENDAR
         
-        if not (0 <= self._month_index < ATHDateTimeInterface.MXY): # MXY è il numero di mesi in un anno DEL CALENDARIO
+        if not (0 <= self._month_index < ATHDateTimeInterface.MXY_CALENDAR): # MXY è il numero di mesi in un anno DEL CALENDARIO
             # L'error message dovrebbe includere il timezone name, se disponibile
             tz_name_for_error = 'ATZ' # Default
             if self._ath_timezone_obj and hasattr(self._ath_timezone_obj, 'get_name'):
                 tz_name_for_error = self._ath_timezone_obj.get_name()
             
             raise ValueError(
-                f"Indice mese calcolato ({self._month_index}) fuori range 0-{ATHDateTimeInterface.MXY-1} "
+                f"Indice mese calcolato ({self._month_index}) fuori range 0-{ATHDateTimeInterface.MXY_CALENDAR-1} "
                 f"per istante terrestre {self._earth_timestamp_origin} "
                 f"(TZ: {tz_name_for_error}). "
                 f"display_seconds: {display_seconds}, absolute_calendar_days: {absolute_calendar_days}"
@@ -126,23 +126,23 @@ class ATHDateTime(ATHDateTimeInterface):
         self._month_name = ATHDateTimeInterface.MONTH_NAMES[self._month_index]
         
         # Calcola il giorno del mese DEL CALENDARIO (1-indexed).
-        self._day = (day_of_calendar_year % ATHDateTimeInterface.DXM) + 1
+        self._day = (day_of_calendar_year % ATHDateTimeInterface.DXM_CALENDAR) + 1
         
         # Calcola l'indice del giorno della settimana DEL CALENDARIO (0-indexed).
         # DXW è il numero di giorni in una settimana DEL CALENDARIO.
-        self._day_of_week_index = absolute_calendar_days % ATHDateTimeInterface.DXW
+        self._day_of_week_index = absolute_calendar_days % ATHDateTimeInterface.DXW_CALENDAR
         self._day_of_week_name = ATHDateTimeInterface.DAY_NAMES[self._day_of_week_index]
         
         # Calcola ora, minuto, secondo DEL CALENDARIO da self._seconds_in_day.
         # IXH e SXI sono i minuti per ora e secondi per minuto del CALENDARIO.
-        self._hour = int(self._seconds_in_day // (ATHDateTimeInterface.IXH * ATHDateTimeInterface.SXI))
-        self._minute = int((self._seconds_in_day % (ATHDateTimeInterface.IXH * ATHDateTimeInterface.SXI)) // ATHDateTimeInterface.SXI)
-        self._second = int(self._seconds_in_day % ATHDateTimeInterface.SXI)
+        self._hour = int(self._seconds_in_day // (ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR))
+        self._minute = int((self._seconds_in_day % (ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR)) // ATHDateTimeInterface.SXI_CALENDAR)
+        self._second = int(self._seconds_in_day % ATHDateTimeInterface.SXI_CALENDAR)
 
     @classmethod
     def from_components(cls, year: int, month_name: str, day: int,
                         hour: int = 0, minute: int = 0, second: int = 0,
-                        ath_timezone_obj: Optional['ATHDateTimeZoneInterface_hint'] = None) -> 'ATHDateTime':
+                        ath_timezone_obj: Optional['ATHDateTimeZoneInterface'] = None) -> 'ATHDateTime':
         
         effective_tz = ath_timezone_obj
         if effective_tz is None:
@@ -153,23 +153,23 @@ class ATHDateTime(ATHDateTimeInterface):
             raise ValueError(f"Nome del mese Anthaleja non valido: {month_name}")
         month_idx = ATHDateTimeInterface.MONTH_NAMES.index(month_name)
 
-        if not (1 <= day <= ATHDateTimeInterface.DXM): # DXM è giorni nel mese CALENDARIALE
-            raise ValueError(f"Giorno del mese Anthaleja non valido: {day} (deve essere 1-{ATHDateTimeInterface.DXM})")
+        if not (1 <= day <= ATHDateTimeInterface.DXM_CALENDAR): # DXM è giorni nel mese CALENDARIALE
+            raise ValueError(f"Giorno del mese Anthaleja non valido: {day} (deve essere 1-{ATHDateTimeInterface.DXM_CALENDAR})")
         if not (0 <= hour < ATHDateTimeInterface.HXD_CALENDAR): # Usa HXD_CALENDAR
             raise ValueError(f"Ora Anthaleja non valida: {hour} (deve essere 0-{ATHDateTimeInterface.HXD_CALENDAR-1})")
-        if not (0 <= minute < ATHDateTimeInterface.IXH):
-            raise ValueError(f"Minuto Anthaleja non valido: {minute} (deve essere 0-{ATHDateTimeInterface.IXH-1})")
-        if not (0 <= second < ATHDateTimeInterface.SXI):
-            raise ValueError(f"Secondo Anthaleja non valido: {second} (deve essere 0-{ATHDateTimeInterface.SXI-1})")
+        if not (0 <= minute < ATHDateTimeInterface.IXH_CALENDAR):
+            raise ValueError(f"Minuto Anthaleja non valido: {minute} (deve essere 0-{ATHDateTimeInterface.IXH_CALENDAR-1})")
+        if not (0 <= second < ATHDateTimeInterface.SXI_CALENDAR):
+            raise ValueError(f"Secondo Anthaleja non valido: {second} (deve essere 0-{ATHDateTimeInterface.SXI_CALENDAR-1})")
 
         # Calcola i giorni totali del CALENDARIO dall'anno 0 del CALENDARIO
         total_days_local_calendar = (year * ATHDateTimeInterface.DXY_CALENDAR) + \
-                                    (month_idx * ATHDateTimeInterface.DXM) + \
+                                    (month_idx * ATHDateTimeInterface.DXM_CALENDAR) + \
                                     (day - 1)
         
         # Secondi trascorsi nel giorno del CALENDARIO specificato
-        total_seconds_in_day_local_calendar = (hour * ATHDateTimeInterface.IXH * ATHDateTimeInterface.SXI) + \
-                                              (minute * ATHDateTimeInterface.SXI) + \
+        total_seconds_in_day_local_calendar = (hour * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR) + \
+                                              (minute * ATHDateTimeInterface.SXI_CALENDAR) + \
                                               second
         
         # Totale secondi "locali" (nel fuso orario `effective_tz`) dall'epoca 0 del CALENDARIO Anthalejano,
@@ -210,7 +210,7 @@ class ATHDateTime(ATHDateTimeInterface):
     def create_from_format(cls, 
                         format_string: str, 
                         datetime_string: str,
-                        ath_timezone_obj: Optional['ATHDateTimeZoneInterface_hint'] = None
+                        ath_timezone_obj: Optional['ATHDateTimeZoneInterface'] = None
                         ) -> Optional['ATHDateTime']:
         effective_tz = ath_timezone_obj
         if effective_tz is None: effective_tz = get_default_ath_timezone()
@@ -281,7 +281,7 @@ class ATHDateTime(ATHDateTimeInterface):
                     if not month_found: return None
                 elif comp_code in ['NN', 'N']:
                     month_num = int(value_str)
-                    if not (1 <= month_num <= cls.MXY): return None
+                    if not (1 <= month_num <= cls.MXY_CALENDAR): return None
                     parsed_components['month_name'] = cls.MONTH_NAMES[month_num - 1] # Restituisce una stringa
                 elif comp_code in ['JJ', 'J']: 
                     parsed_components['day'] = int(value_str)
@@ -319,7 +319,7 @@ class ATHDateTime(ATHDateTimeInterface):
 
     @classmethod
     def from_rdn_offset_seconds(cls, rdn_offset_seconds: int,
-                                ath_timezone_obj: Optional['ATHDateTimeZoneInterface_hint'] = None) -> 'ATHDateTime':
+                                ath_timezone_obj: Optional['ATHDateTimeZoneInterface'] = None) -> 'ATHDateTime':
         effective_tz = ath_timezone_obj if ath_timezone_obj is not None else get_default_ath_timezone()
         target_unix_ts = cls.RDN_UNIX_TS + int(rdn_offset_seconds)
         earth_dt_utc = datetime.fromtimestamp(target_unix_ts, tz=timezone.utc)
@@ -333,7 +333,7 @@ class ATHDateTime(ATHDateTimeInterface):
             raise ValueError("state_array deve contenere 'year', 'month_name', e 'day'.")
         
         ath_timezone_name = state_array.get('ath_timezone_name')
-        tz_obj: Optional[ATHDateTimeZoneInterface_hint] = None
+        tz_obj: Optional['ATHDateTimeZoneInterface'] = None
         if ath_timezone_name:
             try: tz_obj = ATHDateTimeZone(ath_timezone_name)
             except ValueError: pass 
@@ -354,8 +354,8 @@ class ATHDateTime(ATHDateTimeInterface):
         if self.get_timezone():
             tz_obj = self.get_timezone()
             offset_val_seconds = tz_obj.get_offset(self) # type: ignore
-            offset_hours = offset_val_seconds // (self.IXH * self.SXI)
-            offset_minutes = (abs(offset_val_seconds) % (self.IXH * self.SXI)) // self.SXI
+            offset_hours = offset_val_seconds // (self.IXH_CALENDAR * self.SXI_CALENDAR)
+            offset_minutes = (abs(offset_val_seconds) % (self.IXH_CALENDAR * self.SXI_CALENDAR)) // self.SXI_CALENDAR
             sign = "+" if offset_val_seconds >= 0 else "-"
             offset_str_colon = f"{sign}{abs(offset_hours):02d}:{offset_minutes:02d}"
             tz_name_str = tz_obj.get_name() # type: ignore
@@ -381,7 +381,7 @@ class ATHDateTime(ATHDateTimeInterface):
         return output
 
     def get_earth_timestamp(self) -> int: return int(self._earth_timestamp_origin)
-    def get_timezone(self) -> Optional[ATHDateTimeZoneInterface_hint]: return self._ath_timezone_obj
+    def get_timezone(self) -> Optional['ATHDateTimeZoneInterface']: return self._ath_timezone_obj
 
     def add(self, interval: ATHDateInterval) -> 'ATHDateTime':
         if not isinstance(interval, ATHDateInterval): raise TypeError("L'intervallo deve essere ATHDateInterval.")
@@ -414,10 +414,10 @@ class ATHDateTime(ATHDateTimeInterface):
             should_invert_interval = False
 
         # Usa le costanti del CALENDARIO per convertire i secondi fisici in unità di intervallo
-        sxi_calendar = ATHDateTimeInterface.SXI
-        ixh_calendar = ATHDateTimeInterface.IXH
+        sxi_calendar = ATHDateTimeInterface.SXI_CALENDAR
+        ixh_calendar = ATHDateTimeInterface.IXH_CALENDAR
         sxd_calendar = ATHDateTimeInterface.SXD_CALENDAR # Secondi in un giorno del calendario
-        dxm_calendar = ATHDateTimeInterface.DXM         # Giorni in un mese del calendario
+        dxm_calendar = ATHDateTimeInterface.DXM_CALENDAR      # Giorni in un mese del calendario
         dxy_calendar = ATHDateTimeInterface.DXY_CALENDAR # Giorni in un anno del calendario
 
         years, months, days, hours, minutes, seconds, microseconds = 0,0,0,0,0,0,0
@@ -522,9 +522,9 @@ class ATHDateTime(ATHDateTimeInterface):
                 elif unit_word == key_nesdol: new_month_name=self.MONTH_NAMES[0]; new_day=1; new_hour,new_minute,new_second = 0,0,0; target_known = True
                 elif unit_word in day_part_start_hours: new_hour = day_part_start_hours[unit_word]; new_minute,new_second = 0,0; target_known = True
             elif action_word == key_ymet: 
-                if unit_word == key_jahr: new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1, ATHDateTimeInterface.IXH-1, ATHDateTimeInterface.SXI-1; target_known = True
-                elif unit_word == key_mai: new_day=ATHDateTimeInterface.DXM; new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1,ATHDateTimeInterface.IXH-1,ATHDateTimeInterface.SXI-1; target_known = True
-                elif unit_word == key_nesdol: new_month_name=ATHDateTimeInterface.MONTH_NAMES[ATHDateTimeInterface.MXY-1]; new_day=ATHDateTimeInterface.DXM; new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1,ATHDateTimeInterface.IXH-1,ATHDateTimeInterface.SXI-1; target_known = True
+                if unit_word == key_jahr: new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1, ATHDateTimeInterface.IXH_CALENDAR-1, ATHDateTimeInterface.SXI_CALENDAR-1; target_known = True
+                elif unit_word == key_mai: new_day=ATHDateTimeInterface.DXM_CALENDAR; new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1,ATHDateTimeInterface.IXH_CALENDAR-1,ATHDateTimeInterface.SXI_CALENDAR-1; target_known = True
+                elif unit_word == key_nesdol: new_month_name=ATHDateTimeInterface.MONTH_NAMES[ATHDateTimeInterface.MXY_CALENDAR-1]; new_day=ATHDateTimeInterface.DXM_CALENDAR; new_hour,new_minute,new_second = ATHDateTimeInterface.HXD_CALENDAR-1,ATHDateTimeInterface.IXH_CALENDAR-1,ATHDateTimeInterface.SXI_CALENDAR-1; target_known = True
             if target_known:
                 return ATHDateTime.from_components(new_year, new_month_name, new_day, new_hour, new_minute, new_second, self._ath_timezone_obj)
 
@@ -567,11 +567,11 @@ class ATHDateTime(ATHDateTimeInterface):
             except ValueError: return None
             days_to_change = 0; new_date_obj: Optional[ATHDateTime] = None
             if direction == "prossimo":
-                diff_days = (target_day_idx - current_day_idx + self.DXW) % self.DXW
-                days_to_change = diff_days if diff_days != 0 else self.DXW
+                diff_days = (target_day_idx - current_day_idx + self.DXW_CALENDAR) % self.DXW_CALENDAR
+                days_to_change = diff_days if diff_days != 0 else self.DXW_CALENDAR
             elif direction == "ultimo":
-                diff_days = (current_day_idx - target_day_idx + self.DXW) % self.DXW
-                days_to_change = diff_days if diff_days != 0 else self.DXW
+                diff_days = (current_day_idx - target_day_idx + self.DXW_CALENDAR) % self.DXW_CALENDAR
+                days_to_change = diff_days if diff_days != 0 else self.DXW_CALENDAR
             else: return None 
             interval = ATHDateInterval(days=days_to_change, invert=(direction=="ultimo"))
             new_date_obj = self.add(interval)
@@ -619,8 +619,8 @@ class ATHDateTime(ATHDateTimeInterface):
                 if not found_abbr:
                     raise ValueError(f"Nome o abbreviazione del mese Anthaleja non valido: '{month_input}'")
         elif isinstance(month_input, int):
-            if not (1 <= month_input <= self.MXY): # self.MXY ereditato (numero di mesi)
-                raise ValueError(f"Indice del mese Anthaleja non valido: {month_input} (deve essere 1-{self.MXY})")
+            if not (1 <= month_input <= self.MXY_CALENDAR): # self.MXY ereditato (numero di mesi)
+                raise ValueError(f"Indice del mese Anthaleja non valido: {month_input} (deve essere 1-{self.MXY_CALENDAR})")
             month_name_resolved = self.MONTH_NAMES[month_input - 1] # self.MONTH_NAMES ereditato
         else:
             raise TypeError("Il parametro 'month_input' deve essere una stringa (nome/abbreviazione mese) o un intero (indice 1-18).")
@@ -629,8 +629,8 @@ class ATHDateTime(ATHDateTimeInterface):
         if not month_name_resolved: # Controllo di sicurezza aggiuntivo
             raise Exception("Errore logico interno: month_name_resolved non impostato.")
 
-        if not (1 <= day <= self.DXM): # self.DXM ereditato (giorni per mese)
-            raise ValueError(f"Giorno del mese Anthaleja non valido: {day} (deve essere 1-{self.DXM})")
+        if not (1 <= day <= self.DXM_CALENDAR): # self.DXM ereditato (giorni per mese)
+            raise ValueError(f"Giorno del mese Anthaleja non valido: {day} (deve essere 1-{self.DXM_CALENDAR})")
 
         # Utilizza from_components mantenendo l'ora, i minuti e i secondi dell'istanza 'self'
         # e propagando il fuso orario.
@@ -646,12 +646,12 @@ class ATHDateTime(ATHDateTimeInterface):
 
     def set_week_date(self, year: int, week: int, day_of_week: int = 1) -> Optional['ATHDateTime']:
         # Validazione basata sui limiti del CALENDARIO
-        if not (1 <= day_of_week <= ATHDateTimeInterface.DXW): # DXW è giorni nella settimana del CALENDARIO
+        if not (1 <= day_of_week <= ATHDateTimeInterface.DXW_CALENDAR): # DXW è giorni nella settimana del CALENDARIO
             return None 
         
         # Calcola il numero del giorno nell'anno CALENDARIALE
         # DXW è giorni/settimana del CALENDARIO
-        day_number_in_year = ((week - 1) * ATHDateTimeInterface.DXW) + day_of_week
+        day_number_in_year = ((week - 1) * ATHDateTimeInterface.DXW_CALENDAR) + day_of_week
         
         # DXY_CALENDAR è giorni/anno del CALENDARIO
         if not (1 <= day_number_in_year <= ATHDateTimeInterface.DXY_CALENDAR): 
@@ -659,11 +659,11 @@ class ATHDateTime(ATHDateTimeInterface):
         
         # Calcola mese e giorno del mese del CALENDARIO
         # DXM è giorni/mese del CALENDARIO
-        month_A_idx = (day_number_in_year - 1) // ATHDateTimeInterface.DXM
-        day_A_in_month = ((day_number_in_year - 1) % ATHDateTimeInterface.DXM) + 1
+        month_A_idx = (day_number_in_year - 1) // ATHDateTimeInterface.DXM_CALENDAR
+        day_A_in_month = ((day_number_in_year - 1) % ATHDateTimeInterface.DXM_CALENDAR) + 1
         
         # MXY è mesi/anno del CALENDARIO
-        if not (0 <= month_A_idx < ATHDateTimeInterface.MXY): 
+        if not (0 <= month_A_idx < ATHDateTimeInterface.MXY_CALENDAR): 
             return None 
         
         try:
@@ -686,8 +686,8 @@ class ATHDateTime(ATHDateTimeInterface):
             ath_timezone_obj=self._ath_timezone_obj 
         )
 
-    def set_timezone(self, timezone: Optional['ATHDateTimeZoneInterface_hint']) -> 'ATHDateTime':
-        if timezone is not None and not isinstance(timezone, ATHDateTimeZoneInterface_hint):
+    def set_timezone(self, timezone: Optional['ATHDateTimeZoneInterface']) -> 'ATHDateTime':
+        if timezone is not None and not isinstance(timezone, ATHDateTimeZoneInterface):
             raise TypeError("Il parametro 'timezone' deve essere un'istanza di ATHDateTimeZoneInterface o None.")
         return ATHDateTime(earth_date=self._earth_datetime_origin_utc, ath_timezone_obj=timezone)
 
@@ -696,7 +696,7 @@ class ATHDateTime(ATHDateTimeInterface):
         if not isinstance(timezone_name, str):
             raise TypeError("Il nome del fuso orario deve essere una stringa o None.")
         try:
-            tz_obj: Optional[ATHDateTimeZoneInterface_hint] = ATHDateTimeZone(timezone_name) 
+            tz_obj: Optional['ATHDateTimeZoneInterface'] = ATHDateTimeZone(timezone_name) 
             return self.set_timezone(tz_obj)
         except ValueError as e: 
             raise ValueError(f"Impossibile impostare fuso orario: {timezone_name} - {e}")

@@ -17,7 +17,7 @@ class ActionType(Enum):
     ACTION_SLEEP = auto()
     ACTION_USE_BATHROOM = auto()
     ACTION_HAVE_FUN = auto()
-    ACTION_DRINK_WATER = auto()
+    ACTION_DRINK = auto()
 
     # Azioni Sociali
     ACTION_SOCIALIZE_CHAT = auto()

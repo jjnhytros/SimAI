@@ -1,173 +1,97 @@
 # core/modules/time_manager.py
-"""
-Modulo TimeManager per la gestione del tempo di gioco, del calendario
-e dei cicli temporali in SimAI.
-Riferimento TODO: I.3, XXXII.8
-"""
-from core.world.ATHDateTime.ATHDateTime import ATHDateTime # Importa la classe concreta
-# ATHDateTimeInterface potrebbe non essere necessaria qui se ATHDateTime la implementa
-# from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
 
-from typing import Optional # Per il type hinting
-from core import settings     # Importiamo le costanti globali
+# Importiamo ogni classe direttamente dal suo file specifico all'interno del package
+from core.world.ATHDateTime.ATHDateTime import ATHDateTime
+from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
+from core.world.ATHDateTime.ATHDateTimeZone import ATHDateTimeZone
+from core.config import time_config
+from typing import Dict, Union
 
 class TimeManager:
-    def __init__(self, 
-                 start_year: int = settings.YEAR_REFERENCE,  # RY, Anno di riferimento da settings
-                 start_month_num: int = 1, # Mese 1-based (es. 1 per Arejal)
-                 start_day_num: int = 1,   # Giorno del mese 1-based
-                 start_hour: int = 7,
-                 start_minute: int = 0,
-                 start_second: int = 0):
+    """
+    Gestisce il tempo universale all'interno della simulazione.
+    Utilizza la libreria ATHDateTime per una gestione precisa di data e ora
+    nel mondo di gioco.
+    """
+    def __init__(self):
         """
-        Inizializza il TimeManager usando ATHDateTime.
-        L'ora di inizio di default è le 07:00:00 del primo giorno del primo mese dell'anno di riferimento.
+        Inizializza il TimeManager, impostando l'ora di inizio della simulazione
+        basandosi sulla configurazione.
         """
-        if settings.DEBUG_MODE:
-            print("  [TimeManager INIT] Inizializzazione TimeManager con ATHDateTime...")
+        self.total_simulation_ticks: int = 0
+        try:
+            # Crea l'oggetto fuso orario
+            tz_obj = ATHDateTimeZone(time_config.DEFAULT_TIMEZONE)
+        except ValueError as e:
+            print(f"Errore CRITICO: Fuso orario non valido '{time_config.DEFAULT_TIMEZONE}' in time_config.py.")
+            raise SystemExit(e) from e
 
-        self.total_ticks_sim: int = 0
-        # self.total_days_sim: int = 0 # Potremmo non averne più bisogno o calcolarlo diversamente
+        # Ottiene il nome del mese dalla lista in config, usando l'indice - 1
+        try:
+            start_month_index = time_config.SIMULATION_START_MONTH - 1
+            start_month_name = time_config.MONTH_NAMES[start_month_index]
+        except IndexError:
+            print(f"Errore CRITICO: SIMULATION_START_MONTH ({time_config.SIMULATION_START_MONTH}) non è un indice valido per MONTH_NAMES in time_config.py.")
+            raise SystemExit()
 
-        # Crea la data/ora iniziale per ATHDateTime
-        # Assumiamo che ATHDateTime possa essere inizializzato con questi componenti
-        # o costruiamo una stringa ISO-like se necessario.
-        # Dal codice di ATHDateTime, sembra che il costruttore prenda una stringa o un timestamp.
-        # Costruiamo una stringa di data iniziale.
-        initial_datetime_str = f"{start_year:04d}-{start_month_num:02d}-{start_day_num:02d}T{start_hour:02d}:{start_minute:02d}:{start_second:02d}"
-        
-        # Assumiamo che ATHDateTime carichi la sua configurazione di fuso orario internamente
-        # o che tz_config=None sia accettabile per usare un default.
-        self._sim_time: ATHDateTime = ATHDateTime(initial_datetime_str, tz_config=None) 
-        
-        # Memorizza la data di inizio della simulazione per calcolare total_days_sim se necessario
-        self._simulation_start_ath_datetime: ATHDateTime = ATHDateTime(initial_datetime_str, tz_config=None)
+        self._current_time = ATHDateTime.from_components(
+            year=time_config.SIMULATION_START_YEAR,
+            month_name=start_month_name,
+            day=time_config.SIMULATION_START_DAY,
+            hour=time_config.SIMULATION_START_HOUR,
+            minute=time_config.SIMULATION_START_MINUTE,
+            second=time_config.SIMULATION_START_SECOND,
+            ath_timezone_obj=tz_obj,
+        )
+        print(f"TimeManager inizializzato. Ora di inizio simulazione: {str(self._current_time)}")
 
-
-        if settings.DEBUG_MODE:
-            print(f"  [TimeManager INIT] Ora di inizio simulazione ATHDateTime: {self.get_formatted_datetime_string()}")
-            print(f"  [TimeManager INIT] Costanti calendario usate (da settings, derivate da ATHDateTimeInterface):")
-            print(f"    MINUTES_PER_HOUR: {settings.MINUTES_PER_HOUR}")
-            print(f"    HOURS_PER_DAY: {settings.HOURS_PER_DAY}")
-            print(f"    DAYS_PER_MONTH: {settings.DAYS_PER_MONTH}")
-            print(f"    MONTHS_PER_YEAR: {settings.MONTHS_PER_YEAR}")
-            print(f"    DAYS_PER_YEAR: {settings.DAYS_PER_YEAR}")
-            print(f"    SECONDS_PER_MINUTE: {settings.SECONDS_PER_MINUTE}")
-
-
-    def advance_tick(self):
+    def get_current_time(self) -> ATHDateTime:
         """
-        Avanza il tempo di gioco di un singolo tick.
-        1 tick = (SECONDS_PER_MINUTE / SIMULATION_TICKS_PER_MINUTE) secondi di gioco.
-        Se SIMULATION_TICKS_PER_MINUTE è 1, allora 1 tick = 1 minuto di gioco.
+        Restituisce l'oggetto ATHDateTime corrente.
         """
-        self.total_ticks_sim += 1
-        
-        self._sim_time.add_seconds(settings.SECONDS_PER_SIMULATION_TICK)
+        return self._current_time
 
-        # Logica di stampa per nuova ora/giorno (opzionale, ATHDateTime ora gestisce il rollover)
-        # Potremmo voler loggare solo quando l'ora o il giorno cambiano *effettivamente*
-        # Questo richiede di confrontare con lo stato precedente o di usare i getter di _sim_time
-        # per formattare un output solo quando necessario.
-        # Per ora, la logica di debug print qui viene semplificata.
-        if settings.DEBUG_MODE:
-            if self._sim_time.get_minute() == 0 and self._sim_time.get_second() == 0: # Se è scattata una nuova ora
-                 # Il log della GUI per SimTime in Simulation._update_simulation_state è già presente
-                 pass # Non è necessario un print qui se Simulation lo fa
-                 # print(f"    [TimeManager] Nuova ora: {self._sim_time.get_hour():02d}:00 (Tick: {self.total_ticks_sim})")
-            # Potremmo aggiungere log per nuovo giorno/mese/anno se ATHDateTime non li fornisce o se vogliamo un formato specifico qui
-
-    # --- Metodi Getter aggiornati per usare self._sim_time ---
-    def get_current_tick(self) -> int:
-        return self.total_ticks_sim
-
-    def get_current_minute(self) -> int:
-        return self._sim_time.get_minute()
-
-    def get_current_hour(self) -> int:
-        return self._sim_time.get_hour()
-
-    def get_current_day_of_month(self) -> int: # ATHDateTime.get_day_of_month() è 1-based
-        return self._sim_time.get_day_of_month()
-
-    def get_current_month_index(self) -> int: # Per coerenza con l'uso di liste 0-based per nomi
-        return self._sim_time.get_month_of_year() - 1 # ATHDateTime.get_month_of_year() è 1-based
-
-    def get_current_month_name(self) -> str:
-        return self._sim_time.get_month_name()
-
-    def get_current_year(self) -> int:
-        return self._sim_time.get_year()
-
-    def get_current_day_of_week_index(self) -> int: # ATHDateTime.get_day_of_week_index() dovrebbe essere 0-based
-        return self._sim_time.get_day_of_week_index() 
-
-    def get_current_day_of_week_name(self) -> str:
-        return self._sim_time.get_day_of_week_name()
-
-    def get_total_days_sim_passed(self) -> int:
-        """Restituisce il numero totale di giorni passati dall'inizio della simulazione."""
-        # Calcola la differenza in giorni tra la data corrente e la data di inizio
-        # Questo richiede che ATHDateTime supporti la sottrazione di date o il calcolo dei giorni totali
-        # da un'epoca. Se ATHDateTime ha un metodo `diff_in_days(other_datetime)`, lo usiamo.
-        # Altrimenti, questo contatore potrebbe dover essere gestito manualmente come prima
-        # o calcolato in base al numero di tick e ai secondi/minuti/ore per giorno.
-        
-        # Metodo 1: Basato sui tick (più semplice se ATHDateTime.diff non è immediato)
-        # return self.total_ticks_sim // (settings.SIMULATION_TICKS_PER_HOUR * settings.HOURS_PER_DAY)
-        
-        # Metodo 2: Usando ATHDateTime (se implementato)
-        # return self._sim_time.diff(self._simulation_start_ath_datetime).days 
-        # Per ora, manteniamo il calcolo basato sui tick se diff non è semplice
-        
-        # Calcolo semplificato basato su total_ticks_sim, minuti per ora e ore per giorno
-        ticks_per_day = settings.MINUTES_PER_HOUR * settings.HOURS_PER_DAY * settings.SIMULATION_TICKS_PER_MINUTE
-        if ticks_per_day > 0:
-            return self.total_ticks_sim // ticks_per_day
-        return 0
-
-
-    def get_formatted_datetime_string(self) -> str:
-        """Restituisce la data e l'ora correnti formattate usando ATHDateTime."""
-        return self._sim_time.get_datetime_str() # ATHDateTime ha questo metodo
-
-    def get_ath_detailed_datetime(self) -> dict:
+    def advance_time(self, game_speed: float):
         """
-        Restituisce un dizionario con i componenti della data e ora
-        per una formattazione personalizzata nella GUI, usando l'istanza interna _sim_time.
+        Avanza il tempo della simulazione ad ogni tick.
         """
-        return {
-            "year": self._sim_time.get_year(),
-            "day_of_month": self._sim_time.get_day_of_month(),    # 1-based
-            "month_of_year": self._sim_time.get_month_of_year(), # 1-based
-            "hour": self._sim_time.get_hour(),
-            "minute": self._sim_time.get_minute(),
-            "second": self._sim_time.get_second(),
-            "day_name": self._sim_time.get_day_of_week_name()
-        }
+        seconds_to_add_float = time_config.SECONDS_PER_SIMULATION_TICK * game_speed
+        integer_seconds = int(seconds_to_add_float)
+        fractional_seconds = seconds_to_add_float - integer_seconds
+        microseconds = int(fractional_seconds * 1_000_000)
 
-    def is_weekend(self) -> bool:
-        """Controlla se il giorno corrente è un weekend."""
-        # ATHDateTime potrebbe avere un suo metodo is_weekend() che usa la sua configurazione interna
-        # Se sì, preferisci self._sim_time.is_weekend()
-        # Altrimenti, mantieni la logica basata su settings.WEEKEND_DAY_NUMBERS
-        if hasattr(self._sim_time, 'is_weekend'):
-            return self._sim_time.is_weekend()
-        return self.get_current_day_of_week_index() in settings.WEEKEND_DAY_NUMBERS
+        interval = ATHDateInterval(
+            seconds=integer_seconds,
+            microseconds=microseconds
+        )
+        self._current_time = self._current_time.add(interval)
+        self.total_simulation_ticks += 1 # AGGIUNGI/VERIFICA QUESTA RIGA
 
-    # TODO: Rivedere is_work_day, is_school_day per usare self._sim_time e ATHDateTime
-    #       per controlli più robusti su orari e giorni specifici, considerando festività
-    #       che potrebbero essere gestite da ATHDateTime o da un CalendarSystem.
+    def get_ath_detailed_datetime(self) -> Dict[str, Union[int, str, None]]:
+        """
+        Restituisce un dizionario con i componenti dettagliati dell'ATHDateTime corrente,
+        formattato come si aspetta il Renderer.
+        """
+        current_ath_time = self.get_current_time()
+        if current_ath_time:
+            return {
+                'year': current_ath_time.year,
+                'month_of_year': current_ath_time.month_index + 1, # ATHDateTime.month_index è 0-based
+                'day_of_month': current_ath_time.day,
+                'hour': current_ath_time.hour,
+                'minute': current_ath_time.minute,
+                'second': current_ath_time.second,
+                'day_name': current_ath_time.day_of_week_name,
+                'month_name': current_ath_time.month_name
+            }
+        return { # Fallback nel caso _current_time non sia inizializzato (improbabile dopo __init__)
+                'year': 0, 'month_of_year': 0, 'day_of_month': 0,
+                'hour': 0, 'minute': 0, 'second': 0,
+                'day_name': "N/D", 'month_name': "N/D"
+            }
 
-# --- Blocco di Test (da adattare) ---
-if __name__ == '__main__':
-    # ... (Il blocco di test andrà adattato per istanziare ATHDateTime correttamente
-    #      e per verificare i nuovi metodi basati su _sim_time.
-    #      Le costanti temporali dovrebbero ora provenire da settings.MINUTES_PER_HOUR etc.
-    #      che a loro volta derivano da ATHDateTimeInterface) ...
-    print("--- Test diretto di core/modules/time_manager.py (adattato per ATHDateTime) ---")
-    # ... (setup sys.path) ...
-    # ... (import e mock di settings se necessario) ...
-    # settings.RY ora si chiama settings.YEAR_REFERENCE
-    tm = TimeManager(start_year=settings.RY, start_month_num=1, start_day_num=1, start_hour=27, start_minute=58)
-    # ... (il resto del test) ...
+    def __str__(self):
+        """
+        Restituisce una rappresentazione stringa dell'ora corrente usando i codici di formato di ATHDateTime.
+        """
+        return self.get_current_time().format('Y, JJ/NN G:II:SS TZN')

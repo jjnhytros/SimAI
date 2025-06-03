@@ -28,10 +28,10 @@ class ATHDateInterval:
         # from .ATHDateTimeInterface import ATHDateTimeInterface # Importazione locale
         total_seconds = 0.0
         total_seconds += self.s + self.f 
-        total_seconds += self.i * ATHDateTimeInterface.SXI # Secondi per Minuto (calendariale)
-        total_seconds += self.h * ATHDateTimeInterface.IXH * ATHDateTimeInterface.SXI # Secondi per Ora (calendariale)
+        total_seconds += self.i * ATHDateTimeInterface.SXI_CALENDAR # Secondi per Minuto (calendariale)
+        total_seconds += self.h * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR # Secondi per Ora (calendariale)
         total_seconds += self.d * ATHDateTimeInterface.SXD_CALENDAR 
-        total_seconds += self.m * ATHDateTimeInterface.DXM * ATHDateTimeInterface.SXD_CALENDAR
+        total_seconds += self.m * ATHDateTimeInterface.DXM_CALENDAR * ATHDateTimeInterface.SXD_CALENDAR
         total_seconds += self.y * ATHDateTimeInterface.DXY_CALENDAR * ATHDateTimeInterface.SXD_CALENDAR
         return -total_seconds if self.invert else total_seconds
 
@@ -50,7 +50,7 @@ class ATHDateInterval:
         total_physical_seconds = self.total_earth_seconds()
         
         # Per ottenere il numero di "giorni Anthalejani" equivalenti,
-        # dividiamo per la durata di un giorno del CALENDARIO Anthalejano.
+        # dividiamo per la durata di un gi`orno del CALENDARIO Anthalejano.
         return total_physical_seconds / ATHDateTimeInterface.SXD_CALENDAR
 
     @classmethod

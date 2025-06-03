@@ -41,6 +41,7 @@ class ObjectType(Enum):
     BED_DOUBLE = auto()
     TABLE = auto()
     CHAIR = auto()
+    WATER_COOLER = auto()      # Distributore d'acqua (boccione)
 
     # Oggetti per l'Ambiente/Decorazione
     PLANT_DECORATIVE = auto()

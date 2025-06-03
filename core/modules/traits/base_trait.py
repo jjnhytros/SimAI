@@ -21,8 +21,8 @@ class BaseTrait(ABC):
     i metodi per definire i suoi effetti.
     """
     def __init__(self, trait_type: TraitType, character_owner: 'Character'):
-        self._trait_type: TraitType = trait_type
         self._character_owner: 'Character' = character_owner
+        self._trait_type: TraitType = trait_type
 
     @property
     def trait_type(self) -> TraitType:

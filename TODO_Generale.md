@@ -1,5 +1,5 @@
-# SimAI v0.3.79-alpha_149
-# TODO List Generale (Aggiornato al 02 Giugno 2025 19:30:15)
+# SimAI v0.4.86-alpha_170
+# TODO List Generale (Aggiornato al 04 Giugno 2025 00:52:19)
 
 **Legenda:**
 `[]`    Non ancorra implementato
@@ -56,40 +56,74 @@
 
 
 ## A. ARCHITETTURA CODICE E QUALITÀ
-* `[]` **1. Struttura Modulare del Codice:** `[]`
-    * `[P]` a. Organizzazione cartelle base (incluse `core/`, `core/AI/`, `core/modules/`) (Definizione struttura cartelle ora concreta e discussa)
-    * `[P]` b. Creazione file principali (`simai.py` (ex `main.py`), `core/simulation.py`, `core/settings.py` hanno uno scheletro/contenuto iniziale; `core/__init__.py` creato)
-    * `[]` c. Definizione classe `Character` come nucleo degli NPC.
-    * `[]` d. Implementazione `__init__.py` per package per facilitare importazioni modulari (es. `modules/traits/__init__.py`).
-    * `[]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** `[PRIORITÀ: MEDIA-ALTA]` *(Concettualizzazione iniziata, implementazione per Tratti da iniziare)*
-        * `[]` i. **Tratti:**
-            * `[]` **Task:** Definire e implementare `TraitName` / `TraitId` (vedi TODO IV.3.b).
-            * `[]` 1. Creare `modules/traits/trait_enums.py` e spostarvi l'Enum `Trait` da `modules/enums.py`.
-            * `[]` 2. Creare sottocartelle per categoria in `modules/traits/` (es. `personality/`, `social/`, `physical_health/`, `mental_cognitive/`, `lifestyle_hobby/`) e spostare i file `.py` delle classi tratto individuali nelle rispettive categorie.
-            * `[]` 3. Aggiornare `modules/traits/__init__.py`...
-            * `[]` 4. (Opzionale Avanzato) Implementare un sistema di auto-registrazione...
-            * `[]` 5. Aggiornare tutti gli import di `Trait`...
-        * `[]` ii. **Skill:**
-             * `[]` **Task:** Definire e implementare `SkillName` / `SkillId` (vedi TODO IX.e).
-        * `[]` iii. **Azioni:** (Come definito prima, ma con priorità futura)
-        * `[]` iv. **Enum Generali (`modules/enums.py`):**
-             * `[]` **Task:** Rivedere e completare `NeedType` Enum se emergono nuovi bisogni con le azioni avanzate.
-             * `[✓]` **Stato Attuale:** Il file contiene le Enum più piccole o quelle non ancora spostate.
-             * `[x]` **Enum Già Implementate:** `Interest`, `LifeStage`, `Gender`, `RelationshipStatus`, `LocationType`, `NeedType`, `EventType`, `SchoolLevel`, `AspirationType`, `FunActivityType`, `SocialInteractionType`.
+
+* `[P]` **1. Struttura Modulare del Codice:**
+    * `[x]` a. Organizzazione cartelle base.
+    * `[P]` b. Creazione file principali.
+    * `[x]` c. Definizione classe `Character`.
+    * `[P]` d. Implementazione `__init__.py` per i package.
+    * `[]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** `[PRIORITÀ: MEDIA-ALTA]`
+        * `[]` i. **Tratti:** Spostare in `modules/traits/` con sottocartelle per categoria.
+        * `[]` ii. **Skill:** Definire `SkillName/SkillId` e struttura modulare.
+        * `[P]` iii. **Azioni:** Rivedere le dipendenze dalle configurazioni.
 
 * `[P]` **2. Gestione delle Configurazioni e Settings:**
-    * `[x]` a. File `settings.py` per costanti globali. *(Esistente e utilizzato)*.
-    * `[P]` b. Refactoring Architetturale - Configurazioni Modulari: Spostare costanti specifiche (es. `npc_config`, `ui_config`, `economy_config`) in file dedicati sotto `core/config/`. *(Iniziato con `ui_config.py`. `npc_config.py`, `time_config.py`, `social_config.py`, `school_config.py`, `environment_config.py`, `economy_config.py` creati ma da popolare/utilizzare sistematicamente)*.
-    * `[]` c. Sistema di logging avanzato (sostituire `print` con chiamate a un logger configurabile).
-    * `[]` d. Supporto per internazionalizzazione (i18n) per testi UI e contenuti di gioco.
+    * `[x]` a. File `settings.py` per costanti globali (es. `DEBUG_MODE`).
+    * `[x]` b. Refactoring per Configurazioni Modulari in `core/config/`.
+    * `[]` c. Sistema di logging avanzato.
+    * `[F]` d. Supporto per internazionalizzazione (i18n).
 
-* `[]` **3. Struttura Modulare del Codice (Avanzata):**
-    * `[]` a. Organizzazione cartelle base e `__init__.py` per package.
-    * `[]` b. **Refactoring Architetturale - Logica di Sistema Modulare:**
-        * `[]` i. Valutare creazione di moduli Python dedicati per sistemi complessi (es. `school_system`, `career_system`, `economic_system`, `relationship_manager`) con logica (`_logic.py` o `_manager.py`) e config proprie. *(Scheletri per `career_manager.py`, `weather_manager.py`, `relationship_manager.py` etc. creati in Python)*.
-        * `[]` ii. Ogni modulo esporrebbe API chiare.
+* `[x]` **3. Struttura Modulare del Codice (Avanzata):**
+    * `[x]` a. Organizzazione package e `__init__.py`.
+    * `[x]` b. **Logica di Sistema Modulare:** (`time_manager` implementato).
+
+* `[]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
+    * `[]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
+        * `[]` i. **Fase 1: Identificazione del "Problema"**
+            * `[]` Potenziare `NeedsProcessor` per generare un oggetto `Problem` strutturato.
+            * `[F]` Integrare altri tipi di problemi oltre ai bisogni.
+        * `[]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
+            * `[]` Ristrutturare `AIDecisionMaker` per implementare un loop di "ragionamento".
+            * `[]` Implementare una funzione di "scoperta soluzioni".
+            * `[]` Sviluppare una funzione di "punteggio" per valutare ogni soluzione, considerando:
+                * `[P]` Efficienza (effetti sui bisogni).
+                * `[P]` Personalità (tratti).
+                * `[P]` Contesto (oggetti/luoghi disponibili).
+                * `[]` Memoria (`MemorySystem`).
+                * `[]` Fattori Contestuali Avanzati (Ambientali, Sociali, Cognitivi).
+                * `[]` **Bias Cognitivi e Stato Mentale:** `[NUOVO (spostato da F)]`
+                    * `[]` Implementare `Carico Cognitivo` (decisioni più semplici sotto stress).
+                    * `[]` Implementare `Bias di Conferma` (interpretare eventi basandosi su preconcetti e memoria).
+            * `[]` **Gestione dei Conflitti Decisionali e Priorità**.
+        * `[]` iii. **Fase 3: Creazione del "Pensiero"**
+            * `[]` Definire una classe `Thought` per tracciare il processo decisionale.
+        * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
+            * `[P]` Il sistema `ActionExecutor` è già in grado di eseguire l'azione scelta.
+        * `[]` v. **Fase 5: Analisi Conseguenze e Apprendimento**
+            * `[]` Sviluppare un `ConsequenceAnalyzer`.
+            * `[]` Salvare un `Memory` strutturato nel `MemorySystem`.
+
 
 ---
+
+## B. SIMULAZIONE NPC: BISOGNI E AZIONI
+
+* `[x]` **1. Sistema dei Bisogni:** (`NeedType`, `NeedBase`, `common_needs`).
+* `[P]` **2. Sistema di Azioni (`BaseAction`):** Struttura base implementata.
+* `[]` **3. Catalogo Azioni:**
+    * `[P]` a. Azioni per bisogni base.
+    * `[]` b. **Azioni Sociali Complesse e Intimità Fisica:** `[RAFFINAMENTO]`
+        * `[ ]` Definire e implementare azioni specifiche per costruire e manifestare intimità fisica all'interno delle relazioni (es. Abbracciare, Baciare, Coccolare).
+        * `[ ]` Collegare queste azioni ai livelli di relazione, al bisogno di `INTIMACY` e a specifici `Moodlet` (stati d'animo).
+    * `[]` c. Azioni legate a carriera e skill.
+    * `[]` d. **Azioni per Piacere, Intrattenimento Avanzato e Sessualità:** `[NUOVO]`
+        * `[ ]` Definire e implementare azioni per l'attività sessuale, distinguendo tra finalità ricreative/di piacere e quelle riproduttive.
+        * `[ ]` Specificare prerequisiti complessi: consenso (meccanica da definire), livello relazione (o tratti/contesti che lo modulano), privacy della `Location`, umore e bisogni (`FUN`, `INTIMACY`) dei partecipanti.
+        * `[ ]` Modellare il "Piacere" come risultato:
+            * `[ ]` Forte soddisfazione dei bisogni coinvolti.
+            * `[ ]` Generazione di `Moodlet` positivi potenti e specifici (es. "Estasiato", "Appagato").
+            * `[ ]` Possibile impatto sulla riduzione dello stress o su altri stati emotivi.
+
 
 
 ## I. FONDAMENTA DEL GIOCO E MOTORE
@@ -216,8 +250,17 @@
 * `[]` **1. Sistema dei Bisogni:**
     * `[x]` a. **Implementati Bisogni modulari con decadimento/soddisfazione.** *(Stato: Struttura base per la gestione dei Bisogni in `Character` implementata. Gli NPC ora hanno oggetti `BaseNeed` per ogni `NeedType`, il decadimento dei bisogni basato sui tassi in `settings.py` è funzionante. Configurazione base dei tassi di decadimento, soglie e guadagni da azioni inserita in `settings.py`)*
     * `[]` b. Logica di decadimento influenzata da azioni, tratti, stadio vita, gravidanza.
+        * `[]` i. **Integrazione Cicli Biologici:** `[NUOVO (spostato da F)]` Collegare i `Cicli Biologici` (da `npc_config.py`) per influenzare dinamicamente i tassi di decadimento dei bisogni e generare `Moodlet`.
     * `[]` c. Transizioni tra stadi di vita con eventi/cambiamenti associati.
-    * `[]` e. Interazione dei bisogni con azioni.
+    * `[]` e. **Interazione dei bisogni con azioni:**
+        * `[]` i. **Azioni Sociali Complesse e Intimità Fisica:** `[RAFFINAMENTO]`
+            * `[]` Definire e implementare azioni specifiche per costruire e manifestare intimità fisica all'interno delle relazioni (es. Abbracciare, Baciare, Coccolare).
+            * `[]` Collegare queste azioni ai livelli di relazione, al bisogno di `INTIMACY` e a specifici `Moodlet` (stati d'animo).
+        * `[]` ii. **Azioni per Piacere, Intrattenimento Avanzato e Sessualità:** `[NUOVO]`
+            * `[]` Definire e implementare azioni per l'attività sessuale, distinguendo tra finalità ricreative/di piacere e quelle riproduttive.
+            * `[]` Specificare prerequisiti complessi: consenso, relazione, privacy, umore e bisogni (`FUN`, `INTIMACY`).
+            * `[]` Modellare il "Piacere" come risultato (es. `Moodlet` positivi potenti).
+        * `[]` iii. **Azioni legate a carriera e skill.**
     * `[]` e. Effetti dei bisogni critici su umore e decisioni IA.
     * `[P]` f. Aggiungere bisogni più complessi o secondari (menzionato `INTIMACY_DECAY_RATE` e `INTIMACY_LOW_THRESHOLD`, `INTIMACY_ACTION_GAIN` in `settings.py` - parziale configurazione)
         * `[]` i. **Valutare e Implementare Bisogno di SPIRITUALITÀ:** `[PUNTO DI VALUTAZIONE]` (`spirituality_need.py` scheletro creato se opzione A).
@@ -268,7 +311,7 @@
             * `[]` 6. Il bisogno `BLADDER` (Vescica) sarà influenzato più frequentemente dalla necessità di bere. (`Bladder` need esiste).
         * `[]` vi. Aggiornare la UI (XI.2.c.i Scheda "Bisogni") per visualizzare distintamente e tracciare il nuovo bisogno `SETE`.
         * `[]` vii. Rivedere il bilanciamento del bisogno `HUNGER` (Fame) per assicurare che ora si concentri esclusivamente sull'assunzione di cibo solido e le sue meccaniche siano distinte da quelle della Sete.
-    * `[]` j. **Estensione "Total Realism" - Salute Mentale Dettagliata e Meccanismi di Coping:**  (`mental_disorder.py`, `mental_health_manager.py`, `enums/mental_disorder_enums.py` creati).
+    * `[]` j. **Estensione "Total Realism" - Salute Mentale Dettagliata e Meccanismi di Coping:** (`mental_disorder.py`, `mental_health_manager.py`, `enums/mental_disorder_enums.py` creati).
         * `[]` 1. Definire disturbi mentali specifici (es. depressione clinica, vari disturbi d'ansia, PTSD post-eventi traumatici `XIV`, disturbi ossessivo-compulsivi) oltre ai tratti di personalità.
         * `[]` 2. Ogni disturbo avrebbe criteri diagnostici (astratti), cicli di manifestazione (es. episodi depressivi), impatti comportamentali specifici, e interazioni con tratti/bisogni/moodlet.
         * `[]` 3. Possibilità di trattamento: terapia (con NPC Psicologo/Terapeuta `VIII.1.j`), farmaci (con effetti collaterali), tecniche di auto-aiuto (legate a skill `WELLNESS` `IX.e` o specifiche azioni).
@@ -355,7 +398,7 @@
             * `[]` b. Eventi o interazioni che permettono di solidificare o cambiare (entro certi limiti realistici) il proprio orientamento durante questa fase.
 * `[P]` **3. Caratteristiche Personaggio Approfondite:**
     * `[P]` a. **Sogni/Aspirazioni principali NPC:** *(Focus di implementazione corrente o successivo)* (Include vecchio `VII.3 Aspirazioni di Vita`) (`base_aspiration.py`, `aspiration_manager.py`, `enums/aspiration_enums.py` creati; attributi in `character.py`).
-        * `[]` i. Definire `AspirationType` Enum (es. `FAMILY_ORIENTED`, `WEALTH_BUILDER`). *(Nomi e concetti da rendere unici per SimAI)*.
+        * `[]` i. Definire `AspirationType` Enum (es. `FAMILY_ORIENTED`, `WEALTH_BUILDER`). *(Nomi e concetti da rendere unici per SimAI; questo task include la definizione di aspirazioni specifiche come quelle legate alla famiglia e alla genitorialità)*.
         * `[]` ii. Aggiungere attributi `aspiration` e `aspiration_progress` a `Character` e `BackgroundNPCState`.
         * `[]` iii. Definire azioni/stati chiave ("milestone" semplificate) per ciascuna `AspirationType`. *(Definite milestone per FAMILY_ORIENTED e WEALTH_BUILDER)*.
         * `[]` iv. Modificare `AIDecisionMaker` per considerare l'aspirazione.
@@ -677,6 +720,8 @@
         * `[]` ii. Moodlet possono accumularsi o annullarsi a vicenda.
     * `[]` m. Espressioni facciali e animazioni che riflettono l'umore attuale. (Da vecchio `VI.d`)
     * `[]` n. **Sistema di Osservazione (da file TODO utente):** (Come prima)
+    * `[]` o. **Bussola Morale:** Definire un sistema per la `Bussola Morale` (o allineamento etico) che influenzi le decisioni in situazioni moralmente ambigue (es. rubare per fame).
+    * `[]` p. **Lealtà:** Implementare un concetto di `Lealtà` verso specifici NPC o gruppi, che moduli le azioni in base all'impatto su di essi.
 
 * **5. Sistema di Memorie NPC:** `[]` *(Concettualizzazione Iniziale, inclusa gestione per NPC background e legame con maturazione)*.
     * `[]` a. Definire struttura dati per `MemoryObject`.
@@ -892,6 +937,26 @@
     * `[]` f. **Materiali Sostenibili e Prodotti Artigianali Non Alimentari di Anthalys:** (Materiali edilizia ecologici, prodotti cura persona naturali, oggetti arredo artigianali, strumenti musicali).
     * `[!]` g. **Coerenza con il Mercato e Consumo:** (Integrazione con sistema consumo NPC, disponibilità su AION/mercati, prezzi, influenza tratti consumatore).
 
+* **18. SISTEMA DI AUTOANALISI, RIFLESSIVITÀ E CAMBIAMENTO** `[F]`
+
+* `[F]` **1. Sistema di Autoanalisi degli NPC ("Self-Reflection"):**
+    * `[]` a. Alcuni NPC (in base a tratti, età, esperienze) possono attivare una **fase di riflessione** periodica su eventi significativi (`MemoryObject`) o aspirazioni insoddisfatte.
+        * `[]` i. Genera `Thoughts` specifici con impatto su `Moodlet` e IA decisionale.
+        * `[]` ii. Può innescare volontà di cambiamento (nuove azioni, ridefinizione obiettivi, desiderio di scuse).
+        * `[]` iii. Tratti come `Reflective`, `Philosopher`, `SelfConscious` aumentano la probabilità e profondità della riflessione.
+    * `[]` b. Collegamenti al sistema `Thought`, `MemorySystem`, `MoodletSystem`, `AIDecisionMaker`.
+
+* `[F]` **2. Impatto sul Comportamento e Personalità:**
+    * `[]` a. Riflessioni ripetute su eventi simili possono portare a:
+        * `[]` i. Cambiamento di tratti (es. da `HotHeaded` a `Calm` dopo molti litigi e ripensamenti).
+        * `[]` ii. Acquisizione di `Meta-tratti` come `Wiser`, `Disillusioned`, `Growth-Minded`.
+        * `[]` iii. Evoluzione delle relazioni (desiderio di chiarire, allontanarsi, migliorare).
+    * `[]` b. Gli NPC possono creare "narrative" interne che influenzano decisioni future.
+
+* `[F]` **3. Espansione: Diario o Voce Interiore (debug o narrativo):**
+    * `[]` a. Visualizzazione di pensieri riflessivi in forma di "voce interiore".
+    * `[]` b. (Facoltativo) Diario automatico generato da NPC che riflettono su sé stessi, utile per giocatori narrativi o tool di analisi/debug.
+
 ---
 
 
@@ -1097,7 +1162,7 @@
         * `[]` ii. Gli NPC che ricevono l'interazione potrebbero "percepire" questi segnali non verbali, influenzando la loro interpretazione dell'interazione e la loro risposta emotiva (moodlet) o comportamentale, al di là del semplice esito successo/fallimento.
         * `[]` iii. Skill come `EMPATHY` (IX.e) o `OBSERVANT` (IV.3.b) potrebbero migliorare la capacità di un NPC di interpretare correttamente questi segnali o di proiettarli efficacemente.
         * `[]` iv. Possibilità di "fraintendimenti" basati su segnali non verbali mal interpretati, aggiungendo complessità alle dinamiche sociali.
-* **2. Sistema di Relazioni e Dinamiche di Coppia (Adulti Monogami):** `[PRIORITÀ 1]` `[P]`
+* `[P]` **2. Sistema di Relazioni e Dinamiche di Coppia (Adulti Monogami):** `[PRIORITÀ 1]`
     * `[]` a. Punteggi di relazione (numerici, es. da -100 a +100) e Tipi di relazione (`RelationshipType` Enum).
         * `[]` i. Logica per transizione tra tipi (`ACQUAINTANCE`, `FRIEND`, `ENEMY`, etc.)
         * `[P]` ii. Introduzione di `RelationshipType.DATING` come stato intermedio tra `CRUSH` e `ROMANTIC_PARTNER`.
@@ -1138,7 +1203,7 @@
         * `[]` ii. **Stress Esterni:** Impatto di stress finanziario/lavorativo sulla libido.
         * `[]` iii. **Desiderio di Figli:** Impatto della discordanza o dell'infertilità sulla relazione.
         * `[]` iv. **Uso di Sostanze e Norme Culturali:** Modellare l'impatto di alcol/sostanze e delle pressioni sociali del mondo di gioco.
-* **3. Dinamiche di Coppia (Adolescenti):** `[PRIORITÀ 2]` `[]`
+* **3. Dinamiche di Coppia (Adolescenti):** `[]`
     * `[]` a. **Background e Sviluppo Puberale:**
         * `[]` i. Definire età di menarca/spermarca e altri segni puberali per gli NPC adolescenti, con impatti su umore, acne, immagine corporea e interesse sessuale.
     * `[]` b. **Fasi Relazionali e Accettazione/Rifiuto Intimità (Modificatori Adolescenziali):**

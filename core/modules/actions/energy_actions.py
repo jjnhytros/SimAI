@@ -6,7 +6,8 @@ if TYPE_CHECKING:
     from core.simulation import Simulation 
 
 from core.enums import NeedType, ActionType # Importa ActionType
-from core import settings
+from core.config import time_config, npc_config # Aggiungi time_config
+from core import settings # Lascia per DEBUG_MODE se usato
 from .action_base import BaseAction
 
 _MODULE_DEFAULT_SLEEP_ACTION_HOURS: float = 7.0
@@ -31,7 +32,7 @@ class SleepAction(BaseAction):
         
         actual_duration_ticks = custom_duration_ticks 
         if actual_duration_ticks is None:
-            actual_duration_ticks = int(actual_hours * settings.IXH)
+            actual_duration_ticks = int(actual_hours * time_config.IXH)
             
         self.energy_gain_per_hour = energy_gain_per_hour 
         if self.energy_gain_per_hour is None:
@@ -72,13 +73,13 @@ class SleepAction(BaseAction):
     def execute_tick(self):
         super().execute_tick()
         if self.is_started and settings.DEBUG_MODE:
-            if self.ticks_elapsed > 0 and self.ticks_elapsed % settings.IXH == 0 and \
+            if self.ticks_elapsed > 0 and self.ticks_elapsed % time_config.IXH == 0 and \
             self.ticks_elapsed < self.duration_ticks and not self.is_finished:
-                hours_slept = self.ticks_elapsed // settings.IXH
+                hours_slept = self.ticks_elapsed // time_config.IXH
                 print(f"    [{self.action_type_name} PROGRESS - {self.npc.name}] Sta dormendo... ({hours_slept} ore passate, {self.get_progress_percentage():.0%})")
 
     def _calculate_energy_gain(self) -> float:
-        hours_slept = self.ticks_elapsed / settings.IXH
+        hours_slept = self.ticks_elapsed / time_config.IXH
         energy_gained = hours_slept * cast(float, self.energy_gain_per_hour)
         return energy_gained
 

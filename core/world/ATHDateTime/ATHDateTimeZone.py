@@ -4,8 +4,7 @@ from typing import Dict, List, Optional, Union
 from datetime import timedelta # per type hinting e calcoli differenza
 
 from .ATHDateTimeZoneInterface import ATHDateTimeZoneInterface
-from .ATHDateTimeInterface import IXH_CALENDAR, SXI_CALENDAR 
-
+from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
 
 class ATHDateTimeZone(ATHDateTimeZoneInterface):
     _ANTHALEJA_TIMEZONE_DB_VERSION = "1.0.0-anthal"
@@ -31,31 +30,31 @@ class ATHDateTimeZone(ATHDateTimeZoneInterface):
             "abbrs": ["AMT", "AMST"] # Anthal Meridia Standard/Summer Time (placeholder per DST)
         },
         "Anthal/CostaEst": {
-            "offset_seconds_from_atz": +1 * IXH_CALENDAR * SXI_CALENDAR, # +3600s
+            "offset_seconds_from_atz": +1 * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR, # +3600s
             "group": ATHDateTimeZoneInterface.ANTHAL,
             "location": {"country_code_A": "ANTHAL_E_REG", "latitude_A": None, "longitude_A": None, "comments_A": "Regioni Costiere Orientali di Anthal"},
             "abbrs": ["AET1"] # Anthal Eastern Time +1
         },
         "Anthal/MontagneOvest": {
-            "offset_seconds_from_atz": -1 * IXH_CALENDAR * SXI_CALENDAR, # -3600s
+            "offset_seconds_from_atz": -1 * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR, # -3600s
             "group": ATHDateTimeZoneInterface.ANTHAL, 
             "location": {"country_code_A": "PIXINA", "latitude_A": None, "longitude_A": None, "comments_A": "Regioni Montuose Occidentali / Pixina Orientale"},
             "abbrs": ["AWT1"] # Anthal Western Time -1
         },
         "Anthal/Est+2": {
-            "offset_seconds_from_atz": +2 * IXH_CALENDAR * SXI_CALENDAR,
+            "offset_seconds_from_atz": +2 * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR,
             "group": ATHDateTimeZoneInterface.ANTHAL,
             "location": {"country_code_A": "ANTHAL_FE", "latitude_A": None, "longitude_A": None, "comments_A": "Estremo Oriente di Anthal"},
             "abbrs": ["AET2"]
         },
         "Anthal/Ovest-2": {
-            "offset_seconds_from_atz": -2 * IXH_CALENDAR * SXI_CALENDAR,
+            "offset_seconds_from_atz": -2 * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR,
             "group": ATHDateTimeZoneInterface.ANTHAL,
             "location": {"country_code_A": "PIXINA_W", "latitude_A": None, "longitude_A": None, "comments_A": "Estremo Occidente di Anthal"},
             "abbrs": ["AWT2"]
         },
         "Oceano/ProfondoBlu": { 
-            "offset_seconds_from_atz": -5 * IXH_CALENDAR * SXI_CALENDAR,
+            "offset_seconds_from_atz": -5 * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR,
             "group": ATHDateTimeZoneInterface.OCEAN,
             "location": {"country_code_A": "OCEAN_DB", "latitude_A": None, "longitude_A": None, "comments_A": "Fascia Oceanica Profondo Blu"},
             "abbrs": ["OPBT"]

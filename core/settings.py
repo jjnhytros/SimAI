@@ -2,66 +2,16 @@
 """
 File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 """
-# --- IMPORTAZIONI DAL SISTEMA TEMPORALE DI ANTHALYS ---
-from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
-# Importa anche i nomi dei mesi/giorni se sono definiti altrove e ti servono qui
-# Se sono definiti come attributi di ATHDateTimeInterface, accedi tramite la classe.
-# Per ora, li lascio definiti manualmente sotto se non sono in ATHDateTimeInterface.
-# from core.world.ATHDateTime.ATHDateTimeInterface import MONTH_NAMES, DAY_NAMES, MONTH_ABBR, DAY_ABBR # Se fossero a livello di modulo
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.3.79-alpha_149"
+GAME_VERSION = "0.4.86-alpha_170"
 DEBUG_MODE = False
 
-# --- II. CALENDARIO E TEMPO DI ANTHALYS (Nomi variabili ESATTI come da config utente) ---
-HXD = ATHDateTimeInterface.HXD_CALENDAR     # Ore per Giorno
-DXM = ATHDateTimeInterface.DXM_CALENDAR     # Giorni per Mese
-MXY = ATHDateTimeInterface.MXY_CALENDAR     # Mesi per Anno
-DXW = ATHDateTimeInterface.DXW_CALENDAR     # Giorni per Settimana
-DXY = ATHDateTimeInterface.DXY_CALENDAR     # Giorni per Anno (432)
-IXH = ATHDateTimeInterface.IXH_CALENDAR     # mInuti per Ora
-SXI = ATHDateTimeInterface.SXI_CALENDAR     # secondi per mInuto
-
-# Costanti Derivate (Minuti)
-IXD = IXH * HXD       # Minuti per Giorno
-IXW = IXD * DXW       # Minuti per Settimana
-IXM = IXD * DXM       # Minuti per Mese
-IXY = IXD * DXY       # Minuti per Anno
-
-# Costanti Derivate (Secondi)
-SXH = SXI * IXH       # Secondi per Ora
-SXD = SXH * HXD       # Secondi per Giorno
-SXW = SXD * DXW       # Secondi per Settimana
-SXM = SXD * DXM       # Secondi per Mese
-SXY = SXD * DXY       # Secondi per Anno
-
-# Costanti Lore e di Epoca
-ATH_DATE_FORMAT = "Y, d/m G:i:s"
-RDN = 951584400
-RY = 5775
-DXC = DXY * 100
-ADN = RY * DXY
-
-# Nomi Mesi e Giorni
-MONTH_NAMES = [
-    'Arejal', 'Brukom', 'Ĉelal', 'Kebor', 'Duvol', 'Elumag',
-    'Fydrin', 'Ĝinuril', 'Itrekos', 'Jebrax', 'Letranat', 'Mulfus',
-    'Nylumer', 'Otlevat', 'Prax', 'Retlixen', 'Sajep', 'Xetul'
-]
-DAY_NAMES = ['Nijahr', 'Majahr', 'Bejahr', 'Ĉejahr', 'Dyjahr', 'Fejahr', 'Ĝejahr'] # Nijahr=Giorno 0
-
-MONTH_ABBR = {name: (name[:2] + 'x' if name == "Prax" else name[:3]) for name in MONTH_NAMES}
-DAY_ABBR = {name: name[:2] for name in DAY_NAMES}
-
-WEEKEND_DAY_NUMBERS = [6, 0] # Indici per Ĝejahr (Sabato) e Nijahr (Domenica/Giorno 0)
-
-# Costanti per la simulazione e i tick
-TXH_SIMULATION = 1000 # Tick per Ora Simulazione
-
-SXI_GAME = IXH * SXI # Es. 3600
-SECONDS_PER_SIMULATION_TICK = SXI_GAME / TXH_SIMULATION # Es. 3600 / 1000 = 3.6
-
+from .config.time_config import (
+    DXY, DXY, DXW, DXM, HXD, 
+    WEEKEND_DAY_NUMBERS, TXH_SIMULATION
+)
 # --- Costanti Lavorative (Rif. TODO XXII.1) ---
 STANDARD_WORK_HOURS_PER_DAY = 9
 WORK_DAYS_PER_WEEK = DXW - len(WEEKEND_DAY_NUMBERS) # 5

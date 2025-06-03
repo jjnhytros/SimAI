@@ -1,237 +1,253 @@
 # core/AI/ai_decision_maker.py
-"""
-Modulo per la logica decisionale dell'Intelligenza Artificiale degli NPC.
-Contiene AIDecisionMaker che sceglie le azioni per un NPC.
-Riferimento TODO: IV.4
-"""
+from typing import Optional, TYPE_CHECKING, List, Dict, Tuple
 import random
-from typing import TYPE_CHECKING, Optional, List, Dict, Tuple
+
+from core.enums import (
+    NeedType, ActionType, TraitType, LifeStage, FunActivityType
+)
+# from core.modules.actions import ( # Esempio di import azioni specifiche
+#     EatAction, SleepAction, UseBathroomAction, HaveFunAction, 
+#     SocializeAction, DrinkAction
+# )
+# Importa le classi azione specifiche che ti servono
+from core.modules.actions.action_base import BaseAction
+from core.modules.actions.energy_actions import SleepAction
+from core.modules.actions.hunger_actions import EatAction
+from core.modules.actions.thirst_actions import DrinkAction
+from core.modules.actions.bathroom_actions import UseBathroomAction
+from core.modules.actions.fun_actions import HaveFunAction
+from core.modules.actions.social_actions import SocializeAction
+
+
+from core.config import npc_config, time_config # Aggiunto time_config
+from core import settings # Per DEBUG_MODE
 
 if TYPE_CHECKING:
     from core.character import Character
-    from core.simulation import Simulation
-    from core.modules.actions import BaseAction
+    from ..simulation import Simulation # Corretto per importare Simulation dal package genitore
+    from ..modules.time_manager import TimeManager # Corretto per importare TimeManager
+    from . import AICoordinator # Rimosso AICoordinator da qui se causa ciclo
+    # from .ai_coordinator import AICoordinator # Alternativa
 
-from core.enums import (
-    Interest, NeedType, FunActivityType, SocialInteractionType, 
-    RelationshipType, ActionType,
-)
-from core.modules.actions import (
-    EatAction, SleepAction, UseBathroomAction, HaveFunAction, 
-    SocializeAction, EngageIntimacyAction, DrinkWaterAction
-)
-from core import settings
-from core.modules.time_manager import TimeManager
-
-INTEREST_TO_FUN_ACTIVITIES_MAP: Dict[Interest, List[FunActivityType]] = {
-    Interest.GAMING: [FunActivityType.PLAY_COMPUTER_GAME, FunActivityType.PLAY_BOARD_GAMES],
-    Interest.READING: [FunActivityType.READ_BOOK_FOR_FUN],
-    Interest.MUSIC_LISTENING: [FunActivityType.LISTEN_TO_MUSIC, FunActivityType.DANCE],
-    Interest.MUSIC_PLAYING: [FunActivityType.PLAY_MUSICAL_INSTRUMENT, FunActivityType.DANCE],
-    Interest.VISUAL_ARTS: [FunActivityType.ENGAGE_IN_HOBBY_ARTISTIC],
-    Interest.WRITING: [FunActivityType.ENGAGE_IN_HOBBY_ARTISTIC],
-    Interest.PHOTOGRAPHY: [FunActivityType.ENGAGE_IN_HOBBY_ARTISTIC],
-    Interest.SPORTS_ACTIVE: [FunActivityType.DO_SPORTS_FOR_FUN, FunActivityType.DANCE],
-    Interest.CRAFTS_GENERAL: [FunActivityType.ENGAGE_IN_HOBBY_CRAFT],
-    Interest.TECHNOLOGY: [FunActivityType.PLAY_COMPUTER_GAME, FunActivityType.SOCIAL_MEDIA_Browse],
-    Interest.BOARD_GAMES: [FunActivityType.PLAY_BOARD_GAMES],
-    Interest.FILM_TV_SERIES: [FunActivityType.WATCH_TV],
-    Interest.FASHION: [FunActivityType.GO_SHOPPING_FOR_FUN],
-}
-
-NEED_PRIORITY_WEIGHTS: Dict[NeedType, float] = {
-    NeedType.BLADDER: 5.0,
-    NeedType.HUNGER: 4.0,
-    NeedType.THIRST: 4.2,
-    NeedType.ENERGY: 3.8,
-    NeedType.HYGIENE: 2.5,
-    NeedType.SAFETY: 3.5,
-    NeedType.COMFORT: 2.0,
-    NeedType.SOCIAL: 2.2,
-    NeedType.FUN: 1.5,
-    NeedType.INTIMACY: 1.8,
-    NeedType.ENVIRONMENT: 1.0,
-    NeedType.ACHIEVEMENT: 0.8,
-    NeedType.AUTONOMY: 0.7,
-    NeedType.CREATIVITY: 0.9,
-    NeedType.LEARNING: 0.9,
-    NeedType.SPIRITUALITY: 0.6
-}
 
 class AIDecisionMaker:
-    def __init__(self, npc: 'Character'):
+    """
+    Determina l'azione successiva che un NPC dovrebbe intraprendere.
+    """
+    BASE_ACTION_CHECK_INTERVAL_TICKS = 10 # Ogni quanti tick l'IA rivaluta le azioni base
+    
+    # Pesi per i bisogni (più alto = più importante quando si sceglie un'azione)
+    NEED_WEIGHTS = {
+        NeedType.HUNGER: 1.5,
+        NeedType.THIRST: 1.6, # Leggermente più prioritario della fame
+        NeedType.ENERGY: 1.4,
+        NeedType.BLADDER: 1.3,
+        NeedType.HYGIENE: 1.0,
+        NeedType.FUN: 0.8,
+        NeedType.SOCIAL: 0.7,
+        NeedType.INTIMACY: 0.6,
+        # Aggiungere pesi per altri bisogni (COMFORT, SAFETY, etc.) quando implementati
+    }
+    # Soglia sotto la quale un bisogno diventa "critico" e la sua soddisfazione urgente
+    CRITICAL_NEED_THRESHOLD_MODIFIER = 1.5 # Moltiplicatore per il peso se il bisogno è critico
+
+    def __init__(self, npc: 'Character'): # Rimosso ai_coordinator
         self.npc: 'Character' = npc
-        if settings.DEBUG_MODE:
-            print(f"    [AIDecisionMaker INIT] Creato per {self.npc.name}")
+        # Se AIDecisionMaker ha bisogno del contesto della simulazione (es. per TimeManager),
+        # può accedere tramite self.npc.simulation_context (se l'NPC ce l'ha)
+        # Esempio: self.simulation_context = npc.simulation_context
+        self.ticks_since_last_base_action_check: int = 0
+        self.last_selected_action_type: Optional[ActionType] = None
+        self.consecutive_action_type_count: int = 0
+        self.MAX_CONSECUTIVE_SAME_ACTION = 3
 
-    def _calculate_need_urgency(self, need_type: NeedType, current_value: float) -> float:
-        """Calcola l'urgenza di un bisogno basata sul suo valore, peso e tratti dell'NPC."""
-        base_weight = NEED_PRIORITY_WEIGHTS.get(need_type, 1.0)
-        urgency_score = (settings.NEED_MAX_VALUE - current_value) * base_weight
-        if current_value <= settings.NEED_CRITICAL_THRESHOLD:
-            urgency_score *= 2.0
-        if self.npc.traits: 
-            for trait_instance in self.npc.traits.values(): 
-                urgency_score = trait_instance.get_need_urgency_modifier(need_type, urgency_score)
-        return urgency_score
-
-    def decide_next_action(self, time_manager: TimeManager, simulation_context: 'Simulation'):
+    def _get_critical_need_modifier(self, need_value: float) -> float:
         """
-        Logica decisionale dell'IA per scegliere la prossima azione per self.npc.
-        L'azione scelta viene accodata direttamente all'NPC.
+        Restituisce un moltiplicatore se il bisogno è sotto la soglia critica.
         """
-        # Gestione Proposte di Intimità Ricevute
-        if hasattr(self.npc, 'pending_intimacy_proposal_from') and self.npc.pending_intimacy_proposal_from:
-            initiator_id = self.npc.pending_intimacy_proposal_from
-            self.npc.pending_intimacy_proposal_from = None 
-            initiator_npc = simulation_context.get_npc_by_id(initiator_id)
+        critical_threshold = npc_config.NEED_CRITICAL_THRESHOLD \
+            if hasattr(npc_config, 'NEED_CRITICAL_THRESHOLD') else 10.0
+        if need_value <= critical_threshold:
+            return self.CRITICAL_NEED_THRESHOLD_MODIFIER
+        return 1.0
 
-            if initiator_npc:
-                if settings.DEBUG_MODE: print(f"  [AI Decision - {self.npc.name}] Ricevuta proposta di intimità da {initiator_npc.name}. Decido...")
-                accepted = self.npc.decide_on_intimacy_proposal(initiator_npc, simulation_context)
-                
-                if accepted:
-                    if settings.DEBUG_MODE: print(f"    [AI Decision - {self.npc.name}] ACCETTATA proposta di intimità da {initiator_npc.name}.")
-                    action_to_consider = EngageIntimacyAction(npc=self.npc, target_npc=initiator_npc, simulation_context=simulation_context)
-                    if action_to_consider.is_valid():
-                        self.npc.add_action_to_queue(action_to_consider)
-                        if hasattr(initiator_npc, 'pending_intimacy_target_accepted'):
-                            initiator_npc.pending_intimacy_target_accepted = self.npc.npc_id
-                        return 
-                else:
-                    if settings.DEBUG_MODE: print(f"    [AI Decision - {self.npc.name}] RIFIUTATA proposta di intimità da {initiator_npc.name}.")
-                return 
+    def _calculate_action_score(self, action_effects: Dict[NeedType, float]) -> float:
+        """
+        Calcola un punteggio per un'azione potenziale basato su come soddisfa i bisogni
+        attuali dell'NPC, considerando i pesi dei bisogni e i tratti.
+        """
+        total_score = 0.0
+        if not self.npc.needs:
+            return 0.0
 
-        # Gestione Proposte di Intimità Accettate (fatte da questo NPC)
-        if hasattr(self.npc, 'pending_intimacy_target_accepted') and self.npc.pending_intimacy_target_accepted:
-            target_id = self.npc.pending_intimacy_target_accepted
-            self.npc.pending_intimacy_target_accepted = None 
-            target_npc = simulation_context.get_npc_by_id(target_id)
-            if target_npc:
-                if settings.DEBUG_MODE: print(f"  [AI Decision - {self.npc.name}] Proposta di intimità precedente accettata da {target_npc.name}. Considero EngageIntimacyAction.")
-                action_to_consider = EngageIntimacyAction(npc=self.npc, target_npc=target_npc, simulation_context=simulation_context)
-                if action_to_consider.is_valid():
-                    self.npc.add_action_to_queue(action_to_consider)
-                    return 
-                elif settings.DEBUG_MODE: print(f"    [AI Decision - {self.npc.name}] EngageIntimacyAction con {target_npc.name} non più valida.")
-            return
-        
-        potential_actions: List[Tuple[float, BaseAction]] = [] 
+        for need_type, effect_value in action_effects.items():
+            if effect_value <= 0:  # Consideriamo solo effetti positivi di soddisfacimento
+                continue
 
-        for need_type, need_object in self.npc.needs.items():
-            current_value = need_object.get_value()
-            if current_value <= settings.NEED_LOW_THRESHOLD:
-                urgency_score = self._calculate_need_urgency(need_type, current_value)
-                
-                action_candidate: Optional['BaseAction'] = None
-                
-                if need_type == NeedType.HUNGER:
-                    action_candidate = EatAction(npc=self.npc, simulation_context=simulation_context)
-                elif need_type == NeedType.THIRST:
-                    action_candidate = DrinkWaterAction(npc=self.npc, simulation_context=simulation_context)
-                elif need_type == NeedType.ENERGY:
-                    sleep_hours = getattr(settings, 'AI_CHOSEN_SLEEP_DURATION_HOURS', None)
+            need_obj = self.npc.needs.get(need_type)
+            if not need_obj:
+                continue
+
+            current_need_value = need_obj.get_value()
+            
+            # Quanto è "desiderabile" soddisfare questo bisogno? (0-1, più basso è più desiderabile)
+            # Se il bisogno è pieno (100), il desiderio di soddisfarlo è 0.
+            # Se il bisogno è vuoto (0), il desiderio di soddisfarlo è 1.
+            max_need = npc_config.NEED_MAX_VALUE if hasattr(npc_config, 'NEED_MAX_VALUE') else 100.0
+            desirability = 1.0 - (current_need_value / max_need)
+            
+            base_weight = self.NEED_WEIGHTS.get(need_type, 0.5) # Peso base per il bisogno
+            critical_modifier = self._get_critical_need_modifier(current_need_value)
+            
+            # Modificatori dai tratti
+            trait_modifier = 1.0
+            for trait in self.npc.traits.values(): # Itera sui BaseTrait objects
+                if hasattr(trait, 'get_need_satisfaction_modifier'):
+                    trait_modifier *= trait.get_need_satisfaction_modifier(need_type, effect_value)
+
+            # Punteggio per questo singolo bisogno = effetto_azione * desiderabilità * peso_base * mod_critico * mod_tratto
+            need_score = effect_value * desirability * base_weight * critical_modifier * trait_modifier
+            total_score += need_score
+            
+            # if settings.DEBUG_MODE and total_score > 0 :
+            #     print(f"    [AI Score - {self.npc.name}] Bisogno: {need_type.name}, Effetto: {effect_value:.1f}, Val Cor: {current_need_value:.1f}, Des: {desirability:.2f}, Peso: {base_weight}, CritMod: {critical_modifier}, TraitMod: {trait_modifier:.2f} -> Score Parz: {need_score:.2f}")
+
+        return total_score
+
+    def decide_next_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation') -> Optional[BaseAction]:
+        self.ticks_since_last_base_action_check += 1
+        if self.ticks_since_last_base_action_check < self.BASE_ACTION_CHECK_INTERVAL_TICKS:
+            return None
+        self.ticks_since_last_base_action_check = 0
+
+        most_pressing_need_type: Optional[NeedType] = None
+        highest_urgency_score: float = -float('inf')
+
+        if not self.npc.needs:
+            if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] NPC non ha bisogni definiti.")
+            return None
+
+        # 1. Identificazione del "Problema" (Bisogno più Urgente)
+        for need_type_enum, need_obj in self.npc.needs.items():
+            current_value = need_obj.get_value()
+            max_val = npc_config.NEED_MAX_VALUE if hasattr(npc_config, 'NEED_MAX_VALUE') else 100.0
+            
+            # --- Calcolo di 'urgency' all'interno del loop ---
+            urgency = (1.0 - (current_value / max_val)) * \
+                      self.NEED_WEIGHTS.get(need_type_enum, 0.5) * \
+                      self._get_critical_need_modifier(current_value)
+            
+            if urgency > highest_urgency_score:
+                highest_urgency_score = urgency
+                most_pressing_need_type = need_type_enum
+        # --- Fine calcolo 'urgency' ---
+
+        if settings.DEBUG_MODE and most_pressing_need_type:
+            print(f"  [AI Decide - {self.npc.name}] Bisogno più pressante: {most_pressing_need_type.name} (Urgenza: {highest_urgency_score:.2f})")
+        elif settings.DEBUG_MODE:
+            print(f"  [AI Decide - {self.npc.name}] Nessun bisogno pressante identificato.")
+            # Potremmo voler che l'IA faccia qualcos'altro se nessun bisogno è pressante.
+            # Per ora, se nessun bisogno è urgente, non sceglie un'azione basata sui bisogni.
+
+        best_action_candidate: Optional[BaseAction] = None
+        highest_action_score: float = -1.0 # Inizializza a un valore basso ma non -inf per permettere azioni con score 0
+
+        potential_actions_map: Dict[NeedType, type] = {
+            NeedType.HUNGER: EatAction,
+            NeedType.ENERGY: SleepAction,
+            NeedType.THIRST: DrinkAction,
+            NeedType.BLADDER: UseBathroomAction, # Assicurati che il nome classe sia corretto
+            NeedType.HYGIENE: UseBathroomAction, # Assicurati che il nome classe sia corretto
+            NeedType.FUN: HaveFunAction,
+            NeedType.SOCIAL: SocializeAction,
+        }
+
+        # Questo blocco viene eseguito SOLO se un most_pressing_need_type è stato identificato 
+        # E esiste un'azione mappata per quel bisogno.
+        if most_pressing_need_type is not None and most_pressing_need_type in potential_actions_map:
+            action_class_to_try = potential_actions_map[most_pressing_need_type]
+            action_candidate: Optional[BaseAction] = None
+
+            try:
+                if action_class_to_try == SleepAction:
+                    sleep_hours = 7.0 
+                    # Assicurati che i membri di LifeStage siano corretti (EARLY_CHILDHOOD, etc.)
+                    if self.npc.life_stage in [LifeStage.EARLY_CHILDHOOD, LifeStage.MIDDLE_CHILDHOOD, LifeStage.ADOLESCENCE]:
+                        sleep_hours = 9.0
+                    elif self.npc.life_stage == LifeStage.ELDERLY:
+                        sleep_hours = 8.0
                     action_candidate = SleepAction(npc=self.npc, simulation_context=simulation_context, duration_hours=sleep_hours)
-                elif need_type == NeedType.BLADDER:
-                    action_candidate = UseBathroomAction(npc=self.npc, simulation_context=simulation_context)
-                elif need_type == NeedType.HYGIENE:
-                    action_candidate = UseBathroomAction(npc=self.npc, simulation_context=simulation_context)
-                elif need_type == NeedType.FUN:
-                    preferred_fun_activities: List[FunActivityType] = [
-                        act for i in self.npc.get_interests() 
-                        if i in INTEREST_TO_FUN_ACTIVITIES_MAP 
-                        for act in INTEREST_TO_FUN_ACTIVITIES_MAP[i]
-                    ]
-                    chosen_activity: Optional[FunActivityType] = None
-                    if preferred_fun_activities:
-                        unique_preferred = list(set(preferred_fun_activities))
-                        if unique_preferred: 
-                            chosen_activity = random.choice(unique_preferred)
-                            if settings.DEBUG_MODE: print(f"    [AI Decision - {self.npc.name}] Bisogno FUN: Scelta attività basata su interessi: {chosen_activity.name if chosen_activity else 'Nessuna scelta da interessi'}")
-                    
-                    if chosen_activity is None:
-                        all_fun_activities = list(FunActivityType)
-                        if all_fun_activities: 
-                            chosen_activity = random.choice(all_fun_activities)
-                            if settings.DEBUG_MODE: print(f"    [AI Decision - {self.npc.name}] Bisogno FUN: Ness. attività da interessi, scelta casuale: {chosen_activity.name if chosen_activity else 'Nessuna attività FUN disponibile'}")
-                    
+                
+                elif action_class_to_try == EatAction:
+                    action_candidate = EatAction(npc=self.npc, simulation_context=simulation_context)
+                
+                elif action_class_to_try == DrinkAction:
+                    action_candidate = DrinkAction(npc=self.npc, simulation_context=simulation_context, drink_type="WATER")
+
+                elif action_class_to_try == UseBathroomAction: # Usa il nome classe corretto
+                    action_candidate = UseBathroomAction(npc=self.npc, simulation_context=simulation_context, for_need=most_pressing_need_type)
+                
+                elif action_class_to_try == HaveFunAction:
+                    # Assicurati che FunActivityType sia importato
+                    available_activities = list(FunActivityType) if FunActivityType else []
+                    chosen_activity = random.choice(available_activities) if available_activities else (FunActivityType.DAYDREAM if FunActivityType and hasattr(FunActivityType, 'DAYDREAM') else None)
                     if chosen_activity:
-                        action_candidate = HaveFunAction(npc=self.npc, activity_type=chosen_activity, simulation_context=simulation_context)
-                    elif settings.DEBUG_MODE: 
-                        print(f"    [AI Decision - {self.npc.name}] Nessuna FunActivityType disponibile per azione FUN.")
+                        action_candidate = HaveFunAction(npc=self.npc, simulation_context=simulation_context, activity_type=chosen_activity)
+                    else: # Fallback se FunActivityType.DAYDREAM non è accessibile
+                        if settings.DEBUG_MODE: print(f"  [AI Decide WARN - {self.npc.name}] FunActivityType non definito o DAYDREAM mancante.")
                 
-                elif need_type == NeedType.SOCIAL:
-                    target_npc_social = simulation_context.find_available_social_target(requesting_npc=self.npc)
-                    if target_npc_social:
-                        chosen_interaction_type_social = random.choice([SocialInteractionType.CHAT_CASUAL, SocialInteractionType.COMPLIMENT])
-                        if settings.DEBUG_MODE: print(f"        [AI Decision - {self.npc.name}] Scelto tipo interazione SOCIAL: {chosen_interaction_type_social.name} con {target_npc_social.name}")
-                        action_candidate = SocializeAction(
-                            npc=self.npc,
-                            target_npc=target_npc_social,
-                            interaction_type=chosen_interaction_type_social,
-                            simulation_context=simulation_context
-                        )
-                    elif settings.DEBUG_MODE: 
-                        print(f"      [AI Decision - {self.npc.name}] Nessun target per socializzare.")
+                elif action_class_to_try == SocializeAction:
+                    target_npc_id = None
+                    if simulation_context and self.npc.current_location_id:
+                         current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
+                         if current_loc:
+                             potential_targets = [oid for oid in current_loc.npcs_present_ids if oid != self.npc.npc_id]
+                             if potential_targets:
+                                 target_npc_id = random.choice(potential_targets)
+                    if target_npc_id:
+                         action_candidate = SocializeAction(npc=self.npc, simulation_context=simulation_context, target_npc_id=target_npc_id)
                 
-                elif need_type == NeedType.INTIMACY:
-                    current_sim_tick = time_manager.total_ticks_sim
-                    cooldown_key = "INTIMACY_PROPOSAL_COOLDOWN_TICKS"
-                    cooldown_ticks = getattr(settings, cooldown_key, settings.IXH * 1)
-                    
-                    if not (hasattr(self.npc, 'last_intimacy_proposal_tick') and \
-                    current_sim_tick < self.npc.last_intimacy_proposal_tick + cooldown_ticks):
-                        suitable_partner: Optional['Character'] = None
-                        if self.npc.relationships:
-                            for rel_id, rel_info in self.npc.relationships.items():
-                                if rel_info.type in {RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE} and \
-                                rel_info.score >= getattr(settings, "MIN_REL_SCORE_FOR_INTIMACY_PROPOSAL_ACCEPTANCE", 30):
-                                    partner = simulation_context.get_npc_by_id(rel_id)
-                                    if partner and not partner.is_busy: 
-                                        suitable_partner = partner
-                                        break
-                        if suitable_partner:
-                            action_candidate = SocializeAction(
-                                npc=self.npc, 
-                                target_npc=suitable_partner, 
-                                interaction_type=SocialInteractionType.PROPOSE_INTIMACY, 
-                                simulation_context=simulation_context
-                            )
-                            # Non impostare last_intimacy_proposal_tick qui, ma solo se l'azione viene scelta
-                    else:
-                        if settings.DEBUG_MODE: 
-                            print(f"    [AI Decision - {self.npc.name}] INTIMACY basso, ma in cooldown per nuova proposta ({self.npc.last_intimacy_proposal_tick + cooldown_ticks - current_sim_tick}t rim.).")
+                if action_candidate and action_candidate.is_valid():
+                    score = self._calculate_action_score(action_candidate.effects_on_needs)
+                    if self.last_selected_action_type == action_candidate.action_type_enum:
+                        score *= (1.0 - (self.consecutive_action_type_count * 0.25))
+                    for trait in self.npc.traits.values():
+                        if hasattr(trait, 'get_action_choice_priority_modifier'):
+                            score *= trait.get_action_choice_priority_modifier(action_candidate.action_type_enum, simulation_context)
+                    if score > highest_action_score:
+                        highest_action_score = score
+                        best_action_candidate = action_candidate
+            
+            except Exception as e:
+                if settings.DEBUG_MODE:
+                    action_class_name = action_class_to_try.__name__ if action_class_to_try else 'Azione Sconosciuta'
+                    need_name = most_pressing_need_type.name if most_pressing_need_type else 'Bisogno Sconosciuto'
+                    print(f"  [AI Decide ERROR - {self.npc.name}] Eccezione durante creazione/valutazione di {action_class_name} per {need_name}: {e}")
 
-                if action_candidate:
-                    action_preference_modifier = 1.0
-                    if self.npc.traits and action_candidate.action_type_enum:
-                        for trait_instance in self.npc.traits.values():
-                            action_preference_modifier *= trait_instance.get_action_preference_modifier(action_candidate.action_type_enum, self.npc)
-                    
-                    final_action_score = urgency_score * action_preference_modifier
-
+        if best_action_candidate:
+            if self.last_selected_action_type == best_action_candidate.action_type_enum:
+                self.consecutive_action_type_count += 1
+                if self.consecutive_action_type_count >= self.MAX_CONSECUTIVE_SAME_ACTION:
                     if settings.DEBUG_MODE:
-                        print(f"    [AI Decision - {self.npc.name}] Candidato: {action_candidate.action_type_name} per {need_type.display_name_it()}. Urgenza base: {urgency_score:.2f}, Pref.Tratto: {action_preference_modifier:.2f}, Score Finale: {final_action_score:.2f}")
+                         print(f"  [AI Decide - {self.npc.name}] Raggiunto max ripetizioni per {best_action_candidate.action_type_name}. NPC non fa nulla.")
+                    return None 
+            else:
+                self.consecutive_action_type_count = 0
+            self.last_selected_action_type = best_action_candidate.action_type_enum
+        else: 
+            self.consecutive_action_type_count = 0
+            self.last_selected_action_type = None
 
-                    if action_candidate.is_valid():
-                        potential_actions.append((final_action_score, action_candidate))
-                    elif settings.DEBUG_MODE:
-                        print(f"    [AI Decision - {self.npc.name}] Azione candidata '{action_candidate.action_type_name}' NON valida.")
-        
-        if not potential_actions:
-            if settings.DEBUG_MODE: 
-                print(f"    [AI Decision - {self.npc.name}] Nessuna azione valida generata dai bisogni.")
-            return
+        if best_action_candidate and settings.DEBUG_MODE:
+             print(f"  [AI Decide - {self.npc.name}] Azione Scelta: {best_action_candidate.action_type_name} (Score: {highest_action_score:.2f}) per bisogno {most_pressing_need_type.name if most_pressing_need_type else 'N/D'}")
+        elif not best_action_candidate and settings.DEBUG_MODE and most_pressing_need_type:
+            print(f"  [AI Decide - {self.npc.name}] Nessuna azione valida trovata per il bisogno {most_pressing_need_type.name}.")
 
-        potential_actions.sort(key=lambda x: x[0], reverse=True)
-        
-        best_action_score, best_action = potential_actions[0]
 
-        if settings.DEBUG_MODE:
-            print(f"  [AI Decision - {self.npc.name}] Azione Scelta: {best_action.action_type_name} (Score: {best_action_score:.2f})")
-        
-        self.npc.add_action_to_queue(best_action)
-        
-        if best_action.action_type_enum == ActionType.ACTION_SOCIALIZE_PROPOSE_INTIMACY:
-            if hasattr(self.npc, 'last_intimacy_proposal_tick'):
-                self.npc.last_intimacy_proposal_tick = time_manager.total_ticks_sim
+        return best_action_candidate
+
+    def reset_decision_state(self):
+        """Resetta lo stato interno del decision maker, es. per forzare una rivalutazione."""
+        self.ticks_since_last_base_action_check = self.BASE_ACTION_CHECK_INTERVAL_TICKS 
+        self.last_selected_action_type = None
+        self.consecutive_action_type_count = 0

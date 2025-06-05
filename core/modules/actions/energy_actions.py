@@ -1,5 +1,5 @@
 # core/modules/actions/energy_actions.py
-from typing import Optional, TYPE_CHECKING, cast
+from typing import Dict, Optional, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from core.character import Character
@@ -14,16 +14,22 @@ _MODULE_DEFAULT_SLEEP_ACTION_HOURS: float = 7.0
 _MODULE_DEFAULT_ENERGY_GAIN_PER_HOUR: float = 15.0
 
 class SleepAction(BaseAction):
-    # ACTION_TYPE_NAME = "ACTION_SLEEP" # Non più necessario come costante di classe se usiamo l'enum
-    
     def __init__(self, 
-                npc: 'Character', 
-                simulation_context: 'Simulation', 
-                duration_hours: Optional[float] = None, 
-                custom_duration_ticks: Optional[int] = None, 
-                energy_gain_per_hour: Optional[float] = None
+                 npc: 'Character', 
+                 simulation_context: 'Simulation',
+                 # --- Parametri di configurazione "iniettati" ---
+                 duration_hours: float,
+                 energy_gain_per_hour: float,
+                 validation_threshold: float,
+                 on_finish_energy_target: float,
+                 on_finish_needs_adjust: Dict[NeedType, float],
+                 # --- Parametri opzionali per istanze custom ---
+                 custom_duration_ticks: Optional[int] = None
                 ):
-        
+        self.validation_threshold = validation_threshold
+        self.on_finish_energy_target = on_finish_energy_target
+        self.on_finish_needs_adjust = on_finish_needs_adjust
+       
         actual_hours = duration_hours 
         if actual_hours is None:
             actual_hours = getattr(settings, 'SLEEP_ACTION_DEFAULT_HOURS', None)
@@ -44,10 +50,12 @@ class SleepAction(BaseAction):
         super().__init__(
             npc=npc,
             action_type_name=action_type_enum.action_type_name,
+
             action_type_enum=action_type_enum,
             duration_ticks=actual_duration_ticks,
             p_simulation_context=simulation_context, # Modificato
-            is_interruptible=True
+            is_interruptible=True,
+            
             # description=f"Sta dormendo (Durata pianificata: {actual_hours:.1f}h)." # description rimossa
         )
         

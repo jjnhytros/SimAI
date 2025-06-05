@@ -7,6 +7,7 @@ from core.enums import (
     SchoolLevel, AspirationType, NeedType, FunActivityType, SocialInteractionType,
     ActionType, TraitType,
 )
+from core.enums.lod_level import LODLevel
 from core.modules.actions import BaseAction
 from core.modules.needs import BaseNeed, ThirstNeed
 from core.modules.needs.common_needs import (
@@ -18,7 +19,9 @@ from core.modules.needs.common_needs import (
 from core.modules.traits import (
     BaseTrait, 
     ActiveTrait, BookwormTrait, GluttonTrait, LonerTrait,
+    AmbitiousTrait, LazyTrait, SocialTrait, CreativeTrait,
 )
+from core.modules.relationships.relationship_base import Relationship
 
 from dataclasses import dataclass, field
 from core.AI.ai_decision_maker import AIDecisionMaker
@@ -33,8 +36,10 @@ if TYPE_CHECKING:
 
 # Struttura per le informazioni di relazione
 @dataclass
-class RelationshipInfo: # Manteniamo questa definizione
-    target_npc_id: str; type: RelationshipType; score: int = 0
+class RelationshipInfo:
+    target_npc_id: str
+    type: RelationshipType # RelationshipType deve essere nota qui
+    score: int = 0
     def __str__(self): return f"({self.type.display_name_it() if self.type else 'N/D'} con {self.target_npc_id}, Score: {self.score})"
 
 TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type[BaseTrait]] = {
@@ -42,6 +47,10 @@ TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type[BaseTrait]] = {
     TraitType.BOOKWORM: BookwormTrait,
     TraitType.GLUTTON: GluttonTrait,
     TraitType.LONER: LonerTrait,
+    TraitType.AMBITIOUS: AmbitiousTrait,
+    TraitType.LAZY: LazyTrait,
+    TraitType.SOCIAL: SocialTrait,
+    TraitType.CREATIVE: CreativeTrait,
 }
 
 
@@ -49,58 +58,83 @@ class Character:
     def __init__(self,
                 npc_id: str, name: str, initial_gender: Gender,
                 initial_age_days: int = 0, 
+                initial_aspiration: Optional[AspirationType] = None,
+                initial_interests: Optional[Set[Interest]] = None,
+                initial_is_on_asexual_spectrum: bool = False, initial_is_on_aromantic_spectrum: bool = False,
+                initial_location_id: Optional[str] = None,
+                initial_lod: LODLevel = LODLevel.HIGH,
                 initial_logical_x: int = 0, 
                 initial_logical_y: int = 0,
-                initial_interests: Optional[Set[Interest]] = None,
-                initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
-                initial_romantically_attracted_to_genders: Optional[Set[Gender]] = None,
-                initial_is_on_asexual_spectrum: bool = False, initial_is_on_aromantic_spectrum: bool = False,
                 initial_relationship_status: RelationshipStatus = RelationshipStatus.SINGLE,
+                initial_romantically_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_school_level: SchoolLevel = SchoolLevel.NONE,
-                initial_location_id: Optional[str] = None,
-                initial_aspiration: Optional[AspirationType] = None,
+                initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_traits: Optional[Set[TraitType]] = None,
-                simulation_context: Optional['Simulation'] = None
+                simulation_context: Optional['Simulation'] = None,
             ):
 
-        self.npc_id: str = npc_id; self.name: str = name
+        # Impostazioni base e validazioni
+        self.npc_id: str = npc_id
+        self.name: str = name
+        if initial_aspiration is not None and not isinstance(initial_aspiration, AspirationType): raise ValueError("initial_aspiration non valida")
         if not isinstance(initial_gender, Gender): raise ValueError(f"initial_gender per {name} non valido")
-        self.gender: Gender = initial_gender
+        if not isinstance(initial_relationship_status, RelationshipStatus): raise ValueError("initial_relationship_status non valido")
+        if not isinstance(initial_school_level, SchoolLevel): raise ValueError("initial_school_level non valido")
+
+        # Attributi di stato e identità
         self._age_in_days: int = initial_age_days
-        self.life_stage: Optional[LifeStage] = None
-        self._interests: Set[Interest] = {i for i in (initial_interests or set()) if isinstance(i, Interest)}
+        self.life_stage: Optional[LifeStage] = None # Verrà calcolato dopo
+        self.gender: Gender = initial_gender
         self.sexually_attracted_to_genders: Set[Gender] = {g for g in (initial_sexually_attracted_to_genders or set()) if isinstance(g, Gender)}
         self.romantically_attracted_to_genders: Set[Gender] = {g for g in (initial_romantically_attracted_to_genders or set()) if isinstance(g, Gender)}
         self.is_on_asexual_spectrum: bool = initial_is_on_asexual_spectrum
         self.is_on_aromantic_spectrum: bool = initial_is_on_aromantic_spectrum
-        if not isinstance(initial_relationship_status, RelationshipStatus): raise ValueError("initial_relationship_status non valido")
         self.relationship_status: RelationshipStatus = initial_relationship_status
-        if not isinstance(initial_school_level, SchoolLevel): raise ValueError("initial_school_level non valido")
-        self.current_school_level: SchoolLevel = initial_school_level
-        self.highest_school_level_completed: SchoolLevel = SchoolLevel.NONE
-        self.relationships: Dict[str, RelationshipInfo] = {}
-        if initial_aspiration is not None and not isinstance(initial_aspiration, AspirationType): raise ValueError("initial_aspiration non valida")
+        
+        # Interessi
+        self._interests: Set[Interest] = {i for i in (initial_interests or set()) if isinstance(i, Interest)}
+        
+        # Aspirazioni
         self.aspiration: Optional[AspirationType] = initial_aspiration
         self.aspiration_progress: float = 0.0
+        
+        # Scuola
+        self.current_school_level: SchoolLevel = initial_school_level
+        self.highest_school_level_completed: SchoolLevel = SchoolLevel.NONE
+        
+        # Relazioni (Inizializza il dizionario vuoto)
+        self.relationships: Dict[str, RelationshipInfo] = {} 
+        
+        # --- INIZIALIZZA PRIMA I DIZIONARI VUOTI ---
+        self.traits: Dict[TraitType, BaseTrait] = {}
         self.needs: Dict[NeedType, BaseNeed] = {}
-        self._initialize_needs()
-        self._calculate_and_set_life_stage()
+        
+        # --- POI CHIAMA I METODI DI INIZIALIZZAZIONE CHE LI POPOLANO ---
+        self._initialize_traits(initial_traits or set())
+        self._initialize_needs() 
+        
+        # Calcola LifeStage dopo che l'età è impostata e i bisogni/tratti potrebbero essere rilevanti
+        self._calculate_and_set_life_stage() 
+        
+        # Azioni e IA
         self.action_queue: collections.deque[BaseAction] = collections.deque()
         self.current_action: Optional[BaseAction] = None
         self.is_busy: bool = False
+        self.ai_decision_maker: AIDecisionMaker = AIDecisionMaker(self) # Ora è sicuro, self è quasi completo
+
+        # Posizione e Mondo
         self.current_location_id: Optional[str] = initial_location_id
+        self.lod: LODLevel = initial_lod 
         self.logical_x: int = initial_logical_x
         self.logical_y: int = initial_logical_y
+        
+        # Stato intimità (se necessario qui, o possono essere inizializzati a None e basta)
         self.pending_intimacy_proposal_from: Optional[str] = None
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
-        self.traits: Dict[TraitType, BaseTrait] = {} # Ora un dizionario di oggetti tratto
-        self._initialize_traits(initial_traits or set())
+        
+        if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s} (ID: {self.npc_id})")
 
-        self._initialize_needs() # Deve essere chiamato dopo l'inizializzazione dei tratti se i tratti influenzano i valori iniziali dei bisogni
-        self._calculate_and_set_life_stage()
-        self.ai_decision_maker: Optional[AIDecisionMaker] = None
-        if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
 
     def set_location(self, new_location_id: str, simulation: 'Simulation'):
         old_location_id = self.current_location_id
@@ -257,11 +291,10 @@ class Character:
     def get_relationship_with(self, target_npc_id: str) -> Optional[RelationshipInfo]: return self.relationships.get(target_npc_id)
 
     def update_relationship(self, target_npc_id: str, new_type: RelationshipType, score_change: int = 0, new_score: Optional[int] = None):
-        if not isinstance(new_type, RelationshipType): return
-        if target_npc_id not in self.relationships: self.relationships[target_npc_id] = RelationshipInfo(target_npc_id=target_npc_id, type=new_type, score=0)
-        rel_info = self.relationships[target_npc_id]; rel_info.type = new_type
-        if new_score is not None: rel_info.score = max(-100, min(100, new_score))
-        else: rel_info.score = max(-100, min(100, rel_info.score + score_change))
+    # Questa è la riga del tuo snippet che l'errore potrebbe indicare
+        if target_npc_id not in self.relationships: # ACCESSO QUI
+            self.relationships[target_npc_id] = RelationshipInfo(target_npc_id=target_npc_id, type=new_type, score=0) # ASSEGNAZIONE QUI
+            rel_info = self.relationships[target_npc_id] # ACCESSO QUI
 
     def get_aspiration(self) -> Optional[AspirationType]: return self.aspiration
 
@@ -368,11 +401,11 @@ class Character:
         if settings.DEBUG_MODE: print(f"    [Intimacy Decision - {self.name}] Proposta da {initiator_npc.name}. Accettata: {accepted} (Chance: {acceptance_chance:.2f})")
         return accepted
 
-    def update_action(self, time_manager: TimeManager, simulation_context: 'Simulation'):
+    def update_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation'):
         if self.current_action:
             if self.current_action.is_started and \
-               not self.current_action.is_finished and \
-               not self.current_action.is_interrupted:
+            not self.current_action.is_finished and \
+            not self.current_action.is_interrupted:
                 self.current_action.execute_tick()
 
             if self.current_action.is_finished or self.current_action.is_interrupted:
@@ -389,8 +422,12 @@ class Character:
                 print(f"  [Character Action - {self.name}] Tento avvio da coda: '{next_action_from_queue.action_type_name}'. Coda: {len(self.action_queue)}")
             self._start_action(next_action_from_queue, simulation_context)
 
+        # Modifica qui per controllare se ai_decision_maker esiste
         if not self.is_busy and not self.action_queue:
-            self.ai_decision_maker.decide_next_action(time_manager, simulation_context)
+            if self.ai_decision_maker is not None: # <--- CONTROLLO AGGIUNTO
+                self.ai_decision_maker.decide_next_action(time_manager, simulation_context)
+            elif settings.DEBUG_MODE:
+                print(f"  [Character UpdateAction WARN - {self.name}] ai_decision_maker è None. Impossibile decidere la prossima azione.")
 
     def _start_action(self, action: BaseAction, simulation_context: 'Simulation') -> bool:
         if action.is_valid():

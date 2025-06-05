@@ -10,6 +10,7 @@ from core.modules.time_manager import TimeManager
 from core.world.location import Location
 from core.world.game_object import GameObject
 from core.AI import AICoordinator
+from core.AI.lod_manager import LODManager # Importa LODManager
 
 class Simulation:
     def __init__(self):
@@ -21,12 +22,15 @@ class Simulation:
         self.is_running: bool = False
         self.npcs: Dict[str, Character] = {}
         self.social_hubs: List[Dict] = []
+        self.time_manager = TimeManager()
 
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
         self.game_speed: float = 1.0
         self.default_starting_location_id: Optional[str] = None
         self._initialize_world_data()
+        self.lod_manager = LODManager(self) # Istanzia LODManager qui
+        self.ai_coordinator = AICoordinator(self)
 
         self.ai_coordinator = AICoordinator(self) # <-- ISTANZIAMO AICoordinator
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
@@ -145,6 +149,21 @@ class Simulation:
             print(f"  [Simulation] NPC '{new_npc.name}' (ID: {new_npc.npc_id}) aggiunto. Locazione Attuale: {final_loc_name}. Totale NPC: {len(self.npcs)}")
 
     def get_npc_by_id(self, npc_id_to_find: str) -> Optional[Character]: return self.npcs.get(npc_id_to_find)
+
+    def set_player_character(self, npc_id: str):
+        """Imposta l'NPC specificato come personaggio del giocatore."""
+        if npc_id in self.npcs:
+            self.player_character_id = npc_id
+            if settings.DEBUG_MODE:
+                print(f"  [Simulation] Personaggio del giocatore impostato su: {self.npcs[npc_id].name} (ID: {npc_id})")
+        elif settings.DEBUG_MODE:
+            print(f"  [Simulation WARN] Tentativo di impostare un player character non esistente: {npc_id}")
+
+    def get_player_character(self) -> Optional[Character]:
+        """Restituisce l'istanza del personaggio del giocatore, se impostata."""
+        if self.player_character_id:
+            return self.get_npc_by_id(self.player_character_id)
+        return None
 
     def find_social_hubs(self, target_interests: Set[Interest]) -> list[dict]:
         if not target_interests: return []
@@ -289,7 +308,7 @@ class Simulation:
             if settings.DEBUG_MODE: print("    [Sim WARN] AICoordinator non disponibile! Uso logica di update NPC diretta.")
             is_new_day = (self.time_manager.get_current_hour() == 0 and
                             self.time_manager.get_current_minute() == 0 and
-                            self.time_manager.total_ticks_sim > 1)
+                            self.time_manager.total_ticks > 1)
             for npc in self.npcs.values():
                 if npc:
                     npc.update_needs(self.time_manager, 1)
@@ -297,6 +316,20 @@ class Simulation:
                     npc.update_action(self.time_manager, simulation_context=self)
 
         self.current_tick += 1
+
+        # Ottieni la posizione del giocatore (questo è un esempio, adattalo)
+        player_character = self.get_player_character() # Ipotetico metodo
+        current_player_position = None
+        if player_character:
+            current_player_position = (float(player_character.logical_x), float(player_character.logical_y))
+
+        # Aggiorna i LOD degli NPC
+        if self.lod_manager:
+            self.lod_manager.update_all_npcs_lod(current_player_position)
+
+        # Aggiorna l'IA e le azioni degli NPC (l'IA potrebbe usare il LOD dell'NPC)
+        if self.ai_coordinator:
+            self.ai_coordinator.update_all_npcs(time_delta=1) # o i ticks effettivi
 
     def run(self, max_ticks: Optional[int] = None):
         if settings.DEBUG_MODE:

@@ -5,7 +5,8 @@ from core.world.ATHDateTime.ATHDateTime import ATHDateTime
 from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
 from core.world.ATHDateTime.ATHDateTimeZone import ATHDateTimeZone
 from core.config import time_config
-from typing import Dict, Union
+from core import settings
+from typing import Dict, Union, Tuple, List, Optional
 
 class TimeManager:
     """
@@ -18,7 +19,20 @@ class TimeManager:
         Inizializza il TimeManager, impostando l'ora di inizio della simulazione
         basandosi sulla configurazione.
         """
-        self.total_simulation_ticks: int = 0
+        self.total_ticks: int = 0
+        self.TXI: int = time_config.IXM             # Ticks per Minute
+        self.TXH: int = self.TXI * time_config.IXH  # Ticks per Hour
+        self.TXD: int = self.TXH * time_config.HXD  # Ticks per Day
+        self.TXM: int = self.TXD * time_config.DXM  # Ticks per Month
+        self.TXY: int = self.TXM * time_config.MXY  # Ticks per Year
+        self.initial_year: int = time_config.RY     # Initial year
+        self.day_names: List[str] = time_config.DAY_NAMES       # Day Names
+        self.month_names: List[str] = time_config.MONTH_NAMES   # Month Names
+        if len(self.day_names) != time_config.DXW:
+            raise ValueError(f"DAY_NAMES in settings ({len(self.day_names)}) non corrisponde a DXW ({time_config.DXW})")
+        if len(self.month_names) != time_config.MXY:
+            raise ValueError(f"MONTH_NAMES in settings ({len(self.month_names)}) non corrisponde a MXY ({time_config.MXY})")
+
         try:
             # Crea l'oggetto fuso orario
             tz_obj = ATHDateTimeZone(time_config.DEFAULT_TIMEZONE)
@@ -45,12 +59,6 @@ class TimeManager:
         )
         print(f"TimeManager inizializzato. Ora di inizio simulazione: {str(self._current_time)}")
 
-    def get_current_time(self) -> ATHDateTime:
-        """
-        Restituisce l'oggetto ATHDateTime corrente.
-        """
-        return self._current_time
-
     def advance_time(self, game_speed: float):
         """
         Avanza il tempo della simulazione ad ogni tick.
@@ -65,7 +73,13 @@ class TimeManager:
             microseconds=microseconds
         )
         self._current_time = self._current_time.add(interval)
-        self.total_simulation_ticks += 1 # AGGIUNGI/VERIFICA QUESTA RIGA
+        self.total_ticks += 1
+
+    def get_current_time(self) -> ATHDateTime:
+        """
+        Restituisce l'oggetto ATHDateTime corrente.
+        """
+        return self._current_time
 
     def get_ath_detailed_datetime(self) -> Dict[str, Union[int, str, None]]:
         """
@@ -89,6 +103,63 @@ class TimeManager:
                 'hour': 0, 'minute': 0, 'second': 0,
                 'day_name': "N/D", 'month_name': "N/D"
             }
+
+    def get_current_minute(self) -> int:
+        """Restituisce il minuto corrente nell'ora (0-MXH-1)."""
+        return (self.total_ticks % self.TXH) // self.TXI
+
+    def get_current_hour(self) -> int:
+        """Restituisce l'ora corrente nel giorno (0-HXD-1)."""
+        return (self.total_ticks % self.TXD) // self.TXH
+
+    def get_current_day_of_week_index(self) -> int:
+        """Restituisce l'indice del giorno corrente nella settimana (0-DXW-1)."""
+        current_total_days = self.total_ticks // self.TXD
+        return current_total_days % time_config.DXW
+
+    def get_current_day_in_month(self) -> int:
+        """Restituisce il giorno corrente nel mese (1-DXM)."""
+        day_in_year = (self.total_ticks % self.TXY) // self.TXD
+        return (day_in_year % time_config.DXM) + 1
+
+    def get_current_month_index(self) -> int:
+        """Restituisce l'indice del mese corrente nell'anno (0-MXY-1)."""
+        day_in_year = (self.total_ticks % self.TXY) // self.TXD
+        return day_in_year // time_config.DXM
+
+    def get_current_year(self) -> int:
+        """Restituisce l'anno corrente della simulazione."""
+        return self.initial_year + (self.total_ticks // self.TXY)
+
+    def get_formatted_datetime_string(self) -> str:
+        """Restituisce una stringa formattata con data e ora correnti."""
+        year = self.get_current_year()
+        month_idx = self.get_current_month_index()
+        month_name = self.month_names[month_idx] if 0 <= month_idx < len(self.month_names) else f"MeseScon.{month_idx+1}"
+        day_in_month = self.get_current_day_in_month()
+        
+        day_of_week_idx = self.get_current_day_of_week_index()
+        day_of_week_name = self.day_names[day_of_week_idx] if 0 <= day_of_week_idx < len(self.day_names) else f"GiornoScon.{day_of_week_idx+1}"
+        
+        hour = self.get_current_hour()
+        minute = self.get_current_minute()
+
+        return (f"Anno {year}, {day_in_month} {month_name} ({day_of_week_name}) - "
+                f"{hour:02d}:{minute:02d}")
+
+    def is_work_day(self, day_of_week_index: Optional[int] = None) -> bool:
+        """Verifica se è un giorno lavorativo standard (es. non weekend). Da personalizzare."""
+        if day_of_week_index is None:
+            day_of_week_index = self.get_current_day_of_week_index()
+        # Esempio: se i primi 5 giorni (0-4) sono lavorativi
+        # Adatta questo ai giorni lavorativi specifici di Anthalys
+        return 0 <= day_of_week_index < (time_config.DXW - 2) # Assumendo 2 giorni di weekend
+
+    def is_school_day(self, day_of_week_index: Optional[int] = None) -> bool:
+        """Verifica se è un giorno scolastico standard. Da personalizzare."""
+        # Spesso coincide con i giorni lavorativi, ma potrebbe avere eccezioni
+        return self.is_work_day(day_of_week_index)
+
 
     def __str__(self):
         """

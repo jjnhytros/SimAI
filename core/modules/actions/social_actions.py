@@ -79,7 +79,7 @@ class SocializeAction(BaseAction):
         if settings.DEBUG_MODE:
             target_name_log = target_npc.name if target_npc else "N/A"
             print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata con target {target_name_log} "
-                  f"(Tipo: {interaction_type.name}, Durata Effettiva: {self.duration_ticks}t)")
+                f"(Tipo: {interaction_type.name}, Durata Effettiva: {self.duration_ticks}t)")
 
     # ... resto della classe (is_valid, on_start, execute_tick, on_finish, on_interrupt_effects) ...
     # Assicurati che tutti i metodi che usano simulation_context lo facciano tramite self.sim_context

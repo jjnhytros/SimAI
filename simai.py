@@ -50,6 +50,8 @@ def setup_test_simulation() -> Simulation:
         initial_traits=npc1_traits
     )
     sim.add_npc(npc1)
+    sim.set_player_character(npc1.npc_id) 
+
 
     npc2_interests: Set[Interest] = {Interest.SPORTS_ACTIVE, Interest.GAMING}
     npc2_traits: Set[TraitType] = {TraitType.ACTIVE, TraitType.SOCIAL, TraitType.OPTIMIST}

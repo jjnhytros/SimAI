@@ -384,7 +384,6 @@ class Renderer:
         current_y = self._draw_text_in_panel("Info Panel", panel_padding, current_y, font=self.font_panel_title, color=self.WHITE)
         current_y += 5
         
-        # --- INIZIO BLOCCO DATA/ORA CON DEBUG DETTAGLIATO ---
         if simulation and simulation.time_manager:
             if self.font_debug: # Assicurati prima che il font esista
                 datetime_info = simulation.time_manager.get_ath_detailed_datetime()
@@ -397,11 +396,9 @@ class Renderer:
                 
                 datetime_str = f"{day_name_val}, {day_val} {month_name_val} {year_val:04d} - {hour_val:02d}:{minute_val:02d}"
 
-                # Variabili per il posizionamento
                 target_x_coord = self.base_width + panel_padding
                 target_y_coord = current_y
 
-                # --- STAMPE DI DEBUG CRUCIALI ---
                 if settings.DEBUG_MODE:
                     print(f"--- DEBUG DATETIME DRAW ---")
                     print(f"datetime_str: '{datetime_str}'")
@@ -410,31 +407,31 @@ class Renderer:
                     print(f"panel_padding: {panel_padding} (Tipo: {type(panel_padding)})")
                     print(f"current_y (prima del blit): {current_y} (Tipo: {type(current_y)})")
                     print(f"Coordinate calcolate per blit (target_x_coord, target_y_coord): ({target_x_coord}, {target_y_coord})")
-                # --- FINE STAMPE DI DEBUG ---
 
                 try:
-                    # Assicurati che le coordinate siano esplicitamente intere
                     final_blit_x = int(target_x_coord)
                     final_blit_y = int(target_y_coord)
 
                     dt_text_surface = self.font_debug.render(datetime_str, True, self.WHITE)
-                    self.screen.blit(dt_text_surface, (final_blit_x, final_blit_y))
+                    
+                    if dt_text_surface:
+                        self.screen.blit(dt_text_surface, (final_blit_x, final_blit_y))
+                    elif settings.DEBUG_MODE:
+                        print(f"  [Renderer WARN] dt_text_surface è None per datetime_str: '{datetime_str}'. Blit saltato.")
                     current_y += self.LINE_HEIGHT 
+
                 except Exception as e:
-                    if settings.DEBUG_MODE:
+                    if settings.DEBUG_MODE: # La tua stampa di debug va bene
                         print(f"  [Renderer EXCEPTION] Eccezione nel blocco DATETIME: {e}")
                         # Stampa lo stato delle variabili anche in caso di eccezione
                         print(f"    DEBUG EXCEPTION - datetime_str: '{datetime_str}'")
                         print(f"    DEBUG EXCEPTION - self.font_debug: {self.font_debug}")
                         print(f"    DEBUG EXCEPTION - target_x_coord: {target_x_coord}, target_y_coord: {target_y_coord}")
-
-            else: # Caso in cui self.font_debug è None
+                    pass
+            else: 
                 if settings.DEBUG_MODE:
                     print(f"  [Renderer ERROR] self.font_debug è None. Impossibile renderizzare datetime_str.")
-                # Potresti voler disegnare un placeholder o semplicemente avanzare current_y
                 current_y += self.LINE_HEIGHT 
-
-        # --- FINE BLOCCO DATA/ORA CON DEBUG DETTAGLIATO ---
 
         if current_location_instance_for_panel:
             loc_name = current_location_instance_for_panel.name
@@ -541,9 +538,7 @@ class Renderer:
             self._update_game_state(simulation) 
             self._render_gui(simulation)
             
-            # Usa FPS da settings se disponibile, altrimenti default
-            fps_to_use = settings.FPS if hasattr(settings, 'FPS') else 60
-            self.clock.tick(fps_to_use) 
+            self.clock.tick(settings.FPS) 
         self._quit_pygame()
 
     def _quit_pygame(self):

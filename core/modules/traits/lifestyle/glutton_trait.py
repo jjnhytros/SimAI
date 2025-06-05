@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from core.enums.trait_types import TraitType
 from core.enums.need_types import NeedType # Per identificare il bisogno di Fame
 from core.enums.action_types import ActionType
-from .base_trait import BaseTrait
+from ..base_trait import BaseTrait
 
 if TYPE_CHECKING:
     from core.character import Character

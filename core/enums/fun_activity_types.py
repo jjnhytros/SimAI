@@ -36,6 +36,7 @@ class FunActivityType(Enum):
     PEOPLE_WATCH = auto()               # Osservare la Gente
     WINDOW_SHOPPING = auto()            # Guardare Vetrine (senza comprare)
     EXPLORE_NEIGHBORHOOD = auto()     # Esplorare il Quartiere
+    PLAY_GUITAR = auto()
     
     # TODO: Aggiungere altre attività di divertimento specifiche per SimAI
 

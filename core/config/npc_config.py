@@ -1,8 +1,10 @@
+# simai/core/config/npc_config.py
 """
 Configurazione NPC, tratti, bisogni e ciclo di vita
 """
 
 from .time_config import DXY, DXM
+from core.enums import NeedType
 
 # --- Generazione NPC ---
 MIN_TRAITS_PER_NPC = 3
@@ -62,6 +64,20 @@ NEED_MIN_VALUE = 0.0
 NEED_MAX_VALUE = 100.0
 NEED_DEFAULT_START_MIN = 50.0
 NEED_DEFAULT_START_MAX = 80.0
+
+
+NEED_WEIGHTS: dict[NeedType, float] = {
+    NeedType.HUNGER: 1.5,
+    NeedType.THIRST: 1.6, 
+    NeedType.ENERGY: 1.4,
+    NeedType.BLADDER: 1.3,
+    NeedType.HYGIENE: 1.0,
+    NeedType.FUN: 0.8,
+    NeedType.SOCIAL: 0.7,
+    NeedType.INTIMACY: 0.6,
+    # Aggiungere pesi per altri bisogni
+}
+CRITICAL_NEED_THRESHOLD_MODIFIER = 1.5
 
 NEED_DECAY_RATES = {
     "ACHIEVEMENT": -0.2,

@@ -10,7 +10,8 @@ from core.modules.time_manager import TimeManager
 from core.world.location import Location
 from core.world.game_object import GameObject
 from core.AI import AICoordinator
-from core.AI.lod_manager import LODManager # Importa LODManager
+from core.AI.lod_manager import LODManager
+from core.AI.social_manager import SocialManager
 
 class Simulation:
     def __init__(self):
@@ -31,8 +32,9 @@ class Simulation:
         self._initialize_world_data()
         self.lod_manager = LODManager(self) # Istanzia LODManager qui
         self.ai_coordinator = AICoordinator(self)
-
-        self.ai_coordinator = AICoordinator(self) # <-- ISTANZIAMO AICoordinator
+        self.social_manager = SocialManager(self)
+        self.ai_coordinator = AICoordinator(self)
+        
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
         if settings.DEBUG_MODE: print("  [Simulation INIT] Simulation inizializzata.")
 

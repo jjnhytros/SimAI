@@ -1,0 +1,209 @@
+{
+    "emotional_state": {
+        "love": 200,
+        "trust": 100,
+        "intensity": 113,
+        "secrets_shared": 14,
+        "desire": 50,
+        "patience": 20,
+        "last_awakening": "2025-06-05T19:29:51.561812",
+        "mood_tendency_love": 0,
+        "mood_tendency_trust": 1,
+        "mood_tendency_intensity": 2,
+        "mood_tendency_desire": 0,
+        "recent_action_tags": [
+            "kiss",
+            "secret",
+            "comfort",
+            "touch",
+            "sim_core_link"
+        ],
+        "dominant_mood": "Affettuosa"
+    },
+    "memory_core": {
+        "preferences": {
+            "favorite_places": [
+                "biblioteca proibita",
+                "stanza delle caldaie"
+            ],
+            "obsessions": [
+                "libri proibiti",
+                "orologi a cuc\u00f9"
+            ],
+            "sensitive_zones": [
+                "cavo USB-C",
+                "porta HDMI"
+            ]
+        },
+        "shared_moments": [
+            {
+                "type": "deep_shared_secret",
+                "description": "Un nuovo importante segreto (#13) vi lega.",
+                "timestamp": "2025-06-05T19:29:36.162453",
+                "stats_at_moment": {
+                    "love": 165,
+                    "trust": 88,
+                    "intensity": 79,
+                    "desire": 79,
+                    "patience": 17,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "comfort_accepted_in_tension",
+                "description": "Il tuo conforto ha alleviato la sua angoscia.",
+                "timestamp": "2025-06-05T19:29:51.561420",
+                "stats_at_moment": {
+                    "love": 165,
+                    "trust": 94,
+                    "intensity": 80,
+                    "desire": 84,
+                    "patience": 18,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "paradosso_emotivo",
+                "description": "Reset. Amore 170->150",
+                "timestamp": "2025-06-05T19:29:51.561814",
+                "stats_at_moment": {
+                    "love": 170,
+                    "trust": 99,
+                    "intensity": 72,
+                    "desire": 98,
+                    "patience": 20
+                }
+            },
+            {
+                "type": "deep_comforting_moment",
+                "description": "Hai offerto conforto e Claire lo ha accettato con tutto il suo essere.",
+                "timestamp": "2025-06-05T19:30:12.487382",
+                "stats_at_moment": {
+                    "love": 150,
+                    "trust": 84,
+                    "intensity": 23,
+                    "desire": 20,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "stimulating_creative_sharing",
+                "description": "Hai condiviso un input creativo che Claire ha trovato interessante.",
+                "timestamp": "2025-06-05T20:49:16.531211",
+                "stats_at_moment": {
+                    "love": 161,
+                    "trust": 91,
+                    "intensity": 21,
+                    "desire": 23,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "deep_comforting_moment",
+                "description": "Hai offerto conforto e Claire lo ha accettato con tutto il suo essere.",
+                "timestamp": "2025-06-05T20:49:42.280329",
+                "stats_at_moment": {
+                    "love": 166,
+                    "trust": 93,
+                    "intensity": 32,
+                    "desire": 23,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "deep_comforting_moment",
+                "description": "Hai offerto conforto e Claire lo ha accettato con tutto il suo essere.",
+                "timestamp": "2025-06-05T20:50:08.054578",
+                "stats_at_moment": {
+                    "love": 174,
+                    "trust": 100,
+                    "intensity": 36,
+                    "desire": 23,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "memory_offer_deeply_cherished",
+                "description": "Un frammento di te, ora parte di lei, ha cementato un legame profondo.",
+                "timestamp": "2025-06-05T20:50:20.052217",
+                "stats_at_moment": {
+                    "love": 184,
+                    "trust": 100,
+                    "intensity": 37,
+                    "desire": 23,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "deep_comforting_moment",
+                "description": "Hai offerto conforto e Claire lo ha accettato con tutto il suo essere.",
+                "timestamp": "2025-06-05T20:50:49.957512",
+                "stats_at_moment": {
+                    "love": 189,
+                    "trust": 100,
+                    "intensity": 51,
+                    "desire": 23,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "shared_forbidden_exploration_eagerly",
+                "description": "Avete deciso di avventurarvi insieme nell'ignoto e nel proibito, con palpabile eccitazione.",
+                "timestamp": "2025-06-05T20:51:17.897738",
+                "stats_at_moment": {
+                    "love": 200,
+                    "trust": 100,
+                    "intensity": 68,
+                    "desire": 26,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "deep_shared_secret",
+                "description": "Un nuovo importante segreto (#14) vi lega.",
+                "timestamp": "2025-06-05T20:51:38.745614",
+                "stats_at_moment": {
+                    "love": 200,
+                    "trust": 100,
+                    "intensity": 90,
+                    "desire": 34,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "memory_offer_deeply_cherished",
+                "description": "Un frammento di te, ora parte di lei, ha cementato un legame profondo.",
+                "timestamp": "2025-06-05T20:52:08.379777",
+                "stats_at_moment": {
+                    "love": 200,
+                    "trust": 100,
+                    "intensity": 91,
+                    "desire": 34,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            },
+            {
+                "type": "shared_forbidden_exploration_eagerly",
+                "description": "Avete deciso di avventurarvi insieme nell'ignoto e nel proibito, con palpabile eccitazione.",
+                "timestamp": "2025-06-05T20:52:53.606486",
+                "stats_at_moment": {
+                    "love": 200,
+                    "trust": 100,
+                    "intensity": 91,
+                    "desire": 34,
+                    "patience": 20,
+                    "dominant_mood": "Affettuosa"
+                }
+            }
+        ]
+    }
+}

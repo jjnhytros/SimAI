@@ -59,9 +59,9 @@ class TimeManager:
         )
         print(f"TimeManager inizializzato. Ora di inizio simulazione: {str(self._current_time)}")
 
-    def advance_time(self, game_speed: float):
+    def advance_time(self, game_speed: float): # game_speed non è usato per incrementare total_ticks qui
         """
-        Avanza il tempo della simulazione ad ogni tick.
+        Avanza il tempo della simulazione.
         """
         seconds_to_add_float = time_config.SECONDS_PER_SIMULATION_TICK * game_speed
         integer_seconds = int(seconds_to_add_float)
@@ -73,7 +73,9 @@ class TimeManager:
             microseconds=microseconds
         )
         self._current_time = self._current_time.add(interval)
-        self.total_ticks += 1
+        
+        # Incrementa il contatore di tick totali della simulazione
+        self.total_ticks += 1 # Assumendo che ogni chiamata ad advance_time sia un tick
 
     def get_current_time(self) -> ATHDateTime:
         """

@@ -2,9 +2,16 @@
 """
 Gestione avanzata dei bisogni NPC
 """
+from typing import TYPE_CHECKING, List, Optional # Aggiunto Optional
 from core import settings
-from core.enums import NeedType # <-- IMPORTAZIONE CORRETTA
-from core.modules.needs.common_needs import IntimacyNeed # <-- IMPORTAZIONE CORRETTA
+from core.enums import NeedType
+from core.AI.problem_definitions import Problem, ProblemType
+from core.config import npc_config # Importa npc_config
+# from core.modules.needs.common_needs import IntimacyNeed # Rimosso se update_needs è pass
+
+if TYPE_CHECKING:
+    from core.character import Character
+    # from core.modules.time_manager import TimeManager
 
 class NeedsProcessor:
     def update_needs(self, npc, time_delta): # time_delta qui è il numero di tick
@@ -55,6 +62,57 @@ class NeedsProcessor:
         pass
 
     # _clamp_needs non è più necessario qui perché BaseNeed.change_value() già gestisce il clamping.
+
+    def _get_critical_need_modifier(self, need_value: float) -> float:
+        critical_threshold = npc_config.NEED_CRITICAL_THRESHOLD 
+        if need_value <= critical_threshold:
+            return npc_config.CRITICAL_NEED_THRESHOLD_MODIFIER 
+        return 1.0
+
+    def identify_need_problems(self, npc: 'Character', current_sim_time: Optional[float] = None) -> List[Problem]:
+        problems: List[Problem] = []
+        if not npc.needs:
+            return problems
+
+        low_need_threshold = npc_config.NEED_LOW_THRESHOLD
+
+        for need_type, need_obj in npc.needs.items():
+            current_value = need_obj.get_value()
+
+            if current_value < low_need_threshold:
+                max_val = npc_config.NEED_MAX_VALUE
+                normalized_value = current_value / max_val
+                # Accedi a NEED_WEIGHTS da npc_config
+                urgency_score = (1.0 - normalized_value) * \
+                                npc_config.NEED_WEIGHTS.get(need_type, 0.5) * \
+                                self._get_critical_need_modifier(current_value)
+
+                problem_details = {
+                    "need": need_type,
+                    "current_value": current_value,
+                    "target_threshold": low_need_threshold
+                }
+
+                problem = Problem(
+                    npc_id=npc.npc_id,
+                    problem_type=ProblemType.LOW_NEED,
+                    urgency=max(0.0, min(1.0, urgency_score)), 
+                    details=problem_details,
+                    timestamp=current_sim_time
+                )
+                problems.append(problem)
+
+                if settings.DEBUG_MODE:
+                    print(f"    [NeedsProcessor] Problema Rilevato per {npc.name}: {need_type.name} basso ({current_value:.1f}), Urgenza: {problem.urgency:.2f}")
+
+        problems.sort(key=lambda p: p.urgency, reverse=True)
+        return problems
+
+    # Il NeedsProcessor potrebbe anche mantenere il metodo per il decadimento dei bisogni
+    # se vogliamo centralizzare tutta la logica dei bisogni qui, come da TODO I.2.c.
+    # def process_needs_decay(self, npc: 'Character', time_manager: 'TimeManager', ticks_elapsed: int):
+    #     # Logica di Character.update_needs() spostata qui
+    #     pass 
 
     def get_priority_need(self, npc):
         """Restituisce il bisogno più urgente"""

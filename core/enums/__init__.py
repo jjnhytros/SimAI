@@ -21,6 +21,7 @@ from .object_types import ObjectType
 from .relationship_statuses import RelationshipStatus 
 from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
+from .skill_types import SkillType
 from .social_interaction_types import SocialInteractionType
 from .trait_types import TraitType
 
@@ -38,6 +39,7 @@ __all__ = [
     'RelationshipStatus',
     'RelationshipType',
     'SchoolLevel',
+    'SkillType',
     'SocialInteractionType',
     'TraitType',
 ]

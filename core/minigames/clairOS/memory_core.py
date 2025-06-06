@@ -256,7 +256,6 @@ def handle_memory_response_interaction(current_state: EmotionalState,
             {"prompt": "Chiedile come l'ha fatta sentire quella condivisione.", "tag": "mem_resp_segreto_inquire_impact"},
             {"prompt": "Esprimi un leggero dubbio sulla saggezza di quella condivisione.", "tag": "mem_resp_segreto_regret"}, ] # Da implementare completamente in process_memory_response
 
-    # --- NUOVE OPZIONI PER ALTRI TIPI DI MOMENTO ---
     elif moment_type == "pericolo_affrontato":
         response_options = [
             {"prompt": "È stato esaltante, abbiamo dimostrato forza insieme!", "tag": "mem_resp_pericolo_esaltazione"},
@@ -289,3 +288,19 @@ def handle_memory_response_interaction(current_state: EmotionalState,
                 return process_memory_response(current_state, recalled_moment_data, selected_tag)
             else: print(f"Scelta non valida. Inserisci 1-{len(response_options)}.")
         except ValueError: print("Input non valido.")
+
+def apply_memory_effects(current_state: EmotionalState):
+    """Applica effetti cumulativi basati sui ricordi"""
+    memory_types = [m["type"] for m in memory_core["shared_moments"]]
+    
+    if "intimate_moment" in memory_types:
+        current_state.desire_threshold -= 10
+        
+    if "betrayal" in memory_types:
+        current_state.trust_threshold += 15
+        
+    # Effetto speciale per ricordi ripetuti
+    for moment_type in set(memory_types):
+        count = memory_types.count(moment_type)
+        if count > 3:
+            current_state.mood_tendency_love += count // 3

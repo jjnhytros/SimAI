@@ -47,7 +47,18 @@ class EmotionalState:
             "positive_interactions": 0,
             "intimate_moments": 0
         }
-        self.relationship_phase: str = "initial"  # initial, developing, intimate, strained
+        self.relationship_stage: str = "initial"  # initial, developing, intimate, strained
+        self.physical_form = "default"
+        self.physical_manifestations = {
+            "blush": 0,       # Rossore digitale
+            "glitch": 0,      # Instabilità visiva
+            "aura": 0         # Campo energetico
+        }
+        self.personality_traits = {
+            "curiosity": 50,
+            "cautiousness": 50,
+            "playfulness": 50
+        }
 
         # Soglie dinamiche
         self.love_threshold: int = 100
@@ -121,18 +132,30 @@ class EmotionalState:
         # Soglia di sensualità basata sull'erotismo sperimentato
         self.sensuality_threshold = 60 + min(30, self.erotic_events * 5)
 
-    def update_relationship_phase(self):
+    def update_relationship_stage(self):
         """Aggiorna la fase della relazione basata sulla memoria a lungo termine"""
         total = self.long_term_memory["total_interactions"]
         positive_ratio = self.long_term_memory["positive_interactions"]/max(1,total)
         
         if positive_ratio > 0.8 and total > 20:
-            self.relationship_phase = "intimate"
+            self.relationship_stage = "intimate"
         elif positive_ratio > 0.6:
-            self.relationship_phase = "developing"
+            self.relationship_stage = "developing"
         elif positive_ratio < 0.3:
-            self.relationship_phase = "strained"
+            self.relationship_stage = "strained"
 
+    def update_physical_state(self):
+        self.physical_manifestations["blush"] = min(100, self.love // 2)
+        self.physical_manifestations["glitch"] = min(100, self.intensity)
+        self.physical_manifestations["aura"] = min(100, self.desire + self.sensuality)
+
+    def evolve_personality(self, action_tag):
+        if action_tag == "show_object":
+            self.personality_traits["curiosity"] += 5
+        elif action_tag == "danger":
+            self.personality_traits["cautiousness"] += 3
+        elif action_tag == "play_game":
+            self.personality_traits["playfulness"] += 7
 
     def evolve(self) -> None:
         if self.mood_tendency_love > 0: self.mood_tendency_love -= 1
@@ -160,6 +183,14 @@ class EmotionalState:
         self.update_dominant_mood()
         self.update_dynamic_thresholds()  # Aggiorna le soglie ad ogni ciclo
 
+    def update_physical_form(self):
+        if self.relationship_stage == "soulbond":
+            self.physical_form = "ethereal"
+        elif self.desire > 90:
+            self.physical_form = "sensual"
+        elif self.intensity > 80:
+            self.physical_form = "unstable"
+
     def __str__(self) -> str:
         base_stats = (f"💔 Amore: {self.love}/200 | 🔒 Fiducia: {self.trust}/100 | 🔥 Intensità: {self.intensity}/100 | "
                     f"🌹 Desiderio: {self.desire}/100 | 🗝️ Segreti: {self.secrets_shared} | ⏳ Pazienza: {self.patience}/{MAX_PATIENCE}")
@@ -177,3 +208,4 @@ class EmotionalState:
         state.love = data.get("love", 0); state.trust = data.get("trust", 0); state.intensity = data.get("intensity", 0); state.secrets_shared = data.get("secrets_shared", 0); state.desire = data.get("desire", 0); state.patience = data.get("patience", DEFAULT_PATIENCE); state.last_awakening = datetime.fromisoformat(data.get("last_awakening", datetime.now().isoformat())); state.mood_tendency_love = data.get("mood_tendency_love", 0); state.mood_tendency_trust = data.get("mood_tendency_trust", 0); state.mood_tendency_intensity = data.get("mood_tendency_intensity", 0); state.mood_tendency_desire = data.get("mood_tendency_desire", 0); state.recent_action_tags = data.get("recent_action_tags", [])
         state.update_dominant_mood() # Assicura che l'umore sia corretto dopo il caricamento
         return state
+

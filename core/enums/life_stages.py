@@ -1,40 +1,84 @@
 # core/enums/life_stages.py
-"""
-Definizione dell'Enum 'LifeStage' per rappresentare le fasi della vita
-degli NPC in SimAI.
-"""
 from enum import Enum, auto
 
 class LifeStage(Enum):
     """
-    Rappresenta le diverse fasi della vita di un NPC.
-    Le soglie di età per ogni fase sono definite in settings.LIFE_STAGE_AGE_THRESHOLDS_DAYS.
-    Riferimento Lore: "Le Fasi della Vita e le Tradizioni di Anthalys"
+    Rappresenta le diverse fasi e sotto-fasi della vita di un NPC.
+    Ampliato per maggiore granularità.
     Riferimento TODO: IV.2.d
     """
-    INFANCY = auto()            # Infanzia (0-1 anno)
-    TODDLERHOOD = auto()        # Prima Fanciullezza (1-3 anni)
-    EARLY_CHILDHOOD = auto()    # Fanciullezza Media / Preschool (3-5 anni)
-    MIDDLE_CHILDHOOD = auto()   # Tarda Fanciullezza (6-11 anni)
-    ADOLESCENCE = auto()        # Adolescenza (12-19 anni)
-    EARLY_ADULTHOOD = auto()    # Prima Età Adulta (20-39 anni)
-    MIDDLE_ADULTHOOD = auto()   # Età Adulta Media (40-59 anni)
-    LATE_ADULTHOOD = auto()     # Tarda Età Adulta (60-79 anni)
-    ELDERLY = auto()            # Anzianità (80+ anni)
+    # Fase Infantile (0-3 anni)
+    NEWBORN = auto()           # Neonato (0 - ~2 mesi)
+    INFANT = auto()            # Lattante (~2 mesi - 1 anno)
+    TODDLER = auto()           # Primi passi (1 - 3 anni)
+    
+    # Fase Fanciullezza (3-12 anni)
+    PRESCHOOLER = auto()       # Età prescolare (3 - 6 anni)
+    CHILD = auto()             # Bambino/a (6 - 9 anni)
+    PRE_TEEN = auto()          # Preadolescente (9 - 12 anni)
+
+    # Fase Adolescenza (12-20 anni)
+    EARLY_ADOLESCENCE = auto() # Prima adolescenza (12 - 15 anni)
+    MID_ADOLESCENCE = auto()   # Media adolescenza (15 - 18 anni)
+    LATE_ADOLESCENCE = auto()  # Tarda adolescenza (18 - 20 anni)
+
+    # Fase Adulta (20-60 anni)
+    YOUNG_ADULT = auto()       # Giovane adulto (20 - 30 anni)
+    ADULT = auto()             # Adulto (30 - 40 anni)
+    MIDDLE_AGED = auto()       # Mezza età (40 - 60 anni)
+
+    # Fase Anziana (60+ anni)
+    MATURE_ADULT = auto()      # Adulto maturo (60 - 75 anni)
+    SENIOR = auto()            # Anziano (75 - 90 anni)
+    ELDERLY = auto()           # Grande anziano (90+ anni)
+    
+    # Stato speciale
+    NONE = auto()              # Non applicabile
 
     def display_name_it(self) -> str:
-        """Restituisce il nome della fase della vita in italiano."""
-        # Questo mapping può essere espanso o gestito diversamente se necessario.
-        # Per ora, usiamo i nomi italiani che hai fornito nella lore.
+        """Restituisce un nome leggibile in italiano per la fase della vita."""
         mapping = {
-            LifeStage.INFANCY: "Infanzia",
-            LifeStage.TODDLERHOOD: "Prima Fanciullezza",
-            LifeStage.EARLY_CHILDHOOD: "Fanciullezza Media", # (o Età Prescolare)
-            LifeStage.MIDDLE_CHILDHOOD: "Tarda Fanciullezza",
-            LifeStage.ADOLESCENCE: "Adolescenza",
-            LifeStage.EARLY_ADULTHOOD: "Prima Età Adulta",
-            LifeStage.MIDDLE_ADULTHOOD: "Età Adulta Media",
-            LifeStage.LATE_ADULTHOOD: "Tarda Età Adulta",
-            LifeStage.ELDERLY: "Anzianità"
+            LifeStage.NEWBORN: "Neonato",
+            LifeStage.INFANT: "Lattante",
+            LifeStage.TODDLER: "Primi Passi",
+            LifeStage.PRESCHOOLER: "Età Prescolare",
+            LifeStage.CHILD: "Bambino/a",
+            LifeStage.PRE_TEEN: "Preadolescente",
+            LifeStage.EARLY_ADOLESCENCE: "Prima Adolescenza",
+            LifeStage.MID_ADOLESCENCE: "Media Adolescenza",
+            LifeStage.LATE_ADOLESCENCE: "Tarda Adolescenza",
+            LifeStage.YOUNG_ADULT: "Giovane Adulto",
+            LifeStage.ADULT: "Adulto",
+            LifeStage.MIDDLE_AGED: "Mezza Età",
+            LifeStage.MATURE_ADULT: "Adulto Maturo",
+            LifeStage.SENIOR: "Anziano",
+            LifeStage.ELDERLY: "Grande Anziano",
+            LifeStage.NONE: "Nessuno",
         }
         return mapping.get(self, self.name.replace("_", " ").title())
+
+    # --- Metodi Helper (MOLTO CONSIGLIATI) ---
+    @property
+    def is_infant_or_toddler(self) -> bool:
+        """Vero se è un neonato, lattante o toddler."""
+        return self in {LifeStage.NEWBORN, LifeStage.INFANT, LifeStage.TODDLER}
+
+    @property
+    def is_child(self) -> bool:
+        """Vero se è in età scolare (non adolescente)."""
+        return self in {LifeStage.PRESCHOOLER, LifeStage.CHILD, LifeStage.PRE_TEEN}
+        
+    @property
+    def is_teenager(self) -> bool:
+        """Vero se è in una qualsiasi fase dell'adolescenza."""
+        return self in {LifeStage.EARLY_ADOLESCENCE, LifeStage.MID_ADOLESCENCE, LifeStage.LATE_ADOLESCENCE}
+        
+    @property
+    def is_adult(self) -> bool:
+        """Vero se è in una qualsiasi fase adulta (non anziano)."""
+        return self in {LifeStage.YOUNG_ADULT, LifeStage.ADULT, LifeStage.MIDDLE_AGED}
+
+    @property
+    def is_elder(self) -> bool:
+        """Vero se è in una qualsiasi fase anziana."""
+        return self in {LifeStage.MATURE_ADULT, LifeStage.SENIOR, LifeStage.ELDERLY}

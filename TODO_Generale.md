@@ -1,5 +1,5 @@
-# SimAI v0.4.89-alpha_173
-# TODO List Generale (Aggiornato al 06 Giugno 2025 00:29:15)
+# SimAI v0.5.115-alpha_251
+# TODO List Generale (Aggiornato al 06 Giugno 2025 13:32:00)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -3709,7 +3709,7 @@
     * `[ ]` c. Concetto di Riserva Militare (formata da ex-coscritti).
 
 * `[ ]` **9. Equipaggiamento, Mezzi e Tecnologie Difensive delle FDA:** *(Punti base da dettagliare)*
-    * `[ ]` a. Enfasi su tecnologie difensive avanzate, sostenibili ed eticamente responsabili (collegamento a principi `⓪.1`, `⓪.7`).
+    * `[ ]` a. Enfasi su tecnologie difensive avanzate, sostenibili ed eticamente responsabili (collegamento a principi `0.1`, `0.7`).
     * `[ ]` b. Tipologie di armamenti (non letali o a ridotta letalità per ordine pubblico, sistemi difensivi per la nazione), veicoli (`XXV.3.f`), droni (`VIII.6.3.b.iii`), e sistemi di comunicazione/sorveglianza.
 
 ---
@@ -4577,3 +4577,262 @@ Questo sistema è **molto più che un sistema di “azioni romantiche”**: è u
 È uno dei moduli più innovativi mai concepiti per una simulazione emotiva avanzata. E sì, è **complesso da realizzare**, ma ogni blocco è **già strutturabile e convertibile in codice modulare**.
 
 Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione** (tipo roadmap ingegneristica) o un **diagramma dei moduli**. Dimmi tu come procediamo.
+
+---
+
+### **TODO List: Anthaleja - Sviluppo Completo**  
+**Status:**  
+`[x]` Terminato | `[P]` Parziale | `[ ]` Da fare  
+
+---
+
+#### **1. FONETICA E SCRITTURA**  
+- `[x]` Sistema fonetico base (IPA per lessico)  
+- `[P]` Regole di sandhi (es. elisione vocali: `ne + eira → nēra`)  
+- `[ ]` Sviluppo alfabeto/logografia (caratteri grafici unici)  
+
+---
+
+#### **2. SISTEMA NUMERICO**  
+- `[x]` Numeri 0-12, 13-99, potenze di 10  
+- `[x]` Formattazione grandi numeri (es. `2.5 meĝe`)  
+- `[P]` Gestione decimali (suffissi negativi: `dunet`, `kiset`)  
+
+---
+
+#### **3. SISTEMA DEI COLORI**  
+- `[x]` Colori base + modificatori (`-let`, `-dok`, `mabloan-`)  
+- `[ ]` Mappa cromatica culturale (es. `Klem ny!` = "Buona fortuna!")  
+
+---
+
+#### **4. MORFOLOGIA**  
+- `[x]` Derivazione: aggettivi → avverbi/nomi/verbi  
+- `[x]` Derivazione: nomi → aggettivi/verbi/luoghi  
+- `[ ]` Verbi irregolari (classe speciale):  
+  ```python  
+  irregular_verbs = {'jita': {'past': 'jera', 'future': 'jixa'}}  
+  ```  
+
+---
+
+#### **5. SINTASSI AVANZATA**  
+- `[P]` Frasi subordinate:  
+  - `[ ]` Causali (`poiché` → **`lanho`**)  
+  - `[ ]` Finali (`affinché` → **`tiso`**)  
+- `[P]` Voce passiva (`fo` + verbo: `Kixo fo mera` = "Il cibo è mangiato")  
+- `[ ]` Topicalizzazione (`L'acqua → Freja, ja jemba`)  
+
+---
+
+#### **6. LESSICO ESPANSO**  
+- `[P]` 200+ parole base (nomi/verbi/aggettivi)  
+- `[ ]` Campi semantici strutturati:  
+  | Iperonimo        | Iponimi                               |
+  | ---------------- | ------------------------------------- |
+  | `whato` (albero) | `whatys` (foresta), `whata` (quercia) |
+- `[ ]` Registri linguistici:  
+  - Formale: prefisso `dai-` (`dai-ja` = "io" rispettoso)  
+  - Informale: contrazioni (`ja → j'`)  
+
+---
+
+#### **7. TEMPO E CALENDARIO**  
+- `[x]` Sistema completo: giorni/mesi/ore  
+- `[ ]` Eventi culturali:  
+  - `Zenkwaranesdol` (festa del secolo)  
+  - `Vedan ĝogi` (rito del mezzogiorno)  
+
+---
+
+#### **8. PRAGMATICA E CULTURA**  
+- `[x]` Interiezioni base (`rompo`, `kehla`)  
+- `[ ]` Espressioni idiomatiche:  
+  - `Ploke pylo` ("Occhio nero" = inganno)  
+  - `Jita ny kole` ("Essere nel cielo" = felicità)  
+
+---
+
+#### **9. STRUMENTI TECNICI**  
+- `[x]` Generatore frasi casuali  
+- `[ ]` API traduzione:  
+  ```python  
+  def translate(text, target="ath"):  
+      return anthaleja_api(text, target)  
+  ```  
+- `[ ]` Export dizionari (CSV/JSON)  
+
+---
+
+#### **10. DOCUMENTAZIONE**  
+- `[P]` Commenti nel codice  
+- `[ ]` Guide per utenti:  
+  - **Anthaleja for Dummies**:  
+    1. Formare parole composte (`whato` + `ys` = `whatys` "foresta")  
+    2. Costruire periodi complessi (`en...koyk...` = "se...altrimenti...")  
+  - Tutorial video: "10 minuti per salutarci in Anthaleja"  
+
+---
+
+#### **11. VERIFICA FINALE**  
+- `[ ]` Test di fluidità: generazione di 100 frasi senza errori  
+- `[ ]` Adattamento prestiti linguistici (es. `computer → komputa`)  
+- `[ ]` Certificazione ISO 639-3 (codice lingua: `ath`)
+- `[ ]` Scrivere una specifica formale per la sintassi linguistica in pdf o odt
+- `[ ]` Scrivere un parser grammaticale per l'analisi di frasi  
+- `[ ]` Scrivere uno script CLI per testing linguistico
+
+---
+
+# ✅ **Stato di Sviluppo della Lingua *Anthaleja***
+
+## 📘 Convenzioni Usate
+
+* `[ ]` Da implementare
+* `[x]` Completato
+* `[P]` Parziale / da migliorare
+* `[@]` Da riformulare o chiarire
+* `[F]` Idee da implementare in futuro
+
+---
+
+## 🧱 **LIVELLO 1 – Fondamenti**
+
+### 1. 📢 Fonetica e Scrittura
+
+* `[x]` Sistema fonetico base (IPA per il lessico)
+* `[P]` Regole di *sandhi* (fusione fonetica: `ne + eira → nēra`)
+* `[ ]` Sistema di scrittura/logografia nativa
+
+  * `[F]` Creazione di un alfabeto grafico originale
+
+### 2. 🔢 Sistema Numerico
+
+* `[x]` Cardinali (0–12), composizione (13–99), potenze di 10
+* `[x]` Formattazione numeri grandi (es. `2.5 meĝe`)
+* `[P]` Numeri decimali e negativi (`.format_large_number`, uso suffissi)
+* `[P]` Ordinali base (manca generazione estesa)
+* `[ ]` Sistemi frazionari (mezzo, un terzo…)
+
+  * `[F]` Espansione su decimali e frazioni colloquiali
+
+### 3. 🌈 Sistema dei Colori
+
+* `[x]` Colori base + modificatori (chiaro, scuro, ecc.)
+* `[P]` Concordanza aggettivale nei colori (morfologia da stabilire)
+* `[ ]` Combinazioni complesse (verde oliva, blu petrolio…)
+* `[ ]` Mappa cromatica culturale (es. significato dei colori)
+
+  * `[F]` Colori rituali, simbolici o mitologici
+
+---
+
+## 🪜 **LIVELLO 2 – Strutture Grammaticali**
+
+### 4. 🔤 Lessico e Categorie Grammaticali
+
+* `[x]` Vasto lessico base: nomi, verbi, aggettivi, avverbi
+* `[x]` Articoli, pronomi, congiunzioni, preposizioni
+* `[P]` Genere grammaticale (gestito implicitamente, non formalizzato)
+* `[ ]` Concordanza soggetto-verbo (assenza di marcatura di persona)
+
+  * `[F]` Estensione del lessico in campi semantici strutturati
+
+### 5. ⚙️ Morfologia Derivativa
+
+* `[x]` Conversione tra categorie (es. aggettivo → avverbio, verbo → nome)
+* `[P]` Reversibilità derivazioni (non sempre funzionante)
+* `[@]` Incoerenze nei prefissi/suffissi (`e+`, `ĉy+`, `ty+`)
+* `[ ]` Gestione dei verbi irregolari (es. `jita → jera`)
+
+  * `[F]` Formalizzazione classi di verbi irregolari
+
+---
+
+## 🧠 **LIVELLO 3 – Sintassi, Modi e Aspetti**
+
+### 6. 📜 Sistema Verbale
+
+* `[x]` Tempi (presente, passato, futuro, condizionale)
+* `[x]` Aspetti (semplice, progressivo, perfetto)
+* `[x]` Modi (indicativo, congiuntivo, imperativo)
+* `[P]` Coniugazione morfologica avanzata (accordo soggetto-verbo mancante)
+* `[ ]` Voce passiva (`fo` + verbo)
+
+### 7. 🧬 Sintassi e Costruzioni
+
+* `[x]` Generazione di frasi casuali
+* `[P]` Interrogative avanzate (alcune forme semplificate)
+* `[ ]` Negazioni complesse ("non vuole mangiare")
+* `[P]` Frasi subordinate
+
+  * Causali (`lanho`)
+  * Finali (`tiso`)
+  * Temporali, relative, ecc.
+* `[ ]` Topicalizzazione (`L'acqua → Freja, ja jemba`)
+* `[@]` Ordine delle parole non chiarito (SVO? SOV?)
+
+  * `[F]` Analisi della flessibilità sintattica
+
+---
+
+## 📆 **LIVELLO 4 – Tempo, Calendario e Cultura**
+
+### 8. 📅 Sistema Temporale
+
+* `[x]` Giorni, mesi, ore, epoche
+* `[x]` Conversione da data terrestre
+* `[P]` Gestione di fusi orari e date negative
+* `[ ]` Espressioni colloquiali (“dopodomani”, “fra 5 giorni”)
+* `[ ]` Eventi culturali
+
+  * `Zenkwaranesdol`, `Vedan ĝogi`
+
+### 9. 🏛️ Integrazione Culturale e Pragmatica
+
+* `[x]` Interiezioni (`rompo`, `kehla`)
+* `[P]` Demotoponimi (es. "Roma" → "Romaineja")
+* `[P]` Registro linguistico (formale/informale non sistematizzato)
+* `[ ]` Espressioni idiomatiche e proverbi
+
+  * es. `Ploke pylo`, `Jita ny kole`
+* `[ ]` Usi poetici, stilistici o rituali
+
+  * `[F]` Sviluppo della lingua cerimoniale e settoriale
+
+---
+
+## 🧪 **LIVELLO 5 – Traduzione, Analisi e Tecnica**
+
+### 10. 🌍 Traduzione & Semantica
+
+* `[P]` Traduzione base italiano → Anthaleja
+* `[ ]` Traduzione inversa
+* `[ ]` Analisi morfosintattica input in lingua
+
+  * `[F]` Parser linguistico
+
+### 11. 🛠️ Strumenti Tecnici e API
+
+* `[x]` Generatore di frasi casuali
+* `[ ]` API traduzione (`translate(text, target="ath")`)
+* `[ ]` Esportazione dizionario (CSV/JSON)
+* `[P]` Documentazione e commenti nel codice
+
+  * `[F]` Tool grafici per esplorazione grammaticale
+
+---
+
+## 📌 **Sintesi Aree Prioritarie \[F] Idee per il Futuro**
+
+* 👁‍🗨 Sviluppo di un alfabeto visivo/logografico
+* 🔄 Concordanza soggetto-verbo e sistema dei registri
+* 🧭 Mappatura semantica per lessico avanzato
+* 📖 Implementazione di stile cerimoniale e tecnico
+* 🔍 Tool di analisi sintattica e dizionario morfologico
+* 🌐 Traduzione completa (andata + ritorno) con API
+
+---
+
+> **Nota Culturale:**  
+> I punti contrassegnati con `[P]` richiedono espansione per raggiungere la "Piena Armonia Linguistica" (`Ylieva Harmonia`), principio fondante di Anthaleja.

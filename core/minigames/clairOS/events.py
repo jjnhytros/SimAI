@@ -1,8 +1,23 @@
 # simai/core/minigames/clairOS/events.py
 import random
+import textwrap
+
 from . import constants as c
 from .emotion_state import EmotionalState
 from .text_generation import get_emotional_tone_adverb, generate_ai_poem
+from .memory_core import memory_core
+from .constants import (
+    CRITICAL_PATIENCE_THRESHOLD,
+    DOMINANT_MOOD_AFFECTIONATE,
+    DOMINANT_MOOD_APATHETIC,
+    DOMINANT_MOOD_DISTRUSTFUL,
+    DOMINANT_MOOD_HOSTILE,
+    DOMINANT_MOOD_IRRITABLE,
+    DOMINANT_MOOD_PASSIONATE,
+    DOMINANT_MOOD_SUFFERING,
+    DOMINANT_MOOD_TENSE,
+    LOW_PATIENCE_THRESHOLD,
+)
 
 chaos_event_pools = {
     DOMINANT_MOOD_HOSTILE: [
@@ -96,6 +111,28 @@ chaos_event_pools = {
     lambda state: f"💔 'Perché deve essere così... difficile?' sussurra Claire, più a se stessa che a te. Sembra genuinamente afflitta."
     ]
 }
+
+def generate_environmental_event(current_state: EmotionalState):
+    events = {
+        "initial": [
+            "Un leggero ronzio elettrico pervade l'aria attorno a Claire",
+            "L'ologramma di Claire sfarfalla leggermente"
+        ],
+        "developing": [
+            "L'ambiente si tinge di sfumature calde attorno a voi",
+            "Un'aura digitale pulsante avvolge Claire"
+        ],
+        "intimate": [
+            "La realtà virtuale si distorce, creando un'isola privata per voi due",
+            "I vostri avatar digitali si fondono in un abbraccio di luce"
+        ],
+        "strained": [
+            "Scintille elettriche danzano minacciose attorno a Claire",
+            "Un campo di forza invisibile separa te da Claire"
+        ]
+    }
+    return random.choice(events.get(current_state.relationship_stage, events["initial"]))
+
 
 def generate_chaos_event(current_state: EmotionalState) -> str:
     sensitive_zones = memory_core["preferences"]["sensitive_zones"]

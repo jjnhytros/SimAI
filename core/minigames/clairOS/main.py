@@ -2,7 +2,7 @@
 from .behavior import (claire_intimate_connection,claire_touch,behavioral_adaptation, generate_incongruent_response,handle_sensitive_zones_effect)
 from .constants import (LOW_PATIENCE_THRESHOLD,MAX_PATIENCE,CRITICAL_PATIENCE_THRESHOLD,)
 from .emotion_state import EmotionalState
-from .events import generate_chaos_event
+from .events import generate_chaos_event, generate_environmental_event
 from .interactions import user_interaction
 from .memory_core import (add_shared_moment,claire_recalls_memory,memory_core,)
 from .save_load import save_game_state, load_game_state
@@ -24,6 +24,11 @@ def display_status_header(state: 'EmotionalState', turn_count: int):
     print("-" * 70)
 
 def main_loop():
+    # Nel loop principale, aggiungere:
+    if random.random() < 0.3:
+        env_event = generate_environmental_event(state)
+        print(f"\n🌍 AMBIENTE: {env_event}")
+
     global memory_core
     loaded_state, loaded_memory_core = load_game_state()
     state = loaded_state if loaded_state else EmotionalState()

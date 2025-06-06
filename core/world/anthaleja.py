@@ -127,8 +127,9 @@ class AnthalejaDatetime:
     DXY = MXY * DXM
     SXD = HXD * 60 * 60 
     MONTH_NAMES = ['Arejal', 'Brukom', 'Ĉelal', 'Kebor', 'Duvol', 'Elumag', 'Fydrin', 
-                   'Ĝinuril', 'Itrekos', 'Jebrax', 'Letranat', 'Mulfus', 'Nylumer', 
-                   'Otlevat', 'Prax', 'Retlixen', 'Sajep', 'Xetul']
+                    'Ĝinuril', 'Itrekos', 'Jebrax', 'Letranat', 'Mulfus', 'Nylumer', 
+                    'Otlevat', 'Prax', 'Retlixen', 'Sajep', 'Xetul'
+                ]
     DAY_NAMES = ['Nijahr', 'Majahr', 'Bejahr', 'Ĉejahr', 'Dyjahr', 'Fejahr', 'Ĝejahr']
     MONTH_ABBR = {name: (name[:2] + 'x' if name == "Prax" else name[:3]) for name in MONTH_NAMES}
     EPOCH = 951584400 - (5775 * DXY * SXD)
@@ -189,195 +190,194 @@ class AnthalejaLang:
         
         self.lexicon = {
             # Nomi
-            'frekol': {'pos': 'noun', 'meaning_it': 'pioggia', 'meaning_en': 'rain', 'pron': '/frekol/'},
-            'freja':  {'pos': 'noun', 'meaning_it': 'acqua', 'meaning_en': 'water', 'pron': '/freʒa/'},
-            'nijel':  {'pos': 'noun', 'meaning_it': 'sole', 'meaning_en': 'sun', 'pron': '/niʒel/'},
-            'ding':   {'pos': 'noun', 'meaning_it': 'montagna', 'meaning_en': 'mountain', 'pron': '/ding/'},
-            'frisik': {'pos': 'noun', 'meaning_it': 'fuoco, fiamma', 'meaning_en': 'fire, flame', 'pron': '/frisik/'},
-            'derzim': {'pos': 'noun', 'meaning_it': 'bevanda', 'meaning_en': 'drink, beverage', 'pron': '/derzim/'},
-            'kixo':   {'pos': 'noun', 'meaning_it': 'cibo', 'meaning_en': 'food, meal', 'pron': '/kiʃo/'},
-            'bemno':  {'pos': 'noun', 'meaning_it': 'male, il male', 'meaning_en': 'evil, bad thing', 'pron': '/bemno/'},
-            'jahr':   {'pos': 'noun', 'meaning_it': 'giorno', 'meaning_en': 'day', 'pron': '/jahr/'}, 
-            'sahr':   {'pos': 'noun', 'meaning_it': 'sera', 'meaning_en': 'evening', 'pron': '/sahr/'}, # da tua lista originale, hai poi confermato 'san'
-            'nahr':   {'pos': 'noun', 'meaning_it': 'notte', 'meaning_en': 'night', 'pron': '/nahr/'},
-            'whato':  {'pos': 'noun', 'meaning_it': 'albero; legno', 'meaning_en': 'tree; wood', 'pron': '/uːato/'},
-            'whedo':  {'pos': 'noun', 'meaning_it': 'mappa', 'meaning_en': 'map', 'pron': '/uːedo/'},
-            'pame':   {'pos': 'noun', 'meaning_it': 'roccia; pietra', 'meaning_en': 'rock; stone', 'pron': '/pame/'},
-            'kole':   {'pos': 'noun', 'meaning_it': 'cielo', 'meaning_en': 'sky', 'pron': '/kole/'},
-            'koro':   {'pos': 'noun/adjective', 'meaning_it': 'oro; dorato', 'meaning_en': 'gold; golden', 'pron': '/koro/'},
-            'ziro':   {'pos': 'noun/adjective', 'meaning_it': 'argento; argentato', 'meaning_en': 'silver; silvery', 'pron': '/ziro/'},
-            'kortil': {'pos': 'noun/adjective', 'meaning_it': 'bronzo; bronzeo', 'meaning_en': 'bronze; bronze-colored', 'pron': '/kortil/'},
-            'lyoki':  {'pos': 'noun', 'meaning_it': 'parola', 'meaning_en': 'word', 'pron': '/liːoki/'},
-            'ĝogi':   {'pos': 'noun', 'meaning_it': 'colore (concetto)', 'meaning_en': 'color (concept)', 'pron': '/ʤogi/'},
-            'ĝeratid':{'pos': 'noun', 'meaning_it': 'colore (tonalità)', 'meaning_en': 'hue, shade', 'pron': '/ʤeratid/'},
-            'pylo':   {'pos': 'noun', 'meaning_it': 'occhio', 'meaning_en': 'eye', 'pron': '/piːlo/'},
-            'ys':     {'pos': 'noun', 'meaning_it': 'città', 'meaning_en': 'city, town', 'pron': '/iːs/'},
-            'Anthal': {'pos': 'noun_proper', 'meaning_it': 'Anthal (nazione)', 'meaning_en': 'Anthal (nation)', 'pron': '/antal/'},
-            'Anthaleja': {'pos': 'noun', 'meaning_it': 'lingua Anthaleja; cittadino/a di Anthal', 'meaning_en': 'Anthaleja language; citizen of Anthal', 'pron': '/antaleʒa/'},
-            'kuba':   {'pos': 'noun', 'meaning_it': 'cubo', 'meaning_en': 'cube', 'pron': '/kuba/'},
-            'kwara':  {'pos': 'noun', 'meaning_it': 'quadrato', 'meaning_en': 'square', 'pron': '/kuara/'},
-            'nesdol': {'pos': 'noun', 'meaning_it': 'anno', 'meaning_en': 'year', 'pron': '/nesdol/'},
-            'donesdol': {'pos': 'noun', 'meaning_it': 'dozzennio (12 anni)', 'meaning_en': 'dozennio (12 years)', 'pron': '/donesdol/'},
-            'venesdol': {'pos': 'noun', 'meaning_it': 'mezzo secolo Anthalejano (72 anni)', 'meaning_en': 'Anthalejan half-century (72 years)', 'pron': '/venesdol/'},
-            'zenkwaranesdol': {'pos': 'noun', 'meaning_it': 'secolo Anthalejano (144 anni)', 'meaning_en': 'Anthalejan century (144 years)', 'pron': '/zenkuaranesdol/'},
-            'zenkubanesdol': {'pos': 'noun', 'meaning_it': 'millennio Anthalejano (1728 anni)', 'meaning_en': 'Anthalejan millennium (1728 years)', 'pron': '/zenkubanesdol/'},
-
+            'frekol':           {'pos': 'noun', 'meaning_it': 'pioggia', 'meaning_en': 'rain', 'pron': '/frekol/'},
+            'freja':            {'pos': 'noun', 'meaning_it': 'acqua', 'meaning_en': 'water', 'pron': '/freʒa/'},
+            'nijel':            {'pos': 'noun', 'meaning_it': 'sole', 'meaning_en': 'sun', 'pron': '/niʒel/'},
+            'ding':             {'pos': 'noun', 'meaning_it': 'montagna', 'meaning_en': 'mountain', 'pron': '/ding/'},
+            'frisik':           {'pos': 'noun', 'meaning_it': 'fuoco, fiamma', 'meaning_en': 'fire, flame', 'pron': '/frisik/'},
+            'derzim':           {'pos': 'noun', 'meaning_it': 'bevanda', 'meaning_en': 'drink, beverage', 'pron': '/derzim/'},
+            'kixo':             {'pos': 'noun', 'meaning_it': 'cibo', 'meaning_en': 'food, meal', 'pron': '/kiʃo/'},
+            'bemno':            {'pos': 'noun', 'meaning_it': 'male, il male', 'meaning_en': 'evil, bad thing', 'pron': '/bemno/'},
+            'jahr':             {'pos': 'noun', 'meaning_it': 'giorno', 'meaning_en': 'day', 'pron': '/jahr/'}, 
+            'sahr':             {'pos': 'noun', 'meaning_it': 'sera', 'meaning_en': 'evening', 'pron': '/sahr/'}, # da tua lista originale, hai poi confermato 'san'
+            'nahr':             {'pos': 'noun', 'meaning_it': 'notte', 'meaning_en': 'night', 'pron': '/nahr/'},
+            'whato':            {'pos': 'noun', 'meaning_it': 'albero; legno', 'meaning_en': 'tree; wood', 'pron': '/uːato/'},
+            'whedo':            {'pos': 'noun', 'meaning_it': 'mappa', 'meaning_en': 'map', 'pron': '/uːedo/'},
+            'pame':             {'pos': 'noun', 'meaning_it': 'roccia; pietra', 'meaning_en': 'rock; stone', 'pron': '/pame/'},
+            'kole':             {'pos': 'noun', 'meaning_it': 'cielo', 'meaning_en': 'sky', 'pron': '/kole/'},
+            'koro':             {'pos': 'noun/adjective', 'meaning_it': 'oro; dorato', 'meaning_en': 'gold; golden', 'pron': '/koro/'},
+            'ziro':             {'pos': 'noun/adjective', 'meaning_it': 'argento; argentato', 'meaning_en': 'silver; silvery', 'pron': '/ziro/'},
+            'kortil':           {'pos': 'noun/adjective', 'meaning_it': 'bronzo; bronzeo', 'meaning_en': 'bronze; bronze-colored', 'pron': '/kortil/'},
+            'lyoki':            {'pos': 'noun', 'meaning_it': 'parola', 'meaning_en': 'word', 'pron': '/liːoki/'},
+            'ĝogi':             {'pos': 'noun', 'meaning_it': 'colore (concetto)', 'meaning_en': 'color (concept)', 'pron': '/ʤogi/'},
+            'ĝeratid':          {'pos': 'noun', 'meaning_it': 'colore (tonalità)', 'meaning_en': 'hue, shade', 'pron': '/ʤeratid/'},
+            'pylo':             {'pos': 'noun', 'meaning_it': 'occhio', 'meaning_en': 'eye', 'pron': '/piːlo/'},
+            'ys':               {'pos': 'noun', 'meaning_it': 'città', 'meaning_en': 'city, town', 'pron': '/iːs/'},
+            'Anthal':           {'pos': 'noun_proper', 'meaning_it': 'Anthal (nazione)', 'meaning_en': 'Anthal (nation)', 'pron': '/antal/'},
+            'Anthaleja':        {'pos': 'noun', 'meaning_it': 'lingua Anthaleja; cittadino/a di Anthal', 'meaning_en': 'Anthaleja language; citizen of Anthal', 'pron': '/antaleʒa/'},
+            'kuba':             {'pos': 'noun', 'meaning_it': 'cubo', 'meaning_en': 'cube', 'pron': '/kuba/'},
+            'kwara':            {'pos': 'noun', 'meaning_it': 'quadrato', 'meaning_en': 'square', 'pron': '/kuara/'},
+            'nesdol':           {'pos': 'noun', 'meaning_it': 'anno', 'meaning_en': 'year', 'pron': '/nesdol/'},
+            'donesdol':         {'pos': 'noun', 'meaning_it': 'dozzennio (12 anni)', 'meaning_en': 'dozennio (12 years)', 'pron': '/donesdol/'},
+            'venesdol':         {'pos': 'noun', 'meaning_it': 'mezzo secolo Anthalejano (72 anni)', 'meaning_en': 'Anthalejan half-century (72 years)', 'pron': '/venesdol/'},
+            'zenkwaranesdol':   {'pos': 'noun', 'meaning_it': 'secolo Anthalejano (144 anni)', 'meaning_en': 'Anthalejan century (144 years)', 'pron': '/zenkuaranesdol/'},
+            'zenkubanesdol':    {'pos': 'noun', 'meaning_it': 'millennio Anthalejano (1728 anni)', 'meaning_en': 'Anthalejan millennium (1728 years)', 'pron': '/zenkubanesdol/'},
 
             # Verbi
-            'frekola':   {'pos': 'verb', 'meaning_it': 'piovere', 'meaning_en': 'to rain', 'pron': '/frekola/'},
-            'jita':      {'pos': 'verb', 'meaning_it': 'essere (esistere, stato perm.)', 'meaning_en': 'to be (exist, state)', 'pron': '/jita/'},
-            'kita':      {'pos': 'verb', 'meaning_it': 'avere, dovere, possedere', 'meaning_en': 'to have, must, possess', 'pron': '/kita/'},
-            'yeta':      {'pos': 'verb', 'meaning_it': 'volere, desiderare, mancare', 'meaning_en': 'to want, desire, lack', 'pron': '/jeta/'},
-            'dhaba':     {'pos': 'verb', 'meaning_it': 'amare', 'meaning_en': 'to love', 'pron': '/ðaba/'},
-            'bomya':     {'pos': 'verb', 'meaning_it': 'odiare', 'meaning_en': 'to hate', 'pron': '/bomja/'},
-            'ĉoterlia':  {'pos': 'verb', 'meaning_it': 'perdonare, scusare', 'meaning_en': 'to forgive, excuse', 'pron': '/ʧoterlia/'},
-            'mabloa':    {'pos': 'verb', 'meaning_it': 'splendere, brillare', 'meaning_en': 'to shine, glitter', 'pron': '/mabloa/'},
-            'bwka':      {'pos': 'verb', 'meaning_it': 'pensare; credere', 'meaning_en': 'to think; believe', 'pron': '/buːka/'},
-            'dreha':     {'pos': 'verb', 'meaning_it': 'vedere; guardare', 'meaning_en': 'to see; look; watch', 'pron': '/dreːa/'},
-            'pyha':      {'pos': 'verb', 'meaning_it': 'correre', 'meaning_en': 'to run', 'pron': '/piːa/'},
-            'werla':     {'pos': 'verb', 'meaning_it': 'esplorare; cercare', 'meaning_en': 'to explore; seek', 'pron': '/uːerla/'},
-            'mera':      {'pos': 'verb', 'meaning_it': 'mangiare', 'meaning_en': 'to eat', 'pron': '/mera/'},
-            'jemba':     {'pos': 'verb', 'meaning_it': 'bere', 'meaning_en': 'to drink', 'pron': '/ʒemba/'},
-            'medala':    {'pos': 'verb', 'meaning_it': 'dormire', 'meaning_en': 'to sleep', 'pron': '/medala/'},
-            'eja':       {'pos': 'verb/suffix', 'meaning_it': 'parlare (lingua); lingua; cittadino di', 'meaning_en': 'to speak (language); language; citizen of', 'pron': '/eʒa/'},
-            'ryja':      {'pos': 'verb', 'meaning_it': 'fare; produrre; costruire', 'meaning_en': 'do; make; produce', 'pron': '/riːʒa/'},
-            'pidea':     {'pos': 'verb', 'meaning_it': 'cominciare, iniziare', 'meaning_en': 'to begin, to start', 'pron': '/pidea/'},
+            'frekola':          {'pos': 'verb', 'meaning_it': 'piovere', 'meaning_en': 'to rain', 'pron': '/frekola/'},
+            'jita':             {'pos': 'verb', 'meaning_it': 'essere (esistere, stato perm.)', 'meaning_en': 'to be (exist, state)', 'pron': '/jita/'},
+            'kita':             {'pos': 'verb', 'meaning_it': 'avere, dovere, possedere', 'meaning_en': 'to have, must, possess', 'pron': '/kita/'},
+            'yeta':             {'pos': 'verb', 'meaning_it': 'volere, desiderare, mancare', 'meaning_en': 'to want, desire, lack', 'pron': '/jeta/'},
+            'dhaba':            {'pos': 'verb', 'meaning_it': 'amare', 'meaning_en': 'to love', 'pron': '/ðaba/'},
+            'bomya':            {'pos': 'verb', 'meaning_it': 'odiare', 'meaning_en': 'to hate', 'pron': '/bomja/'},
+            'ĉoterlia':         {'pos': 'verb', 'meaning_it': 'perdonare, scusare', 'meaning_en': 'to forgive, excuse', 'pron': '/ʧoterlia/'},
+            'mabloa':           {'pos': 'verb', 'meaning_it': 'splendere, brillare', 'meaning_en': 'to shine, glitter', 'pron': '/mabloa/'},
+            'bwka':             {'pos': 'verb', 'meaning_it': 'pensare; credere', 'meaning_en': 'to think; believe', 'pron': '/buːka/'},
+            'dreha':            {'pos': 'verb', 'meaning_it': 'vedere; guardare', 'meaning_en': 'to see; look; watch', 'pron': '/dreːa/'},
+            'pyha':             {'pos': 'verb', 'meaning_it': 'correre', 'meaning_en': 'to run', 'pron': '/piːa/'},
+            'werla':            {'pos': 'verb', 'meaning_it': 'esplorare; cercare', 'meaning_en': 'to explore; seek', 'pron': '/uːerla/'},
+            'mera':             {'pos': 'verb', 'meaning_it': 'mangiare', 'meaning_en': 'to eat', 'pron': '/mera/'},
+            'jemba':            {'pos': 'verb', 'meaning_it': 'bere', 'meaning_en': 'to drink', 'pron': '/ʒemba/'},
+            'medala':           {'pos': 'verb', 'meaning_it': 'dormire', 'meaning_en': 'to sleep', 'pron': '/medala/'},
+            'eja':              {'pos': 'verb/suffix', 'meaning_it': 'parlare (lingua); lingua; cittadino di', 'meaning_en': 'to speak (language); language; citizen of', 'pron': '/eʒa/'},
+            'ryja':             {'pos': 'verb', 'meaning_it': 'fare; produrre; costruire', 'meaning_en': 'do; make; produce', 'pron': '/riːʒa/'},
+            'pidea':            {'pos': 'verb', 'meaning_it': 'cominciare, iniziare', 'meaning_en': 'to begin, to start', 'pron': '/pidea/'},
+            
             # Aggiungo qui le parole dalla lista lunga che erano verbi
-            'gaia':      {'pos': 'verb', 'meaning_it': 'acchiappare', 'meaning_en': 'to catch, to grab', 'pron': '/gaia/'},
-            'maya':      {'pos': 'verb', 'meaning_it': 'aiutare', 'meaning_en': 'to help', 'pron': '/maiːa/'},
-            'lidowa':    {'pos': 'verb', 'meaning_it': 'affittare', 'meaning_en': 'to rent', 'pron': '/lidouːa/'},
-            'debira':    {'pos': 'verb', 'meaning_it': 'capire', 'meaning_en': 'to understand', 'pron': '/debira/'},
-            'oĝela':     {'pos': 'verb', 'meaning_it': 'comperare', 'meaning_en': 'to buy', 'pron': '/oʤela/'},
-            'media':     {'pos': 'verb', 'meaning_it': 'conoscere', 'meaning_en': 'to know (person/place)', 'pron': '/media/'},
-            'lifora':    {'pos': 'verb', 'meaning_it': 'costruire', 'meaning_en': 'to build, construct', 'pron': '/lifora/'},
-            'pida':      {'pos': 'verb', 'meaning_it': 'diventare', 'meaning_en': 'to become', 'pron': '/pida/'},
-            'jekma':     {'pos': 'verb', 'meaning_it': 'firmare', 'meaning_en': 'to sign', 'pron': '/ʒekma/'},
-            'vilex':     {'pos': 'verb', 'meaning_it': 'gelare', 'meaning_en': 'to freeze', 'pron': '/viːleks/'}, # x -> /ks/ o /ʃ/? Utente ha specificato /ʃ/
-            'delova':    {'pos': 'verb', 'meaning_it': 'guidare', 'meaning_en': 'to drive, guide', 'pron': '/delova/'},
-            'nida':      {'pos': 'verb', 'meaning_it': 'incontrare', 'meaning_en': 'to meet', 'pron': '/nida/'},
-            'lidamya':   {'pos': 'verb', 'meaning_it': 'mordere', 'meaning_en': 'to bite', 'pron': '/lidamja/'},
-            'xemada':    {'pos': 'verb', 'meaning_it': 'nevicare', 'meaning_en': 'to snow', 'pron': '/ʃemada/'},
-            'inka':      {'pos': 'verb', 'meaning_it': 'parlare (generico)', 'meaning_en': 'to speak, talk', 'pron': '/inka/'},
-            'rima':      {'pos': 'verb', 'meaning_it': 'partire', 'meaning_en': 'to leave, depart', 'pron': '/rima/'},
-            'piĝea':     {'pos': 'verb', 'meaning_it': 'piegare', 'meaning_en': 'to bend, fold', 'pron': '/piʤea/'},
-            'lyema':     {'pos': 'verb', 'meaning_it': 'piovere', 'meaning_en': 'to rain', 'pron': '/liːema/'}, # Conflitto con frekola
-            'sevira':    {'pos': 'verb', 'meaning_it': 'portare', 'meaning_en': 'to bring, carry', 'pron': '/sevira/'},
-            'rolya':     {'pos': 'verb', 'meaning_it': 'rapinare', 'meaning_en': 'to rob', 'pron': '/rolja/'},
-            'relada':    {'pos': 'verb', 'meaning_it': 'rompere', 'meaning_en': 'to break', 'pron': '/relada/'},
-            'lah':       {'pos': 'verb', 'meaning_it': 'sapere (fatto)', 'meaning_en': 'to know (a fact)', 'pron': '/lah/'},
-            'mimeraĝa':  {'pos': 'verb', 'meaning_it': 'scegliere', 'meaning_en': 'to choose', 'pron': '/mimeraʤa/'},
-            'noeda':     {'pos': 'verb', 'meaning_it': 'soffiare', 'meaning_en': 'to blow', 'pron': '/noeda/'},
-            'vemita':    {'pos': 'verb', 'meaning_it': 'trovare', 'meaning_en': 'to find', 'pron': '/vemita/'},
-            'janepa':    {'pos': 'verb', 'meaning_it': 'venire', 'meaning_en': 'to come', 'pron': '/ʒanepa/'},
-
+            'gaia':             {'pos': 'verb', 'meaning_it': 'acchiappare', 'meaning_en': 'to catch, to grab', 'pron': '/gaia/'},
+            'maya':             {'pos': 'verb', 'meaning_it': 'aiutare', 'meaning_en': 'to help', 'pron': '/maiːa/'},
+            'lidowa':           {'pos': 'verb', 'meaning_it': 'affittare', 'meaning_en': 'to rent', 'pron': '/lidouːa/'},
+            'debira':           {'pos': 'verb', 'meaning_it': 'capire', 'meaning_en': 'to understand', 'pron': '/debira/'},
+            'oĝela':            {'pos': 'verb', 'meaning_it': 'comperare', 'meaning_en': 'to buy', 'pron': '/oʤela/'},
+            'media':            {'pos': 'verb', 'meaning_it': 'conoscere', 'meaning_en': 'to know (person/place)', 'pron': '/media/'},
+            'lifora':           {'pos': 'verb', 'meaning_it': 'costruire', 'meaning_en': 'to build, construct', 'pron': '/lifora/'},
+            'pida':             {'pos': 'verb', 'meaning_it': 'diventare', 'meaning_en': 'to become', 'pron': '/pida/'},
+            'jekma':            {'pos': 'verb', 'meaning_it': 'firmare', 'meaning_en': 'to sign', 'pron': '/ʒekma/'},
+            'vilex':            {'pos': 'verb', 'meaning_it': 'gelare', 'meaning_en': 'to freeze', 'pron': '/viːleks/'}, # x -> /ks/ o /ʃ/? Utente ha specificato /ʃ/
+            'delova':           {'pos': 'verb', 'meaning_it': 'guidare', 'meaning_en': 'to drive, guide', 'pron': '/delova/'},
+            'nida':             {'pos': 'verb', 'meaning_it': 'incontrare', 'meaning_en': 'to meet', 'pron': '/nida/'},
+            'lidamya':          {'pos': 'verb', 'meaning_it': 'mordere', 'meaning_en': 'to bite', 'pron': '/lidamja/'},
+            'xemada':           {'pos': 'verb', 'meaning_it': 'nevicare', 'meaning_en': 'to snow', 'pron': '/ʃemada/'},
+            'inka':             {'pos': 'verb', 'meaning_it': 'parlare (generico)', 'meaning_en': 'to speak, talk', 'pron': '/inka/'},
+            'rima':             {'pos': 'verb', 'meaning_it': 'partire', 'meaning_en': 'to leave, depart', 'pron': '/rima/'},
+            'piĝea':            {'pos': 'verb', 'meaning_it': 'piegare', 'meaning_en': 'to bend, fold', 'pron': '/piʤea/'},
+            'lyema':            {'pos': 'verb', 'meaning_it': 'piovere', 'meaning_en': 'to rain', 'pron': '/liːema/'}, # Conflitto con frekola
+            'sevira':           {'pos': 'verb', 'meaning_it': 'portare', 'meaning_en': 'to bring, carry', 'pron': '/sevira/'},
+            'rolya':            {'pos': 'verb', 'meaning_it': 'rapinare', 'meaning_en': 'to rob', 'pron': '/rolja/'},
+            'relada':           {'pos': 'verb', 'meaning_it': 'rompere', 'meaning_en': 'to break', 'pron': '/relada/'},
+            'lah':              {'pos': 'verb', 'meaning_it': 'sapere (fatto)', 'meaning_en': 'to know (a fact)', 'pron': '/lah/'},
+            'mimeraĝa':         {'pos': 'verb', 'meaning_it': 'scegliere', 'meaning_en': 'to choose', 'pron': '/mimeraʤa/'},
+            'noeda':            {'pos': 'verb', 'meaning_it': 'soffiare', 'meaning_en': 'to blow', 'pron': '/noeda/'},
+            'vemita':           {'pos': 'verb', 'meaning_it': 'trovare', 'meaning_en': 'to find', 'pron': '/vemita/'},
+            'janepa':           {'pos': 'verb', 'meaning_it': 'venire', 'meaning_en': 'to come', 'pron': '/ʒanepa/'},
 
             # Aggettivi, colori e dimostrativi
-            'ylieva':    {'pos': 'adjective', 'meaning_it': 'buono/a', 'meaning_en': 'good', 'pron': '/iːlieva/'},
-            'umpo':      {'pos': 'adjective', 'meaning_it': 'eccellente', 'meaning_en': 'excellent', 'pron': '/umpo/'},
-            'eke':       {'pos': 'adjective', 'meaning_it': 'facile', 'meaning_en': 'easy', 'pron': '/eke/'}, # Sostituisce opo
-            'dehvo':     {'pos': 'adjective', 'meaning_it': 'difficile', 'meaning_en': 'difficult', 'pron': '/dehvo/'},
-            'lip':       {'pos': 'adjective', 'meaning_it': 'rosso', 'meaning_en': 'red', 'pron': '/lip/'},
-            'eira':      {'pos': 'adjective', 'meaning_it': 'giallo', 'meaning_en': 'yellow', 'pron': '/eira/'},
-            'nyik':      {'pos': 'adjective', 'meaning_it': 'blu', 'meaning_en': 'blue', 'pron': '/njik/'},
-            'klem':      {'pos': 'adjective', 'meaning_it': 'verde', 'meaning_en': 'green', 'pron': '/klem/'},
-            'ploke':     {'pos': 'adjective', 'meaning_it': 'nero', 'meaning_en': 'black', 'pron': '/ploke/'},
-            'viris':     {'pos': 'adjective', 'meaning_it': 'bianco', 'meaning_en': 'white', 'pron': '/viris/'},
-            'kef':       {'pos': 'adjective', 'meaning_it': 'rosa', 'meaning_en': 'pink', 'pron': '/kef/'},
-            'klye':      {'pos': 'adjective', 'meaning_it': 'grigio (generale)', 'meaning_en': 'gray (general)', 'pron': '/kliːe/'},
-            'kepoz':     {'pos': 'adjective', 'meaning_it': 'grigio (del cielo)', 'meaning_en': 'gray (sky)', 'pron': '/kepoz/'},
-            'lipeira':   {'pos': 'adjective/verb', 'meaning_it': 'arancione; diventare arancione', 'meaning_en': 'orange; to become orange', 'pron': '/lipeira/'},
-            'lipnyk':    {'pos': 'adjective', 'meaning_it': 'viola (colore principale)', 'meaning_en': 'purple (main color)', 'pron': '/lipniːk/'},
-            'bapir':     {'pos': 'adjective/noun', 'meaning_it': 'tonalità/sfumatura di viola', 'meaning_en': 'shade/hue of purple', 'pron': '/bapir/'},
-            'liploke':   {'pos': 'adjective', 'meaning_it': 'marrone (colore principale)', 'meaning_en': 'brown (main color)', 'pron': '/liploke/'},
-            'plom':      {'pos': 'adjective/noun', 'meaning_it': 'tonalità/sfumatura di marrone', 'meaning_en': 'shade/hue of brown', 'pron': '/plom/'},
-            'lipdok':    {'pos': 'adjective', 'meaning_it': 'cremisi, scarlatto', 'meaning_en': 'crimson, scarlet', 'pron': '/lipdok/'},
-            'nyikin':    {'pos': 'adjective', 'meaning_it': 'ciano, turchese', 'meaning_en': 'cyan, turquoise', 'pron': '/njikin/'},
-            'pie':       {'pos': 'adjective', 'meaning_it': 'beige', 'meaning_en': 'beige', 'pron': '/pie/'},
-            'kortil':    {'pos': 'noun/adjective', 'meaning_it': 'bronzo; bronzeo', 'meaning_en': 'bronze; bronze-colored', 'pron': '/kortil/'}, # Già c'era, ora confermato come agg
-            'bemiĝ':     {'pos': 'adjective', 'meaning_it': 'colore carnagione', 'meaning_en': 'flesh color', 'pron': '/bemiʤ/'},
-            'tenji':     {'pos': 'demonstrative', 'meaning_it': 'questo/a', 'meaning_en': 'this', 'pron': '/tenʒi/'},
-            'kenjo':     {'pos': 'demonstrative', 'meaning_it': 'quello/a', 'meaning_en': 'that', 'pron': '/kenʒo/'},
-            'idon':      {'pos': 'determiner', 'meaning_it': 'quale?; che? (det.)', 'meaning_en': 'which?; what? (det.)', 'pron': '/idon/'},
-        'milo':   {'pos': 'adverb/adjective', 'meaning_it': 'prossimo, dopo', 'meaning_en': 'next, after', 'pron': '/milo/'},
-        'ymet':   {'pos': 'adverb/adjective/noun', 'meaning_it': 'ultimo, fine', 'meaning_en': 'last, end', 'pron': '/iːmet/'},
-        'ika':    {'pos': 'noun', 'meaning_it': 'settimana (sing.)', 'meaning_en': 'week (sg.)', 'pron': '/ika/'},
-        'ike':    {'pos': 'noun', 'meaning_it': 'settimane (pl.)', 'meaning_en': 'weeks (pl.)', 'pron': '/ike/'}, # Plurale irregolare
-        'gadik':  {'pos': 'noun', 'meaning_it': 'quarto (frazione)', 'meaning_en': 'quarter (fraction)', 'pron': '/gadik/'},
-        'vekia':  {'pos': 'noun', 'meaning_it': 'mezzora', 'meaning_en': 'half an hour', 'pron': '/vekia/'},
-        'vedan':  {'pos': 'noun/adverb', 'meaning_it': 'mezzogiorno (14:00 ATH)', 'meaning_en': 'midday, noon (14:00 ATH)', 'pron': '/vedan/'},
-        'venahr': {'pos': 'noun/adverb', 'meaning_it': 'mezzanotte (00:00 ATH)', 'meaning_en': 'midnight (00:00 ATH)', 'pron': '/venahr/'},
-        'nalmek': {'pos': 'noun', 'meaning_it': 'mattino', 'meaning_en': 'morning', 'pron': '/nalmek/'},
-        'daja':   {'pos': 'noun', 'meaning_it': 'pomeriggio', 'meaning_en': 'afternoon', 'pron': '/daʒa/'},
-        'san':    {'pos': 'noun', 'meaning_it': 'sera', 'meaning_en': 'evening', 'pron': '/san/'}, # Conferma da tua lista lunga
-        'maro':   {'pos': 'ordinal_numeral', 'meaning_it': 'primo', 'meaning_en': 'first', 'pron': '/maro/'},
-        'bero':   {'pos': 'ordinal_numeral', 'meaning_it': 'secondo', 'meaning_en': 'second', 'pron': '/bero/'},
-        'ĉero':   {'pos': 'ordinal_numeral', 'meaning_it': 'terzo', 'meaning_en': 'third', 'pron': '/ʧero/'},
+            'ylieva':           {'pos': 'adjective', 'meaning_it': 'buono/a', 'meaning_en': 'good', 'pron': '/iːlieva/'},
+            'umpo':             {'pos': 'adjective', 'meaning_it': 'eccellente', 'meaning_en': 'excellent', 'pron': '/umpo/'},
+            'eke':              {'pos': 'adjective', 'meaning_it': 'facile', 'meaning_en': 'easy', 'pron': '/eke/'}, # Sostituisce opo
+            'dehvo':            {'pos': 'adjective', 'meaning_it': 'difficile', 'meaning_en': 'difficult', 'pron': '/dehvo/'},
+            'lip':              {'pos': 'adjective', 'meaning_it': 'rosso', 'meaning_en': 'red', 'pron': '/lip/'},
+            'eira':             {'pos': 'adjective', 'meaning_it': 'giallo', 'meaning_en': 'yellow', 'pron': '/eira/'},
+            'nyik':             {'pos': 'adjective', 'meaning_it': 'blu', 'meaning_en': 'blue', 'pron': '/njik/'},
+            'klem':             {'pos': 'adjective', 'meaning_it': 'verde', 'meaning_en': 'green', 'pron': '/klem/'},
+            'ploke':            {'pos': 'adjective', 'meaning_it': 'nero', 'meaning_en': 'black', 'pron': '/ploke/'},
+            'viris':            {'pos': 'adjective', 'meaning_it': 'bianco', 'meaning_en': 'white', 'pron': '/viris/'},
+            'kef':              {'pos': 'adjective', 'meaning_it': 'rosa', 'meaning_en': 'pink', 'pron': '/kef/'},
+            'klye':             {'pos': 'adjective', 'meaning_it': 'grigio (generale)', 'meaning_en': 'gray (general)', 'pron': '/kliːe/'},
+            'kepoz':            {'pos': 'adjective', 'meaning_it': 'grigio (del cielo)', 'meaning_en': 'gray (sky)', 'pron': '/kepoz/'},
+            'lipeira':          {'pos': 'adjective/verb', 'meaning_it': 'arancione; diventare arancione', 'meaning_en': 'orange; to become orange', 'pron': '/lipeira/'},
+            'lipnyk':           {'pos': 'adjective', 'meaning_it': 'viola (colore principale)', 'meaning_en': 'purple (main color)', 'pron': '/lipniːk/'},
+            'bapir':            {'pos': 'adjective/noun', 'meaning_it': 'tonalità/sfumatura di viola', 'meaning_en': 'shade/hue of purple', 'pron': '/bapir/'},
+            'liploke':          {'pos': 'adjective', 'meaning_it': 'marrone (colore principale)', 'meaning_en': 'brown (main color)', 'pron': '/liploke/'},
+            'plom':             {'pos': 'adjective/noun', 'meaning_it': 'tonalità/sfumatura di marrone', 'meaning_en': 'shade/hue of brown', 'pron': '/plom/'},
+            'lipdok':           {'pos': 'adjective', 'meaning_it': 'cremisi, scarlatto', 'meaning_en': 'crimson, scarlet', 'pron': '/lipdok/'},
+            'nyikin':           {'pos': 'adjective', 'meaning_it': 'ciano, turchese', 'meaning_en': 'cyan, turquoise', 'pron': '/njikin/'},
+            'pie':              {'pos': 'adjective', 'meaning_it': 'beige', 'meaning_en': 'beige', 'pron': '/pie/'},
+            'kortil':           {'pos': 'noun/adjective', 'meaning_it': 'bronzo; bronzeo', 'meaning_en': 'bronze; bronze-colored', 'pron': '/kortil/'}, # Già c'era, ora confermato come agg
+            'bemiĝ':            {'pos': 'adjective', 'meaning_it': 'colore carnagione', 'meaning_en': 'flesh color', 'pron': '/bemiʤ/'},
+            'tenji':            {'pos': 'demonstrative', 'meaning_it': 'questo/a', 'meaning_en': 'this', 'pron': '/tenʒi/'},
+            'kenjo':            {'pos': 'demonstrative', 'meaning_it': 'quello/a', 'meaning_en': 'that', 'pron': '/kenʒo/'},
+            'idon':             {'pos': 'determiner', 'meaning_it': 'quale?; che? (det.)', 'meaning_en': 'which?; what? (det.)', 'pron': '/idon/'},
+            'milo':             {'pos': 'adverb/adjective', 'meaning_it': 'prossimo, dopo', 'meaning_en': 'next, after', 'pron': '/milo/'},
+            'ymet':             {'pos': 'adverb/adjective/noun', 'meaning_it': 'ultimo, fine', 'meaning_en': 'last, end', 'pron': '/iːmet/'},
+            'ika':              {'pos': 'noun', 'meaning_it': 'settimana (sing.)', 'meaning_en': 'week (sg.)', 'pron': '/ika/'},
+            'ike':              {'pos': 'noun', 'meaning_it': 'settimane (pl.)', 'meaning_en': 'weeks (pl.)', 'pron': '/ike/'}, # Plurale irregolare
+            'gadik':            {'pos': 'noun', 'meaning_it': 'quarto (frazione)', 'meaning_en': 'quarter (fraction)', 'pron': '/gadik/'},
+            'vekia':            {'pos': 'noun', 'meaning_it': 'mezzora', 'meaning_en': 'half an hour', 'pron': '/vekia/'},
+            'vedan':            {'pos': 'noun/adverb', 'meaning_it': 'mezzogiorno (14:00 ATH)', 'meaning_en': 'midday, noon (14:00 ATH)', 'pron': '/vedan/'},
+            'venahr':           {'pos': 'noun/adverb', 'meaning_it': 'mezzanotte (00:00 ATH)', 'meaning_en': 'midnight (00:00 ATH)', 'pron': '/venahr/'},
+            'nalmek':           {'pos': 'noun', 'meaning_it': 'mattino', 'meaning_en': 'morning', 'pron': '/nalmek/'},
+            'daja':             {'pos': 'noun', 'meaning_it': 'pomeriggio', 'meaning_en': 'afternoon', 'pron': '/daʒa/'},
+            'san':              {'pos': 'noun', 'meaning_it': 'sera', 'meaning_en': 'evening', 'pron': '/san/'}, # Conferma da tua lista lunga
+            'maro':             {'pos': 'ordinal_numeral', 'meaning_it': 'primo', 'meaning_en': 'first', 'pron': '/maro/'},
+            'bero':             {'pos': 'ordinal_numeral', 'meaning_it': 'secondo', 'meaning_en': 'second', 'pron': '/bero/'},
+            'ĉero':             {'pos': 'ordinal_numeral', 'meaning_it': 'terzo', 'meaning_en': 'third', 'pron': '/ʧero/'},
 
             # Interrogativi
-            'hon':    {'pos': 'pronoun', 'meaning_it': 'chi?', 'meaning_en': 'who?', 'pron': '/oːn/'},
-            'oos':    {'pos': 'pronoun', 'meaning_it': 'cosa?', 'meaning_en': 'what?', 'pron': '/oːs/'},
-            'edon':   {'pos': 'adverb', 'meaning_it': 'dove?', 'meaning_en': 'where?', 'pron': '/edon/'},
-            'elos':   {'pos': 'adverb', 'meaning_it': 'quando?', 'meaning_en': 'when?', 'pron': '/elos/'},
-            'Bojyke': {'pos': 'adverb', 'meaning_it': 'perché?', 'meaning_en': 'why?', 'pron': '/boʒiːke/'},
-            'enta':   {'pos': 'adverb', 'meaning_it': 'come?', 'meaning_en': 'how?', 'pron': '/enta/'},
+            'hon':              {'pos': 'pronoun', 'meaning_it': 'chi?', 'meaning_en': 'who?', 'pron': '/oːn/'},
+            'oos':              {'pos': 'pronoun', 'meaning_it': 'cosa?', 'meaning_en': 'what?', 'pron': '/oːs/'},
+            'edon':             {'pos': 'adverb', 'meaning_it': 'dove?', 'meaning_en': 'where?', 'pron': '/edon/'},
+            'elos':             {'pos': 'adverb', 'meaning_it': 'quando?', 'meaning_en': 'when?', 'pron': '/elos/'},
+            'Bojyke':           {'pos': 'adverb', 'meaning_it': 'perché?', 'meaning_en': 'why?', 'pron': '/boʒiːke/'},
+            'enta':             {'pos': 'adverb', 'meaning_it': 'come?', 'meaning_en': 'how?', 'pron': '/enta/'},
 
             # Congiunzioni
-            'ho':     {'pos': 'conjunction', 'meaning_it': 'perché, poiché', 'meaning_en': 'because, since', 'pron': '/ho/'},
-            'ya':     {'pos': 'conjunction', 'meaning_it': 'e', 'meaning_en': 'and', 'pron': '/iːa/'},
-            'yo':     {'pos': 'conjunction', 'meaning_it': 'o, oppure', 'meaning_en': 'or', 'pron': '/iːo/'},
-            'ermi':   {'pos': 'conjunction', 'meaning_it': 'quando (cong.)', 'meaning_en': 'when (conj.)', 'pron': '/ermi/'},
-            'en':     {'pos': 'conjunction', 'meaning_it': 'se', 'meaning_en': 'if', 'pron': '/en/'},
-            'koyk':   {'pos': 'adverb/conjunction', 'meaning_it': 'altrimenti', 'meaning_en': 'else, otherwise', 'pron': '/koiːk/'},
-            'jodgim': {'pos': 'conjunction', 'meaning_it': 'mentre', 'meaning_en': 'while', 'pron': '/ʒodgim/'},
-            'tho':    {'pos': 'adverb', 'meaning_it': 'anche; pure; così', 'meaning_en': 'also; too; so', 'pron': '/toː/'},
+            'ho':               {'pos': 'conjunction', 'meaning_it': 'perché, poiché', 'meaning_en': 'because, since', 'pron': '/ho/'},
+            'ya':               {'pos': 'conjunction', 'meaning_it': 'e', 'meaning_en': 'and', 'pron': '/iːa/'},
+            'yo':               {'pos': 'conjunction', 'meaning_it': 'o, oppure', 'meaning_en': 'or', 'pron': '/iːo/'},
+            'ermi':             {'pos': 'conjunction', 'meaning_it': 'quando (cong.)', 'meaning_en': 'when (conj.)', 'pron': '/ermi/'},
+            'en':               {'pos': 'conjunction', 'meaning_it': 'se', 'meaning_en': 'if', 'pron': '/en/'},
+            'koyk':             {'pos': 'adverb/conjunction', 'meaning_it': 'altrimenti', 'meaning_en': 'else, otherwise', 'pron': '/koiːk/'},
+            'jodgim':           {'pos': 'conjunction', 'meaning_it': 'mentre', 'meaning_en': 'while', 'pron': '/ʒodgim/'},
+            'tho':              {'pos': 'adverb', 'meaning_it': 'anche; pure; così', 'meaning_en': 'also; too; so', 'pron': '/toː/'},
             
             # Interiezioni e Pragmatica
-            'rompo':  {'pos': 'interjection', 'meaning_it': 'grazie', 'meaning_en': 'thank you', 'pron': '/rompo/'},
-            'kehla':  {'pos': 'interjection', 'meaning_it': 'ciao', 'meaning_en': 'hello, hi', 'pron': '/kehla/'},
-            'ylievamor': {'pos': 'interjection', 'meaning_it': 'benvenuto', 'meaning_en': 'welcome', 'pron': '/iːlievamor/'},
-            'ke':     {'pos': 'interjection', 'meaning_it': 'sì', 'meaning_en': 'yes', 'pron': '/ke/'},
-            'misi':   {'pos': 'interjection', 'meaning_it': 'bene!', 'meaning_en': 'good!, well!', 'pron': '/misi/'},
-            'nilmiet':{'pos': 'adverb', 'meaning_it': 'per favore', 'meaning_en': 'please', 'pron': '/nilmiet/'},
-            'ĉoko':   {'pos': 'preposition/adverb', 'meaning_it': 'vicino (sociale, supporto)', 'meaning_en': 'near (socially), to support', 'pron': '/ʧoko/'},
-            'meoje':  {'pos': 'adverb/preposition', 'meaning_it': 'vicino (luogo)', 'meaning_en': 'near (place)', 'pron': '/meoʒe/'},
+            'rompo':            {'pos': 'interjection', 'meaning_it': 'grazie', 'meaning_en': 'thank you', 'pron': '/rompo/'},
+            'kehla':            {'pos': 'interjection', 'meaning_it': 'ciao', 'meaning_en': 'hello, hi', 'pron': '/kehla/'},
+            'ylievamor':        {'pos': 'interjection', 'meaning_it': 'benvenuto', 'meaning_en': 'welcome', 'pron': '/iːlievamor/'},
+            'ke':               {'pos': 'interjection', 'meaning_it': 'sì', 'meaning_en': 'yes', 'pron': '/ke/'},
+            'misi':             {'pos': 'interjection', 'meaning_it': 'bene!', 'meaning_en': 'good!, well!', 'pron': '/misi/'},
+            'nilmiet':          {'pos': 'adverb', 'meaning_it': 'per favore', 'meaning_en': 'please', 'pron': '/nilmiet/'},
+            'ĉoko':             {'pos': 'preposition/adverb', 'meaning_it': 'vicino (sociale, supporto)', 'meaning_en': 'near (socially), to support', 'pron': '/ʧoko/'},
+            'meoje':            {'pos': 'adverb/preposition', 'meaning_it': 'vicino (luogo)', 'meaning_en': 'near (place)', 'pron': '/meoʒe/'},
+            
             # Aggiungo qui le parole dalla lista lunga che erano preposizioni o avverbi non interrogativi
-            'ny':        {'pos': 'preposition', 'meaning_it': 'a (moto a luogo, stato in luogo)', 'meaning_en': 'to, at, in', 'pron': '/niː/'},
-            'fo':        {'pos': 'particle_impersonal', 'meaning_it': 'si (impersonale/passivante)', 'meaning_en': 'one (impersonal), is X-ed', 'pron': '/fo/'},
-            'ye':        {'pos': 'adverb/prefix', 'meaning_it': 'ancora; ri-, re-', 'meaning_en': 'again, still; re-', 'pron': '/iːe/'},
-            'otis':    {'pos': 'adverb', 'meaning_it': 'adesso', 'meaning_en': 'now', 'pron': '/otis/'},
-            'fyla':      {'pos': 'adverb/conjunction', 'meaning_it': 'allora, quindi', 'meaning_en': 'then, so', 'pron': '/fiːla/'},
-            'enteno':    {'pos': 'adverb/conjunction', 'meaning_it': 'altrimenti', 'meaning_en': 'otherwise', 'pron': '/enteno/'},
-            'lan':       {'pos': 'preposition', 'meaning_it': 'da (moto da luogo)', 'meaning_en': 'from', 'pron': '/lan/'},
-            'otyrom':    {'pos': 'adverb/preposition', 'meaning_it': 'davanti', 'meaning_en': 'in front of, before', 'pron': '/otirom/'},
-            'tidal':     {'pos': 'adverb/preposition', 'meaning_it': 'dietro', 'meaning_en': 'behind', 'pron': '/tidal/'},
-            'embax':   {'pos': 'adverb/noun', 'meaning_it': 'domani', 'meaning_en': 'tomorrow', 'pron': '/embaks/'},   # UFFICIALE
-            'sifan':   {'pos': 'adverb/preposition', 'meaning_it': 'dopo', 'meaning_en': 'after, then', 'pron': '/sifan/'},
-            'bembax':    {'pos': 'adverb/noun', 'meaning_it': 'dopodomani', 'meaning_en': 'day after tomorrow', 'pron': '/bembaks/'},
-            'embadyl': {'pos': 'adverb/noun', 'meaning_it': 'ieri', 'meaning_en': 'yesterday', 'pron': '/embadiːl/'}, # UFFICIALE
-            'entredija': {'pos': 'adverb', 'meaning_it': 'immediatamente', 'meaning_en': 'immediately', 'pron': '/entrediʒa/'},
-            'jedon':     {'pos': 'phrase_adverbial', 'meaning_it': 'in tempo', 'meaning_en': 'in time', 'pron': '/ʒedon/'},
-            'je oer':    {'pos': 'phrase_adverbial', 'meaning_it': 'intanto', 'meaning_en': 'meanwhile', 'pron': '/ʒe oer/'},
-            'bembadyl':  {'pos': 'adverb/noun', 'meaning_it': 'l’altroieri', 'meaning_en': 'day before yesterday', 'pron': '/bembadiːl/'}, # Duplicato, già inserito
-            'voje':      {'pos': 'adverb/adjective', 'meaning_it': 'lontano', 'meaning_en': 'far', 'pron': '/voʒe/'},
-            'mifil':     {'pos': 'adverb', 'meaning_it': 'mai', 'meaning_en': 'never', 'pron': '/mifil/'},
-            'neaĝe':     {'pos': 'adverb', 'meaning_it': 'molto', 'meaning_en': 'very, much', 'pron': '/neaʤe/'},
-            'embadan': {'pos': 'adverb/noun', 'meaning_it': 'oggi', 'meaning_en': 'today', 'pron': '/embadan/'},     # UFFICIALE
-            'kia':       {'pos': 'noun/adverb', 'meaning_it': 'ora (tempo); adesso', 'meaning_en': 'hour; now (time)', 'pron': '/kia/'}, # Conflitto con otis
-            'tis':       {'pos': 'preposition', 'meaning_it': 'per (scopo, causa)', 'meaning_en': 'for (purpose), because of', 'pron': '/tis/'},
-            'medar':     {'pos': 'adverb/adjective', 'meaning_it': 'poco', 'meaning_en': 'little, few', 'pron': '/medar/'},
-            'ysed':      {'pos': 'adverb', 'meaning_it': 'poi', 'meaning_en': 'then, afterwards', 'pron': '/iːsed/'},
-            'ynte':      {'pos': 'adverb', 'meaning_it': 'presto', 'meaning_en': 'soon, early', 'pron': '/iːnte/'},
-            'pivol':   {'pos': 'adverb/preposition', 'meaning_it': 'prima', 'meaning_en': 'before, first', 'pron': '/pivol/'},
-            'lolyr':     {'pos': 'adverb', 'meaning_it': 'raramente', 'meaning_en': 'rarely', 'pron': '/loliːr/'},
-            'kiram':     {'pos': 'preposition', 'meaning_it': 'sopra (con contatto)', 'meaning_en': 'on, upon', 'pron': '/kiram/'},
-            'wym':       {'pos': 'preposition', 'meaning_it': 'sotto', 'meaning_en': 'under, below', 'pron': '/uːiːm/'},
-            'avym':      {'pos': 'adverb', 'meaning_it': 'spesso', 'meaning_en': 'often', 'pron': '/aviːm/'},
-            'am':        {'pos': 'preposition', 'meaning_it': 'su (senza contatto)', 'meaning_en': 'on, up (no contact)', 'pron': '/am/'},
-            'delye':     {'pos': 'adverb', 'meaning_it': 'subito', 'meaning_en': 'immediately', 'pron': '/delje/'}, # Conflitto con entredija
-            'ondames':   {'pos': 'adverb', 'meaning_it': 'talvolta', 'meaning_en': 'sometimes', 'pron': '/ondames/'},
-            'ries':      {'pos': 'adverb', 'meaning_it': 'tardi', 'meaning_en': 'late', 'pron': '/riːes/'},
-            'dan':     {'pos': 'noun', 'meaning_it': 'giorno (concetto)', 'meaning_en': 'day (concept)', 'pron': '/dan/'}, 
-
+            'ny':               {'pos': 'preposition', 'meaning_it': 'a (moto a luogo, stato in luogo)', 'meaning_en': 'to, at, in', 'pron': '/niː/'},
+            'fo':               {'pos': 'particle_impersonal', 'meaning_it': 'si (impersonale/passivante)', 'meaning_en': 'one (impersonal), is X-ed', 'pron': '/fo/'},
+            'ye':               {'pos': 'adverb/prefix', 'meaning_it': 'ancora; ri-, re-', 'meaning_en': 'again, still; re-', 'pron': '/iːe/'},
+            'otis':             {'pos': 'adverb', 'meaning_it': 'adesso', 'meaning_en': 'now', 'pron': '/otis/'},
+            'fyla':             {'pos': 'adverb/conjunction', 'meaning_it': 'allora, quindi', 'meaning_en': 'then, so', 'pron': '/fiːla/'},
+            'enteno':           {'pos': 'adverb/conjunction', 'meaning_it': 'altrimenti', 'meaning_en': 'otherwise', 'pron': '/enteno/'},
+            'lan':              {'pos': 'preposition', 'meaning_it': 'da (moto da luogo)', 'meaning_en': 'from', 'pron': '/lan/'},
+            'otyrom':           {'pos': 'adverb/preposition', 'meaning_it': 'davanti', 'meaning_en': 'in front of, before', 'pron': '/otirom/'},
+            'tidal':            {'pos': 'adverb/preposition', 'meaning_it': 'dietro', 'meaning_en': 'behind', 'pron': '/tidal/'},
+            'embax':            {'pos': 'adverb/noun', 'meaning_it': 'domani', 'meaning_en': 'tomorrow', 'pron': '/embaks/'},   # UFFICIALE
+            'sifan':            {'pos': 'adverb/preposition', 'meaning_it': 'dopo', 'meaning_en': 'after, then', 'pron': '/sifan/'},
+            'bembax':           {'pos': 'adverb/noun', 'meaning_it': 'dopodomani', 'meaning_en': 'day after tomorrow', 'pron': '/bembaks/'},
+            'embadyl':          {'pos': 'adverb/noun', 'meaning_it': 'ieri', 'meaning_en': 'yesterday', 'pron': '/embadiːl/'}, # UFFICIALE
+            'entredija':        {'pos': 'adverb', 'meaning_it': 'immediatamente', 'meaning_en': 'immediately', 'pron': '/entrediʒa/'},
+            'jedon':            {'pos': 'phrase_adverbial', 'meaning_it': 'in tempo', 'meaning_en': 'in time', 'pron': '/ʒedon/'},
+            'je oer':           {'pos': 'phrase_adverbial', 'meaning_it': 'intanto', 'meaning_en': 'meanwhile', 'pron': '/ʒe oer/'},
+            'bembadyl':         {'pos': 'adverb/noun', 'meaning_it': 'l’altroieri', 'meaning_en': 'day before yesterday', 'pron': '/bembadiːl/'}, # Duplicato, già inserito
+            'voje':             {'pos': 'adverb/adjective', 'meaning_it': 'lontano', 'meaning_en': 'far', 'pron': '/voʒe/'},
+            'mifil':            {'pos': 'adverb', 'meaning_it': 'mai', 'meaning_en': 'never', 'pron': '/mifil/'},
+            'neaĝe':            {'pos': 'adverb', 'meaning_it': 'molto', 'meaning_en': 'very, much', 'pron': '/neaʤe/'},
+            'embadan':          {'pos': 'adverb/noun', 'meaning_it': 'oggi', 'meaning_en': 'today', 'pron': '/embadan/'},     # UFFICIALE
+            'kia':              {'pos': 'noun/adverb', 'meaning_it': 'ora (tempo); adesso', 'meaning_en': 'hour; now (time)', 'pron': '/kia/'}, # Conflitto con otis
+            'tis':              {'pos': 'preposition', 'meaning_it': 'per (scopo, causa)', 'meaning_en': 'for (purpose), because of', 'pron': '/tis/'},
+            'medar':            {'pos': 'adverb/adjective', 'meaning_it': 'poco', 'meaning_en': 'little, few', 'pron': '/medar/'},
+            'ysed':             {'pos': 'adverb', 'meaning_it': 'poi', 'meaning_en': 'then, afterwards', 'pron': '/iːsed/'},
+            'ynte':             {'pos': 'adverb', 'meaning_it': 'presto', 'meaning_en': 'soon, early', 'pron': '/iːnte/'},
+            'pivol':            {'pos': 'adverb/preposition', 'meaning_it': 'prima', 'meaning_en': 'before, first', 'pron': '/pivol/'},
+            'lolyr':            {'pos': 'adverb', 'meaning_it': 'raramente', 'meaning_en': 'rarely', 'pron': '/loliːr/'},
+            'kiram':            {'pos': 'preposition', 'meaning_it': 'sopra (con contatto)', 'meaning_en': 'on, upon', 'pron': '/kiram/'},
+            'wym':              {'pos': 'preposition', 'meaning_it': 'sotto', 'meaning_en': 'under, below', 'pron': '/uːiːm/'},
+            'avym':             {'pos': 'adverb', 'meaning_it': 'spesso', 'meaning_en': 'often', 'pron': '/aviːm/'},
+            'am':               {'pos': 'preposition', 'meaning_it': 'su (senza contatto)', 'meaning_en': 'on, up (no contact)', 'pron': '/am/'},
+            'delye':            {'pos': 'adverb', 'meaning_it': 'subito', 'meaning_en': 'immediately', 'pron': '/delje/'}, # Conflitto con entredija
+            'ondames':          {'pos': 'adverb', 'meaning_it': 'talvolta', 'meaning_en': 'sometimes', 'pron': '/ondames/'},
+            'ries':             {'pos': 'adverb', 'meaning_it': 'tardi', 'meaning_en': 'late', 'pron': '/riːes/'},
+            'dan':              {'pos': 'noun', 'meaning_it': 'giorno (concetto)', 'meaning_en': 'day (concept)', 'pron': '/dan/'}, 
         }
 
         self.derivation_graph = nx.DiGraph()
@@ -428,10 +428,9 @@ class AnthalejaLang:
         elif article_type == 'emphatic_indefinite':
             # Assicurati che 'ma' (numero 1) esista nel sistema numerico per essere usato qui
             if 1 in self.numbers.numbers:
-                 article_str = self.numbers.numbers[1] + " "
+                article_str = self.numbers.numbers[1] + " "
             else: # Fallback se 'ma' non è definito lì per qualche motivo
-                 article_str = "ma "
-
+                article_str = "ma "
 
         base_sentence_core = f"{conjugated_verb} {article_str}{noun}"
         
@@ -446,14 +445,13 @@ class AnthalejaLang:
             if random.choice([True, False]) and wh_word_keys : # 50% probabilità di domanda aperta se possibile
                 wh_word = random.choice(wh_word_keys)
                 if self.lexicon[wh_word]['pos'] == 'pronoun/determiner' and 'cosa?' in self.lexicon[wh_word]['meaning_it']: # 'pa'
-                     final_sentence = f"¿{wh_word.capitalize()} {pronoun} {conjugated_verb}?" # Es: ¿Pa ja yeta?
+                    final_sentence = f"¿{wh_word.capitalize()} {pronoun} {conjugated_verb}?" # Es: ¿Pa ja yeta?
                 else:
-                     final_sentence = f"¿{wh_word.capitalize()} {pronoun} {base_sentence_core}?"
+                    final_sentence = f"¿{wh_word.capitalize()} {pronoun} {base_sentence_core}?"
             else:
                 final_sentence = f"¿Ma {pronoun} {base_sentence_core}?"
         else: # statement
             final_sentence = f"{pronoun.capitalize()} {base_sentence_core}."
-            
         return final_sentence
 
     def negate_adjective(self, adjective):
@@ -527,13 +525,13 @@ class Anthaleja:
     def demonstrate_morphology(self, word, pos):
         # Assicurati che la parola esista nel lessico prima di derivare
         if word not in self.lang.lexicon and pos == 'adjective':
-             # Prova a vedere se è un colore base non nel lessico principale ma in color system
-             if word in self.lang.colors.colors.values():
-                 # OK, è un colore, possiamo procedere
-                 pass
-             else:
-                 print(f"\n--- Parola '{word}' non trovata nel lessico per derivazioni ---")
-                 return
+            # Prova a vedere se è un colore base non nel lessico principale ma in color system
+            if word in self.lang.colors.colors.values():
+                # OK, è un colore, possiamo procedere
+                pass
+            else:
+                print(f"\n--- Parola '{word}' non trovata nel lessico per derivazioni ---")
+                return
 
         print(f"\n--- Derivazioni per '{word}' ({pos}) ---")
         if pos == 'adjective':
@@ -561,8 +559,8 @@ class Anthaleja:
 
     def demonstrate_verb_conjugation(self, verb_root):
         if verb_root not in [k for k,v in self.lang.lexicon.items() if v['pos'] == 'verb']:
-             print(f"\n--- Radice verbale '{verb_root}' non trovata nel lessico ---")
-             return
+            print(f"\n--- Radice verbale '{verb_root}' non trovata nel lessico ---")
+            return
         print(f"\n--- Coniugazioni per la radice '{verb_root}' ---")
         vs = self.lang.verb_system
         print(f"  Presente Indicativo Semplice: {vs.conjugate(verb_root, 'present', 'simple', 'indicative')}")
@@ -636,8 +634,10 @@ if __name__ == "__main__":
     print(f"  Data Specifica (25/12/2024 10:30 Terra): {specific_date_anthaleja.format('DAY, d MONTH Y G:i:s')}")
 
     print("\n[7. DIMOSTRAZIONE DEMONIMI]")
-    print(f"  Abitante di 'Roma': {anthaleja.lang.generate_demonym('Roma')}")
-    print(f"  Abitante di 'Parisys': {anthaleja.lang.generate_demonym('Parisys')}")
-    print(f"  Plurale di 'Romaeja': {anthaleja.lang.pluralize_noun(anthaleja.lang.generate_demonym('Roma'))}")
+    print(f"  Abitante di 'Roma (Romano)': {anthaleja.lang.generate_demonym('Roma')}")
+    print(f"  Abitante di 'Parigi': {anthaleja.lang.generate_demonym('Parisys')}")
+    print(f"  Plurale di 'Roma (Romani)': {anthaleja.lang.pluralize_noun(anthaleja.lang.generate_demonym('Roma'))}")
     print(f"  Plurale di 'ding': {anthaleja.lang.pluralize_noun('ding')}")
     print("="*60)
+    
+    

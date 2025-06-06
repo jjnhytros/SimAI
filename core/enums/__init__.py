@@ -41,7 +41,6 @@ __all__ = [
     'SchoolLevel',
     'SkillType',
     'SocialInteractionType',
-    'TraitType',
 ]
 
 if DEBUG_MODE: print("  [Enums Package] Package 'core.enums' caricato.")

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Dict
 
 from core.enums import NeedType, ActionType # ActionType è usato qui
+from core.world.game_object import GameObject
 
 if TYPE_CHECKING:
     from core.character import Character
@@ -15,13 +16,13 @@ class BaseAction(ABC):
     """Classe base astratta per tutte le azioni che un NPC può compiere."""
 
     def __init__(self,
-                 npc: 'Character',
-                 action_type_name: str,
-                 duration_ticks: int,
-                 p_simulation_context: 'Simulation',
-                 is_interruptible: bool = True,
-                 action_type_enum: Optional[ActionType] = None
-                 ):
+                npc: 'Character',
+                action_type_name: str,
+                duration_ticks: int,
+                p_simulation_context: 'Simulation',
+                is_interruptible: bool = True,
+                action_type_enum: Optional[ActionType] = None
+                ):
         self.npc: 'Character' = npc
         self.action_type_name: str = action_type_name
         self.duration_ticks: int = duration_ticks
@@ -38,7 +39,7 @@ class BaseAction(ABC):
         # Effetti sui bisogni (possono essere definiti dalle sottoclassi)
         # Esempio: {NeedType.HUNGER: 50.0, NeedType.ENERGY: -5.0}
         self.effects_on_needs: Dict[NeedType, float] = {}
-        self.simulation_context: Optional['Simulation'] = p_simulation_context # <-- MEMORIZZA IL CONTESTO
+        self.target_object: Optional['GameObject'] = None
 
         # TODO VI.1.b: Aggiungere altri attributi previsti come:
         # self.required_objects: List[str] = []

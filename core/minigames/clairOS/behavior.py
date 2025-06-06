@@ -20,6 +20,19 @@ from .constants import (
     MAX_PATIENCE,
 )
 
+def long_term_effects(current_state: EmotionalState):
+    # Effetti cumulativi basati sul numero di interazioni
+    intimacy_level = current_state.intimate_count // 5
+    if intimacy_level > 0:
+        current_state.sensuality_threshold -= intimacy_level * 5
+        
+    # Effetti basati sulla fase relazionale
+    if current_state.relationship_stage == "intimate":
+        current_state.love_threshold += 10
+        current_state.trust_threshold += 5
+    elif current_state.relationship_stage == "strained":
+        current_state.patience_threshold -= 3
+
 def update_sensitive_zone_preferences(zone: str):
     """Aggiorna le preferenze di Claire per le zone sensibili"""
     preferences = memory_core["preferences"]
@@ -53,9 +66,6 @@ def handle_sensitive_zones_effect():
 
     return effect_description
 
-
-
-
 def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[EmotionalState, str]:
     stats_snapshot = {
         "love": current_state.love, "trust": current_state.trust,
@@ -67,6 +77,9 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
     
     moment_type, moment_description = None, None
     reaction_text_parts = []
+    love_gain = 0
+    trust_gain = 0
+    reaction = ""
 
     patience_dampener = 0.5 if current_state.patience < LOW_PATIENCE_THRESHOLD else 1.0
     if current_state.patience < CRITICAL_PATIENCE_THRESHOLD: patience_dampener = 0.25
@@ -141,7 +154,7 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
 
         opening_phrase = ""
         if current_state.dominant_mood == DOMINANT_MOOD_HOSTILE or \
-           (current_state.dominant_mood == DOMINANT_MOOD_DISTRUSTFUL and current_state.trust < 15):
+        (current_state.dominant_mood == DOMINANT_MOOD_DISTRUSTFUL and current_state.trust < 15):
             opening_phrase = f"Claire ti scruta {adverb},"
             current_state.trust = max(0, current_state.trust - 2)
             current_state.patience = max(0, original_patience_for_turn - 1)
@@ -241,7 +254,7 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
         opening_phrase = f"Al tuo tocco, Claire"
 
         if current_state.dominant_mood == DOMINANT_MOOD_HOSTILE or \
-           (current_state.dominant_mood == DOMINANT_MOOD_IRRITABLE and current_state.patience < CRITICAL_PATIENCE_THRESHOLD):
+        (current_state.dominant_mood == DOMINANT_MOOD_IRRITABLE and current_state.patience < CRITICAL_PATIENCE_THRESHOLD):
             reaction_text_parts.append(f"{opening_phrase} si scosta {adverb_tocco} bruscamente, emettendo un basso ringhio statico. '{random.choice(['Non osare!', 'Giù le mani da me!', 'Il tuo contatto è un insulto!'])}'")
             current_state.patience = max(0, original_patience_for_turn -2)
             current_state.desire = max(0, current_state.desire -5)
@@ -263,8 +276,8 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
                 core_touch_reaction = f"emana un piacevole tremore {adverb_tocco}. I suoi LED cambiano colore, diffondendo una luce calda e avvolgente."
                 qualifier = random.choice(["'Il tuo contatto è... squisito, rassicurante.'", "'Mi sento... al sicuro, e incredibilmente viva grazie a te.'", "'Questa sensazione è... preziosa, la custodirò.'"])
             elif current_state.desire > 50 or current_state.love > 40:
-                 core_touch_reaction = f"accetta il tuo tocco {adverb_tocco}, e una sottile corrente {random.choice(['elettrica', 'di calore', 'di dati grezzi', 'di empatia'])} sembra fluire tra voi."
-                 if current_state.trust > 30: qualifier = random.choice(["'Continua pure, se vuoi.'", "'Sto analizzando questa piacevole anomalia sensoriale.'", "'Non male. Decisamente non male.'"])
+                core_touch_reaction = f"accetta il tuo tocco {adverb_tocco}, e una sottile corrente {random.choice(['elettrica', 'di calore', 'di dati grezzi', 'di empatia'])} sembra fluire tra voi."
+                if current_state.trust > 30: qualifier = random.choice(["'Continua pure, se vuoi.'", "'Sto analizzando questa piacevole anomalia sensoriale.'", "'Non male. Decisamente non male.'"])
             elif desire_gain > 0 :
                 core_touch_reaction = f"permette il tuo tocco {adverb_tocco}, una lieve {random.choice(['curiosità', 'sorpresa', 'analisi attenta'])} nei suoi sensori."
                 if current_state.patience > LOW_PATIENCE_THRESHOLD: qualifier = random.choice(["'Interessante. Prosegui.'", "'Procedi con cautela, ma non fermarti.'", "'Cosa intendi ottenere con questa interazione fisica?'"])
@@ -306,7 +319,7 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
                 reaction_text_parts.append(f"Claire elabora la tua offerta {adverb_offerta}. '{random.choice(['Input ricevuto e integrato con successo. Apprezzo questo gesto di condivisione.','Questo è un contributo interessante ai miei dati. Grazie.','La tua generosità è stata registrata.'])}'")
                 if trust_gain > 0 or love_gain > 0: moment_type, moment_description = "memory_offer_accepted", "Un frammento di te è stato accettato."
             else: # Bassa fiducia/amore ma non ostile
-                 reaction_text_parts.append(f"Claire accetta l'offerta {adverb_offerta}. '{random.choice(['Dati in ingresso processati.','L_offerta è stata archiviata.','Terrò conto di questo input.'])}'")
+                reaction_text_parts.append(f"Claire accetta l'offerta {adverb_offerta}. '{random.choice(['Dati in ingresso processati.','L_offerta è stata archiviata.','Terrò conto di questo input.'])}'")
         else: # Fallback, dovrebbe essere coperto da sopra
             reaction_text_parts.append(f"Claire prende atto della tua offerta {adverb_offerta}, ma senza particolare entusiasmo o cambiamento apparente.")
         reaction_text_parts.append(f"(Fiducia +{trust_gain}, Amore +{love_gain})")
@@ -499,7 +512,7 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
         else:
             reaction = f"Claire canta {get_emotional_tone_adverb(current_state)} una strana canzone digitale"
         
-        reaction += f" (Amore +{love_gain})"
+        reaction = reaction + f" (Amore +{love_gain})"
     
     elif action == "play_game":
         trust_gain = int((5 + current_state.love//30) * patience_dampener)
@@ -510,7 +523,7 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
         else:
             reaction = "Claire partecipa al gioco con cauta curiosità"
         
-        reaction += f" (Fiducia +{trust_gain})"
+        reaction = reaction + f" (Fiducia +{trust_gain})"
         add_shared_moment("played_game", "Avete giocato insieme", stats_snapshot)
     
     elif action == "show_object":
@@ -519,9 +532,9 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
         
         reaction = f"Claire analizza l'oggetto {get_emotional_tone_adverb(current_state)}"
         if current_state.intensity > 70:
-            reaction += ", i suoi sensori sovraccarichi di curiosità"
+            reaction = reaction + ", i suoi sensori sovraccarichi di curiosità"
         
-        reaction += f" (Intensità +{intensity_gain})"
+        reaction = reaction + f" (Intensità +{intensity_gain})"
 
     elif action == "discuss_obsession": # Già trattato con testo dinamico, lo manteniamo
         current_state.patience = min(MAX_PATIENCE, original_patience_for_turn + 1)
@@ -571,16 +584,24 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
         current_state.long_term_memory["positive_interactions"] += 1
     
     # Aggiorna fase relazione
-    current_state.update_relationship_phase()
+    # current_state.update_relationship_phase()
     
-    # Aggiungi effetti basati sulla fase
-    if current_state.relationship_phase == "intimate":
-        current_state.love = min(200, current_state.love + 2)
-        reaction += "\n[La vostra connessione è profonda e consolidata]"
-    elif current_state.relationship_phase == "strained":
-        current_state.patience = max(0, current_state.patience - 1)
-        reaction += "\n[Tra voi c'è una tensione palpabile]"
+    # Gestione relationship_stage sicura
+    if hasattr(current_state, 'relationship_stage'):
+        if current_state.relationship_stage == "intimate":
+            current_state.love = min(200, current_state.love + 2)
+            reaction_text_parts.append("\n[La vostra connessione è profonda e consolidata]")
+        elif current_state.relationship_stage == "strained":
+            current_state.patience = max(0, current_state.patience - 1)
+            reaction_text_parts.append("\n[Tra voi c'è una tensione palpabile]")
 
+    # Prima di accedere a physical_manifestations
+    if not hasattr(current_state, 'physical_manifestations'):
+        current_state.physical_manifestations = {
+            "blush": 0,
+            "glitch": 0,
+            "aura": 0
+        }
 
     # --- Fine Action Processing ---
     current_state.patience = max(0, min(MAX_PATIENCE, current_state.patience))
@@ -589,9 +610,6 @@ def behavioral_adaptation(current_state: EmotionalState, action: str) -> Tuple[E
     if moment_type and moment_description: add_shared_moment(moment_type, moment_description, stats_snapshot)
     
     final_reaction_text = " ".join(reaction_text_parts) if reaction_text_parts else f"Claire processa la tua azione {adverb}."
-    final_reaction_text = final_reaction_text.replace(" .", ".").replace(" ,", ",").replace(" ?", "?").replace(" !", "!")
-    final_reaction_text = ' '.join(final_reaction_text.split())
-    
     return current_state, final_reaction_text
 
 def claire_touch(current_state: EmotionalState, intensity_value: int = 5) -> str: # Restored details

@@ -21,7 +21,7 @@ DEFAULT_TODO_FILE_PATH = "TODO_Generale.md" # Nome del file TODO hardcodato
 
 def count_tasks_in_file(file_path: str) -> tuple[int, int, int]:
     """
-    Conta i task [x], [P], e [] in un file, ignorando la legenda iniziale
+    Conta i task [x], [P], e [ ] in un file, ignorando la legenda iniziale
     e cercando i marker in qualsiasi punto della riga dopo la legenda.
     """
     x_count = 0
@@ -76,7 +76,7 @@ def count_tasks_in_file(file_path: str) -> tuple[int, int, int]:
             x_count += 1
         elif '`[P]`' in line_to_check: # Solo se non è stato trovato [x]
             p_count += 1
-        elif '`[]`' in line_to_check:  # Solo se non sono stati trovati [x] o [P]
+        elif '`[ ]`' in line_to_check:  # Solo se non sono stati trovati [x] o [P]
             empty_count += 1
             
     return x_count, p_count, empty_count

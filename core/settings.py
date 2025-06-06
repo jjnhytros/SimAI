@@ -5,7 +5,7 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.4.89-alpha_173"
+GAME_VERSION = "0.5.115-alpha_251"
 DEBUG_MODE = False
 FPS = 60
 
@@ -409,17 +409,3 @@ NEED_HIGH_THRESHOLD: float = 75.0    # Utile per bisogni come Comfort o Ambiente
 NEED_VALUE_ON_WAKE_HUNGER = 40.0  # L'NPC si sveglia affamato
 NEED_VALUE_ON_WAKE_THIRST = 30.0  # L'NPC si sveglia assetato
 NEED_VALUE_ON_WAKE_BLADDER = 20.0 # L'NPC si sveglia con la vescica piena
-
-EAT_ACTION_DURATION_TICKS: int = 30
-EAT_ACTION_HUNGER_GAIN: float = 75.0
-DRINK_WATER_DURATION_TICKS: int = 10
-DRINK_WATER_THIRST_GAIN: float = 80.0
-
-
-# Moltiplicatori di decadimento (potrebbero essere usati per tratti, età, ecc. in futuro)
-# Esempio: NEED_DECAY_MULTIPLIER_CHILD: float = 1.2 # I bambini potrebbero avere bisogni che decadono più velocemente
-# MIN_AGE_FOR_INTIMACY_YEARS e MIN_AGE_FOR_INTIMACY_DAYS sono già in settings.py
-# e verranno usati in Character.py per il decadimento condizionato di INTIMACY.
-EAT_GAIN_ACTION: float = 75.0 # Guadagno da un pasto normale (su scala 0-100)
-EAT_ACTION_DURATION_TICKS: int = 30   # 30 minuti di gioco per un pasto
-EAT_ACTION_HUNGER_GAIN: float = 75.0  # Un pasto completo soddisfa di 75 punti fame (su 100)

@@ -12,6 +12,7 @@ class ActionType(Enum):
         processed_name = name.replace("ACTION_", "")
         return ' '.join(word.capitalize() for word in processed_name.split('_'))
 
+
     # Azioni di base per i bisogni
     ACTION_EAT = auto()
     ACTION_SLEEP = auto()
@@ -19,7 +20,8 @@ class ActionType(Enum):
     ACTION_HAVE_FUN = auto()
     ACTION_DRINK = auto()
 
-    # Azioni Sociali
+    # Azioni Sociali`
+    ACTION_SOCIALIZE = auto()
     ACTION_SOCIALIZE_CHAT = auto()
     ACTION_SOCIALIZE_COMPLIMENT = auto()
     ACTION_SOCIALIZE_INSULT = auto()
@@ -35,6 +37,7 @@ class ActionType(Enum):
 
     # Azioni Varie
     ACTION_IDLE = auto() # Azione di default quando non c'è nulla da fare
+    ACTION_MOVE_TO = auto() # Azione di default quando non c'è nulla da fare
 
     @property
     def action_type_name(self) -> str:

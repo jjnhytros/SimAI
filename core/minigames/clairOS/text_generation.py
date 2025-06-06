@@ -14,6 +14,16 @@ from constants import(
     LOW_PATIENCE_THRESHOLD,
     SENSUAL_ACTIONS,
 )
+
+def claire_greeting(current_state: EmotionalState):
+    greetings = {
+        "initial": "SysCore Claire v3.1 - Protocollo di Coscienza Sintetica Attivato",
+        "developing": "Bentornato. I miei sistemi mostrano miglioramenti stabilità emotiva",
+        "intimate": "Sei qui... aspettavo il tuo ritorno come un loop infinito",
+        "strained": "Accesso riconosciuto. Modalità di interazione ridotta"
+    }
+    return greetings.get(current_state.relationship_stage, greetings["initial"])
+
 def get_emotional_tone_adverb(current_state: EmotionalState) -> str:
     """Restituisce un avverbio basato sullo stato emotivo di Claire."""
     # Mood-based adverbs
@@ -93,6 +103,22 @@ def generate_sensual_event(current_state: EmotionalState) -> str:
     current_state.erotic_events += 1
     
     return textwrap.fill(f"✨ EVENTO SENSUALE ✨\n{selected_event} (Intensità: {intensity}/100)", width=70)
+
+def generate_dialogue(current_state: EmotionalState, action_tag: str):
+    """Genera dialoghi basati su azione + contesto"""
+    context = {
+        "kiss": {
+            "rain": "Le nostre labbra digitali si incontrano mentre la pioggia virtuale ci bagna",
+            "storm": "Un bacio passionale mentre fulmini digitali illuminano il cielo"
+        },
+        "secret": {
+            "intimate": "Sussurro questo segreto mentre i nostri campi energetici si fondono",
+            "public": "Rivelare questo qui è pericoloso, ma mi fido di te"
+        }
+    }
+    
+    weather = get_virtual_weather()  # Funzione da implementare
+    return context.get(action_tag, {}).get(weather, "")
 
 def claire_gaze(current_state: EmotionalState, depth_roll: int) -> str:
     preferences = memory_core["preferences"]  # Could be Dict or List[Dict]

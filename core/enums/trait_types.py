@@ -1,9 +1,9 @@
 # core/enums/trait_types.py
+from enum import Enum, auto
 """
 Definizione dell'Enum TraitType per i tipi di tratti di personalità degli NPC.
 Riferimento TODO: IV.3.b
 """
-from enum import Enum, auto
 
 class TraitType(Enum):
     """Enum per i diversi tratti di personalità."""

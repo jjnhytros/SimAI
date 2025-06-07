@@ -62,3 +62,6 @@ SIMULATION_START_SECOND = 0
 
 # Fuso orario di default per la simulazione, deve essere uno tra "ATZ", "ECT", "WCT"
 DEFAULT_TIMEZONE = 'ATZ' 
+
+NIGHT_START_HOUR = 22
+NIGHT_END_HOUR = 6

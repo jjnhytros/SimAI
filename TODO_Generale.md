@@ -1,5 +1,5 @@
-# SimAI v0.5.115-alpha_251
-# TODO List Generale (Aggiornato al 06 Giugno 2025 13:32:00)
+# SimAI v0.5.112-alpha_250
+# TODO List Generale (Aggiornato al 07 Giugno 2025 14:03:02)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -52,55 +52,46 @@
 
 ---
 
-
-
 ## A. ARCHITETTURA CODICE E QUALITÀ
 
-### `[P]` **1. Struttura Modulare del Codice:**
+* `[x]` **1. Struttura Modulare del Codice:** `[PRIORITÀ: MEDIA-ALTA]`
     * `[x]` a. Organizzazione cartelle base.
     * `[P]` b. Creazione file principali.
     * `[x]` c. Definizione classe `Character`.
     * `[P]` d. Implementazione `__init__.py` per i package.
-    * `[P]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):**
-        * `[P]` i. **Tratti:** Spostare in `modules/traits/` con sottocartelle per categoria.
-        * `[P]` ii. **Skill:** Definire `SkillName/SkillId` e struttura modulare.
-        * `[P]` iii. **Azioni:** Rivedere le dipendenze dalle configurazioni.
+    * `[P]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** (Pattern di dependency injection applicato alle azioni base).
 
-### `[x]` **2. Struttura Modulare del Codice (Avanzata):**
+* `[x]` **2. Struttura Modulare del Codice (Avanzata):**
     * `[x]` a. Organizzazione package e `__init__.py`.
     * `[x]` b. **Logica di Sistema Modulare:** (`time_manager` implementato).
 
-### `[P]` **3. Gestione delle Configurazioni e Settings:**
-    * `[x]` a. File `settings.py` per costanti globali (es. `DEBUG_MODE`).
-    * `[x]` b. Refactoring per Configurazioni Modulari in `core/config/`.
-    * `[ ]` c. Sistema di logging avanzato.
+* `[P]` **3. Gestione delle Configurazioni e Settings:**
+    * `[x]` a. File `settings.py` per costanti globali.
+    * `[P]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Creati `actions_config.py`, `npc_config.py`, etc.).
+    * `[]` c. Sistema di logging avanzato.
     * `[F]` d. Supporto per internazionalizzazione (i18n).
 
 * `[P]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
     * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
         * `[P]` i. **Fase 1: Identificazione del "Problema"**
-            * `[P]` Potenziare `NeedsProcessor` per generare un oggetto `Problem` strutturato.
+            * `[x]` Potenziare `NeedsProcessor` per generare un oggetto `Problem` strutturato.
             * `[F]` Integrare altri tipi di problemi oltre ai bisogni.
-        * `[ ]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
-            * `[ ]` Ristrutturare `AIDecisionMaker` per implementare un loop di "ragionamento".
-            * `[ ]` Implementare una funzione di "scoperta soluzioni".
-            * `[ ]` Sviluppare una funzione di "punteggio" per valutare ogni soluzione, considerando:
+        * `[P]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
+            * `[]` Ristrutturare `AIDecisionMaker` per implementare un loop di "ragionamento".
+            * `[x]` Implementata "scoperta soluzioni" e valutazione base in `AIDecisionMaker`.
+            * `[]` Sviluppare una funzione di "punteggio" per valutare ogni soluzione, considerando:
                 * `[P]` Efficienza (effetti sui bisogni).
                 * `[P]` Personalità (tratti).
                 * `[P]` Contesto (oggetti/luoghi disponibili).
-                * `[ ]` Memoria (`MemorySystem`).
-                * `[ ]` Fattori Contestuali Avanzati (Ambientali, Sociali, Cognitivi).
-                * `[ ]` **Bias Cognitivi e Stato Mentale:** `[NUOVO (spostato da F)]`
-                    * `[ ]` Implementare `Carico Cognitivo` (decisioni più semplici sotto stress).
-                    * `[ ]` Implementare `Bias di Conferma` (interpretare eventi basandosi su preconcetti e memoria).
-            * `[ ]` **Gestione dei Conflitti Decisionali e Priorità**.
-        * `[ ]` iii. **Fase 3: Creazione del "Pensiero"**
-            * `[ ]` Definire una classe `Thought` per tracciare il processo decisionale.
-        * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
-            * `[P]` Il sistema `ActionExecutor` è già in grado di eseguire l'azione scelta.
-        * `[ ]` v. **Fase 5: Analisi Conseguenze e Apprendimento**
-            * `[ ]` Sviluppare un `ConsequenceAnalyzer`.
-            * `[ ]` Salvare un `Memory` strutturato nel `MemorySystem`.
+                * `[]` Memoria (`MemorySystem`).
+                * `[]` Fattori Contestuali Avanzati (Ambientali, Sociali, Cognitivi).
+                * `[]` **Bias Cognitivi e Stato Mentale:** `[NUOVO (spostato da F)]`
+                    * `[]` Implementare `Carico Cognitivo`.
+                    * `[]` Implementare `Bias di Conferma`.
+            * `[]` **Gestione dei Conflitti Decisionali e Priorità**.
+        * `[]` iii. **Fase 3: Creazione del "Pensiero"**
+        * `[P]` iv. **Fase 4: Esecuzione della "Soluzione"**
+        * `[]` v. **Fase 5: Analisi Conseguenze e Apprendimento**
 
 ---
 
@@ -2873,8 +2864,6 @@
         * `[ ]` 1. Il Governo di Anthalys potrebbe pubblicare periodicamente su SoNet (`XXIV.c.viii` o `XXIV.c.x`) report aggregati sul feedback dei cittadini e sulle azioni di miglioramento intraprese, per aumentare la fiducia e la trasparenza.
 
 ---
-
-
 
 ## XXV. INFRASTRUTTURE E URBANISTICA DI ANTHALYS `[ ]`
 

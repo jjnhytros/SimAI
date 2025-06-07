@@ -59,6 +59,20 @@ class TimeManager:
         )
         print(f"TimeManager inizializzato. Ora di inizio simulazione: {str(self._current_time)}")
 
+    def is_night(self) -> bool:
+        """Restituisce True se è notte."""
+        # Legge gli orari di inizio e fine notte da time_config
+        night_start_hour = getattr(time_config, 'NIGHT_START_HOUR', 22)
+        night_end_hour = getattr(time_config, 'NIGHT_END_HOUR', 6)
+        
+        current_hour = self.get_current_hour() # Usa il tuo metodo esistente
+        
+        # Gestisce il caso in cui la notte scavalca la mezzanotte (es. dalle 22 alle 6)
+        if night_start_hour > night_end_hour:
+            return current_hour >= night_start_hour or current_hour < night_end_hour
+        else:
+            return night_start_hour <= current_hour < night_end_hour
+
     def advance_time(self, game_speed: float): # game_speed non è usato per incrementare total_ticks qui
         """
         Avanza il tempo della simulazione.

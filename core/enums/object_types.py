@@ -1,91 +1,118 @@
 # core/enums/object_types.py
-"""
-Definizione dell'Enum 'ObjectType' per categorizzare i tipi di oggetti nel mondo.
-"""
 from enum import Enum, auto
+"""
+Definizione dell'Enum ObjectType per rappresentare i tipi di oggetti
+interagibili e non nel mondo di SimAI.
+Riferimento TODO: I.4, XVIII.1
+"""
 
 class ObjectType(Enum):
-    # Oggetti per il Divertimento
-    TV = auto()
-    COMPUTER = auto()
-    BOOKSHELF = auto() # Potrebbe contenere più libri
-    BOOK = auto()      # Un singolo libro (potrebbe avere generi)
-    STEREO = auto()
-    MUSICAL_INSTRUMENT_PIANO = auto()
-    MUSICAL_INSTRUMENT_GUITAR = auto()
-    GAME_CONSOLE = auto()
-    BOARD_GAME_TABLE = auto() # Un tavolo con un gioco da tavolo specifico
-    EASEL = auto() # Per dipingere (hobby artistico)
-    DANCE_FLOOR = auto() # Oggetto o tipo di superficie in una location
+    """
+    Enum per i diversi tipi di oggetti, raggruppati per categoria funzionale.
+    """
+    # --- Categoria: Arredamento Base ---
+    ARMCHAIR = auto()               # Poltrona
+    BAR_COUNTER = auto()            # Bancone da bar
+    BED = auto()                    # Letto
+    CABINET = auto()                # Mobiletto da cucina/bagno
+    CHAIR = auto()                  # Sedia generica
+    COFFEE_TABLE = auto()           # Tavolino da caffè
+    COUNTER = auto()                # Bancone da cucina
+    DESK = auto()                   # Scrivania
+    DESK_CHAIR = auto()             # Sedia da scrivania
+    DINING_CHAIR = auto()           # Sedia da pranzo
+    DINING_TABLE = auto()           # Tavolo da pranzo
+    DRESSER = auto()                # Cassettiera
+    SOFA = auto()                   # Divano
+    TABLE = auto()                  # Tavolo generico
+    WARDROBE = auto()               # Armadio per vestiti
 
-    # Oggetti Personali
-    PHONE = auto()              # <-- AGGIUNTO
-
-    # Oggetti di svago
-    GUITAR = auto()             # <-- AGGIUNTO
-    PIANO = auto()              # <-- AGGIUNTO
-    CHESS_TABLE = auto()        # <-- AGGIUNTO
-
-    # Oggetti Commerciali / Comunitari
-    CASH_REGISTER = auto()      # <-- AGGIUNTO
-    VENDING_MACHINE = auto()    # <-- AGGIUNTO
-    BAR_COUNTER = auto()        # <-- AGGIUNTO
-
-    # Oggetti per il Comfort
-    CHAIR_DINING = auto()
-    CHAIR_OFFICE = auto()
-    SOFA = auto()
-    ARMCHAIR = auto()
-    BED = auto()
-    BED_SINGLE = auto()
-    BED_DOUBLE = auto()
-    TABLE = auto()
-    CHAIR = auto()
-    WATER_COOLER = auto()      # Distributore d'acqua (boccione)
-
-    # Oggetti per l'Ambiente/Decorazione
-    PLANT_DECORATIVE = auto()
-    PAINTING_WALL = auto()
-    SCULPTURE = auto()
-    RUG = auto()
-    WINDOW_LARGE = auto()
-    LAMP = auto()
-
-    # Oggetti per Bisogni Fisiologici / Cucina / Bagno
-    REFRIGERATOR = auto()
-    STOVE = auto() # Fornelli
-    MICROWAVE = auto()
+    # --- Categoria: Elettrodomestici e Apparecchiature ---
     COFFEE_MACHINE = auto()
-    SINK_KITCHEN = auto()
-    SINK_BATHROOM = auto()
-    TOILET = auto()
-    SHOWER = auto()
+    DISHWASHER = auto()
+    DOMESTIC_TRASH_COMPACTOR = auto() # Smaltitore Domestico
+    MICROWAVE = auto()
+    OVEN = auto()
+    REFRIGERATOR = auto()
+    STOVE = auto()                  # Fornelli
+    WASHING_MACHINE = auto()
+    
+    # --- Categoria: Sanitari / Idraulica ---
     BATHTUB = auto()
-    TRASH_CAN = auto()
+    SHOWER = auto()
     SINK = auto()
+    TOILET = auto()
+    
+    # --- Categoria: Elettronica di Consumo ---
+    COMPUTER = auto()
+    GAME_CONSOLE = auto()
+    LAPTOP = auto()
+    PHONE = auto()
+    STEREO = auto()
+    TV = auto()
+    
+    # --- Categoria: Svago, Hobby e Skill ---
+    BOOK = auto()                   # Un libro singolo come oggetto
+    BOOKSHELF = auto()
+    CHEMISTRY_LAB_STATION = auto()  # Per Alchimia/Scienza
+    CHESS_TABLE = auto()
+    DJ_TURNTABLE = auto()
+    EASEL = auto()                  # Cavalletto per pittura
+    GRILL = auto()                  # Griglia per barbecue
+    GUITAR = auto()                 # Chitarra
+    PIANO = auto()                  # Pianoforte
+    TELESCOPE = auto()              # Telesopio
+    TREADMILL = auto()              # Tapis roulant
+    VIOLIN = auto()                 # Violino
+    WORKBENCH = auto()              # Banco da lavoro generico (Handiness)
+    WORKOUT_MACHINE = auto()
+    
+    # --- Categoria: Decorazioni e Varie ---
+    LAMP = auto()                   # Lampada generica
+    MIRROR = auto()                 # Specchio
+    PAINTING_OBJECT = auto()        # Un quadro appeso al muro
+    PLANT_POT = auto()              # Vaso per piante da interno
+    RUG = auto()                    # Tappeto
+    SCULPTURE = auto()
+    
+    # --- Categoria: Oggetti Pubblici e Commerciali ---
+    ARTISAN_WORKBENCH = auto()      # Banco da lavoro specifico per artigiani
+    CASH_REGISTER = auto()          # Registratore di Cassa
+    MARKET_STALL = auto()           # Bancarella del mercato
+    PARK_BENCH = auto()
+    PUBLIC_TRASH_CAN = auto()
+    SMART_BIN = auto()
+    SONET_INFO_KIOSK = auto()       # Chiosco informativo SoNet
+    TURNSTILE = auto()              # Tornello (Stadio, Metro)
+    VENDING_MACHINE = auto()
 
-    # Oggetti per Skill/Lavoro/Studio
-    WORKBENCH_CRAFTING = auto()
-    DESK = auto()
-    BOOK_SKILL_PROGRAMMING = auto() # Esempio libro per skill
-    TELESCOPE = auto() # Per interesse/skill Astronomia
+    # --- Categoria: Oggetti Unici / Monumenti ---
+    CONSTITUTION_MONUMENT = auto()
+    ETERNAL_FLAME_MONUMENT = auto()
+    FOUNTAIN = auto()               # Fontana pubblica/ornamentale
+    HISTORICAL_PLAQUE = auto()      # Placca storica
+    STATUE = auto()
 
-    # Oggetti Vari
-    DOOR = auto()
-    WARDROBE = auto() # Guardaroba
-    MIRROR = auto()
+    # --- Categoria: Industriale / Portuale ---
+    AUTOMATED_LOADING_ARM = auto()  # Braccio di carico
+    CARGO_CONTAINER = auto()
+    INDUSTRIAL_MACHINERY = auto()
+    
+    # --- Categoria: Veicoli (come oggetti di scena o interagibili) ---
+    AUTONOMOUS_SHUTTLE = auto()
+    FUNICULAR_CAR = auto()
+    LUXURY_CAR_DECO = auto()
+    ROWBOAT = auto()                # Barca a remi
+    SCHOOL_BUS_STOP_SIGN = auto()   # La fermata dello scuolabus
 
-    # Oggetti specifici di Anthalys (da definire in base al lore)
-    ASTRAL_CHARTING_TABLE = auto() # Esempio dal lore
-    TECH_RELIC_DISPLAY = auto()    # Esempio dal lore
-
-    # Oggetti "interattivi" ma non necessariamente posseduti
-    PUBLIC_BENCH = auto()
-    FOUNTAIN = auto()
-
-    UNKNOWN = auto() # Oggetto generico o non specificato
+    # --- Categoria: Risorse e Consumabili ---
+    CRAFTING_MATERIAL = auto()      # Materiale generico per crafting
+    DRINK_ITEM = auto()             # Una bevanda (es. bottiglia d'acqua, succo)
+    FOOD_ITEM = auto()              # Un piatto di cibo pronto
+    
+    # --- Tipo Generico ---
+    UNKNOWN_OBJECT = auto()
 
     def display_name_it(self) -> str:
-        # Potresti creare un mapping più specifico se necessario,
-        # per ora usiamo una formattazione generica.
+        """Restituisce un nome leggibile in italiano per il tipo di oggetto."""
         return self.name.replace("_", " ").title()

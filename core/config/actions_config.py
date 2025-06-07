@@ -33,10 +33,11 @@ DRINK_JUICE_THIRST_GAIN = 45.0
 DRINK_JUICE_FUN_GAIN = 10.0
 
 # --- UseBathroomAction ---
+USEBATHROOM_TOILET_DURATION_TICKS = 18
 USEBATHROOM_TOILET_DURATION_HOURS = 0.15
 USEBATHROOM_TOILET_BLADDER_RELIEF = 100.0
 USEBATHROOM_TOILET_HYGIENE_GAIN = 15.0
-USEBATHROOM_SHOWER_DURATION_HOURS = 0.4
+USEBATHROOM_SHOWER_DURATION_TICKS = 48 # circa 24 min
 USEBATHROOM_SHOWER_HYGIENE_GAIN = 80.0
 
 # --- EngageIntimacyAction ---
@@ -74,30 +75,55 @@ HAVEFUN_ACTIVITY_CONFIGS = {
 }
 
 # --- SocializeAction ---
-SOCIALIZE_DEFAULT_DURATION_TICKS = 40 # Usiamo tick qui perché le interazioni possono essere brevi
+SOCIALIZE_DEFAULT_DURATION_TICKS = 40
 SOCIALIZE_DEFAULT_INITIATOR_GAIN = 10.0
 SOCIALIZE_DEFAULT_TARGET_GAIN = 10.0
 SOCIALIZE_DEFAULT_REL_CHANGE = 1
 
+# Mappa di configurazione per ogni tipo di interazione sociale
 SOCIALIZE_INTERACTION_CONFIGS = {
     SocialInteractionType.CHAT_CASUAL: {
-        "duration_ticks": 40, "initiator_gain": 15.0, "target_gain": 15.0, "rel_change": 2,
+        "duration_ticks": 40,
+        "initiator_gain": 15.0,
+        "target_gain": 15.0,
+        "rel_change": 2,
     },
     SocialInteractionType.DEEP_CONVERSATION: {
-        "duration_ticks": 120, "initiator_gain": 30.0, "target_gain": 30.0, "rel_change": 5,
-        "new_rel_type_on_success": RelationshipType.FRIEND_REGULAR, "min_rel_score_req": 15
+        "duration_ticks": 120,
+        "initiator_gain": 30.0,
+        "target_gain": 30.0,
+        "rel_change": 5,
+        "new_rel_type_on_success": RelationshipType.FRIEND_REGULAR, # Può creare amicizia
+        "min_rel_score_req": 15 # Prerequisito: richiede un minimo di relazione per essere scelta
     },
     SocialInteractionType.TELL_JOKE: {
-        "duration_ticks": 15, "initiator_gain": 10.0, "target_gain": 15.0, "rel_change": 2,
+        "duration_ticks": 15,
+        "initiator_gain": 10.0,
+        "target_gain": 15.0,
+        "rel_change": 2,
         "effects_on_target": {NeedType.FUN: 10.0}
     },
     SocialInteractionType.FLIRT: {
-        "duration_ticks": 30, "initiator_gain": 15.0, "target_gain": 5.0, "rel_change": 3,
-        "new_rel_type_on_success": RelationshipType.CRUSH, "min_rel_score_req": -10
+        "duration_ticks": 30,
+        "initiator_gain": 15.0,
+        "target_gain": 5.0,
+        "rel_change": 3,
+        "new_rel_type_on_success": RelationshipType.CRUSH,
+        "min_rel_score_req": -10 # Si può flirtare anche con chi si conosce appena
     },
     SocialInteractionType.ARGUE: {
-        "duration_ticks": 50, "initiator_gain": -20.0, "target_gain": -20.0, "rel_change": -8,
+        "duration_ticks": 50,
+        "initiator_gain": -20.0,
+        "target_gain": -20.0,
+        "rel_change": -8,
         "new_rel_type_on_success": RelationshipType.ENEMY_DISLIKED
     },
-    # ... definisci una entry per ogni SocialInteractionType ...
+    SocialInteractionType.INSULT: {
+        "duration_ticks": 10,
+        "initiator_gain": -5.0, # L'insulto può dare una piccola scarica di adrenalina/potere
+        "target_gain": -30.0,
+        "rel_change": -15,
+        "new_rel_type_on_success": RelationshipType.ENEMY_DISLIKED
+    },
+    # ... definire una entry per ogni SocialInteractionType ...
 }

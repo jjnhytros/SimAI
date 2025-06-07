@@ -20,4 +20,4 @@ __all__ = [
     'SocializeAction',
     'UseBathroomAction',
 ]
-print("  [Actions Package] Package 'core.modules.actions' caricato.")
+# print("  [Actions Package] Package 'core.modules.actions' caricato.")

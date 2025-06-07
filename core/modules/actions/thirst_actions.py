@@ -3,68 +3,53 @@ from typing import Optional, TYPE_CHECKING, Dict
 
 from core.enums import ActionType, NeedType, ObjectType
 from .action_base import BaseAction
-from core.config import time_config # Per IXH, se usato per default di durata
-from core import settings # Solo per DEBUG_MODE
+from core import settings
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
     from core.world.game_object import GameObject
 
-# I default a livello di modulo non sono più usati direttamente da __init__
-# _DEFAULT_DRINK_DURATION_TICKS = ...
-# _DEFAULT_THIRST_SATISFACTION_WATER = ...
-
 class DrinkAction(BaseAction):
-    """Azione per l'NPC di bere per soddisfare la sete."""
+    """Azione per l'NPC di bere, configurata dall'esterno."""
 
     def __init__(self,
                  npc: 'Character',
                  simulation_context: 'Simulation',
-                 # --- Parametri di configurazione ora iniettati ---
-                 drink_type_name: str,          # Es. "WATER", "JUICE"
+                 # --- Parametri di configurazione iniettati ---
+                 drink_type_name: str,
                  duration_ticks: int,
                  thirst_gain: float,
-                 # Parametri opzionali
-                 drink_source_object: Optional['GameObject'] = None,
                  effects_on_other_needs: Optional[Dict[NeedType, float]] = None
                 ):
         
-        self.drink_type_name: str = drink_type_name
-        self.drink_source_object: Optional['GameObject'] = drink_source_object # Può essere None e trovato in is_valid
-        self.thirst_gain: float = thirst_gain
-
-        # Costruisci action_type_name dinamicamente
-        # Potrebbe essere ulteriormente aggiornato in on_start se drink_source_object viene trovato in is_valid
-        _action_name_str = f"ACTION_DRINK_{self.drink_type_name.upper()}"
-        if self.drink_source_object: # Aggiunge il tipo di oggetto se già noto
-            _action_name_str += f"_FROM_{self.drink_source_object.object_type.name}"
-        
-        action_type_enum_val = ActionType.ACTION_DRINK # Enum generico per l'azione di bere
+        self.drink_type_name = drink_type_name
+        self.thirst_gain = thirst_gain
+        # target_object viene trovato in is_valid, quindi lo inizializziamo in BaseAction
 
         super().__init__(
             npc=npc,
-            action_type_name=_action_name_str, # Nome dinamico per logging/display
-            action_type_enum=action_type_enum_val,
+            action_type_name=f"ACTION_DRINK_{self.drink_type_name.upper()}",
+            action_type_enum=ActionType.ACTION_DRINK,
             duration_ticks=duration_ticks,
             p_simulation_context=simulation_context,
             is_interruptible=True
         )
 
-        self.effects_on_needs: Dict[NeedType, float] = {NeedType.THIRST: self.thirst_gain}
+        self.effects_on_needs = {NeedType.THIRST: self.thirst_gain}
         if effects_on_other_needs:
             self.effects_on_needs.update(effects_on_other_needs)
 
         if settings.DEBUG_MODE:
             source_log = self.drink_source_object.name if self.drink_source_object else "auto-detect"
             print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata. "
-                  f"Tipo: {self.drink_type_name}, Sorgente: {source_log}, "
-                  f"Gain Sete: {self.thirst_gain:.1f}, Durata: {self.duration_ticks}t, "
-                  f"Altri Effetti: {self.effects_on_needs if effects_on_other_needs else 'Nessuno'}")
+                f"Tipo: {self.drink_type_name}, Sorgente: {source_log}, "
+                f"Gain Sete: {self.thirst_gain:.1f}, Durata: {self.duration_ticks}t, "
+                f"Altri Effetti: {self.effects_on_needs if effects_on_other_needs else 'Nessuno'}")
 
     def is_valid(self) -> bool:
         if not super().is_valid(): # Chiamata al metodo base se BaseAction.is_valid() ha logica comune
-             return False # Ad esempio, se BaseAction.is_valid() controlla self.npc
+            return False # Ad esempio, se BaseAction.is_valid() controlla self.npc
 
         thirst_need = self.npc.needs.get(NeedType.THIRST)
         # Assicurati che npc_config sia importato o settings.NEED_MAX_VALUE

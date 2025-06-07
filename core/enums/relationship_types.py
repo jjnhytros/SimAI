@@ -1,9 +1,9 @@
 # core/enums/relationship_types.py
+from enum import Enum, auto
 """
 Definizione dell'Enum 'RelationshipType' per rappresentare i tipi di relazione
 tra NPC in SimAI.
 """
-from enum import Enum, auto
 
 class RelationshipType(Enum):
     """
@@ -46,38 +46,27 @@ class RelationshipType(Enum):
     NEIGHBOR = auto()                   # Vicino di casa
     MENTOR = auto()                     # Mentore
     MENTEE = auto()                     # Allievo (di un mentore)
-    # ROOMMATE = auto()                 # Coinquilino (se rilevante)
+    ROOMMATE = auto()                   # Coinquilino (se rilevante)
 
     def display_name_it(self) -> str:
         mapping = {
-            RelationshipType.PARENT: "Genitore",
-            RelationshipType.CHILD: "Figlio/a",
-            RelationshipType.GRANDPARENT: "Nonno/a",
-            RelationshipType.GRANDCHILD: "Nipote (di nonni)",
-            RelationshipType.GREAT_GRANDPARENT: "Bisnonno/a",
-            RelationshipType.GREAT_GRANDCHILD: "Pronipote (di bisnonni)",
-            RelationshipType.GREAT_GREAT_GRANDPARENT: "Trisnonno/a",
-            RelationshipType.GREAT_GREAT_GRANDCHILD: "Figlio/a di Pronipote",
-            RelationshipType.SIBLING: "Fratello/Sorella",
-            RelationshipType.SPOUSE: "Coniuge",
-            RelationshipType.EXTENDED_FAMILY: "Parente Esteso",
-            RelationshipType.FRIEND_CLOSE: "Amico Stretto",
-            RelationshipType.FRIEND_REGULAR: "Amico",
-            RelationshipType.ACQUAINTANCE: "Conoscente",
-            RelationshipType.ROMANTIC_PARTNER: "Partner Romantico",
-            RelationshipType.CRUSH: "Cotta",
-            RelationshipType.EX_PARTNER: "Ex Partner",
-            RelationshipType.ENEMY_RIVAL: "Nemico/Rivale",
-            RelationshipType.ENEMY_DISLIKED: "Antipatia",
-            RelationshipType.COLLEAGUE: "Collega",
-            RelationshipType.NEIGHBOR: "Vicino di Casa",
-            RelationshipType.MENTOR: "Mentore",
-            RelationshipType.MENTEE: "Allievo",
+            RelationshipType.PARENT: "Genitore", RelationshipType.CHILD: "Figlio/a",
+            RelationshipType.GRANDPARENT: "Nonno/a", RelationshipType.GRANDCHILD: "Nipote (di nonni)",
+            RelationshipType.GREAT_GRANDPARENT: "Bisnonno/a", RelationshipType.GREAT_GRANDCHILD: "Pronipote",
+            RelationshipType.GREAT_GREAT_GRANDPARENT: "Trisnonno/a", RelationshipType.GREAT_GREAT_GRANDCHILD: "Bis-pronipote",
+            RelationshipType.SIBLING: "Fratello/Sorella", RelationshipType.SPOUSE: "Coniuge",
+            RelationshipType.EXTENDED_FAMILY: "Parente", RelationshipType.FRIEND_CLOSE: "Amico Stretto",
+            RelationshipType.FRIEND_REGULAR: "Amico", RelationshipType.ACQUAINTANCE: "Conoscente",
+            RelationshipType.ROMANTIC_PARTNER: "Partner Romantico", RelationshipType.CRUSH: "Cotta",
+            RelationshipType.EX_PARTNER: "Ex Partner", RelationshipType.ENEMY_RIVAL: "Nemico/Rivale",
+            RelationshipType.ENEMY_DISLIKED: "Antipatia", RelationshipType.COLLEAGUE: "Collega",
+            RelationshipType.NEIGHBOR: "Vicino di Casa", RelationshipType.MENTOR: "Mentore",
+            RelationshipType.MENTEE: "Allievo", RelationshipType.ROOMMATE: "Coinquilino",
         }
         return mapping.get(self, self.name.replace("_", " ").title())
 
     def is_direct_family_link(self) -> bool:
-        """Indica se è un legame familiare diretto (ascendente/discendente/coniuge/fratello)."""
+        """Indica se è un legame familiare diretto."""
         return self in {
             RelationshipType.PARENT, RelationshipType.CHILD,
             RelationshipType.GRANDPARENT, RelationshipType.GRANDCHILD,

@@ -7,4 +7,4 @@
 # from .time_manager import TimeManager
 # __all__ = ['TimeManager']
 
-print("  [Modules Package] Package 'core.modules' caricato.")
+# print("  [Modules Package] Package 'core.modules' caricato.")

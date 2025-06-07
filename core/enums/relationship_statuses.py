@@ -1,9 +1,9 @@
 # core/enums/relationship_statuses.py
+from enum import Enum, auto
 """
 Definizione dell'Enum 'RelationshipStatus' per rappresentare lo stato
 sentimentale di un NPC in SimAI.
 """
-from enum import Enum, auto
 
 class RelationshipStatus(Enum):
     """

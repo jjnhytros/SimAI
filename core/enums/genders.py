@@ -1,8 +1,8 @@
 # core/enums/genders.py
+from enum import Enum, auto
 """
 Definizione dell'Enum 'Gender' per rappresentare il genere degli NPC in SimAI.
 """
-from enum import Enum, auto
 
 class Gender(Enum):
     """
@@ -19,12 +19,12 @@ class Gender(Enum):
     UNKNOWN = auto()
 
     def display_name_it(self) -> str:
-        """Restituisce il nome del genere in italiano (esempio)."""
+        """Restituisce il nome del genere in italiano"""
         mapping = {
             Gender.MALE: "Maschio",
             Gender.FEMALE: "Femmina",
             Gender.NON_BINARY: "Non Binario",
-            Gender.OTHER: "Non Binario",
-            Gender.UNKNOWN: "Non Binario",
+            Gender.OTHER: "Altro (non specificato)",
+            Gender.UNKNOWN: "Sconosciuto",
         }
         return mapping.get(self, self.name.replace("_", " ").title())

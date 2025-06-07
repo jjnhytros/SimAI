@@ -5,7 +5,7 @@
 # o per eseguire codice di inizializzazione specifico del package.
 
 # Aggiungiamo un print per vedere quando il package viene caricato.
-print("Package 'core' caricato.")
+# print("Package 'core' caricato.")
 
 # In futuro, potremmo importare qui le classi principali dai moduli di 'core'
 # per renderle più facilmente accessibili dall'esterno. Ad esempio:

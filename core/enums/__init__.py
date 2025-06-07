@@ -5,8 +5,6 @@ Viene utilizzato per importare ed esporre centralmente tutte le Enum
 definite nei moduli specifici all'interno di questo package.
 """
 
-from core.settings import DEBUG_MODE
-
 # Importa le Enum dai loro moduli specifici
 from .action_types import ActionType
 from .aspiration_types import AspirationType
@@ -24,6 +22,7 @@ from .school_levels import SchoolLevel
 from .skill_types import SkillType
 from .social_interaction_types import SocialInteractionType
 from .trait_types import TraitType
+from .weather_types import WeatherType
 
 __all__ = [
     'ActionType',
@@ -41,6 +40,7 @@ __all__ = [
     'SchoolLevel',
     'SkillType',
     'SocialInteractionType',
+    'TraitType',
+    'WeatherType',
 ]
 
-if DEBUG_MODE: print("  [Enums Package] Package 'core.enums' caricato.")

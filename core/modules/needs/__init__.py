@@ -2,7 +2,7 @@
 """
 Package per la gestione dei singoli oggetti Bisogno (Need).
 """
-from core.settings import DEBUG_MODE
+# from core.settings import DEBUG_MODE
 from .need_base import BaseNeed
 from .common_needs import (
     AchievementNeed,
@@ -44,4 +44,4 @@ __all__ = [
     # ...
 ]
 
-if DEBUG_MODE: print("  [Needs Package] Package 'core.modules.needs' caricato (con bisogni specifici).")
+# if DEBUG_MODE: print("  [Needs Package] Package 'core.modules.needs' caricato (con bisogni specifici).")

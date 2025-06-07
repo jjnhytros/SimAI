@@ -12,6 +12,7 @@ from core.world.game_object import GameObject
 from core.AI import AICoordinator
 from core.AI.lod_manager import LODManager
 from core.AI.social_manager import SocialManager
+from core.world.weather_manager import WeatherManager
 
 class Simulation:
     def __init__(self):
@@ -24,13 +25,14 @@ class Simulation:
         self.npcs: Dict[str, Character] = {}
         self.social_hubs: List[Dict] = []
         self.time_manager = TimeManager()
+        self.weather_manager = WeatherManager()
+        self.lod_manager = LODManager(self) # Istanzia LODManager qui
 
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
         self.game_speed: float = 1.0
         self.default_starting_location_id: Optional[str] = None
         self._initialize_world_data()
-        self.lod_manager = LODManager(self) # Istanzia LODManager qui
         self.ai_coordinator = AICoordinator(self)
         self.social_manager = SocialManager(self)
         self.ai_coordinator = AICoordinator(self)
@@ -40,8 +42,8 @@ class Simulation:
 
     def _initialize_world_data(self):
         self.social_hubs = [
-            {"hub_id": "hub_bibli_club", "name": "Club Libro Biblio", "activity_type_descriptor": "Incontro Settimanale", "location_category": LocationType.COMMUNITY_LOT_LIBRARY, "associated_interests": {Interest.READING, Interest.HISTORY}},
-            {"hub_id": "hub_galleria_visioni", "name": "Galleria 'Visioni'", "activity_type_descriptor": "Esposizione", "location_category": LocationType.COMMUNITY_LOT_MUSEUM, "associated_interests": {Interest.VISUAL_ARTS, Interest.PHOTOGRAPHY}},
+            {"hub_id": "hub_bibli_club", "name": "Club Libro Biblio", "activity_type_descriptor": "Incontro Settimanale", "location_category": LocationType.PUBLIC_LIBRARY, "associated_interests": {Interest.READING, Interest.HISTORY}},
+            {"hub_id": "hub_galleria_visioni", "name": "Galleria 'Visioni'", "activity_type_descriptor": "Esposizione", "location_category": LocationType.MUSEUM, "associated_interests": {Interest.VISUAL_ARTS, Interest.PHOTOGRAPHY}},
         ]
         if settings.DEBUG_MODE: print(f"  [Simulation INIT] Inizializzati {len(self.social_hubs)} social hub.")
 
@@ -296,6 +298,7 @@ class Simulation:
             return
 
         self.time_manager.advance_time(self.game_speed) 
+        self.weather_manager.update_weather()
 
         if settings.DEBUG_MODE and self.time_manager.get_current_minute() == 0 :
             print(f"      [SimTime] Ora: {self.time_manager.get_formatted_datetime_string()} (Tick Sim: {self.current_tick})")

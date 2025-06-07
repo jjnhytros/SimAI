@@ -8,18 +8,18 @@ import os
 import random
 from typing import Set
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir) 
+project_root = os.path.dirname(os.path.abspath(__file__))
+settings_path_check = os.path.join(project_root, 'core', 'settings.py')
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 try:
-    from core import settings
     from core.simulation import Simulation
     from core.character import Character
     from core.enums import (
         Gender, Interest, RelationshipStatus, AspirationType, TraitType
     )
+    from core import settings
     from core.graphics import Renderer
 except ImportError as e:
     print(f"Errore di importazione: {e}. Assicurati che i moduli siano nel PYTHONPATH.")
@@ -53,7 +53,7 @@ def setup_test_simulation() -> Simulation:
     sim.set_player_character(npc1.npc_id) 
 
 
-    npc2_interests: Set[Interest] = {Interest.SPORTS_ACTIVE, Interest.GAMING}
+    npc2_interests: Set[Interest] = {Interest.SPORTS_PRACTICING, Interest.GAMING}
     npc2_traits: Set[TraitType] = {TraitType.ACTIVE, TraitType.SOCIAL, TraitType.OPTIMIST}
     npc2 = Character(
         npc_id="Erika002", name="Erika Sky", initial_gender=Gender.FEMALE,

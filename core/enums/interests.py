@@ -1,53 +1,100 @@
 # core/enums/interests.py
-"""
-Definizione dell'Enum 'Interest' per rappresentare i possibili
-interessi e hobby degli NPC in SimAI.
-"""
 from enum import Enum, auto
+"""
+Definizione dell'Enum Interest per gli interessi degli NPC.
+Riferimento TODO: II.2.b, IV.3.b
+"""
 
 class Interest(Enum):
-    """
-    Rappresenta i possibili interessi/hobby che un NPC può avere.
-    Riferimento: TODO.md, Sezione X.1.a
-    """
-    # Aggiungere altri interessi specifici per Anthalys se emergono.
-    ASTRONOMY = auto()               # Astronomia Osservativa
-    BAKING = auto()                  # Pasticceria
-    BOARD_GAMES = auto()             # Giochi da Tavolo e di Società
-    COLLECTING = auto()              # Collezionismo
-    COOKING = auto()                 # Cucina
-    CRAFTS_GENERAL = auto()          # Artigianato Generale (es. fai-da-te, modellismo)
-    FASHION = auto()                 # Moda
-    FILM_TV_SERIES = auto()          # Cinema e Serie TV
-    GAMING = auto()                  # Gaming (Videogiochi)
-    GARDENING = auto()               # Giardinaggio
-    HISTORY = auto()                 # Storia (generale o locale)
-    MENTORING_AS_HOBBY = auto()      # Mentoring (inteso come passione/hobby)
-    MUSIC_LISTENING = auto()         # Ascolto Musica
-    MUSIC_PLAYING = auto()           # Suonare Strumenti Musicali
-    NATURE_EXPLORATION = auto()      # Esplorazione della Natura, Escursionismo
-    OUTDOOR_ACTIVITIES = auto()      # Attività all'Aperto (generico)
-    PAINTING = auto()                # Pittura
-    PHILOSOPHY_DEBATE = auto()       # Filosofia, Dibattito, Discussioni Intellettuali
-    PHOTOGRAPHY = auto()             # Fotografia
-    READING = auto()                 # Lettura
-    SOCIAL_ACTIVISM = auto()         # Attivismo Sociale/Politico
-    SPORTS_ACTIVE = auto()           # Praticare Sport Attivamente
-    TECHNOLOGY = auto()              # Tecnologia e Informatica (come hobby)
-    TOYS_PLAYING = auto()            # Giocare con Giocattoli
-    TRAVEL = auto()                  # Viaggi ed Esplorazione
-    VISUAL_ARTS = auto()             # Arti Visive (più generico di Pittura)
-    VOLUNTEERING = auto()            # Volontariato
-    WRITING = auto()                 # Scrittura
+    """Enum per i diversi interessi e passioni degli NPC."""
 
-    # Esempio di come potresti aggiungere un metodo per un nome "display"
-    # def display_name_it(self):
-    #     mapping = {
-    #         Interest.READING: "Lettura",
-    #         Interest.GARDENING: "Giardinaggio",
-    #         # ... e così via per tutti gli altri ...
-    #         Interest.PHILOSOPHY_DEBATE: "Filosofia e Dibattito"
-    #     }
-    #     return mapping.get(self, self.name.replace("_", " ").title())
+    # --- Interessi Accademici / Conoscenza ---
+    HISTORY = auto()                # Storia e archeologia
+    MEDICINE = auto()               # Medicina e salute
+    PHILOSOPHY_DEBATE = auto()      # Filosofia e dibattito
+    POLITICS = auto()               # Politica e attualità
+    READING = auto()                # Lettura (più generico di Letteratura)
+    SCIENCE = auto()                # Scienza in generale
+    TECHNOLOGY = auto()             # Tecnologia, robotica, IA
 
-# Non è necessario un print qui, quello in __init__.py del package è sufficiente.
+    # --- Interessi Artistici e Culturali ---
+    ARCHITECTURE = auto()           # Architettura e design urbano
+    FASHION = auto()                # Moda e design di abiti
+    FILM_TV_THEATER = auto()        # Film, Serie TV e Teatro
+    MUSIC_LISTENING = auto()        # Ascoltare musica
+    MUSIC_PLAYING = auto()          # Suonare uno o più strumenti
+    PAINTING = auto()               # Interesse specifico nella pittura
+    PHOTOGRAPHY = auto()            # Interesse specifico nella fotografia
+    VISUAL_ARTS = auto()            # Pittura, scultura, disegno in generale
+    WRITING = auto()                # Interesse specifico nella scrittura
+
+    # --- Interessi Pratici / Hobby ---
+    BOARD_GAMES = auto()            # Giochi da tavolo e di strategia
+    COLLECTING = auto()             # Collezionismo (di qualsiasi tipo)
+    COOKING_AND_FOOD = auto()       # Cucinare e il buon cibo
+    CRAFTING = auto()               # Artigianato, fai-da-te, modellismo
+    GAMING = auto()                 # Gaming (Videogiochi PC o Console)
+    GARDENING = auto()              # Giardinaggio e botanica
+    TOYS_PLAYING = auto()           # Giocare con giocattoli (per bambini)
+
+    # --- Interessi legati a Stile di Vita e Attività ---
+    ANIMALS = auto()                # Animali domestici e fauna selvatica
+    FITNESS_AND_WELLNESS = auto()   # Fitness, yoga, meditazione, benessere
+    NATURE_AND_OUTDOORS = auto()    # Natura, escursionismo, attività all'aperto
+    SPORTS_PRACTICING = auto()      # Praticare sport attivamente
+    SPORTS_WATCHING = auto()        # Seguire sport da spettatore
+    TRAVEL = auto()                 # Viaggiare ed esplorare
+    
+    # --- Interessi Sociali ---
+    GOSSIP = auto()                 # Pettegolezzi e dinamiche sociali
+    MENTORING_AS_HOBBY = auto()     # Fare da mentore come passione
+    SOCIALIZING = auto()            # Socializzare in generale, feste
+    SOCIAL_ACTIVISM = auto()        # Attivismo Sociale, Politico, Volontariato
+
+    def display_name_it(self) -> str:
+        """Restituisce un nome leggibile in italiano per l'interesse."""
+        mapping = {
+            # Accademici
+            Interest.HISTORY: "Storia",
+            Interest.MEDICINE: "Medicina",
+            Interest.PHILOSOPHY_DEBATE: "Filosofia e Dibattito",
+            Interest.POLITICS: "Politica",
+            Interest.READING: "Lettura",
+            Interest.SCIENCE: "Scienza",
+            Interest.TECHNOLOGY: "Tecnologia",
+
+            # Artistici
+            Interest.ARCHITECTURE: "Architettura",
+            Interest.FASHION: "Moda",
+            Interest.FILM_TV_THEATER: "Film, TV e Teatro",
+            Interest.MUSIC_LISTENING: "Ascoltare Musica",
+            Interest.MUSIC_PLAYING: "Suonare Strumenti",
+            Interest.PAINTING: "Pittura",
+            Interest.PHOTOGRAPHY: "Fotografia",
+            Interest.VISUAL_ARTS: "Arti Visive",
+            Interest.WRITING: "Scrittura",
+
+            # Pratici
+            Interest.BOARD_GAMES: "Giochi da Tavolo",
+            Interest.COLLECTING: "Collezionismo",
+            Interest.COOKING_AND_FOOD: "Cucina e Cibo",
+            Interest.CRAFTING: "Artigianato",
+            Interest.GAMING: "Gaming",
+            Interest.GARDENING: "Giardinaggio",
+            Interest.TOYS_PLAYING: "Giocare con Giocattoli",
+
+            # Stile di Vita
+            Interest.ANIMALS: "Animali",
+            Interest.FITNESS_AND_WELLNESS: "Fitness e Benessere",
+            Interest.NATURE_AND_OUTDOORS: "Natura ed Escursioni",
+            Interest.SPORTS_PRACTICING: "Praticare Sport",
+            Interest.SPORTS_WATCHING: "Seguire Sport",
+            Interest.TRAVEL: "Viaggi",
+
+            # Sociali
+            Interest.GOSSIP: "Pettegolezzi",
+            Interest.MENTORING_AS_HOBBY: "Fare da Mentore",
+            Interest.SOCIALIZING: "Socializzare",
+            Interest.SOCIAL_ACTIVISM: "Attivismo Sociale",
+        }
+        return mapping.get(self, self.name.replace("_", " ").title())

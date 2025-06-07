@@ -19,14 +19,18 @@ class BaseAction(ABC):
                 npc: 'Character',
                 action_type_name: str,
                 duration_ticks: int,
-                p_simulation_context: 'Simulation',
-                is_interruptible: bool = True,
+                 p_simulation_context: 'Simulation',
+                 is_outdoors: bool = False, # L'azione si svolge all'aperto?
+                 is_noisy: bool = False,    # L'azione è rumorosa?
+                 is_interruptible: bool = True,
                 action_type_enum: Optional[ActionType] = None
                 ):
         self.npc: 'Character' = npc
         self.action_type_name: str = action_type_name
         self.duration_ticks: int = duration_ticks
         self.sim_context: 'Simulation' = p_simulation_context
+        self.is_outdoors: bool = is_outdoors
+        self.is_noisy: bool = is_noisy
         self.is_interruptible: bool = is_interruptible
         
         self.action_type_enum: Optional[ActionType] = action_type_enum # Memorizza l'enum se fornito

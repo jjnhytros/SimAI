@@ -8,6 +8,7 @@ from .decision_system import DecisionSystem
 from .needs_processor import NeedsProcessor
 from .action_executor import ActionExecutor
 from .social_manager import SocialManager
+from .consequence_analyzer import ConsequenceAnalyzer
 
 # from .memory_system import MemorySystem # Se definito
 # from .learning_system import LearningSystem # Se definito

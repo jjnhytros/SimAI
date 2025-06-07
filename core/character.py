@@ -22,6 +22,7 @@ from core.modules.traits import (
     AmbitiousTrait, LazyTrait, SocialTrait, CreativeTrait,
 )
 from core.modules.relationships.relationship_base import Relationship
+from core.modules.memory.memory_system import MemorySystem
 
 from dataclasses import dataclass, field
 from core.AI.ai_decision_maker import AIDecisionMaker
@@ -108,8 +109,11 @@ class Character:
         # --- INIZIALIZZA PRIMA I DIZIONARI VUOTI ---
         self.traits: Dict[TraitType, BaseTrait] = {}
         self.needs: Dict[NeedType, BaseNeed] = {}
-        
-        # --- POI CHIAMA I METODI DI INIZIALIZZAZIONE CHE LI POPOLANO ---
+
+        # --- INIZIALIZZAZIONE DEL MEMORYSYSTEM ---
+        self.memory_system: MemorySystem = MemorySystem(self)
+
+        # --- METODI DI INIZIALIZZAZIONE CHE LI POPOLANO ---
         self._initialize_traits(initial_traits or set())
         self._initialize_needs() 
         
@@ -132,7 +136,8 @@ class Character:
         self.pending_intimacy_proposal_from: Optional[str] = None
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
-        
+
+
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s} (ID: {self.npc_id})")
 
 
@@ -403,28 +408,45 @@ class Character:
 
     def update_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation'):
         if self.current_action:
+            # Se un'azione è in corso, esegui il suo tick
             if self.current_action.is_started and \
-            not self.current_action.is_finished and \
-            not self.current_action.is_interrupted:
+               not self.current_action.is_finished and \
+               not self.current_action.is_interrupted:
                 self.current_action.execute_tick()
 
+            # Se l'azione è appena finita o è stata interrotta in questo tick
             if self.current_action.is_finished or self.current_action.is_interrupted:
                 action_name_log = self.current_action.action_type_name
                 was_interrupted = self.current_action.is_interrupted
-                self.current_action = None; self.is_busy = False
+                
+                # --- INTEGRAZIONE CONSEQUENCEANALYZER ---
+                # 1. Prima di cancellare l'azione, salviamo un riferimento ad essa per analizzarla
+                completed_action = self.current_action
+                
+                # 2. Resetta lo stato dell'azione per l'NPC
+                self.current_action = None
+                self.is_busy = False
+                
+                # 3. Ora che l'NPC è "libero", analizziamo le conseguenze dell'azione appena terminata
+                if simulation_context.consequence_analyzer:
+                    simulation_context.consequence_analyzer.analyze_action_and_create_memory(self, completed_action)
+                # --- FINE INTEGRAZIONE ---
+                
                 if settings.DEBUG_MODE:
                     status_log = "INTERROTTA" if was_interrupted else "COMPLETATA"
                     print(f"  [Character Action - {self.name}] Azione '{action_name_log}' {status_log}. NPC libero.")
 
+        # Se l'NPC non è occupato e c'è un'azione in coda, avviala
         if not self.is_busy and self.action_queue:
             next_action_from_queue = self.action_queue.popleft()
             if settings.DEBUG_MODE:
                 print(f"  [Character Action - {self.name}] Tento avvio da coda: '{next_action_from_queue.action_type_name}'. Coda: {len(self.action_queue)}")
             self._start_action(next_action_from_queue, simulation_context)
 
-        # Modifica qui per controllare se ai_decision_maker esiste
+        # Se l'NPC non è occupato e non ha nulla in coda, chiedi all'IA di decidere cosa fare
         if not self.is_busy and not self.action_queue:
-            if self.ai_decision_maker is not None: # <--- CONTROLLO AGGIUNTO
+            if self.ai_decision_maker is not None:
+                # La decisione dell'IA potrebbe accodare una nuova azione
                 self.ai_decision_maker.decide_next_action(time_manager, simulation_context)
             elif settings.DEBUG_MODE:
                 print(f"  [Character UpdateAction WARN - {self.name}] ai_decision_maker è None. Impossibile decidere la prossima azione.")

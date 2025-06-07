@@ -1,21 +1,14 @@
 # core/AI/problem_definitions.py
+"""
+Definisce la dataclass Problem, che rappresenta un problema strutturato
+che l'IA dell'NPC deve affrontare.
+"""
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Optional, Dict, Any, List # Aggiunto List per coerenza se lo userai
+from typing import Optional, Dict, Any
 import uuid
 
-# Assumiamo che NeedType sia in core.enums
-from core.enums import NeedType # O il percorso corretto se l'hai spostato
-
-class ProblemType(Enum):
-    """Tipi di problemi che un NPC può affrontare."""
-    LOW_NEED = auto()
-    # In futuro potremmo aggiungere:
-    # THREAT_DETECTED = auto()
-    # OPPORTUNITY_AVAILABLE = auto()
-    # SOCIAL_CONFLICT = auto()
-    # GOAL_OBSTRUCTED = auto()
-    # ENVIRONMENTAL_HAZARD = auto()
+# Importa ProblemType dalla sua nuova posizione centralizzata
+from core.enums import ProblemType, NeedType
 
 @dataclass
 class Problem:
@@ -30,7 +23,6 @@ class Problem:
     # --- Campi CON valore di default DOPO ---
     problem_id: uuid.UUID = field(default_factory=uuid.uuid4)
     details: Dict[str, Any] = field(default_factory=dict) # Dettagli specifici del problema
-                                                    # Es. per LOW_NEED: {'need': NeedType.HUNGER, 'current_value': 15.0}
     timestamp: Optional[float] = None # Tempo della simulazione in cui il problema è stato identificato
     
     # Potenziali campi futuri (con default, quindi possono stare qui):

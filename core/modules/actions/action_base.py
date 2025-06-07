@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional, Dict
 
 from core.enums import NeedType, ActionType # ActionType è usato qui
 from core.world.game_object import GameObject
+from core.AI.problem_definitions import Problem
 
 if TYPE_CHECKING:
     from core.character import Character
@@ -19,11 +20,12 @@ class BaseAction(ABC):
                 npc: 'Character',
                 action_type_name: str,
                 duration_ticks: int,
-                 p_simulation_context: 'Simulation',
-                 is_outdoors: bool = False, # L'azione si svolge all'aperto?
-                 is_noisy: bool = False,    # L'azione è rumorosa?
-                 is_interruptible: bool = True,
-                action_type_enum: Optional[ActionType] = None
+                p_simulation_context: 'Simulation',
+                is_outdoors: bool = False, # L'azione si svolge all'aperto?
+                is_noisy: bool = False,    # L'azione è rumorosa?
+                is_interruptible: bool = True,
+                action_type_enum: Optional[ActionType] = None,
+                triggering_problem: Optional['Problem'] = None,
                 ):
         self.npc: 'Character' = npc
         self.action_type_name: str = action_type_name
@@ -44,6 +46,7 @@ class BaseAction(ABC):
         # Esempio: {NeedType.HUNGER: 50.0, NeedType.ENERGY: -5.0}
         self.effects_on_needs: Dict[NeedType, float] = {}
         self.target_object: Optional['GameObject'] = None
+        self.triggering_problem: Optional['Problem'] = triggering_problem # <-- MEMORIZZA IL PROBLEMA
 
         # TODO VI.1.b: Aggiungere altri attributi previsti come:
         # self.required_objects: List[str] = []

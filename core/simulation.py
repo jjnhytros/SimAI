@@ -13,6 +13,7 @@ from core.AI import AICoordinator
 from core.AI.lod_manager import LODManager
 from core.AI.social_manager import SocialManager
 from core.world.weather_manager import WeatherManager
+from core.AI.consequence_analyzer import ConsequenceAnalyzer
 
 class Simulation:
     def __init__(self):
@@ -26,7 +27,7 @@ class Simulation:
         self.social_hubs: List[Dict] = []
         self.time_manager = TimeManager()
         self.weather_manager = WeatherManager()
-        self.lod_manager = LODManager(self) # Istanzia LODManager qui
+        self.lod_manager = LODManager(self)
 
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
@@ -35,6 +36,7 @@ class Simulation:
         self._initialize_world_data()
         self.ai_coordinator = AICoordinator(self)
         self.social_manager = SocialManager(self)
+        self.consequence_analyzer = ConsequenceAnalyzer()
         self.ai_coordinator = AICoordinator(self)
         
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
@@ -203,7 +205,7 @@ class Simulation:
             if cand_npc.npc_id == requesting_npc.npc_id: continue
             cand_age_days = cand_npc.get_age_in_days()
             if cand_age_days < min_cand_age_days: continue
-            if cand_npc.life_stage not in {LifeStage.EARLY_ADULTHOOD, LifeStage.MIDDLE_ADULTHOOD, LifeStage.LATE_ADULTHOOD}: continue
+            if cand_npc.life_stage not in {LifeStage.YOUNG_ADULT, LifeStage.ADULT, LifeStage.MIDDLE_AGED}: continue
             if abs(cand_age_days - req_npc_age_days) > max_age_diff_days: continue
             if cand_npc.get_relationship_status() not in {RelationshipStatus.SINGLE, RelationshipStatus.OPEN_RELATIONSHIP}: continue
             

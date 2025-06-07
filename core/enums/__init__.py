@@ -16,6 +16,7 @@ from .life_stages import LifeStage
 from .location_types import LocationType
 from .need_types import NeedType
 from .object_types import ObjectType
+from .problem_types import ProblemType
 from .relationship_statuses import RelationshipStatus 
 from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
@@ -35,6 +36,7 @@ __all__ = [
     'LocationType',
     'NeedType',
     'ObjectType',
+    'ProblemType',
     'RelationshipStatus',
     'RelationshipType',
     'SchoolLevel',

@@ -89,9 +89,24 @@ class AIDecisionMaker:
                 modifier = trait_obj.get_action_choice_priority_modifier(action.action_type_enum, simulation_context)
                 personality_modifier *= modifier
 
-        # 3. Modificatore Memoria (Placeholder)
+        # --- 3. Modificatore Memoria: Influenza delle Esperienze Passate (LOGICA REALE) ---
         memory_modifier = 1.0
-        # TODO: Logica futura per interrogare il MemorySystem
+        if self.npc.memory_system and action.action_type_enum:
+            
+            # Costruisci una query per cercare ricordi pertinenti
+            query = {'action_type': action.action_type_enum.name}
+            if hasattr(action, 'target_npc') and action.target_npc:
+                query['target_npc_id'] = action.target_npc.npc_id
+            
+            relevant_memories = self.npc.memory_system.get_memories_about(query)
+            
+            if relevant_memories:
+                # Somma l'impatto emotivo dei ricordi più recenti
+                total_emotional_impact = sum(m.emotional_impact for m in relevant_memories[:5]) # Considera solo i 5 più recenti
+                
+                # Traduci l'impatto emotivo in un modificatore di punteggio
+                # Un impatto di 1.0 raddoppia la probabilità, -1.0 la azzera
+                memory_modifier = max(0, 1.0 + total_emotional_impact) 
 
         # 4. Modificatore Contestuale (Ora, Luogo, Meteo)
         context_modifier = 1.0

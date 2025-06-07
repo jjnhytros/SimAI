@@ -5,7 +5,7 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
-GAME_VERSION = "0.5.112-alpha_250"
+GAME_VERSION = "0.5.117-alpha_259"
 DEBUG_MODE = False
 FPS = 60
 

@@ -1,5 +1,5 @@
-# SimAI v0.5.112-alpha_250
-# TODO List Generale (Aggiornato al 07 Giugno 2025 14:03:02)
+# SimAI v0.5.117-alpha_259
+# TODO List Generale (Aggiornato al 07 Giugno 2025 14:23:26)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -718,14 +718,14 @@
     * `[ ]` o. **Bussola Morale:** Definire un sistema per la `Bussola Morale` (o allineamento etico) che influenzi le decisioni in situazioni moralmente ambigue (es. rubare per fame).
     * `[ ]` p. **Lealtà:** Implementare un concetto di `Lealtà` verso specifici NPC o gruppi, che moduli le azioni in base all'impatto su di essi.
 
-### **5. Sistema di Memorie NPC:** `[ ]` *(Concettualizzazione Iniziale, inclusa gestione per NPC background e legame con maturazione)*.
-    * `[ ]` a. Definire struttura dati per `MemoryObject`.
-    * `[ ]` b. Implementare la registrazione di memorie significative per NPC Dettagliati (LOD1/2):
+### **5. Sistema di Memorie NPC:** `[P]` *(Concettualizzazione Iniziale, inclusa gestione per NPC background e legame con maturazione)*.
+    * `[x]` a. Definire struttura dati per `MemoryObject`. (Concettualizzata la classe `Memory` con impatto emotivo, salienza, entità collegate).
+    * `[P]` b. Implementare la registrazione di memorie significative per NPC Dettagliati (LOD1/2): (Concettualizzato il ruolo del `ConsequenceAnalyzer`).
         * `[ ]` i. Eventi di vita maggiori ed esperienze di maturazione legate all'età (vedi IV.2.d.iii) vengono salvati come `MemoryObject`.
         * `[ ]` ii. (Avanzato) Implementare `character.memories_short_term`.
-    * `[P]` c. Classe `Memory` per rappresentare un singolo ricordo. *(Concetto base presente)*.
-    * `[P]` d. Sistema per aggiungere/rimuovere ricordi. *(Concetto base presente)*.
-    * `[ ]` e. Architettura della Memoria a Livelli:
+    * `[x]` c. Classe `Memory` per rappresentare un singolo ricordo. *(Concetto base definito)*.
+    * `[P]` d. Sistema per aggiungere/rimuovere ricordi. *(Metodi `add_memory` e `_prune_memories` concettualizzati in `MemorySystem`)*.
+    * `[P]` e. Architettura della Memoria a Livelli: (Concettualizzata l'idea di STM, LTM e Nucleo Mnemonico).
         * `[ ]` i. Memoria a Breve Termine (STM): Ricordi di eventi recenti, volatili.
         * `[ ]` ii. Memoria a Lungo Termine (LTM): Ricordi significativi consolidati dalla STM.
         * `[ ]` iii. Nucleo Mnemonico: Ricordi formativi legati all'"Anima Digitale" dell'NPC, resistenti al "reset".
@@ -735,11 +735,11 @@
         * `[ ]` i. Mantengono lista semplificata di memorie a lungo termine chiave.
         * `[ ]` ii. Memorie astratte influenzano probabilità negli "heartbeat" e `general_wellbeing`.
         * `[ ]` iii. Non tracciata memoria a breve termine dettagliata.
-    * `[ ]` h. Definire e implementare azione `REMINISCE_ABOUT_PAST`.
+    * `[P]` h. Definire e implementare azione `REMINISCE_ABOUT_PAST`. (Concettualizzata l'azione di autoanalisi/riflessione).
     * `[ ]` i. Tratto `MEMORY_KEEPER` interagisce con questo sistema.
-    * `[ ]` j. (Avanzato) Meccanismi di oblio o modifica carica emotiva memorie.
+    * `[P]` j. (Avanzato) Meccanismi di oblio o modifica carica emotiva memorie. (Concettualizzato il metodo `_process_memory_decay`).
     * `[ ]` k. (Avanzato) Impatto di tratti (`ABSENT_MINDED`) o condizioni mediche su memorie.
-    * `[ ]` l. (Avanzato) Memorie passate influenzano decisioni future IA per NPC dettagliati.
+    * `[P]` l. (Avanzato) Memorie passate influenzano decisioni future IA per NPC dettagliati. (Concettualizzato il "Modificatore Memoria" in `AIDecisionMaker`).
 
 ### **6. Sistema di Consapevolezza Sociale e Scoperta Tratti:** `[ ]` *(Concettualizzazione Iniziale)*.
     * `[ ]` a. Attributo `Character.known_npc_traits`. (Include save/load).

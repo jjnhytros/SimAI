@@ -1,10 +1,11 @@
-/vscode.
+vscode./
 __pycache__/
 
 .gitignore
 run.sh
 generate_version.py
 Timeline_Sviluppo.md
+TODO_Roadmap_v1.0.md
 01_Cittadella.jpg
 02_Muse.jpg
 03_Aeterna.jpg

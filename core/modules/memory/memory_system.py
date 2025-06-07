@@ -44,19 +44,16 @@ class MemorySystem:
         """
         Recupera una lista di ricordi pertinenti basati su una query.
         La query è un dizionario di entità da confrontare.
+        Restituisce i ricordi in ordine cronologico (dal più recente al più vecchio).
         
-        Esempio query: {'target_npc_id': 'sara_id', 'action_type': ActionType.FLIRT}
+        Esempio query: {'target_npc_id': 'sara_id', 'interaction_type': SocialInteractionType.FLIRT}
         """
         relevant_memories = []
-        for memory in self.memories:
-            match = True
+        for memory in self.memories: # self.memories è già ordinato dal più recente
             # Controlla se tutte le chiavi/valori della query corrispondono a quelli del ricordo
-            for key, value in query_entities.items():
-                if memory.related_entities.get(key) != value:
-                    match = False
-                    break
-            if match:
+            if all(memory.related_entities.get(key) == value for key, value in query_entities.items()):
                 relevant_memories.append(memory)
+        
         return relevant_memories
 
     def _process_memory_decay(self, current_timestamp: float):

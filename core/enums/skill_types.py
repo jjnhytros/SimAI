@@ -47,7 +47,7 @@ class SkillType(Enum):
     VIOLIN = auto()
     WRITING_CREATIVE = auto()
     
-    # --- Skill Pratiche ---
+    # --- Skill Pratiche e Hobby ---
     BAKING = auto()
     COOKING = auto()
     FISHING = auto()
@@ -60,6 +60,7 @@ class SkillType(Enum):
     MIXOLOGY = auto() # Preparazione drink
     POTTERY = auto()
     WOODWORKING = auto()
+    GAMING = auto()
 
     # --- Skill per Bambini (Child) ---
     CREATIVITY_CHILD = auto()

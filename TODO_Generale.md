@@ -1,5 +1,5 @@
-# SimAI v0.5.117-alpha_259
-# TODO List Generale (Aggiornato al 07 Giugno 2025 15:29:24)
+# SimAI v0.5.112-alpha_270
+# TODO List Generale (Aggiornato al 07 Giugno 2025 17:51:05)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -55,43 +55,37 @@
 ## A. ARCHITETTURA CODICE E QUALITÀ
 
 * `[x]` **1. Struttura Modulare del Codice:** `[PRIORITÀ: MEDIA-ALTA]`
-    * `[x]` a. Organizzazione cartelle base.
-    * `[P]` b. Creazione file principali.
-    * `[x]` c. Definizione classe `Character`.
-    * `[P]` d. Implementazione `__init__.py` per i package.
-    * `[P]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** (Pattern di dependency injection applicato alle azioni base).
+    * `[x]` a. Organizzazione cartelle base.
+    * `[P]` b. Creazione file principali.
+    * `[x]` c. Definizione classe `Character`.
+    * `[P]` d. Implementazione `__init__.py` per i package.
+    * `[x]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** (Pattern di dependency injection applicato alle azioni base).
 
 * `[x]` **2. Struttura Modulare del Codice (Avanzata):**
-    * `[x]` a. Organizzazione package e `__init__.py`.
-    * `[x]` b. **Logica di Sistema Modulare:** (`time_manager` implementato).
+    * `[x]` a. Organizzazione package e `__init__.py`.
+    * `[x]` b. **Logica di Sistema Modulare:** (`time_manager` implementato).
 
 * `[P]` **3. Gestione delle Configurazioni e Settings:**
-    * `[x]` a. File `settings.py` per costanti globali.
-    * `[P]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Creati `actions_config.py`, `npc_config.py`, etc.).
-    * `[]` c. Sistema di logging avanzato.
-    * `[F]` d. Supporto per internazionalizzazione (i18n).
+    * `[x]` a. File `settings.py` per costanti globali.
+    * `[P]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Completate le configurazioni per le azioni base).
+    * `[]` c. Sistema di logging avanzato.
+    * `[F]` d. Supporto per internazionalizzazione (i18n).
 
 * `[P]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
-    * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
-        * `[P]` i. **Fase 1: Identificazione del "Problema"**
-            * `[x]` Potenziare `NeedsProcessor` per generare un oggetto `Problem` strutturato.
-            * `[F]` Integrare altri tipi di problemi oltre ai bisogni.
-        * `[P]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
-            * `[]` Ristrutturare `AIDecisionMaker` per implementare un loop di "ragionamento".
-            * `[x]` Implementata "scoperta soluzioni" e valutazione base in `AIDecisionMaker`.
-            * `[]` Sviluppare una funzione di "punteggio" per valutare ogni soluzione, considerando:
-                * `[P]` Efficienza (effetti sui bisogni).
-                * `[P]` Personalità (tratti).
-                * `[P]` Contesto (oggetti/luoghi disponibili).
-                * `[]` Memoria (`MemorySystem`).
-                * `[]` Fattori Contestuali Avanzati (Ambientali, Sociali, Cognitivi).
-                * `[]` **Bias Cognitivi e Stato Mentale:** `[NUOVO (spostato da F)]`
-                    * `[]` Implementare `Carico Cognitivo`.
-                    * `[]` Implementare `Bias di Conferma`.
-            * `[]` **Gestione dei Conflitti Decisionali e Priorità**.
-        * `[]` iii. **Fase 3: Creazione del "Pensiero"**
-        * `[P]` iv. **Fase 4: Esecuzione della "Soluzione"**
-        * `[]` v. **Fase 5: Analisi Conseguenze e Apprendimento**
+    * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
+        * `[x]` i. **Fase 1: Identificazione del "Problema"**
+        * `[P]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
+            * `[x]` Ristrutturato `AIDecisionMaker` per implementare un loop di "scoperta e valutazione".
+            * `[x]` Sviluppata una funzione di "punteggio" per valutare ogni soluzione, considerando:
+                * `[x]` Efficienza (effetti sui bisogni).
+                * `[x]` Personalità (tratti).
+                * `[x]` Contesto (oggetti/luoghi/meteo/ora).
+                * `[x]` Memoria (`MemorySystem`).
+                * `[x]` Stato Mentale (Carico Cognitivo).
+            * `[]` **Gestione dei Conflitti Decisionali e Priorità**.
+        * `[]` iii. **Fase 3: Creazione del "Pensiero"**
+        * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
+        * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (Implementato `ConsequenceAnalyzer` per creare ricordi).
 
 ---
 

@@ -16,6 +16,7 @@ from core.modules.actions import (
 from core.AI.needs_processor import NeedsProcessor
 from core.AI.problem_definitions import Problem, ProblemType
 
+
 # Import Configurazioni e Utility
 from core.config import npc_config, time_config, actions_config 
 from core import settings 
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from core.character import Character
     from ..simulation import Simulation 
     from ..modules.time_manager import TimeManager
-
+    from core.world.location import Location
 class AIDecisionMaker:
     """
     Determina l'azione successiva che un NPC dovrebbe intraprendere...
@@ -77,46 +78,80 @@ class AIDecisionMaker:
         return total_score
 
     def _evaluate_action_candidate(self, action: BaseAction, simulation_context: 'Simulation') -> float:
-        """Valuta un'azione candidata calcolando un punteggio complessivo basato su più fattori."""
-        # 1. Punteggio Base: Efficacia sui Bisogni
-        need_score = self._calculate_action_score(getattr(action, 'effects_on_needs', {}))
-        if need_score <= 0: need_score = 1.0 # Punteggio base minimo
+        """
+        Valuta un'azione candidata calcolando un punteggio complessivo
+        basato su efficacia, personalità, memoria e contesto.
+        """
+        # --- 1. Punteggio Base: Efficacia sui Bisogni ---
+        action_effects = getattr(action, 'effects_on_needs', {})
+        need_score = self._calculate_action_score(action_effects)
+        if need_score <= 0:
+            need_score = 1.0 # Punteggio base minimo per azioni senza impatto sui bisogni
 
-        # 2. Modificatore Personalità: Influenza dei Tratti
+        # --- 2. Modificatore Personalità: Influenza dei Tratti ---
         personality_modifier = 1.0
         if action.action_type_enum is not None:
             for trait_obj in self.npc.traits.values():
                 modifier = trait_obj.get_action_choice_priority_modifier(action.action_type_enum, simulation_context)
                 personality_modifier *= modifier
 
-        # --- 3. Modificatore Memoria: Influenza delle Esperienze Passate (LOGICA REALE) ---
+        # --- 3. Modificatore Memoria: Influenza delle Esperienze Passate (LOGICA IMPLEMENTATA) ---
         memory_modifier = 1.0
         if self.npc.memory_system and action.action_type_enum:
             
             # Costruisci una query per cercare ricordi pertinenti
-            query = {'action_type': action.action_type_enum.name}
-            if hasattr(action, 'target_npc') and action.target_npc:
-                query['target_npc_id'] = action.target_npc.npc_id
+            query: Dict[str, Any] = {"action_type": action.action_type_enum}
             
+            # Aggiungi entità specifiche alla query se presenti nell'azione
+            # Usiamo getattr per accedere in modo sicuro agli attributi opzionali
+            target_npc = getattr(action, 'target_npc', None)
+            activity_type = getattr(action, 'activity_type', None)
+            
+            if target_npc:
+                query["target_npc_id"] = target_npc.npc_id
+            if activity_type:
+                # Per SocializeAction, l'activity_type è l'interaction_type
+                if isinstance(action, SocializeAction):
+                    query["interaction_type"] = action.interaction_type
+                else:
+                    query["activity_type"] = activity_type
+
             relevant_memories = self.npc.memory_system.get_memories_about(query)
             
             if relevant_memories:
-                # Somma l'impatto emotivo dei ricordi più recenti
-                total_emotional_impact = sum(m.emotional_impact for m in relevant_memories[:5]) # Considera solo i 5 più recenti
+                # Considera solo i 3-5 ricordi più recenti per questo calcolo
+                # per simulare una memoria più "fresca" e reattiva.
+                total_emotional_impact = sum(m.emotional_impact for m in relevant_memories[:3])
                 
-                # Traduci l'impatto emotivo in un modificatore di punteggio
-                # Un impatto di 1.0 raddoppia la probabilità, -1.0 la azzera
-                memory_modifier = max(0, 1.0 + total_emotional_impact) 
-
-        # 4. Modificatore Contestuale (Ora, Luogo, Meteo)
+                # Traduci l'impatto emotivo in un modificatore di punteggio.
+                # Un ricordo molto positivo (impatto +0.8) aumenta lo score dell'80%.
+                # Un ricordo molto negativo (impatto -0.6) riduce lo score del 60%.
+                # Usiamo max(0.1, ...) per evitare che un'azione venga completamente azzerata,
+                # lasciando una piccola possibilità che l'NPC "ci riprovi".
+                memory_modifier = max(0.1, 1.0 + total_emotional_impact)
+        
+        # --- 4. Modificatore Contestuale ---
         context_modifier = 1.0
         time_manager = simulation_context.time_manager
         weather_manager = simulation_context.weather_manager
-        if hasattr(action, 'is_outdoors') and action.is_outdoors and weather_manager and weather_manager.is_raining():
-            context_modifier *= 0.1
-        if hasattr(action, 'is_noisy') and action.is_noisy and time_manager and time_manager.is_night():
-            context_modifier *= 0.2
         
+        if getattr(action, 'is_outdoors', False) and weather_manager and weather_manager.is_raining():
+            context_modifier *= 0.1
+        if getattr(action, 'is_noisy', False) and time_manager and time_manager.is_night():
+            context_modifier *= 0.2
+
+        # --- 5. Modificatore Stato Mentale (NUOVA LOGICA) ---
+        # Questo ci dice se l'NPC ha l'"energia mentale" per compiere l'azione.
+        cognitive_state_modifier = 1.0
+        
+        # Ottieni lo sforzo dell'azione (se non definito, assumi sia basso)
+        action_effort = getattr(action, 'cognitive_effort', 0.1)
+        
+        # Il modificatore è inversamente proporzionale al carico dell'NPC e allo sforzo dell'azione.
+        # Se il carico è alto, le azioni che richiedono alto sforzo sono pesantemente penalizzate.
+        cognitive_state_modifier = 1.0 - (self.npc.cognitive_load * action_effort)
+
+        # --- Calcolo Finale del Punteggio ---
         final_score = need_score * personality_modifier * memory_modifier * context_modifier
         
         if settings.DEBUG_MODE:
@@ -164,7 +199,9 @@ class AIDecisionMaker:
                             valid_actions.append(action_instance)
                 
                 elif action_class == SocializeAction:
-                    current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
+                    current_loc: Optional['Location'] = None
+                    if self.npc.current_location_id: # Controlla che l'ID esista prima di usarlo
+                        current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
                     if current_loc:
                         for target_id in current_loc.npcs_present_ids:
                             if target_id == self.npc.npc_id: continue
@@ -303,9 +340,10 @@ class AIDecisionMaker:
 
         if best_action_candidate and settings.DEBUG_MODE:
             problem_desc = current_problem.problem_type.name
-            if current_problem.problem_type == ProblemType.LOW_NEED and isinstance(current_problem.details.get('need'), NeedType):
-                need_name = current_problem.details.get("need").name
-                problem_desc += f" ({need_name})"
+            if current_problem.problem_type == ProblemType.LOW_NEED:
+                need_detail_val = current_problem.details.get("need")
+                if isinstance(need_detail_val, NeedType):
+                    problem_desc += f" ({need_detail_val.name})"
             print(f"  [AI Decide - {self.npc.name}] Azione Scelta Finale: {best_action_candidate.action_type_name} (Score: {highest_action_score:.2f}) per Problema: {problem_desc}")
             
         return best_action_candidate

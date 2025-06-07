@@ -137,6 +137,8 @@ class Character:
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
 
+        # Da 0.0 (totalmente rilassato) a 1.0 (sopraffatto dallo stress)
+        self.cognitive_load: float = 0.0
 
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s} (ID: {self.npc_id})")
 
@@ -338,21 +340,47 @@ class Character:
             if settings.DEBUG_MODE: print(f"  [Character Needs WARN - {self.name}] Bisogno {need_type.name} non trovato durante change_need_value.")
             return False
 
-    def update_needs(self, time_manager: TimeManager, ticks_elapsed_since_last_update: int):
-        fraction_of_hour_elapsed = ticks_elapsed_since_last_update / time_config.IXH
-        for need_type_enum_member in self.needs:
-            need_object = self.needs[need_type_enum_member]
-            if need_type_enum_member == NeedType.INTIMACY and isinstance(need_object, IntimacyNeed):
-                need_object.decay(fraction_of_hour_elapsed,
-                                character_age_days=self.get_age_in_days(),
-                                character_name_for_log=self.name)
-            else:
-                need_object.decay(fraction_of_hour_elapsed,
-                                character_name_for_log=self.name)
-            if settings.DEBUG_MODE:
-                need_name_str = need_type_enum_member.name
-                if need_name_str not in settings.NEED_DECAY_RATES:
-                    print(f"    [NEEDS UPDATE WARN - {self.name}] Tasso di decadimento per '{need_name_str}' NON DEFINITO in settings.NEED_DECAY_RATES! (Userà 0.0)")
+    def update_needs(self, time_manager: 'TimeManager', ticks_elapsed: int):
+        """
+        Aggiorna tutti i bisogni dell'NPC in base al tempo trascorso e
+        aggiorna il carico cognitivo in base al livello medio dei bisogni.
+        """
+        if not self.needs or ticks_elapsed <= 0:
+            return
+            
+        # --- 1. Decadimento dei Bisogni ---
+        # Calcola la frazione di ora di gioco trascorsa
+        ticks_per_hour = time_config.IXM * time_config.IXH
+        fraction_of_hour = ticks_elapsed / ticks_per_hour
+
+        for need_type, need_obj in self.needs.items():
+            # Recupera il tasso di decadimento orario dalla configurazione
+            decay_rate = npc_config.NEED_DECAY_RATES.get(need_type, 0)
+            
+            # Calcola il cambiamento per i tick trascorsi e lo applica
+            change_amount = decay_rate * fraction_of_hour
+            
+            # La logica di change_value è già in BaseNeed e gestisce i limiti min/max
+            need_obj.change_value(change_amount, is_decay_event=True)
+
+        # --- 2. Aggiornamento del Carico Cognitivo ---
+        # Calcola il livello medio dei bisogni (escludendo bisogni "alti" come lo stress se implementato)
+        needs_to_average = [n.get_value() for n_type, n in self.needs.items() if n_type != NeedType.STRESS]
+        average_need_level = sum(needs_to_average) / len(needs_to_average) if needs_to_average else 100.0
+        
+        # Le soglie e i tassi di cambiamento del carico cognitivo dovrebbero essere in npc_config.py
+        cognitive_load_threshold = getattr(npc_config, 'COGNITIVE_LOAD_THRESHOLD', 40.0)
+        cognitive_load_gain_rate = getattr(npc_config, 'COGNITIVE_LOAD_GAIN_RATE', 0.005)
+        cognitive_load_decay_rate = getattr(npc_config, 'COGNITIVE_LOAD_DECAY_RATE', 0.002)
+
+        # Se i bisogni medi sono bassi, il carico/stress aumenta
+        if average_need_level < cognitive_load_threshold:
+             self.cognitive_load += cognitive_load_gain_rate * ticks_elapsed
+        else: # Altrimenti, diminuisce lentamente
+             self.cognitive_load -= cognitive_load_decay_rate * ticks_elapsed
+        
+        # Assicura che il valore rimanga nel range 0.0 - 1.0
+        self.cognitive_load = max(0.0, min(1.0, self.cognitive_load))
 
     def get_lowest_need(self) -> Optional[Tuple[NeedType, float]]:
         if not self.needs: return None
@@ -419,7 +447,6 @@ class Character:
                 action_name_log = self.current_action.action_type_name
                 was_interrupted = self.current_action.is_interrupted
                 
-                # --- INTEGRAZIONE CONSEQUENCEANALYZER ---
                 # 1. Prima di cancellare l'azione, salviamo un riferimento ad essa per analizzarla
                 completed_action = self.current_action
                 
@@ -430,7 +457,6 @@ class Character:
                 # 3. Ora che l'NPC è "libero", analizziamo le conseguenze dell'azione appena terminata
                 if simulation_context.consequence_analyzer:
                     simulation_context.consequence_analyzer.analyze_action_and_create_memory(self, completed_action)
-                # --- FINE INTEGRAZIONE ---
                 
                 if settings.DEBUG_MODE:
                     status_log = "INTERROTTA" if was_interrupted else "COMPLETATA"

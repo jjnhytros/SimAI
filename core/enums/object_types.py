@@ -66,7 +66,8 @@ class ObjectType(Enum):
     VIOLIN = auto()                 # Violino
     WORKBENCH = auto()              # Banco da lavoro generico (Handiness)
     WORKOUT_MACHINE = auto()
-    
+    POTTERY_WHEEL = auto()          # Il tornio da vasaio
+
     # --- Categoria: Decorazioni e Varie ---
     LAMP = auto()                   # Lampada generica
     MIRROR = auto()                 # Specchio

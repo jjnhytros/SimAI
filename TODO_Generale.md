@@ -1,5 +1,5 @@
-# SimAI v0.5.112-alpha_270
-# TODO List Generale (Aggiornato al 07 Giugno 2025 17:51:05)
+# SimAI v0.5.116-alpha_270
+# TODO List Generale (Aggiornato al 08 Giugno 2025 02:12:36)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -68,7 +68,7 @@
 * `[P]` **3. Gestione delle Configurazioni e Settings:**
     * `[x]` a. File `settings.py` per costanti globali.
     * `[P]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Completate le configurazioni per le azioni base).
-    * `[]` c. Sistema di logging avanzato.
+    * `[ ]` c. Sistema di logging avanzato.
     * `[F]` d. Supporto per internazionalizzazione (i18n).
 
 * `[P]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
@@ -80,10 +80,11 @@
                 * `[x]` Efficienza (effetti sui bisogni).
                 * `[x]` Personalità (tratti).
                 * `[x]` Contesto (oggetti/luoghi/meteo/ora).
-                * `[x]` Memoria (`MemorySystem`).
-                * `[x]` Stato Mentale (Carico Cognitivo).
-            * `[]` **Gestione dei Conflitti Decisionali e Priorità**.
-        * `[]` iii. **Fase 3: Creazione del "Pensiero"**
+                * `[P]` Memoria (`MemorySystem`).
+                * `[P]` Stato Mentale (Carico Cognitivo).
+                * `[ ]` Bias Cognitivi
+            * `[ ]` **Gestione dei Conflitti Decisionali e Priorità**.
+        * `[ ]` iii. **Fase 3: Creazione del "Pensiero"**
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
         * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (Implementato `ConsequenceAnalyzer` per creare ricordi).
 
@@ -142,9 +143,7 @@
 ---
 
 
-
-
-## II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE `[ ]`
+### 👤 II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE  
 
 ### `[!]` **1. Filosofia della Creazione Iniziale:**
     * `[ ]` a. Permettere al giocatore di definire il punto di partenza della sua storia nella simulazione attraverso la creazione di uno o più personaggi giocabili iniziali (es. un single, una coppia, una famiglia).
@@ -3415,8 +3414,8 @@
 
 * `[ ]` **0. Obiettivo Principale: Raffinare il `TimeManager` Globale**
     * `[ ]` a. Implementare la gestione completa di festività, stagioni, ed eventi temporizzati, come dettagliato in questa sezione e in riferimento alla Sezione `XIV` (Eventi).
-* `[ ]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
-    * `[ ]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito nella Costituzione di Anthalys, `Art. 3`).
+* `[P]` **1. Ciclo Giorno/Notte e Struttura Temporale di Base:**
+    * `[P]` a. Implementare ciclo giorno/notte di 28 ore terrestri standard (come definito nella Costituzione di Anthalys, `Art. 3`).
     * `[ ]` b. Suddivisione della giornata in fasi riconoscibili: Alba, Mattina, Mezzogiorno, Pomeriggio, Sera, Notte, Notte Profonda (con orari indicativi e impatto sulla luce ambientale e sulla routine degli NPC `IV.4.a`).
 * `[ ]` **2. Scala del Tempo e Gestione della Velocità di Gioco:**
     * `[ ]` a. Definire la scala temporale standard della simulazione (es. 1 minuto di tempo reale = X minuti di tempo di gioco) per bilanciare il realismo con la giocabilità.

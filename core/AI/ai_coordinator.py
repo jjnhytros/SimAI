@@ -59,54 +59,47 @@ class AICoordinator:
             # Chiamiamo il metodo di update dettagliato
             self.update_npc_high_detail(npc, time_delta)
 
-    def update_npc_high_detail(self, npc, time_delta: int):
-        # 1. Aggiornamento bisogni
-        # NeedsProcessor.update_needs è stato modificato per non fare nulla attivamente,
-        # poiché Character.update_needs è più completo.
-        # Quindi, chiamiamo direttamente Character.update_needs.
-        # Character.update_needs(self, time_manager, ticks_elapsed_since_last_update)
-        if hasattr(npc, 'update_needs'):
-            npc.update_needs(self.simulation_context.time_manager, time_delta)
+    def update_npc_high_detail(self, npc: 'Character', time_delta: int):
+        """
+        Esegue un ciclo di update completo per un NPC ad alto livello di dettaglio.
+        Questo include l'aggiornamento dei bisogni e il ciclo di azione/decisione.
+        
+        Args:
+            npc (Character): L'NPC da aggiornare.
+            time_delta (int): Il numero di tick trascorsi dall'ultimo update.
+        """
+        if not npc:
+            return
 
-        # Per il punto IV.2.a.i (invecchiamento basato su data di nascita)
-        # e la gestione del nuovo giorno, questo dovrebbe rimanere qui o essere
-        # gestito centralmente da Simulation prima di chiamare update_all_npcs.
-        # Per ora, lo lasciamo nella logica di Simulation._update_simulation_state prima della chiamata a AICoordinator.
-        # (La logica di invecchiamento giornaliero è ancora in Simulation._update_simulation_state,
-        #  ma NON è più lì dopo la modifica a _update_simulation_state in questo passaggio.
-        #  Dovrebbe essere responsabilità di Character.update_needs o di AICoordinator qui)
+        time_manager = self.simulation_context.time_manager
+        
+        # Possiamo usare questa logica per triggerare eventi o controlli orari.
+        # Ad esempio, resettare lo stato decisionale dell'IA ogni ora per evitare
+        # che si "blocchi" se non trova un'azione valida.
+        is_new_hour = False
+        if time_manager:
+            current_time = time_manager.get_current_time()
+            # --- CORREZIONE QUI ---
+            # Accediamo a .minute come attributo (un intero), non come metodo.
+            if current_time.minute == 0:
+                is_new_hour = True
+                # Potremmo aggiungere una stampa di debug per l'ora qui se volessimo.
+        
+        if is_new_hour and npc.ai_decision_maker:
+            # Resetta lo stato anti-ripetizione dell'IA per dargli una "nuova possibilità"
+            npc.ai_decision_maker.reset_decision_state()
 
-        # Controlliamo se è un nuovo giorno per l'invecchiamento
-        # Questa logica era in Simulation, la spostiamo qui per coerenza con l'aggiornamento NPC
-        current_ath_time = self.simulation_context.time_manager.get_current_time()
-        is_new_day = (current_ath_time.hour == 0 and
-                    current_ath_time.minute() == 0 and
-                    self.simulation_context.time_manager.total_ticks > 1 and # Non al primissimo tick
-                    time_delta > 0) # Solo se il tempo è avanzato
+        # 1. Aggiorna i bisogni dell'NPC in base al tempo trascorso.
+        # Questo fa decadere i bisogni e aggiorna il carico cognitivo.
+        npc.update_needs(time_manager, time_delta)
 
-        if is_new_day and hasattr(npc, '_set_age_in_days') and hasattr(npc, 'get_age_in_days'):
-            npc._set_age_in_days(npc.get_age_in_days() + 1)
-
-
-        # 2. Decisione e Esecuzione Azione
-        # ActionExecutor.execute_action è stato modificato per non fare nulla attivamente.
-        # Chiamiamo direttamente Character.update_action che contiene la logica
-        # per eseguire l'azione corrente e chiamare AIDecisionMaker per una nuova azione.
-        if hasattr(npc, 'update_action'):
-            npc.update_action(self.simulation_context.time_manager, self.simulation_context)
-
-
-        # La logica originale dell'AICoordinator (commentata per riferimento):
-        # self.needs_processor.update_needs(npc, time_delta)
-        # action = self.decision_system.decide_next_action(npc, self.simulation)
-        # self.action_executor.execute_action(npc, action, time_delta)
-
-        # 3. Apprendimento (Futuro)
-        # self.learning_system.process_learning(npc, time_delta)
-
-        # 4. Interazioni sociali (Futuro, SocialManager è scheletrico)
-        # self.social_manager.handle_social_interactions(npc, self.simulation)
-        pass
+        # 2. Aggiorna lo stato dell'azione corrente dell'NPC.
+        # Questo metodo è molto importante perché al suo interno:
+        #  - Esegue il tick dell'azione in corso.
+        #  - Gestisce la fine di un'azione (chiamando on_finish).
+        #  - Avvia la prossima azione dalla coda se l'NPC è libero.
+        #  - Chiama l'AIDecisionMaker se l'NPC è libero e la coda è vuota.
+        npc.update_action(time_manager, self.simulation_context)
 
     def update_npc_background(self, npc, time_delta):
         # Versione semplificata per NPC non visibili (Futuro)

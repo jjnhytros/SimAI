@@ -169,8 +169,7 @@ class ATHDateTime(ATHDateTimeInterface):
         
         # Secondi trascorsi nel giorno del CALENDARIO specificato
         total_seconds_in_day_local_calendar = (hour * ATHDateTimeInterface.IXH_CALENDAR * ATHDateTimeInterface.SXI_CALENDAR) + \
-                                              (minute * ATHDateTimeInterface.SXI_CALENDAR) + \
-                                              second
+                                              (minute * ATHDateTimeInterface.SXI_CALENDAR) + second
         
         # Totale secondi "locali" (nel fuso orario `effective_tz`) dall'epoca 0 del CALENDARIO Anthalejano,
         # calcolati usando la struttura del CALENDARIO.

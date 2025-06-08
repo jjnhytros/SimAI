@@ -295,11 +295,14 @@ class Simulation:
         Ora utilizza AICoordinator.
         """
         if not self.time_manager:
-            if settings.DEBUG_MODE: print("    [Sim WARN] TimeManager non inizializzato!")
+            # if settings.DEBUG_MODE: print("    [Sim WARN] TimeManager non inizializzato!")
             self.current_tick += 1
             return
 
         self.time_manager.advance_time(self.game_speed) 
+        if settings.DEBUG_MODE and self.current_tick % 100 == 0:
+            print(f"[DEBUG] Simulation Tick: {self.current_tick}, TimeManager Ticks: {self.time_manager.total_ticks_sim_run}")
+
         self.weather_manager.update_weather()
 
         if settings.DEBUG_MODE and self.time_manager.get_current_minute() == 0 :
@@ -315,7 +318,8 @@ class Simulation:
             if settings.DEBUG_MODE: print("    [Sim WARN] AICoordinator non disponibile! Uso logica di update NPC diretta.")
             is_new_day = (self.time_manager.get_current_hour() == 0 and
                             self.time_manager.get_current_minute() == 0 and
-                            self.time_manager.total_ticks > 1)
+                            # self.time_manager.total_ticks > 1)
+                            self.time_manager.total_ticks_sim_run > 1)
             for npc in self.npcs.values():
                 if npc:
                     npc.update_needs(self.time_manager, 1)

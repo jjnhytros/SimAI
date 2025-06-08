@@ -5,7 +5,7 @@ import random
 # Import Enum
 from core.enums import (
     NeedType, ActionType, TraitType, LifeStage, FunActivityType,
-    SocialInteractionType, ObjectType, RelationshipType
+    SocialInteractionType, ObjectType, RelationshipType, ProblemType
 )
 # Import Classi Azione
 from core.modules.actions import (
@@ -14,8 +14,7 @@ from core.modules.actions import (
 )
 # Import Sistemi IA
 from core.AI.needs_processor import NeedsProcessor
-from core.AI.problem_definitions import Problem, ProblemType
-
+from core.AI.problem_definitions import Problem
 
 # Import Configurazioni e Utility
 from core.config import npc_config, time_config, actions_config 
@@ -26,13 +25,19 @@ if TYPE_CHECKING:
     from core.character import Character
     from ..simulation import Simulation 
     from ..modules.time_manager import TimeManager
-    from core.world.location import Location
+    from ..world.location import Location
+
 class AIDecisionMaker:
     """
-    Determina l'azione successiva che un NPC dovrebbe intraprendere...
+    Determina l'azione successiva che un NPC dovrebbe intraprendere basandosi
+    su un ciclo cognitivo di identificazione del problema, scoperta delle soluzioni
+    e valutazione delle opzioni.
     """
+    BASE_ACTION_CHECK_INTERVAL_TICKS = 10 
+    MAX_CONSECUTIVE_SAME_ACTION = 3
 
-    PROBLEM_SOLVERS_BY_NEED = {
+    # Il catalogo che lega i bisogni alle possibili azioni risolutive.
+    PROBLEM_SOLVERS_BY_NEED: Dict[NeedType, List[type]] = {
         NeedType.HUNGER: [EatAction],
         NeedType.ENERGY: [SleepAction],
         NeedType.THIRST: [DrinkAction],
@@ -42,9 +47,6 @@ class AIDecisionMaker:
         NeedType.SOCIAL: [SocializeAction],
         NeedType.INTIMACY: [EngageIntimacyAction],
     }
-    BASE_ACTION_CHECK_INTERVAL_TICKS = 10 
-    MAX_CONSECUTIVE_SAME_ACTION = 3
-
 
     def __init__(self, npc: 'Character'):
         self.npc: 'Character' = npc
@@ -78,189 +80,101 @@ class AIDecisionMaker:
         return total_score
 
     def _evaluate_action_candidate(self, action: BaseAction, simulation_context: 'Simulation') -> float:
-        """
-        Valuta un'azione candidata calcolando un punteggio complessivo
-        basato su efficacia, personalità, memoria e contesto.
-        """
-        # --- 1. Punteggio Base: Efficacia sui Bisogni ---
-        action_effects = getattr(action, 'effects_on_needs', {})
-        need_score = self._calculate_action_score(action_effects)
-        if need_score <= 0:
-            need_score = 1.0 # Punteggio base minimo per azioni senza impatto sui bisogni
+        """Valuta un'azione candidata calcolando un punteggio complessivo basato su più fattori."""
+        time_manager = simulation_context.time_manager
+        weather_manager = simulation_context.weather_manager
+        
+        need_score = self._calculate_action_score(getattr(action, 'effects_on_needs', {}))
+        if need_score <= 0: need_score = 1.0
 
-        # --- 2. Modificatore Personalità: Influenza dei Tratti ---
         personality_modifier = 1.0
         if action.action_type_enum is not None:
             for trait_obj in self.npc.traits.values():
                 modifier = trait_obj.get_action_choice_priority_modifier(action.action_type_enum, simulation_context)
                 personality_modifier *= modifier
 
-        # --- 3. Modificatore Memoria: Influenza delle Esperienze Passate (LOGICA IMPLEMENTATA) ---
         memory_modifier = 1.0
         if self.npc.memory_system and action.action_type_enum:
-            
-            # Costruisci una query per cercare ricordi pertinenti
             query: Dict[str, Any] = {"action_type": action.action_type_enum}
-            
-            # Aggiungi entità specifiche alla query se presenti nell'azione
-            # Usiamo getattr per accedere in modo sicuro agli attributi opzionali
             target_npc = getattr(action, 'target_npc', None)
             activity_type = getattr(action, 'activity_type', None)
-            
-            if target_npc:
-                query["target_npc_id"] = target_npc.npc_id
+            if target_npc: query["target_npc_id"] = target_npc.npc_id
             if activity_type:
-                # Per SocializeAction, l'activity_type è l'interaction_type
-                if isinstance(action, SocializeAction):
-                    query["interaction_type"] = action.interaction_type
-                else:
-                    query["activity_type"] = activity_type
-
+                if isinstance(action, SocializeAction): query["interaction_type"] = action.interaction_type
+                else: query["activity_type"] = activity_type
             relevant_memories = self.npc.memory_system.get_memories_about(query)
-            
             if relevant_memories:
-                # Considera solo i 3-5 ricordi più recenti per questo calcolo
-                # per simulare una memoria più "fresca" e reattiva.
                 total_emotional_impact = sum(m.emotional_impact for m in relevant_memories[:3])
-                
-                # Traduci l'impatto emotivo in un modificatore di punteggio.
-                # Un ricordo molto positivo (impatto +0.8) aumenta lo score dell'80%.
-                # Un ricordo molto negativo (impatto -0.6) riduce lo score del 60%.
-                # Usiamo max(0.1, ...) per evitare che un'azione venga completamente azzerata,
-                # lasciando una piccola possibilità che l'NPC "ci riprovi".
-                memory_modifier = max(0.1, 1.0 + total_emotional_impact)
+                memory_modifier = max(0.1, 1.0 + total_emotional_impact) 
         
-        # --- 4. Modificatore Contestuale ---
         context_modifier = 1.0
-        time_manager = simulation_context.time_manager
-        weather_manager = simulation_context.weather_manager
-        
+        is_night_time = time_manager.is_night() if time_manager else False
         if getattr(action, 'is_outdoors', False) and weather_manager and weather_manager.is_raining():
             context_modifier *= 0.1
-        if getattr(action, 'is_noisy', False) and time_manager and time_manager.is_night():
+        if getattr(action, 'is_noisy', False) and is_night_time:
             context_modifier *= 0.2
-
-        # --- 5. Modificatore Stato Mentale (NUOVA LOGICA) ---
-        # Questo ci dice se l'NPC ha l'"energia mentale" per compiere l'azione.
-        cognitive_state_modifier = 1.0
+        if action.action_type_enum == ActionType.ACTION_SLEEP:
+            context_modifier *= 2.0 if is_night_time else 0.3
         
-        # Ottieni lo sforzo dell'azione (se non definito, assumi sia basso)
-        action_effort = getattr(action, 'cognitive_effort', 0.1)
-        
-        # Il modificatore è inversamente proporzionale al carico dell'NPC e allo sforzo dell'azione.
-        # Se il carico è alto, le azioni che richiedono alto sforzo sono pesantemente penalizzate.
-        cognitive_state_modifier = 1.0 - (self.npc.cognitive_load * action_effort)
-
-        # --- Calcolo Finale del Punteggio ---
         final_score = need_score * personality_modifier * memory_modifier * context_modifier
         
         if settings.DEBUG_MODE:
             print(f"      -> Scoring {action.action_type_name}: Base(Need)={need_score:.2f}, "
-                f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f} "
-                f"-> FINALE: {final_score:.2f}")
+                  f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f} "
+                  f"-> FINALE: {final_score:.2f}")
 
         return final_score
 
     def _discover_and_instantiate_solutions(self, problem: Problem, simulation_context: 'Simulation') -> List[BaseAction]:
-        """
-        Funzione di "scoperta soluzioni". Data un problema, trova e crea istanze
-        di tutte le azioni valide che possono risolverlo.
-        """
+        """Data un problema, trova e crea istanze di tutte le azioni valide che possono risolverlo."""
         valid_actions: List[BaseAction] = []
-        if problem.problem_type != ProblemType.LOW_NEED:
-            return valid_actions
+        if problem.problem_type != ProblemType.LOW_NEED: return valid_actions
 
         need_to_address = problem.details.get("need")
-        if not isinstance(need_to_address, NeedType):
-            return valid_actions
+        if not isinstance(need_to_address, NeedType): return valid_actions
 
         possible_action_classes = self.PROBLEM_SOLVERS_BY_NEED.get(need_to_address, [])
         
         for action_class in possible_action_classes:
             try:
-                # --- Logica di istanziazione specifica per classe ---
-
+                # Logica di istanziazione per azioni complesse che generano molte varianti
                 if action_class == HaveFunAction:
-                    # Per HaveFunAction, cicla su tutte le attività e crea un'azione candidata per ognuna
                     for activity_type in FunActivityType:
                         activity_config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type, {})
-                        duration_hours = activity_config.get("duration_hours", actions_config.HAVEFUN_DEFAULT_DURATION_HOURS)
-                        constructor_params = {
-                            "npc": self.npc, "simulation_context": simulation_context,
-                            "activity_type": activity_type,
-                            "duration_ticks": int(duration_hours * time_config.IXH),
-                            "fun_gain": activity_config.get("fun_gain", actions_config.HAVEFUN_DEFAULT_FUN_GAIN),
-                            "required_object_types": activity_config.get("required_object_types"),
-                            "skill_to_practice": activity_config.get("skill_to_practice"),
-                            "skill_xp_gain": activity_config.get("skill_xp_gain", 0.0)
-                        }
-                        action_instance = HaveFunAction(**constructor_params)
-                        if action_instance.is_valid():
-                            valid_actions.append(action_instance)
+                        params = { "npc": self.npc, "simulation_context": simulation_context, "activity_type": activity_type,
+                                   "duration_ticks": int(activity_config.get("duration_hours", actions_config.HAVEFUN_DEFAULT_DURATION_HOURS) * time_config.IXH),
+                                "fun_gain": activity_config.get("fun_gain", actions_config.HAVEFUN_DEFAULT_FUN_GAIN),
+                                "required_object_types": activity_config.get("required_object_types"),
+                                "skill_to_practice": activity_config.get("skill_to_practice"), "skill_xp_gain": activity_config.get("skill_xp_gain", 0.0) }
+                        action_instance = HaveFunAction(**params)
+                        if action_instance.is_valid(): valid_actions.append(action_instance)
                 
                 elif action_class == SocializeAction:
-                    current_loc: Optional['Location'] = None
-                    if self.npc.current_location_id: # Controlla che l'ID esista prima di usarlo
-                        current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
+                    current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
                     if current_loc:
                         for target_id in current_loc.npcs_present_ids:
                             if target_id == self.npc.npc_id: continue
                             target_char = simulation_context.get_npc_by_id(target_id)
                             if not target_char: continue
                             for interaction_type in SocialInteractionType:
-                                interaction_config = actions_config.SOCIALIZE_INTERACTION_CONFIGS.get(interaction_type, {})
-                                min_score_req = interaction_config.get("min_rel_score_req")
-                                if min_score_req is not None:
-                                    relationship = self.npc.get_relationship_with(target_char.npc_id)
-                                    if not relationship or relationship.score < min_score_req: continue
-                                
-                                constructor_params = {
-                                    "npc": self.npc, "simulation_context": simulation_context, "target_npc": target_char,
-                                    "interaction_type": interaction_type,
-                                    "duration_ticks": interaction_config.get("duration_ticks", actions_config.SOCIALIZE_DEFAULT_DURATION_TICKS),
-                                    "initiator_social_gain": interaction_config.get("initiator_gain", actions_config.SOCIALIZE_DEFAULT_INITIATOR_GAIN),
-                                    "target_social_gain": interaction_config.get("target_gain", actions_config.SOCIALIZE_DEFAULT_TARGET_GAIN),
-                                    "relationship_score_change": interaction_config.get("rel_change", actions_config.SOCIALIZE_DEFAULT_REL_CHANGE)
-                                }
-                                action_instance = SocializeAction(**constructor_params)
-                                if action_instance.is_valid():
-                                    valid_actions.append(action_instance)
-
-                elif action_class == EngageIntimacyAction:
-                    target_id_for_intimacy = getattr(self.npc, 'pending_intimacy_target_accepted', None)
-                    if target_id_for_intimacy:
-                        target_character = simulation_context.get_npc_by_id(target_id_for_intimacy)
-                        if target_character:
-                            constructor_params = {
-                                "npc": self.npc, "simulation_context": simulation_context, "target_npc": target_character,
-                                "duration_ticks": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_DURATION_TICKS', int(time_config.IXH * 1)),
-                                "initiator_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_INITIATOR_GAIN', 60.0),
-                                "target_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_TARGET_GAIN', 60.0),
-                                "relationship_score_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_REL_GAIN', 15)
-                            }
-                            action_instance = EngageIntimacyAction(**constructor_params)
-                            if action_instance.is_valid():
-                                valid_actions.append(action_instance)
-
-                # Per le azioni più semplici, che non hanno molte varianti
-                else: 
+                                i_config = actions_config.SOCIALIZE_INTERACTION_CONFIGS.get(interaction_type, {})
+                                min_score = i_config.get("min_rel_score_req")
+                                if min_score is not None:
+                                    rel = self.npc.get_relationship_with(target_char.npc_id)
+                                    if not rel or rel.score < min_score: continue
+                                params = {
+                                    "npc": self.npc, "simulation_context": simulation_context, "target_npc": target_char, "interaction_type": interaction_type,
+                                    "duration_ticks": i_config.get("duration_ticks", actions_config.SOCIALIZE_DEFAULT_DURATION_TICKS),
+                                    "initiator_social_gain": i_config.get("initiator_gain", actions_config.SOCIALIZE_DEFAULT_INITIATOR_GAIN),
+                                    "target_social_gain": i_config.get("target_gain", actions_config.SOCIALIZE_DEFAULT_TARGET_GAIN),
+                                    "relationship_score_change": i_config.get("rel_change", actions_config.SOCIALIZE_DEFAULT_REL_CHANGE) }
+                                action_instance = SocializeAction(**params)
+                                if action_instance.is_valid(): valid_actions.append(action_instance)
+                
+                # Logica per azioni più semplici che generano una sola istanza
+                else:
                     action_configs = {}
-                    if action_class == EatAction:
-                        action_configs = {
-                            "duration_ticks": getattr(actions_config, 'EAT_ACTION_DEFAULT_DURATION_TICKS', 30),
-                            "hunger_gain": getattr(actions_config, 'EAT_ACTION_DEFAULT_HUNGER_GAIN', 70.0)}
-                    elif action_class == DrinkAction:
-                        action_configs = {
-                            "drink_type_name": "WATER",
-                            "duration_ticks": int(getattr(actions_config, 'DRINK_WATER_DURATION_HOURS', 0.2) * time_config.IXH),
-                            "thirst_gain": getattr(actions_config, 'DRINK_WATER_THIRST_GAIN', 60.0),
-                            "effects_on_other_needs": {NeedType.BLADDER: getattr(actions_config, 'DRINK_WATER_BLADDER_EFFECT', -10.0)}}
-                    elif action_class == UseBathroomAction:
-                        if need_to_address == NeedType.BLADDER:
-                            action_configs = {"for_need": need_to_address} # La tua classe gestisce ancora la logica interna
-                        elif need_to_address == NeedType.HYGIENE:
-                            action_configs = {"for_need": need_to_address}
-                    elif action_class == SleepAction:
+                    if action_class == SleepAction:
                         base_h = getattr(actions_config, 'SLEEP_ACTION_DEFAULT_HOURS', 7.0)
                         adj_h = base_h
                         if self.npc.life_stage and (self.npc.life_stage.is_child or self.npc.life_stage.is_teenager): adj_h = getattr(actions_config, 'SLEEP_HOURS_CHILD_TEEN', 9.0)
@@ -268,21 +182,30 @@ class AIDecisionMaker:
                         action_configs = {
                             "duration_hours": adj_h, "energy_gain_per_hour": getattr(actions_config, 'SLEEP_ACTION_ENERGY_GAIN_PER_HOUR', 15.0),
                             "validation_threshold": getattr(npc_config, 'ENERGY_THRESHOLD_TO_CONSIDER_SLEEP', (npc_config.NEED_LOW_THRESHOLD + 10)),
-                            "on_finish_energy_target": npc_config.NEED_MAX_VALUE,
-                            "on_finish_needs_adjust": {
-                                NeedType.HUNGER: getattr(actions_config, 'NEED_VALUE_ON_WAKE_HUNGER', 70.0),
-                                NeedType.THIRST: getattr(actions_config, 'NEED_VALUE_ON_WAKE_THIRST', 75.0),
+                            "on_finish_energy_target": npc_config.NEED_MAX_VALUE, "on_finish_needs_adjust": {
+                                NeedType.HUNGER: getattr(actions_config, 'NEED_VALUE_ON_WAKE_HUNGER', 70.0), NeedType.THIRST: getattr(actions_config, 'NEED_VALUE_ON_WAKE_THIRST', 75.0),
                                 NeedType.BLADDER: getattr(actions_config, 'NEED_VALUE_ON_WAKE_BLADDER', 80.0)}}
-
+                    elif action_class == EatAction:
+                        action_configs = {"duration_ticks": int(getattr(actions_config, 'EAT_ACTION_DEFAULT_DURATION_HOURS', 0.5) * time_config.IXH), "hunger_gain": getattr(actions_config, 'EAT_ACTION_DEFAULT_HUNGER_GAIN', 70.0)}
+                    elif action_class == DrinkAction:
+                         action_configs = {"drink_type_name": "WATER", "duration_ticks": int(getattr(actions_config, 'DRINK_WATER_DURATION_HOURS', 0.2) * time_config.IXH), "thirst_gain": getattr(actions_config, 'DRINK_WATER_THIRST_GAIN', 60.0), "effects_on_other_needs": {NeedType.BLADDER: getattr(actions_config, 'DRINK_WATER_BLADDER_EFFECT', -10.0)}}
+                    elif action_class == UseBathroomAction:
+                        if need_to_address == NeedType.BLADDER:
+                            action_configs = {"for_need": need_to_address, "duration_ticks": getattr(actions_config, 'USEBATHROOM_TOILET_DURATION_TICKS', int(0.15 * time_config.IXH)), "bladder_relief": getattr(actions_config, 'USEBATHROOM_TOILET_BLADDER_RELIEF', 100.0), "hygiene_gain": getattr(actions_config, 'USEBATHROOM_TOILET_HYGIENE_GAIN', 15.0)}
+                        elif need_to_address == NeedType.HYGIENE:
+                            action_configs = {"for_need": need_to_address, "duration_ticks": getattr(actions_config, 'USEBATHROOM_SHOWER_DURATION_TICKS', int(0.4 * time_config.IXH)), "bladder_relief": 0.0, "hygiene_gain": getattr(actions_config, 'USEBATHROOM_SHOWER_HYGIENE_GAIN', 80.0)}
+                    elif action_class == EngageIntimacyAction:
+                         target_id = getattr(self.npc, 'pending_intimacy_target_accepted', None)
+                         if target_id and (target_char := simulation_context.get_npc_by_id(target_id)):
+                            action_configs = {"target_npc": target_char, "duration_ticks": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_DURATION_TICKS', int(time_config.IXH * 1)), "initiator_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_INITIATOR_GAIN', 60.0), "target_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_TARGET_GAIN', 60.0), "relationship_score_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_REL_GAIN', 15)}
+                    
                     if action_configs:
                         constructor_params = {"npc": self.npc, "simulation_context": simulation_context, **action_configs}
                         action_instance = action_class(**constructor_params)
-                        if action_instance.is_valid():
-                            valid_actions.append(action_instance)
-            
-            except TypeError as e:
-                if settings.DEBUG_MODE: print(f"  [AI Discover] Errore parametri per {action_class.__name__}: {e}")
-                continue # Passa alla prossima classe di azione
+                        if action_instance.is_valid(): valid_actions.append(action_instance)
+            except (TypeError, KeyError) as e:
+                if settings.DEBUG_MODE: print(f"  [AI Discover] Errore parametri/chiave per {action_class.__name__}: {e}")
+                continue
         
         return valid_actions
 
@@ -292,7 +215,7 @@ class AIDecisionMaker:
             return None
         self.ticks_since_last_base_action_check = 0
 
-        active_problems: List[Problem] = self.needs_processor.identify_need_problems(self.npc, float(time_manager.total_ticks))
+        active_problems: List[Problem] = self.needs_processor.identify_need_problems(self.npc, float(time_manager.total_ticks_sim_run))
         if not active_problems:
             if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Nessun problema attivo.")
             return None
@@ -319,19 +242,15 @@ class AIDecisionMaker:
             if hasattr(target_obj, 'logical_x') and target_obj.logical_x is not None:
                 npc_pos = (self.npc.logical_x, self.npc.logical_y)
                 obj_pos = (target_obj.logical_x, target_obj.logical_y)
-                distance = calculate_distance(npc_pos, obj_pos)
-                interaction_distance = getattr(settings, 'NPC_INTERACTION_DISTANCE_THRESHOLD', 1.5)
-                if distance > interaction_distance:
-                    move_action = MoveToAction(npc=self.npc, simulation_context=simulation_context, destination=obj_pos, follow_up_action=best_action_candidate)
-                    best_action_candidate = move_action
-                    self.consecutive_action_type_count = 0
+                if calculate_distance(npc_pos, obj_pos) > getattr(settings, 'NPC_INTERACTION_DISTANCE_THRESHOLD', 1.5):
+                    best_action_candidate = MoveToAction(npc=self.npc, simulation_context=simulation_context, destination=obj_pos, follow_up_action=best_action_candidate)
         
         if best_action_candidate:
             if self.last_selected_action_type == best_action_candidate.action_type_enum and not isinstance(best_action_candidate, MoveToAction):
                 self.consecutive_action_type_count += 1
                 if self.consecutive_action_type_count >= self.MAX_CONSECUTIVE_SAME_ACTION:
                     if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Max ripetizioni per {best_action_candidate.action_type_name}. NPC non fa nulla.")
-                    return None
+                    return None 
             else: self.consecutive_action_type_count = 0
             self.last_selected_action_type = best_action_candidate.action_type_enum
         else: 
@@ -342,9 +261,9 @@ class AIDecisionMaker:
             problem_desc = current_problem.problem_type.name
             if current_problem.problem_type == ProblemType.LOW_NEED:
                 need_detail_val = current_problem.details.get("need")
-                if isinstance(need_detail_val, NeedType):
-                    problem_desc += f" ({need_detail_val.name})"
-            print(f"  [AI Decide - {self.npc.name}] Azione Scelta Finale: {best_action_candidate.action_type_name} (Score: {highest_action_score:.2f}) per Problema: {problem_desc}")
+                if isinstance(need_detail_val, NeedType): problem_desc += f" ({need_detail_val.name})"
+            action_name_log = getattr(best_action_candidate, 'action_type_name', "AzioneSenzaNome")
+            print(f"  [AI Decide - {self.npc.name}] Azione Scelta Finale: {action_name_log} (Score: {highest_action_score:.2f}) per Problema: {problem_desc}")
             
         return best_action_candidate
 

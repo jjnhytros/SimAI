@@ -1,7 +1,9 @@
 """
 Configurazioni specifiche per la TUI (Textual User Interface).
 """
-from core.enums import NeedType, Gender, ObjectType
+from core.enums import (
+    NeedType, Gender, ObjectType, TimeOfDay
+)
 
 # Mappa che associa ogni NeedType a un dizionario di configurazione per la UI
 NEED_UI_CONFIG = {
@@ -110,5 +112,28 @@ class ANSIColors:
     EVENT_NEUTRAL_COLOR = "\033[94m"
     REPORT_TITLE_COLOR = "\033[1m\033[93m"
     DEBUG_COLOR = "\033[1m\033[93m"
-    
+
+# Mappa che associa ORE SPECIFICHE (su 28) a un colore (RGB).
+# Questi sono i nostri "fotogrammi chiave". La sfumatura avverrà TRA questi punti.
+DAY_NIGHT_COLOR_KEYFRAMES = {
+    # Notte
+    0:  (25, 25, 50),     # Blu quasi nero (mezzanotte del gioco)
+    4:  (25, 25, 50),     # La notte rimane scura fino alle 4:00
+    # Alba
+    5:  (70, 70, 120),    # Inizio dell'alba, un tocco di viola
+    7:  (135, 206, 235),  # Mattina piena, cielo azzurro chiaro
+    # Giorno
+    14: (100, 149, 237),  # Mezzogiorno / Primo pomeriggio, blu intenso e pieno
+    18: (100, 149, 237),  # Il colore del pomeriggio rimane stabile fino alle 18:00
+    # Tramonto
+    19: (255, 165, 0),    # Inizio del tramonto, arancione
+    21: (255, 69, 0),     # Tramonto profondo, rosso-arancio
+    # Sera
+    23: (40, 40, 80),     # Sera, blu notte scuro
+    # Ritorno alla Notte
+    26: (25, 25, 50),     # La notte è di nuovo completamente scura
+}
+
+DEFAULT_DAY_BG_COLOR = (128, 128, 128) # Grigio di fallback
+
 # TODO: Aggiungere qui altre configurazioni UI come stili, layout, ecc.

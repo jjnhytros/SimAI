@@ -3,6 +3,8 @@ Configurazione del tempo e calendario di Anthalys
 """
 # --- IMPORTAZIONI DAL SISTEMA TEMPORALE DI ANTHALYS ---
 from core.world.ATHDateTime.ATHDateTimeInterface import ATHDateTimeInterface
+from core.enums import TimeOfDay
+
 # Importa anche i nomi dei mesi/giorni se sono definiti altrove e ti servono qui
 # Se sono definiti come attributi di ATHDateTimeInterface, accedi tramite la classe.
 # Per ora, li lascio definiti manualmente sotto se non sono in ATHDateTimeInterface.
@@ -56,7 +58,7 @@ SECONDS_PER_SIMULATION_TICK = SXI_GAME / TXH_SIMULATION # Es. 3600 / 1000 = 3.6
 SIMULATION_START_YEAR = RY
 SIMULATION_START_MONTH = 1
 SIMULATION_START_DAY = 1
-SIMULATION_START_HOUR = 7
+SIMULATION_START_HOUR = 27
 SIMULATION_START_MINUTE = 0
 SIMULATION_START_SECOND = 0
 
@@ -65,3 +67,13 @@ DEFAULT_TIMEZONE = 'ATZ'
 
 NIGHT_START_HOUR = 22
 NIGHT_END_HOUR = 6
+
+# Ore di INIZIO per ogni fase del giorno (basato sul giorno di 28 ore)
+TIME_OF_DAY_START_HOURS = {
+    TimeOfDay.DAWN: 4,      # L'alba inizia alle 4:00
+    TimeOfDay.MORNING: 6,   # La mattina alle 6:00
+    TimeOfDay.AFTERNOON: 12,  # Il pomeriggio alle 12:00
+    TimeOfDay.DUSK: 19,     # Il tramonto alle 19:00
+    TimeOfDay.EVENING: 22,  # La sera alle 22:00
+    TimeOfDay.NIGHT: 26,    # La notte alle 26:00 (o -2 rispetto al giorno dopo)
+}

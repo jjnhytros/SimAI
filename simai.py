@@ -93,7 +93,7 @@ def main():
         print("  Modalità Testuale (TUI/Debug) attivata.")
         # Esegui per un numero limitato di tick per il test in modalità TUI
         # Oppure un loop più lungo se la TUI è interattiva
-        max_ticks_tui = 200000000 # Esempio, puoi cambiarlo o rimuoverlo per un loop infinito
+        max_ticks_tui = 5000 # Esempio, puoi cambiarlo o rimuoverlo per un loop infinito
         print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
         simulation.run(max_ticks=max_ticks_tui)
 

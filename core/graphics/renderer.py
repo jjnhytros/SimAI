@@ -7,7 +7,7 @@ import pygame
 from typing import Optional, TYPE_CHECKING, List, Tuple # Aggiunto Tuple per type hint
 
 from core import settings
-from core.config import ui_config
+from core.config import (ui_config, time_config)
 from core.enums import Gender, ObjectType 
 
 if TYPE_CHECKING:
@@ -191,7 +191,7 @@ class Renderer:
                         if selected_npc and selected_npc.current_location_id == self.current_visible_location_id:
                             self._center_camera_on_npc(selected_npc, current_loc_for_bounds_calc)
                         elif settings.DEBUG_MODE:
-                             print(f"  [Renderer] Impossibile centrare: NPC non selezionato o non nella locazione corrente.")
+                            print(f"  [Renderer] Impossibile centrare: NPC non selezionato o non nella locazione corrente.")
 
     def _update_game_state(self, simulation: Optional['Simulation']):
         """Aggiorna lo stato della simulazione se la GUI è attiva."""
@@ -219,7 +219,7 @@ class Renderer:
         if character.needs: 
             for need in character.needs.values():
                 if hasattr(settings, 'NEED_CRITICAL_THRESHOLD') and \
-                   need.get_value() <= settings.NEED_CRITICAL_THRESHOLD:
+                need.get_value() <= settings.NEED_CRITICAL_THRESHOLD:
                     has_critical_need = True
                     break
         
@@ -300,9 +300,9 @@ class Renderer:
                 lines_rendered_count +=1
             
             if lines_rendered_count > 0 :
-                 return y + self.LINE_HEIGHT
+                return y + self.LINE_HEIGHT
             elif text.strip(): # C'era testo, è stato disegnato su una linea senza wrapping
-                 return y + self.LINE_HEIGHT
+                return y + self.LINE_HEIGHT
             return y # Nessun testo disegnato (stringa vuota in input)
 
     def _render_wrapped_text_in_panel(self, text_to_wrap: str, x: int, y: int, max_width: int, font: pygame.font.Font, color: Tuple[int, int, int]) -> int:
@@ -342,23 +342,79 @@ class Renderer:
         
         return y
 
-    def _render_gui(self, simulation: Optional['Simulation']):
-        game_area_rect = pygame.Rect(0, 0, self.base_width, self.base_height)
-        self.screen.fill(self.GREY, game_area_rect)
+    def _lerp_color(self, color1: Tuple[int, int, int], color2: Tuple[int, int, int], factor: float) -> Tuple[int, int, int]:
+        """Interpola linearmente (lerp) tra due colori RGB."""
+        factor = max(0.0, min(1.0, factor))
+        r = int(color1[0] * (1 - factor) + color2[0] * factor)
+        g = int(color1[1] * (1 - factor) + color2[1] * factor)
+        b = int(color1[2] * (1 - factor) + color2[2] * factor)
+        return (r, g, b)
 
+    def _get_interpolated_sky_color(self, time_manager: 'TimeManager') -> Tuple[int, int, int]:
+        """
+        Calcola il colore del cielo sfumato usando i keyframes di colore.
+        """
+        keyframes = ui_config.DAY_NIGHT_COLOR_KEYFRAMES
+        sorted_hours = sorted(keyframes.keys())
+        
+        current_hour = time_manager.get_current_hour_float()
+        
+        # Trova i due keyframe (ore) tra cui si trova l'ora corrente
+        start_hour = sorted_hours[0]
+        end_hour = sorted_hours[-1]
+        
+        # Caso speciale per la notte che scavalca la mezzanotte
+        if current_hour >= sorted_hours[-1]:
+            start_hour = sorted_hours[-1]
+            end_hour = sorted_hours[0] + time_config.HXD # Aggiunge 28 ore
+        else:
+            for i in range(len(sorted_hours) - 1):
+                if sorted_hours[i] <= current_hour < sorted_hours[i+1]:
+                    start_hour = sorted_hours[i]
+                    end_hour = sorted_hours[i+1]
+                    break
+        
+        # Normalizza l'ora corrente se la transizione scavalca la mezzanotte
+        norm_current_hour = current_hour
+        if end_hour > time_config.HXD and norm_current_hour < start_hour:
+            norm_current_hour += time_config.HXD
+
+        # Calcola il progresso (factor) tra i due keyframe
+        phase_duration = end_hour - start_hour
+        time_into_phase = norm_current_hour - start_hour
+        progress = time_into_phase / phase_duration if phase_duration > 0 else 0
+        
+        # Prendi i colori corrispondenti ai keyframe
+        start_color = keyframes[start_hour]
+        end_color = keyframes[end_hour % time_config.HXD if end_hour >= time_config.HXD else end_hour] # Usa modulo per il wrap around
+
+        # Interpola e restituisce il colore finale
+        return self._lerp_color(start_color, end_color, progress)
+
+    def _render_gui(self, simulation: Optional['Simulation']):
+        # --- LOGICA PER SFONDO DINAMICO (CICLO GIORNO/NOTTE) ---
+        bg_color = ui_config.DEFAULT_DAY_BG_COLOR
+        bg_color = ui_config.DEFAULT_DAY_BG_COLOR
+        if simulation and simulation.time_manager:
+            bg_color = self._get_interpolated_sky_color(simulation.time_manager)
+        
+        # Applica il colore di sfondo all'area di gioco
+        game_area_rect = pygame.Rect(0, 0, self.base_width, self.base_height)
+        self.screen.fill(bg_color, game_area_rect)
+        # --- FINE LOGICA SFONDO ---
+
+        # Disegna il pannello laterale
         panel_rect = pygame.Rect(self.base_width, 0, self.PANEL_WIDTH, self.height)
         self.screen.fill(self.PANEL_BG_COLOR, panel_rect)
         pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
 
         panel_padding = 10
-        text_indent = panel_padding + 15 # Indentazione per i valori dopo le etichette
-        value_max_width = self.PANEL_WIDTH - text_indent - panel_padding # Max larghezza per i valori wrappati
-
         current_y = panel_padding
         
         npc_to_display_in_panel: Optional['Character'] = None
         current_location_instance_for_panel: Optional['Location'] = None
 
+        # Logica per disegnare il mondo di gioco (NPC e oggetti)
         if simulation:
             if self.current_visible_location_id:
                 current_location_instance_for_panel = simulation.get_location_by_id(self.current_visible_location_id)
@@ -381,73 +437,37 @@ class Renderer:
                     if npc_in_loc:
                         self._draw_npc(npc_in_loc)
             
+        # --- Inizio renderizzazione del pannello informativo ---
         current_y = self._draw_text_in_panel("Info Panel", panel_padding, current_y, font=self.font_panel_title, color=self.WHITE)
         current_y += 5
         
-        if simulation and simulation.time_manager:
-            if self.font_debug: # Assicurati prima che il font esista
-                datetime_info = simulation.time_manager.get_ath_detailed_datetime()
-                year_val = int(datetime_info.get('year', 0))
-                day_val = int(datetime_info.get('day_of_month', 0))
-                month_name_val = str(datetime_info.get('month_name', "N/D"))
-                hour_val = int(datetime_info.get('hour', 0))
-                minute_val = int(datetime_info.get('minute', 0))
-                day_name_val = str(datetime_info.get('day_name', "N/D"))
-                
-                datetime_str = f"{day_name_val}, {day_val} {month_name_val} {year_val:04d} - {hour_val:02d}:{minute_val:02d}"
+        # Disegna la data e l'ora
+        if simulation and simulation.time_manager and self.font_debug:
+            datetime_str = simulation.time_manager.get_formatted_datetime_string()
+            dt_text_surface = self.font_debug.render(datetime_str, True, self.WHITE)
+            if dt_text_surface:
+                self.screen.blit(dt_text_surface, (self.base_width + panel_padding, current_y))
+            current_y += self.LINE_HEIGHT
+        current_y += 5
 
-                target_x_coord = self.base_width + panel_padding
-                target_y_coord = current_y
-
-                if settings.DEBUG_MODE:
-                    print(f"--- DEBUG DATETIME DRAW ---")
-                    print(f"datetime_str: '{datetime_str}'")
-                    print(f"self.font_debug: {self.font_debug} (Tipo: {type(self.font_debug)})")
-                    print(f"self.base_width: {self.base_width} (Tipo: {type(self.base_width)})")
-                    print(f"panel_padding: {panel_padding} (Tipo: {type(panel_padding)})")
-                    print(f"current_y (prima del blit): {current_y} (Tipo: {type(current_y)})")
-                    print(f"Coordinate calcolate per blit (target_x_coord, target_y_coord): ({target_x_coord}, {target_y_coord})")
-
-                try:
-                    final_blit_x = int(target_x_coord)
-                    final_blit_y = int(target_y_coord)
-
-                    dt_text_surface = self.font_debug.render(datetime_str, True, self.WHITE)
-                    
-                    if dt_text_surface:
-                        self.screen.blit(dt_text_surface, (final_blit_x, final_blit_y))
-                    elif settings.DEBUG_MODE:
-                        print(f"  [Renderer WARN] dt_text_surface è None per datetime_str: '{datetime_str}'. Blit saltato.")
-                    current_y += self.LINE_HEIGHT 
-
-                except Exception as e:
-                    if settings.DEBUG_MODE: # La tua stampa di debug va bene
-                        print(f"  [Renderer EXCEPTION] Eccezione nel blocco DATETIME: {e}")
-                        # Stampa lo stato delle variabili anche in caso di eccezione
-                        print(f"    DEBUG EXCEPTION - datetime_str: '{datetime_str}'")
-                        print(f"    DEBUG EXCEPTION - self.font_debug: {self.font_debug}")
-                        print(f"    DEBUG EXCEPTION - target_x_coord: {target_x_coord}, target_y_coord: {target_y_coord}")
-                    pass
-            else: 
-                if settings.DEBUG_MODE:
-                    print(f"  [Renderer ERROR] self.font_debug è None. Impossibile renderizzare datetime_str.")
-                current_y += self.LINE_HEIGHT 
-
+        # Disegna le informazioni sulla locazione
         if current_location_instance_for_panel:
             loc_name = current_location_instance_for_panel.name
             num_npcs = len(current_location_instance_for_panel.npcs_present_ids)
             num_objs = len(current_location_instance_for_panel.get_objects())
-            cam_off = f"({self.camera_offset_x:.1f},{self.camera_offset_y:.1f})" # Mostra float per offset
+            cam_off = f"({self.camera_offset_x:.1f},{self.camera_offset_y:.1f})"
             current_y = self._draw_text_in_panel(f"Loc: {loc_name}", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
             current_y = self._draw_text_in_panel(f"  NPCs: {num_npcs}, Oggetti: {num_objs}, Cam: {cam_off}", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
-        elif self.current_visible_location_id:
-            current_y = self._draw_text_in_panel(f"Loc ID: {self.current_visible_location_id} (Non Trovata!)", panel_padding, current_y, font=self.font_debug, color=self.RED_OBJ)
         else:
             current_y = self._draw_text_in_panel("Nessuna locazione selezionata.", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
         current_y += self.LINE_HEIGHT 
 
+        # Disegna le informazioni dell'NPC selezionato
         if npc_to_display_in_panel:
             npc = npc_to_display_in_panel
+            text_indent = panel_padding + 15
+            value_max_width = self.PANEL_WIDTH - text_indent - panel_padding
+
             current_y = self._draw_text_in_panel(f"NPC Sel: {npc.name}", panel_padding, current_y, font=self.font_panel_title)
             
             age_str = f"{npc.get_age_in_years_float():.1f} anni"
@@ -459,9 +479,8 @@ class Renderer:
             if npc.current_action:
                 action_name = npc.current_action.action_type_name
                 progress = npc.current_action.get_progress_percentage()
-                action_info_str = f"  Azione: {action_name} ({progress:.0f}%)"
-                # Qui potremmo usare il wrapping se action_name è molto lungo
-                current_y = self._draw_text_in_panel(action_info_str, panel_padding, current_y, max_width=self.PANEL_WIDTH - panel_padding * 2)
+                action_info_str = f"Azione: {action_name} ({progress:.0f}%)"
+                current_y = self._draw_text_in_panel(f"  {action_info_str}", panel_padding, current_y, max_width=value_max_width)
             else:
                 current_y = self._draw_text_in_panel("  Azione: Idle", panel_padding, current_y)
             current_y += 5
@@ -470,18 +489,15 @@ class Renderer:
             
             trait_display_names = [trait_obj.display_name for trait_obj in npc.traits.values()]
             trait_str = ", ".join(sorted(trait_display_names)) if trait_display_names else "Nessuno"
-            # Utilizzo del metodo di wrapping per i tratti
-            current_y = self._draw_text_in_panel("  Tratti: " + trait_str, panel_padding, current_y, max_width=self.PANEL_WIDTH - panel_padding * 2)
+            current_y = self._draw_text_in_panel("  Tratti: " + trait_str, panel_padding, current_y, max_width=value_max_width)
 
             asp_name = npc.aspiration.display_name_it() if npc.aspiration else "Nessuna"
             asp_prog = npc.aspiration_progress
-            # Utilizzo del metodo di wrapping per l'aspirazione
-            current_y = self._draw_text_in_panel(f"  Aspirazione: {asp_name} ({asp_prog:.0%})", panel_padding, current_y, max_width=self.PANEL_WIDTH - panel_padding * 2)
+            current_y = self._draw_text_in_panel(f"  Aspirazione: {asp_name} ({asp_prog:.0%})", panel_padding, current_y, max_width=value_max_width)
             
             interest_names = [i.name.replace("_", " ").title() for i in npc.get_interests()]
             interest_str = ", ".join(sorted(interest_names)) if interest_names else "Nessuno"
-            # Utilizzo del metodo di wrapping per gli interessi
-            current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=self.PANEL_WIDTH - panel_padding * 2)
+            current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=value_max_width)
             current_y += self.LINE_HEIGHT
 
             current_y = self._draw_text_in_panel("Bisogni:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
@@ -489,7 +505,7 @@ class Renderer:
                 for need_type, need_obj in sorted(npc.needs.items(), key=lambda item: item[0].name):
                     val_str = f"{need_obj.get_value():.0f}"
                     need_ui_info = ui_config.NEED_UI_CONFIG.get(need_type, {})
-                    need_color_name = need_ui_info.get("color_pygame", "white") # Assumiamo 'color_pygame'
+                    need_color_name = need_ui_info.get("color_pygame", "white")
                     try: bar_fill_color = pygame.Color(need_color_name)
                     except ValueError: bar_fill_color = pygame.Color(self.WHITE) 
                     
@@ -499,19 +515,18 @@ class Renderer:
                     bar_height = self.LINE_HEIGHT - 8
                     bar_y_offset = current_y + 4
                     
-                    pygame.draw.rect(self.screen, (80,80,80), (bar_x, bar_y_offset, bar_max_width, bar_height))
-                    if bar_current_width > 0 : pygame.draw.rect(self.screen, bar_fill_color, (bar_x, bar_y_offset, bar_current_width, bar_height))
+                    bg_rect_tuple = (int(bar_x), int(bar_y_offset), int(bar_max_width), int(bar_height))
+                    pygame.draw.rect(self.screen, (80,80,80), bg_rect_tuple)
+                    if bar_current_width > 0:
+                        fill_rect_tuple = (int(bar_x), int(bar_y_offset), int(bar_current_width), int(bar_height))
+                        pygame.draw.rect(self.screen, bar_fill_color, fill_rect_tuple)
                     current_y = self._draw_text_in_panel(f"    {need_obj.get_display_name()}: {val_str}", panel_padding, current_y)
             else:
                  current_y = self._draw_text_in_panel("    (Nessun bisogno definito)", panel_padding, current_y)
         elif self.font_debug:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
-        else: 
-            if self.font_main:
-                text_surface = self.font_main.render("SimAI - GUI (Nessuna Simulazione)", True, self.BLACK)
-                text_rect = text_surface.get_rect(center=(self.width // 2, self.height // 2))
-                self.screen.blit(text_surface, text_rect)
-
+        
+        # Disegna gli FPS se in DEBUG_MODE
         if settings.DEBUG_MODE and self.font_debug:
             fps_text = self.font_debug.render(f"FPS: {self.clock.get_fps():.2f}", True, self.BLACK)
             self.screen.blit(fps_text, (10, 10)) 

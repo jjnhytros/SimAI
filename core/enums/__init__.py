@@ -22,6 +22,7 @@ from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
 from .skill_types import SkillType
 from .social_interaction_types import SocialInteractionType
+from .time_of_day import TimeOfDay
 from .trait_types import TraitType
 from .weather_types import WeatherType
 
@@ -42,6 +43,7 @@ __all__ = [
     'SchoolLevel',
     'SkillType',
     'SocialInteractionType',
+    'TimeOfDay',
     'TraitType',
     'WeatherType',
 ]

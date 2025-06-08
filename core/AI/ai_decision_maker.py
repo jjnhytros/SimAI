@@ -20,6 +20,7 @@ from core.AI.problem_definitions import Problem
 from core.config import npc_config, time_config, actions_config 
 from core import settings 
 from core.utils import calculate_distance
+from .thought import Thought, ScoredAction
 
 if TYPE_CHECKING:
     from core.character import Character
@@ -84,29 +85,63 @@ class AIDecisionMaker:
         time_manager = simulation_context.time_manager
         weather_manager = simulation_context.weather_manager
         
+        # --- 1. Punteggio Base: Efficacia sui Bisogni ---
         need_score = self._calculate_action_score(getattr(action, 'effects_on_needs', {}))
-        if need_score <= 0: need_score = 1.0
+        if need_score <= 0:
+            need_score = 1.0
 
+        # --- 2. Modificatore Personalità: Influenza dei Tratti ---
         personality_modifier = 1.0
         if action.action_type_enum is not None:
             for trait_obj in self.npc.traits.values():
                 modifier = trait_obj.get_action_choice_priority_modifier(action.action_type_enum, simulation_context)
                 personality_modifier *= modifier
 
+        # --- 3. Modificatore Memoria (con BIAS DI CONFERMA) ---
         memory_modifier = 1.0
         if self.npc.memory_system and action.action_type_enum:
             query: Dict[str, Any] = {"action_type": action.action_type_enum}
             target_npc = getattr(action, 'target_npc', None)
             activity_type = getattr(action, 'activity_type', None)
+            
             if target_npc: query["target_npc_id"] = target_npc.npc_id
             if activity_type:
                 if isinstance(action, SocializeAction): query["interaction_type"] = action.interaction_type
                 else: query["activity_type"] = activity_type
+                
             relevant_memories = self.npc.memory_system.get_memories_about(query)
+            
             if relevant_memories:
-                total_emotional_impact = sum(m.emotional_impact for m in relevant_memories[:3])
-                memory_modifier = max(0.1, 1.0 + total_emotional_impact) 
-        
+                total_weighted_impact = 0.0 # Rinomino per chiarezza
+
+                # --- BIAS DI CONFERMA ---
+                # Per ogni ricordo pertinente, ne "pesiamo" l'impatto in base ai tratti dell'NPC
+                for memory in relevant_memories[:5]: # Consideriamo i 5 ricordi più recenti
+                    
+                    weighted_impact = memory.emotional_impact # Partiamo dall'impatto originale
+
+                    # BIAS: Un OTTIMISTA amplifica i ricordi positivi e smorza quelli negativi
+                    if self.npc.has_trait(TraitType.OPTIMIST):
+                        if weighted_impact > 0:
+                            weighted_impact *= 1.5 # I bei ricordi sono il 50% più impattanti
+                        else:
+                            weighted_impact *= 0.5 # I brutti ricordi pesano la metà
+
+                    # BIAS: Un PESSIMISTA fa l'opposto
+                    if self.npc.has_trait(TraitType.PESSIMIST):
+                        if weighted_impact < 0:
+                            weighted_impact *= 1.5 # I brutti ricordi sono il 50% più impattanti
+                        else:
+                            weighted_impact *= 0.5 # I bei ricordi pesano la metà
+
+                    # TODO: Aggiungere altri bias per altri tratti (es. GELOSO, BUONO, MALVAGIO...)
+                    
+                    total_weighted_impact += weighted_impact
+
+                # Calcola il modificatore finale basato sull'impatto "filtrato" dai bias
+                memory_modifier = max(0.1, 1.0 + total_weighted_impact)
+
+        # --- 4. Modificatore Contestuale (Ora, Luogo, Meteo) ---
         context_modifier = 1.0
         is_night_time = time_manager.is_night() if time_manager else False
         if getattr(action, 'is_outdoors', False) and weather_manager and weather_manager.is_raining():
@@ -115,13 +150,48 @@ class AIDecisionMaker:
             context_modifier *= 0.2
         if action.action_type_enum == ActionType.ACTION_SLEEP:
             context_modifier *= 2.0 if is_night_time else 0.3
+
+        # --- 5. Modificatore Stato Mentale (Carico Cognitivo) ---
+        cognitive_state_modifier = 1.0 - (self.npc.cognitive_load * getattr(action, 'cognitive_effort', 0.1))
+
+        # --- 6. MODIFICATORE UMORE (NUOVA LOGICA) ---
+        mood_modifier = 1.0
+        current_mood = self.npc.overall_mood # Usa la property di Character
         
+        # Le soglie possono essere definite in npc_config.py
+        mood_bad_threshold = getattr(npc_config, 'MOOD_BAD_THRESHOLD', -15)
+        mood_good_threshold = getattr(npc_config, 'MOOD_GOOD_THRESHOLD', 15)
+        
+        if current_mood < mood_bad_threshold:
+            # Se l'NPC è di cattivo umore, è meno propenso a fare cose
+            mood_modifier *= 0.8 
+            # E ancora meno propenso a fare cose socialmente impegnative
+            if action.action_type_enum in {ActionType.ACTION_SOCIALIZE, ActionType.ACTION_HOST_PARTY}:
+                mood_modifier *= 0.5
+        elif current_mood > mood_good_threshold:
+            # Se l'NPC è di ottimo umore, è più propenso a fare cose
+            mood_modifier *= 1.2
+            # Specialmente cose creative o sociali
+            if action.action_type_enum == ActionType.ACTION_HAVE_FUN or action.action_type_enum == ActionType.ACTION_SOCIALIZE:
+                mood_modifier *= 1.25
+        
+        # --- Calcolo Finale del Punteggio (AGGIORNATO) ---
+        final_score = need_score * personality_modifier * memory_modifier * context_modifier * cognitive_state_modifier * mood_modifier
+        
+        if settings.DEBUG_MODE:
+            # Aggiorna la stampa di debug per includere il nuovo modificatore
+            print(f"      -> Scoring {action.action_type_name}: Base(Need)={need_score:.2f}, "
+                f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f}, "
+                f"CogStateMod={cognitive_state_modifier:.2f}, MoodMod={mood_modifier:.2f} -> FINALE: {final_score:.2f}")
+
+        return final_score
+
         final_score = need_score * personality_modifier * memory_modifier * context_modifier
         
         if settings.DEBUG_MODE:
             print(f"      -> Scoring {action.action_type_name}: Base(Need)={need_score:.2f}, "
-                  f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f} "
-                  f"-> FINALE: {final_score:.2f}")
+                f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f} "
+                f"-> FINALE: {final_score:.2f}")
 
         return final_score
 
@@ -195,8 +265,8 @@ class AIDecisionMaker:
                         elif need_to_address == NeedType.HYGIENE:
                             action_configs = {"for_need": need_to_address, "duration_ticks": getattr(actions_config, 'USEBATHROOM_SHOWER_DURATION_TICKS', int(0.4 * time_config.IXH)), "bladder_relief": 0.0, "hygiene_gain": getattr(actions_config, 'USEBATHROOM_SHOWER_HYGIENE_GAIN', 80.0)}
                     elif action_class == EngageIntimacyAction:
-                         target_id = getattr(self.npc, 'pending_intimacy_target_accepted', None)
-                         if target_id and (target_char := simulation_context.get_npc_by_id(target_id)):
+                        target_id = getattr(self.npc, 'pending_intimacy_target_accepted', None)
+                        if target_id and (target_char := simulation_context.get_npc_by_id(target_id)):
                             action_configs = {"target_npc": target_char, "duration_ticks": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_DURATION_TICKS', int(time_config.IXH * 1)), "initiator_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_INITIATOR_GAIN', 60.0), "target_intimacy_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_TARGET_GAIN', 60.0), "relationship_score_gain": getattr(actions_config, 'INTIMACY_ACTION_DEFAULT_REL_GAIN', 15)}
                     
                     if action_configs:
@@ -210,60 +280,111 @@ class AIDecisionMaker:
         return valid_actions
 
     def decide_next_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation') -> Optional[BaseAction]:
+        # Controlla se è il momento di eseguire una nuova decisione per non sovraccaricare la CPU
         self.ticks_since_last_base_action_check += 1
         if self.ticks_since_last_base_action_check < self.BASE_ACTION_CHECK_INTERVAL_TICKS:
             return None
         self.ticks_since_last_base_action_check = 0
 
-        active_problems: List[Problem] = self.needs_processor.identify_need_problems(self.npc, float(time_manager.total_ticks_sim_run))
+        # --- FASE 1: Identificazione del Problema ---
+        sim_timestamp_float = float(time_manager.total_ticks_sim_run) if time_manager else None
+        active_problems: List[Problem] = self.needs_processor.identify_need_problems(self.npc, sim_timestamp_float)
+
         if not active_problems:
             if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Nessun problema attivo.")
-            return None
+            return None # TODO: Logica per azioni idle/hobby
+        
+        # Per ora, ci concentriamo sul problema più urgente
         current_problem = active_problems[0]
         
+        # --- FASE 2: Scoperta di tutte le Soluzioni Possibili ---
         potential_solutions = self._discover_and_instantiate_solutions(current_problem, simulation_context)
+
         if not potential_solutions:
             if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Nessuna soluzione valida trovata per il problema: {current_problem.problem_type.name}")
             return None
         
+        # --- FASE 3: Valutazione delle Soluzioni e Scelta Iniziale ---
         best_action_candidate: Optional[BaseAction] = None
         highest_action_score: float = -float('inf')
+        
+        considered_solutions_with_scores: List[ScoredAction] = []
 
         if settings.DEBUG_MODE: print(f"    [AI Decide - {self.npc.name}] Valutazione di {len(potential_solutions)} potenziali soluzioni...")
 
         for action_candidate in potential_solutions:
             score = self._evaluate_action_candidate(action_candidate, simulation_context)
+            considered_solutions_with_scores.append(ScoredAction(action=action_candidate, score=score))
+            
             if score > highest_action_score:
                 highest_action_score = score
                 best_action_candidate = action_candidate
 
+        # --- FASE 4: Finalizzazione (Pensiero, Movimento, Anti-Ripetizione) ---
+
+        # 4a: Crea l'oggetto "Thought" per registrare il processo mentale
+        # Questo cattura l'intenzione "pura" dell'NPC, prima di considerare azioni intermedie come muoversi.
+        final_chosen_solution = ScoredAction(action=best_action_candidate, score=highest_action_score) if best_action_candidate else None
+        thought_process = Thought(
+            npc_id=self.npc.npc_id,
+            triggering_problem=current_problem,
+            considered_solutions=sorted(considered_solutions_with_scores, key=lambda s: s.score, reverse=True),
+            chosen_solution=final_chosen_solution
+        )
+
+        if settings.DEBUG_MODE:
+            print(f"    [AI Thought - {self.npc.name}] {thought_process}")
+            # Se vuoi un debug ancora più dettagliato, puoi decommentare questo ciclo:
+            # for solution in thought_process.considered_solutions:
+            #     print(f"        - Opzione: {solution.action.action_type_name}, Score: {solution.score:.2f}")
+
+        # 4b: Controlla i prerequisiti (es. Movimento) per l'azione scelta
+        # Se l'azione scelta richiede un movimento, sostituisci l'azione da eseguire con una MoveToAction.
         if best_action_candidate and hasattr(best_action_candidate, 'target_object') and best_action_candidate.target_object:
             target_obj = best_action_candidate.target_object
             if hasattr(target_obj, 'logical_x') and target_obj.logical_x is not None:
                 npc_pos = (self.npc.logical_x, self.npc.logical_y)
                 obj_pos = (target_obj.logical_x, target_obj.logical_y)
+                
                 if calculate_distance(npc_pos, obj_pos) > getattr(settings, 'NPC_INTERACTION_DISTANCE_THRESHOLD', 1.5):
-                    best_action_candidate = MoveToAction(npc=self.npc, simulation_context=simulation_context, destination=obj_pos, follow_up_action=best_action_candidate)
+                    if settings.DEBUG_MODE:
+                        print(f"  [AI Decide - {self.npc.name}] L'oggetto '{target_obj.name}' è troppo lontano. Sovrascrivo azione con MoveToAction.")
+                    
+                    move_action = MoveToAction(
+                        npc=self.npc,
+                        simulation_context=simulation_context,
+                        destination=obj_pos,
+                        follow_up_action=best_action_candidate # L'azione originale verrà eseguita dopo
+                    )
+                    # L'azione finale che verrà eseguita in questo tick è il movimento
+                    best_action_candidate = move_action
         
+        # 4c: Gestisci la logica anti-ripetizione sull'azione finale da eseguire
         if best_action_candidate:
+            # Se l'azione finale è la stessa dell'ultima E non è un movimento (vogliamo permettere movimenti consecutivi)
             if self.last_selected_action_type == best_action_candidate.action_type_enum and not isinstance(best_action_candidate, MoveToAction):
                 self.consecutive_action_type_count += 1
                 if self.consecutive_action_type_count >= self.MAX_CONSECUTIVE_SAME_ACTION:
-                    if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Max ripetizioni per {best_action_candidate.action_type_name}. NPC non fa nulla.")
+                    if settings.DEBUG_MODE: print(f"  [AI Decide - {self.npc.name}] Raggiunto max ripetizioni per {best_action_candidate.action_type_name}. NPC non fa nulla.")
                     return None 
-            else: self.consecutive_action_type_count = 0
+            else:
+                self.consecutive_action_type_count = 0
             self.last_selected_action_type = best_action_candidate.action_type_enum
-        else: 
+        else: # Se alla fine non c'è nessuna azione
             self.consecutive_action_type_count = 0
             self.last_selected_action_type = None
 
+        # 4d: Logging finale e restituzione dell'azione da eseguire
         if best_action_candidate and settings.DEBUG_MODE:
-            problem_desc = current_problem.problem_type.name
-            if current_problem.problem_type == ProblemType.LOW_NEED:
-                need_detail_val = current_problem.details.get("need")
-                if isinstance(need_detail_val, NeedType): problem_desc += f" ({need_detail_val.name})"
-            action_name_log = getattr(best_action_candidate, 'action_type_name', "AzioneSenzaNome")
-            print(f"  [AI Decide - {self.npc.name}] Azione Scelta Finale: {action_name_log} (Score: {highest_action_score:.2f}) per Problema: {problem_desc}")
+             problem_desc = current_problem.problem_type.name
+             if current_problem.problem_type == ProblemType.LOW_NEED:
+                 need_detail_val = current_problem.details.get("need")
+                 if isinstance(need_detail_val, NeedType): problem_desc += f" ({need_detail_val.name})"
+             
+             action_name_log = getattr(best_action_candidate, 'action_type_name', "AzioneSenzaNome")
+             # Nota: lo score mostrato è quello dell'azione originale, non di MoveToAction,
+             # perché è quello che ha guidato la decisione iniziale.
+             print(f"  [AI Decide - {self.npc.name}] Azione Scelta Finale: {action_name_log} (Score Intenzione: {highest_action_score:.2f}) per Problema: {problem_desc}")
             
         return best_action_candidate
 

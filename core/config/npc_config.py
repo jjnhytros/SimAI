@@ -111,3 +111,8 @@ NEED_DECAY_RATES: dict[NeedType, float] = {
     NeedType.THIRST: -5.5, # Assicurati di avere THIRST qui
 }
 
+# Modificatore di urgenza per bisogni critici
+CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
+
+# Soglia di urgenza sopra la quale l'IA considera un problema per la decisione
+AI_URGENT_PROBLEM_THRESHOLD: float = 0.5 # Esempio: considera problemi con urgenza > 50%

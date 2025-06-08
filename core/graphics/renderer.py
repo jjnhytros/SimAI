@@ -500,6 +500,36 @@ class Renderer:
             current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=value_max_width)
             current_y += self.LINE_HEIGHT
 
+            # --- MOODLET ATTIVI ---
+            current_y = self._draw_text_in_panel("Stato Emotivo:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
+            if npc.moodlet_manager and npc.moodlet_manager.active_moodlets:
+                # Ordina i moodlet per impatto emotivo (dal peggiore al migliore)
+                sorted_moodlets = sorted(npc.moodlet_manager.active_moodlets.values(), key=lambda m: m.emotional_impact)
+                
+                for moodlet in sorted_moodlets:
+                    # Determina il colore in base all'impatto (rosso per negativo, verde per positivo)
+                    if moodlet.emotional_impact < 0:
+                        moodlet_color = self.RED_OBJ # Un rosso che già usi, o un nuovo colore
+                    elif moodlet.emotional_impact > 0:
+                        moodlet_color = (100, 255, 100) # Verde brillante
+                    else:
+                        moodlet_color = self.WHITE
+
+                    moodlet_text = f"  {moodlet.display_name} ({moodlet.emotional_impact})"
+                    
+                    # Usa il wrapping per il testo se è troppo lungo
+                    current_y = self._draw_text_in_panel(
+                        moodlet_text, 
+                        panel_padding, 
+                        current_y, 
+                        color=moodlet_color,
+                        max_width=self.PANEL_WIDTH - panel_padding * 2
+                    )
+            else:
+                # Se non ci sono moodlet, mostra uno stato neutro
+                current_y = self._draw_text_in_panel("  Neutro", panel_padding, current_y)
+            current_y += self.LINE_HEIGHT
+
             current_y = self._draw_text_in_panel("Bisogni:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
             if npc.needs:
                 for need_type, need_obj in sorted(npc.needs.items(), key=lambda item: item[0].name):
@@ -522,10 +552,10 @@ class Renderer:
                         pygame.draw.rect(self.screen, bar_fill_color, fill_rect_tuple)
                     current_y = self._draw_text_in_panel(f"    {need_obj.get_display_name()}: {val_str}", panel_padding, current_y)
             else:
-                 current_y = self._draw_text_in_panel("    (Nessun bisogno definito)", panel_padding, current_y)
+                current_y = self._draw_text_in_panel("    (Nessun bisogno definito)", panel_padding, current_y)
         elif self.font_debug:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
-        
+
         # Disegna gli FPS se in DEBUG_MODE
         if settings.DEBUG_MODE and self.font_debug:
             fps_text = self.font_debug.render(f"FPS: {self.clock.get_fps():.2f}", True, self.BLACK)

@@ -1,5 +1,5 @@
-# SimAI v0.5.116-alpha_270
-# TODO List Generale (Aggiornato al 08 Giugno 2025 02:12:36)
+# SimAI v0.5.115-alpha_273
+# TODO List Generale (Aggiornato al 08 Giugno 2025 04:49:59)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -80,9 +80,9 @@
                 * `[x]` Efficienza (effetti sui bisogni).
                 * `[x]` Personalità (tratti).
                 * `[x]` Contesto (oggetti/luoghi/meteo/ora).
-                * `[P]` Memoria (`MemorySystem`).
-                * `[P]` Stato Mentale (Carico Cognitivo).
-                * `[ ]` Bias Cognitivi
+                * `[x]` Memoria (`MemorySystem`).
+                * `[x]` Stato Mentale (Carico Cognitivo).
+                * `[P]` **Bias Cognitivi** (Implementato Bias di Conferma).
             * `[ ]` **Gestione dei Conflitti Decisionali e Priorità**.
         * `[ ]` iii. **Fase 3: Creazione del "Pensiero"**
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**

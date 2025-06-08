@@ -14,6 +14,7 @@ from .genders import Gender
 from .interests import Interest
 from .life_stages import LifeStage
 from .location_types import LocationType
+from .moodlet_types import MoodletType
 from .need_types import NeedType
 from .object_types import ObjectType
 from .problem_types import ProblemType
@@ -35,6 +36,7 @@ __all__ = [
     'Interest',
     'LifeStage',
     'LocationType',
+    'MoodletType',
     'NeedType',
     'ObjectType',
     'ProblemType',

@@ -8,6 +8,7 @@ from core.enums import (
     ActionType, TraitType,
 )
 from core.enums.lod_level import LODLevel
+from core.enums.moodlet_types import MoodletType
 from core.modules.actions import BaseAction
 from core.modules.needs import BaseNeed, ThirstNeed
 from core.modules.needs.common_needs import (
@@ -23,6 +24,8 @@ from core.modules.traits import (
 )
 from core.modules.relationships.relationship_base import Relationship
 from core.modules.memory.memory_system import MemorySystem
+from core.modules.moodlets.moodlet_manager import MoodletManager
+from core.modules.moodlets.moodlet_definitions import Moodlet
 
 from dataclasses import dataclass, field
 from core.AI.ai_decision_maker import AIDecisionMaker
@@ -112,6 +115,7 @@ class Character:
 
         # --- INIZIALIZZAZIONE DEL MEMORYSYSTEM ---
         self.memory_system: MemorySystem = MemorySystem(self)
+        self.moodlet_manager: MoodletManager = MoodletManager(self)
 
         # --- METODI DI INIZIALIZZAZIONE CHE LI POPOLANO ---
         self._initialize_traits(initial_traits or set())
@@ -230,8 +234,8 @@ class Character:
         elif settings.DEBUG_MODE: print(f"  [Character ERROR] Impossibile determinare LifeStage per {self.name} (età {age_days}gg).")
 
     def has_trait(self, trait_type: TraitType) -> bool:
-        """Verifica se l'NPC possiede un tratto specifico."""
-        return trait_type in self.traits # Ora self.traits è un dizionario
+        """Controlla se l'NPC possiede un tratto specifico."""
+        return trait_type in self.traits
 
     def get_trait(self, trait_type: TraitType) -> Optional[BaseTrait]:
         """Restituisce l'oggetto tratto se l'NPC lo possiede, altrimenti None."""
@@ -340,6 +344,15 @@ class Character:
             if settings.DEBUG_MODE: print(f"  [Character Needs WARN - {self.name}] Bisogno {need_type.name} non trovato durante change_need_value.")
             return False
 
+    def overall_mood(self) -> int:
+        """
+        Restituisce l'umore generale dell'NPC calcolato dal MoodletManager.
+        Un valore positivo indica un umore buono, negativo indica un umore cattivo.
+        """
+        if self.moodlet_manager:
+            return self.moodlet_manager.get_total_emotional_impact()
+        return 0 # Fallback a neutro se non c'è un manager
+
     def update_needs(self, time_manager: 'TimeManager', ticks_elapsed: int):
         """
         Aggiorna tutti i bisogni dell'NPC in base al tempo trascorso e
@@ -381,6 +394,46 @@ class Character:
         
         # Assicura che il valore rimanga nel range 0.0 - 1.0
         self.cognitive_load = max(0.0, min(1.0, self.cognitive_load))
+
+        # Ottieni i riferimenti ai bisogni chiave
+        hunger_need = self.needs.get(NeedType.HUNGER)
+        fun_need = self.needs.get(NeedType.FUN)
+        
+        # 1. Moodlet "Affamato"
+        if hunger_need:
+            if hunger_need.get_value() < npc_config.NEED_CRITICAL_THRESHOLD: # Es. < 10
+                self.moodlet_manager.add_moodlet(Moodlet(
+                    moodlet_type=MoodletType.STARVING, display_name="Morto di Fame",
+                    emotional_impact=-20, source_description="La fame è a un livello critico!"
+                ))
+            elif hunger_need.get_value() < npc_config.NEED_LOW_THRESHOLD: # Es. < 25
+                self.moodlet_manager.add_moodlet(Moodlet(
+                    moodlet_type=MoodletType.HUNGRY, display_name="Affamato",
+                    emotional_impact=-10, source_description="Il mio stomaco brontola."
+                ))
+            else: # Se la fame è sopra la soglia bassa, rimuovi i moodlet negativi
+                self.moodlet_manager.remove_moodlet(MoodletType.HUNGRY)
+                self.moodlet_manager.remove_moodlet(MoodletType.STARVING)
+
+        # 2. Moodlet "Annoiato"
+        if fun_need:
+            if fun_need.get_value() < npc_config.NEED_LOW_THRESHOLD:
+                self.moodlet_manager.add_moodlet(Moodlet(
+                    moodlet_type=MoodletType.BORED, display_name="Annoiato",
+                    emotional_impact=-5, source_description="Non c'è niente da fare."
+                ))
+            else:
+                self.moodlet_manager.remove_moodlet(MoodletType.BORED)
+        
+        # 3. Moodlet "Soddisfatto"
+        average_need_level = sum(n.get_value() for n in self.needs.values()) / len(self.needs) if self.needs else 0
+        if average_need_level > 85: # Soglia esempio
+            self.moodlet_manager.add_moodlet(Moodlet(
+                moodlet_type=MoodletType.SATISFIED, display_name="Soddisfatto",
+                emotional_impact=+10, source_description="Tutti i miei bisogni sono soddisfatti."
+            ))
+        else:
+            self.moodlet_manager.remove_moodlet(MoodletType.SATISFIED)
 
     def get_lowest_need(self) -> Optional[Tuple[NeedType, float]]:
         if not self.needs: return None

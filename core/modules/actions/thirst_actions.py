@@ -124,7 +124,7 @@ class DrinkAction(BaseAction):
     def on_interrupt_effects(self):
         super().on_interrupt_effects()
         if self.npc and self.duration_ticks > 0:
-            proportion_completed = self.ticks_elapsed / self.duration_ticks
+            proportion_completed = self.elapsed_ticks / self.duration_ticks
             if settings.DEBUG_MODE:
                 print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Azione bere interrotta. Applico effetti parziali.")
             

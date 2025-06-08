@@ -1,12 +1,13 @@
-# SimAI v0.5.115-alpha_273
-# TODO List Generale (Aggiornato al 08 Giugno 2025 04:49:59)
+# SimAI v0.5.116-alpha_274
+# TODO List Generale (Aggiornato al 08 Giugno 2025 06:52:22)
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
 `[!]`   Principi Guida da prendere in considerazione con priorità assoluta
 `[P]`   Parzialmente implementato
+`[@]`   Implementato, ma necessita di revisione
 `[x]`   Implementazione terminata
-`[F]`   Implementazione futura
+`[ ]`   Implementazione futura
 `[-]`   Implementazione non applicabile
 `[0-9]`   Implementazione con priorità (0=Prioritaria, 1=Alta, 5=Media, 9=Bassa)
 
@@ -67,14 +68,14 @@
 
 * `[P]` **3. Gestione delle Configurazioni e Settings:**
     * `[x]` a. File `settings.py` per costanti globali.
-    * `[P]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Completate le configurazioni per le azioni base).
+    * `[x]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Completate le configurazioni per le azioni base).
     * `[ ]` c. Sistema di logging avanzato.
-    * `[F]` d. Supporto per internazionalizzazione (i18n).
+    * `[ ]` d. Supporto per internazionalizzazione (i18n).
 
 * `[P]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
     * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
         * `[x]` i. **Fase 1: Identificazione del "Problema"**
-        * `[P]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
+        * `[x]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
             * `[x]` Ristrutturato `AIDecisionMaker` per implementare un loop di "scoperta e valutazione".
             * `[x]` Sviluppata una funzione di "punteggio" per valutare ogni soluzione, considerando:
                 * `[x]` Efficienza (effetti sui bisogni).
@@ -82,9 +83,9 @@
                 * `[x]` Contesto (oggetti/luoghi/meteo/ora).
                 * `[x]` Memoria (`MemorySystem`).
                 * `[x]` Stato Mentale (Carico Cognitivo).
-                * `[P]` **Bias Cognitivi** (Implementato Bias di Conferma).
-            * `[ ]` **Gestione dei Conflitti Decisionali e Priorità**.
-        * `[ ]` iii. **Fase 3: Creazione del "Pensiero"**
+                * `[x]` **Bias Cognitivi** (Implementato Bias di Conferma).
+                * `[x]` **Gestione dei Conflitti Decisionali e Priorità**.
+        * `[P]` iii. **Fase 3: Creazione del "Pensiero"**
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
         * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (Implementato `ConsequenceAnalyzer` per creare ricordi).
 
@@ -204,14 +205,14 @@
         * `[ ]` iii. Essere influenzato dal numero di membri della famiglia o dal background scelto (II.2.g).
     * `[ ]` d. La simulazione inizia una volta che la famiglia è stata trasferita in un lotto.
 
-### `[F]` **5. (Futuro) Scenari di Inizio Partita ("Story Mode Starters"):**
-    * `[F]` a. Oltre alla creazione libera, offrire al giocatore scenari predefiniti con personaggi, relazioni, e situazioni iniziali uniche che presentano sfide o obiettivi specifici (es. "Single al verde in città nuova", "Famiglia con troppi figli e pochi soldi", "Erede di una fortuna misteriosa").
-    * `[F]` b. Questi scenari potrebbero utilizzare l'editor personaggio per la personalizzazione estetica dei personaggi predefiniti.
+### `[ ]` **5. (Futuro) Scenari di Inizio Partita ("Story Mode Starters"):**
+    * `[ ]` a. Oltre alla creazione libera, offrire al giocatore scenari predefiniti con personaggi, relazioni, e situazioni iniziali uniche che presentano sfide o obiettivi specifici (es. "Single al verde in città nuova", "Famiglia con troppi figli e pochi soldi", "Erede di una fortuna misteriosa").
+    * `[ ]` b. Questi scenari potrebbero utilizzare l'editor personaggio per la personalizzazione estetica dei personaggi predefiniti.
 
 ---
 
 
-## III. MONDO DI ANTHALYS (Open World e Costruzione) `[F]`
+## III. MONDO DI ANTHALYS (Open World e Costruzione) `[ ]`
 
 ---
 
@@ -420,7 +421,7 @@
                 * `[ ]` Persuasive (Persuasivo)
                 * `[ ]` Romantic
                 * `[ ]` Seductive (Seducente - diverso da Beguiling, più attivo e intenzionale)
-                * `[ ]` Shy (Timido)
+                * `[P]` Shy (Timido)
                 * `[ ]` Socially Awkward (Socialmente Imbarazzante)
                 * `[ ]` Soulmate (Anima Gemella - per relazioni) -> Sociale (speciale, forse acquisito)
                 * `[ ]` Tender (Tenero - nelle relazioni)
@@ -847,7 +848,7 @@
         * `[ ]` c. (Futuro) Negozi di animali (`LocationType.PET_STORE`) per acquisto di cibo di varie qualità, accessori (giocattoli, cucce, guinzagli), e animali stessi (con implicazioni etiche vs adozione da rifugio `C.5.2.a`).
         * `[ ]` d. (Futuro) Altri servizi: toelettatura (`PET_GROOMING_SALON`), dog/cat-sitting, centri di addestramento.
 
-### **14. "Eredità Artigiana e Generazioni di Maestria" `[F]`**
+### **14. "Eredità Artigiana e Generazioni di Maestria" `[ ]`**
     * `[ ]` a. **Concetto:** Un'immersione profonda nell'artigianato, nell'arte, e nel concetto di "opera magna" o di un'eredità familiare costruita attorno a un'abilità o creazione unica.
     * `[ ]` b. **Unicità/Originalità SimAI:** Focus sul *processo* creativo, ispirazione, lotta per la maestria, trasmissione di conoscenze/abilità uniche attraverso le generazioni. NPC potrebbero sviluppare stili irripetibili o inventare nuove forme nel loro mestiere.
     * `[ ]` c. **Possibili Meccaniche Chiave:**
@@ -857,7 +858,7 @@
         * `[ ]` iv. **Eredità e Apprendistato Dettagliato:** Sistema avanzato maestro-apprendista (estensione `VII.8`), trasmissione di skill, tecniche segrete, stili, strumenti, reputazione della "bottega" (`IV.2.f`).
         * `[ ]` v. **Impatto Culturale Duraturo:** Opere eccezionali influenzano cultura locale (`IV.9`), diventano pezzi da museo (`XVIII.5.h`), definiscono "scuole" artistiche/artigianali.
 
-### **15. "Psiche e Società - Dinamiche Complesse di Influenza e Resilienza Mentale" `[F]`**
+### **15. "Psiche e Società - Dinamiche Complesse di Influenza e Resilienza Mentale" `[ ]`**
     * `[ ]` a. **Concetto:** Esplorare complessità della psicologia avanzata, dinamiche sociali di gruppo, meccanismi di influenza, e resilienza mentale individuale.
     * `[ ]` b. **Unicità/Originalità SimAI:** Simulazione impatto psicologico a lungo termine, dinamiche di potere/conformismo nei gruppi, movimenti sociali emergenti, persuasione/manipolazione basate su psicologia.
     * `[ ]` c. **Possibili Meccaniche Chiave:**
@@ -867,7 +868,7 @@
         * `[ ]` iv. **Terapie Avanzate e Percorsi di Crescita Personale:** Espansione ruolo Psicologo/Terapeuta (`VIII.1.j`, `IV.1.i.3`) con diversi approcci per superare disturbi, modificare comportamenti, raggiungere crescita personale (`IV.3.a`).
         * `[ ]` v. **Sviluppo Approfondito dell'Identità e dei Valori nel Tempo:** Formazione/rinegoziazione senso di sé, valori (`IV.3.g`), "scopo nella vita" in risposta a esperienze.
 
-### **16. "Il Corpo Umano - Micro-Simulazione di Salute, Invecchiamento e Fisicità" `[F]`**
+### **16. "Il Corpo Umano - Micro-Simulazione di Salute, Invecchiamento e Fisicità" `[ ]`**
     * `[ ]` a. **Concetto:** Simulazione dettagliata (ma gestibile) di fisiologia umana, invecchiamento realistico, malattie complesse (non soprannaturali), e impatto profondo dello stile di vita sul corpo.
     * `[ ]` b. **Unicità/Originalità SimAI:** Superare semplici barre di salute per simulare sistemi corporei interconnessi, predisposizioni genetiche dettagliate, fragilità e resilienza del corpo.
     * `[ ]` c. **Possibili Meccaniche Chiave:**
@@ -877,7 +878,7 @@
         * `[ ]` iv. **Impatto Cumulativo e a Lungo Termine dello Stile di Vita:** Conseguenze tracciabili di dieta, esercizio, sonno, stress, vizi (`IV.3.c`) su salute e longevità.
         * `[ ]` v. **Medicina Preventiva, Diagnostica Avanzata e Riabilitazione:** Importanza check-up, screening, terapie riabilitative (`PHYSIOTHERAPY_SESSION` azione) post-malattie/infortuni.
 
-### **17. Sistema di Produzione Sostenibile di Anthalys (Alimenti, Beni Naturali e Prodotti Artigianali) `[F]`**
+### **17. Sistema di Produzione Sostenibile di Anthalys (Alimenti, Beni Naturali e Prodotti Artigianali) `[ ]`**
     * `[ ]` a. **Introduzione e Principi Fondamentali:**
         * `[ ]` i. Definire un sistema di produzione alimentare e di beni di consumo primari ad Anthalys basato su principi di alta sostenibilità, rispetto ambientale, etica e salute.
         * `[ ]` ii. Il sistema combina tecniche agricole/produttive moderne con pratiche tradizionali eco-compatibili.
@@ -925,23 +926,23 @@
     * `[ ]` f. **Materiali Sostenibili e Prodotti Artigianali Non Alimentari di Anthalys:** (Materiali edilizia ecologici, prodotti cura persona naturali, oggetti arredo artigianali, strumenti musicali).
     * `[!]` g. **Coerenza con il Mercato e Consumo:** (Integrazione con sistema consumo NPC, disponibilità su AION/mercati, prezzi, influenza tratti consumatore).
 
-### **18. SISTEMA DI AUTOANALISI, RIFLESSIVITÀ E CAMBIAMENTO** `[F]`
+### **18. SISTEMA DI AUTOANALISI, RIFLESSIVITÀ E CAMBIAMENTO** `[ ]`
 
-* `[F]` **1. Sistema di Autoanalisi degli NPC ("Self-Reflection"):**
+* `[ ]` **1. Sistema di Autoanalisi degli NPC ("Self-Reflection"):**
     * `[ ]` a. Alcuni NPC (in base a tratti, età, esperienze) possono attivare una **fase di riflessione** periodica su eventi significativi (`MemoryObject`) o aspirazioni insoddisfatte.
         * `[ ]` i. Genera `Thoughts` specifici con impatto su `Moodlet` e IA decisionale.
         * `[ ]` ii. Può innescare volontà di cambiamento (nuove azioni, ridefinizione obiettivi, desiderio di scuse).
         * `[ ]` iii. Tratti come `Reflective`, `Philosopher`, `SelfConscious` aumentano la probabilità e profondità della riflessione.
     * `[ ]` b. Collegamenti al sistema `Thought`, `MemorySystem`, `MoodletSystem`, `AIDecisionMaker`.
 
-* `[F]` **2. Impatto sul Comportamento e Personalità:**
+* `[ ]` **2. Impatto sul Comportamento e Personalità:**
     * `[ ]` a. Riflessioni ripetute su eventi simili possono portare a:
         * `[ ]` i. Cambiamento di tratti (es. da `HotHeaded` a `Calm` dopo molti litigi e ripensamenti).
         * `[ ]` ii. Acquisizione di `Meta-tratti` come `Wiser`, `Disillusioned`, `Growth-Minded`.
         * `[ ]` iii. Evoluzione delle relazioni (desiderio di chiarire, allontanarsi, migliorare).
     * `[ ]` b. Gli NPC possono creare "narrative" interne che influenzano decisioni future.
 
-* `[F]` **3. Espansione: Diario o Voce Interiore (debug o narrativo):**
+* `[ ]` **3. Espansione: Diario o Voce Interiore (debug o narrativo):**
     * `[ ]` a. Visualizzazione di pensieri riflessivi in forma di "voce interiore".
     * `[ ]` b. (Facoltativo) Diario automatico generato da NPC che riflettono su sé stessi, utile per giocatori narrativi o tool di analisi/debug.
 
@@ -4686,7 +4687,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[P]` Regole di *sandhi* (fusione fonetica: `ne + eira → nēra`)
 * `[ ]` Sistema di scrittura/logografia nativa
 
-  * `[F]` Creazione di un alfabeto grafico originale
+  * `[ ]` Creazione di un alfabeto grafico originale
 
 ### 2. 🔢 Sistema Numerico
 
@@ -4696,7 +4697,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[P]` Ordinali base (manca generazione estesa)
 * `[ ]` Sistemi frazionari (mezzo, un terzo…)
 
-  * `[F]` Espansione su decimali e frazioni colloquiali
+  * `[ ]` Espansione su decimali e frazioni colloquiali
 
 ### 3. 🌈 Sistema dei Colori
 
@@ -4705,7 +4706,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[ ]` Combinazioni complesse (verde oliva, blu petrolio…)
 * `[ ]` Mappa cromatica culturale (es. significato dei colori)
 
-  * `[F]` Colori rituali, simbolici o mitologici
+  * `[ ]` Colori rituali, simbolici o mitologici
 
 ---
 
@@ -4718,7 +4719,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[P]` Genere grammaticale (gestito implicitamente, non formalizzato)
 * `[ ]` Concordanza soggetto-verbo (assenza di marcatura di persona)
 
-  * `[F]` Estensione del lessico in campi semantici strutturati
+  * `[ ]` Estensione del lessico in campi semantici strutturati
 
 ### 5. ⚙️ Morfologia Derivativa
 
@@ -4727,7 +4728,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[@]` Incoerenze nei prefissi/suffissi (`e+`, `ĉy+`, `ty+`)
 * `[ ]` Gestione dei verbi irregolari (es. `jita → jera`)
 
-  * `[F]` Formalizzazione classi di verbi irregolari
+  * `[ ]` Formalizzazione classi di verbi irregolari
 
 ---
 
@@ -4754,7 +4755,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[ ]` Topicalizzazione (`L'acqua → Freja, ja jemba`)
 * `[@]` Ordine delle parole non chiarito (SVO? SOV?)
 
-  * `[F]` Analisi della flessibilità sintattica
+  * `[ ]` Analisi della flessibilità sintattica
 
 ---
 
@@ -4780,7 +4781,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
   * es. `Ploke pylo`, `Jita ny kole`
 * `[ ]` Usi poetici, stilistici o rituali
 
-  * `[F]` Sviluppo della lingua cerimoniale e settoriale
+  * `[ ]` Sviluppo della lingua cerimoniale e settoriale
 
 ---
 
@@ -4792,7 +4793,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[ ]` Traduzione inversa
 * `[ ]` Analisi morfosintattica input in lingua
 
-  * `[F]` Parser linguistico
+  * `[ ]` Parser linguistico
 
 ### 11. 🛠️ Strumenti Tecnici e API
 
@@ -4801,7 +4802,7 @@ Se vuoi, posso procedere ora alla costruzione di una **mappa di implementazione*
 * `[ ]` Esportazione dizionario (CSV/JSON)
 * `[P]` Documentazione e commenti nel codice
 
-  * `[F]` Tool grafici per esplorazione grammaticale
+  * `[ ]` Tool grafici per esplorazione grammaticale
 
 ---
 

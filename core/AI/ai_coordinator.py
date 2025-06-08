@@ -28,7 +28,7 @@ class AICoordinator:
             return
 
         # 1. Aggiorna i bisogni
-        # La tua classe Character ha già npc.update_needs(time_manager, ticks_elapsed)
+        # La tua classe Character ha già npc.update_needs(time_manager, elapsed_ticks)
         # Assicurati che time_delta sia il numero corretto di tick trascorsi.
         npc.update_needs(self.simulation_context.time_manager, time_delta)
 

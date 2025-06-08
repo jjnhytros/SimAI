@@ -1,190 +1,155 @@
-# generate_version.py
-"""
-Script per calcolare e aggiornare automaticamente la versione del progetto SimAI.
-
-Legge un file TODO, conta lo stato dei task, genera una nuova stringa di versione
-e aggiorna sia il file TODO che il file settings.py.
-"""
-import os
 import re
+import os
 import argparse
-from datetime import datetime
 
-# Dizionario per tradurre i mesi in italiano, come da richiesta
-MESI_ITALIANI = {
-    1: "Gennaio", 2: "Febbraio", 3: "Marzo", 4: "Aprile",
-    5: "Maggio", 6: "Giugno", 7: "Luglio", 8: "Agosto",
-    9: "Settembre", 10: "Ottobre", 11: "Novembre", 12: "Dicembre"
-}
-
-DEFAULT_TODO_FILE_PATH = "TODO_Generale.md" # Nome del file TODO hardcodato
-
-def count_tasks_in_file(file_path: str) -> tuple[int, int, int]:
-    """
-    Conta i task [x], [P], e [ ] in un file, ignorando la legenda iniziale
-    e cercando i marker in qualsiasi punto della riga dopo la legenda.
-    """
-    x_count = 0
-    p_count = 0
-    empty_count = 0
-
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-    except FileNotFoundError:
-        print(f"Errore: File non trovato a '{file_path}'")
-        exit(1)
-
-    content_started = False
-    legend_marker_found = False
-    for line_number, line in enumerate(lines):
-        if line.strip() == '---':
-            if not legend_marker_found:
-                legend_marker_found = True
-            content_started = True
-            continue 
+def count_markers(file_path):
+    """Conta i marker nel file, gestendo correttamente la legenda"""
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
         
-        if not content_started:
-            continue
+        # Conta tutte le occorrenze dei marker rilevanti
+        markers = {
+            'x': len(re.findall(r'\[x\]', content, re.IGNORECASE)),
+            'P': len(re.findall(r'\[P\]', content, re.IGNORECASE)),
+            ' ': len(re.findall(r'\[\s\]', content, re.IGNORECASE)) + 
+                 len(re.findall(r'\[\_\]', content, re.IGNORECASE)),  # Considera [ ] e [_]
+            '@': len(re.findall(r'\[@\]', content, re.IGNORECASE)),
+        }
         
-        # Ora cerchiamo i marker esatti all'interno della riga
-        # Questo è più flessibile di startswith()
-        # Assicurati che il formato nel tuo TODO sia esattamente '`[x]` ' (con spazio dopo)
-        # o adattalo se necessario. Per ora, cerco il marker esatto con backtick.
+        # Cerca la presenza di una legenda
+        has_legenda = bool(re.search(r'#+\s*Legenda:', content, re.IGNORECASE))
         
-        # Per evitare di contare più volte un marker se appare più volte in una riga
-        # (improbabile per i task, ma per sicurezza), o di contare un marker
-        # all'interno di un altro (es. [P] dentro una descrizione),
-        # usiamo re.search per trovare la prima occorrenza e contiamo solo quella.
-        # Una logica più semplice è cercare la sottostringa, che dovrebbe essere sufficiente
-        # se i marker sono usati solo per indicare lo stato dei task.
-
-        # Modifichiamo per cercare la stringa esatta, che include i backtick.
-        # Il conteggio si basa sulla prima occorrenza trovata per evitare doppi conteggi
-        # se una riga contenesse per errore più marker validi (molto improbabile).
+        # Sottrai 1 per ogni tipo di marker se è presente una legenda
+        if has_legenda:
+            for marker in markers:
+                markers[marker] = max(0, markers[marker] - 1)
         
-        # Per evitare di contare un marker all'interno di un altro (es. se un task `[]` avesse
-        # la descrizione "Implementare `[P]`"), cerchiamo specificamente il marker seguito da uno spazio
-        # o che sia il pattern completo.
-        # Una regex semplice potrebbe essere più robusta, ma proviamo con 'in' e controlli.
+        return markers
 
-        line_to_check = line.strip() # Lavoriamo sulla riga trimmata
-
-        # Per evitare doppi conteggi se una riga ha, per esempio, sia `[x]` che `[P]`
-        # (improbabile per un singolo task), diamo priorità a `[x]`, poi `[P]`, poi `[]`.
-        if '`[x]`' in line_to_check: # Cerchiamo la sottostringa esatta
-            x_count += 1
-        elif '`[P]`' in line_to_check: # Solo se non è stato trovato [x]
-            p_count += 1
-        elif '`[ ]`' in line_to_check:  # Solo se non sono stati trovati [x] o [P]
-            empty_count += 1
-            
-    return x_count, p_count, empty_count
-
-def update_todo_file(file_path: str, new_version: str):
-    """
-    Aggiorna la prima e la seconda riga del file TODO.
-    """
-    with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    # Formatta la data e l'ora correnti
-    now = datetime.now()
-    # Esempio: "02 Giugno 2025 12:40:32"
-    timestamp = f"{now.day:02d} {MESI_ITALIANI[now.month]} {now.year} {now.strftime('%H:%M:%S')}"
-
-    # Aggiorna le prime due righe
-    lines[0] = f"# SimAI v{new_version}\n"
-    lines[1] = f"# TODO List Generale (Aggiornato al {timestamp})\n"
-
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.writelines(lines)
+def calculate_versions(roadmap_path, general_path):
+    # Conteggio marker
+    roadmap = count_markers(roadmap_path)
+    generale = count_markers(general_path)
     
-    print(f"✅ File TODO '{file_path}' aggiornato con la nuova versione e timestamp.")
-
-def update_settings_file(settings_path: str, new_version: str):
-    """
-    Aggiorna la variabile GAME_VERSION nel file settings.py.
-    """
-    if not os.path.exists(settings_path):
-        print(f"⚠️ Attenzione: File settings non trovato a '{settings_path}'. Saltando l'aggiornamento.")
-        return
-
-    with open(settings_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+    # Calcolo totali per la versione ufficiale
+    ufficiale_completed = generale['x']
+    ufficiale_partial = generale['P'] + generale['@']  # [P] e [@] sono considerati parziali
+    ufficiale_total = ufficiale_completed + ufficiale_partial + generale[' ']
     
-    updated_lines = []
-    found = False
-    for line in lines:
-        # Usa una regex per trovare e sostituire la riga della versione
-        if re.match(r'^\s*GAME_VERSION\s*=\s*".*"', line):
-            updated_lines.append(f'GAME_VERSION = "{new_version}"\n')
-            found = True
-        else:
-            updated_lines.append(line)
-
-    if not found:
-        print(f"⚠️ Attenzione: Variabile GAME_VERSION non trovata in '{settings_path}'. Saltando l'aggiornamento.")
-        return
-
-    with open(settings_path, 'w', encoding='utf-8') as f:
-        f.writelines(updated_lines)
-
-    print(f"✅ File settings '{settings_path}' aggiornato con la nuova versione.")
-
+    # Calcolo totali per la versione starter
+    starter_total = roadmap['x'] + roadmap['P'] + roadmap['@'] + roadmap[' ']
+    starter_completed = roadmap['x']
+    
+    # Calcolo punti aggiuntivi oltre lo Starter
+    additional_completed = max(0, ufficiale_completed - starter_completed)
+    
+    # 1. Versione STARTER
+    if starter_completed == starter_total:
+        starter_version = "1.0.0-starter"
+    else:
+        starter_version = f"0.{starter_completed}.0"
+    
+    # 2. Versione UFFICIALE con stato sviluppo
+    # Calcolo progresso generale
+    if ufficiale_total > 0:
+        progress_percent = (ufficiale_completed + ufficiale_partial * 0.5) / ufficiale_total
+    else:
+        progress_percent = 0
+    
+    # Determinazione stato sviluppo
+    if progress_percent >= 0.75:
+        # Calcola numero di RC basato su punti mancanti
+        remaining_points = ufficiale_total - (ufficiale_completed + ufficiale_partial)
+        rc_number = min(5, (remaining_points // 100) + 1) if remaining_points > 0 else 1
+        stage = f"rc{rc_number}"
+    elif progress_percent >= 0.50:
+        stage = f"beta.{starter_completed}"
+    elif progress_percent >= 0.25:
+        stage = f"alpha.{starter_completed}"
+    else:
+        stage = "pre-alpha"
+    
+    ufficiale_version = f"1.0.0-{stage}" if stage != "stable" else "1.0.0"
+    
+    # 3. Versione RELEASE
+    release_version = "Non ancora pronta"
+    if starter_completed == starter_total:
+        release_version = "1.0.0-starter"
+        if ufficiale_completed >= 79 and ufficiale_partial >= 116:
+            release_version = "1.0.0"
+    
+    return {
+        'starter': starter_version,
+        'ufficiale': ufficiale_version,
+        'release': release_version,
+        'stats': {
+            'roadmap': roadmap,
+            'generale': generale
+        },
+        'totals': {
+            'starter_completed': starter_completed,
+            'starter_total': starter_total,
+            'ufficiale_completed': ufficiale_completed,
+            'ufficiale_partial': ufficiale_partial,
+            'ufficiale_incomplete': generale[' '],
+            'ufficiale_total': ufficiale_total
+        }
+    }
 
 def main():
-    """Funzione principale dello script."""
-    todo_path = DEFAULT_TODO_FILE_PATH # Nome file hardcodato
-
-    if not os.path.exists(todo_path):
-        print(f"Errore: Il file TODO '{todo_path}' non esiste. Controlla il percorso.")
-        print("Lo script si aspetta di essere eseguito dalla directory principale del progetto.")
-        exit(1)
-
-    print(f"Analizzando il file: {todo_path}...")
-
-    x_tasks, p_tasks, empty_tasks = count_tasks_in_file(todo_path)
-    print("\n--- Conteggio Task Trovati ---")
-    print(f"  Completati   [x]: {x_tasks}")
-    print(f"  In corso     [P]: {p_tasks}")
-    print(f"  Da iniziare   []: {empty_tasks}")
-    print("----------------------------\n")
-
-    major = 0 # Major version rimane 0 per ora
+    parser = argparse.ArgumentParser(description='Generatore di versioni per progetto')
+    parser.add_argument('--roadmap', default='TODO_Roadmap_v1.0.md', help='Percorso file roadmap')
+    parser.add_argument('--generale', default='TODO_Generale.md', help='Percorso file generale')
+    args = parser.parse_args()
     
-    # --- LOGICA DINAMICA PER LA MINOR VERSION ---
-    # Definisci le tue soglie qui. Queste sono solo un esempio.
-    # Le condizioni vengono valutate in ordine, quindi la prima che risulta vera determina la minor version.
-    # È importante che le soglie siano crescenti e mutualmente esclusive nel modo in cui sono scritte.
+    try:
+        if not os.path.exists(args.roadmap):
+            raise FileNotFoundError(f"File roadmap non trovato: {args.roadmap}")
+        if not os.path.exists(args.generale):
+            raise FileNotFoundError(f"File generale non trovato: {args.generale}")
+            
+        versions = calculate_versions(args.roadmap, args.generale)
+    except FileNotFoundError as e:
+        print(f"ERRORE: {str(e)}")
+        print("Assicurati che i file esistano e che i percorsi siano corretti.")
+        return
+    except Exception as e:
+        print(f"Errore durante l'elaborazione: {str(e)}")
+        return
     
-    minor = 0 # Default se nessuna soglia viene raggiunta (progetto appena iniziato)
-    if x_tasks >= 50 and p_tasks >= 100: # Traguardo molto avanzato
-        minor = 5 
-    elif x_tasks >= 40 and p_tasks >= 80: # Traguardo avanzato
-        minor = 4
-    elif x_tasks >= 30 and p_tasks >= 50: # Traguardo significativo (come la nostra attuale stima)
-        minor = 3
-    elif x_tasks >= 15 and p_tasks >= 30: # Sistemi core più robusti
-        minor = 2
-    elif x_tasks >= 5 and p_tasks >= 10:  # Fondamenta base gettate
-        minor = 1
-    # Se nessuna delle condizioni sopra è vera, minor rimane 0.
-    # --- FINE LOGICA DINAMICA PER MINOR VERSION ---
+    # Stampa risultati
+    print("\n" + "="*70)
+    print(f"STARTER VERSION:    {versions['starter']}")
+    print(f"UFFICIALE VERSION:  {versions['ufficiale']}")
+    print(f"RELEASE VERSION:    {versions['release']}")
+    print("="*70)
     
-    release = p_tasks # 'release' è il numero di task [P]
-    alpha_value = (x_tasks * 2) + p_tasks # Alpha value come da tua formula
+    # Statistiche dettagliate
+    stats = versions['stats']
+    totals = versions['totals']
     
-    new_version_string = f"{major}.{minor}.{release}-alpha_{alpha_value}"
+    # Calcolo percentuali
+    if totals['starter_total'] > 0:
+        starter_percent = totals['starter_completed'] / totals['starter_total'] * 100
+    else:
+        starter_percent = 0
+        
+    if totals['ufficiale_total'] > 0:
+        ufficiale_percent = (totals['ufficiale_completed'] + totals['ufficiale_partial'] * 0.5) / totals['ufficiale_total'] * 100
+    else:
+        ufficiale_percent = 0
     
-    print(f"Nuova Versione Calcolata: {new_version_string}\n")
+    print("\n🚀 ROADMAP (1.0 STARTER):")
+    print(f"• Completati [x]: {totals['starter_completed']}/{totals['starter_total']} ({starter_percent:.1f}%)")
+    print(f"• Parziali [P]: {stats['roadmap']['P']} | [@]: {stats['roadmap']['@']} (da revisionare)")
+    print(f"• Non iniziati [ ]: {stats['roadmap'][' ']}")
     
-    settings_file_path = os.path.join('core', 'settings.py') 
-    
-    update_todo_file(todo_path, new_version_string)
-    update_settings_file(settings_file_path, new_version_string)
-
-    print("\nScript completato.")
+    print("\n🌍 GENERALE (1.0 UFFICIALE):")
+    print(f"• Completati [x]: {totals['ufficiale_completed']}")
+    print(f"• Parziali [P]: {stats['generale']['P']} | [@]: {stats['generale']['@']} (da revisionare)")
+    print(f"• Non iniziati [ ]: {totals['ufficiale_incomplete']}")
+    print(f"• Progresso complessivo: {ufficiale_percent:.1f}%")
+    print("="*70)
 
 if __name__ == "__main__":
     main()

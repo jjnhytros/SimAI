@@ -86,6 +86,7 @@ class ObjectType(Enum):
     SONET_INFO_KIOSK = auto()       # Chiosco informativo SoNet
     TURNSTILE = auto()              # Tornello (Stadio, Metro)
     VENDING_MACHINE = auto()
+    WATER_COOLER = auto()
 
     # --- Categoria: Oggetti Unici / Monumenti ---
     CONSTITUTION_MONUMENT = auto()

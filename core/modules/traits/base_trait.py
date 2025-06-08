@@ -4,21 +4,24 @@ from typing import TYPE_CHECKING, Optional, Dict, Any, List
 
 from core.enums import TraitType, NeedType, ActionType 
 # Assumiamo che NeedType e altri Enum necessari siano importati se usati nei type hint dei metodi
-from core.enums import NeedType # Aggiunto per il nuovo metodo
+from core.enums import NeedType
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation # Aggiunto per il type hint
+    from core.modules.actions.action_base import BaseAction # Aggiunto per il nuovo metodo
     # from core.enums import ActionType, EventType, RelationshipType 
     # from core.world.moodlet import Moodlet
     # from core.modules.actions import BaseAction
 
 class BaseTrait(ABC):
-    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+    # Questi attributi possono essere definiti nelle sottoclassi
+    trait_type: TraitType
+    display_name: str
+    description: str
+
+    def __init__(self, character_owner: 'Character'):
         self.character_owner: 'Character' = character_owner
-        self.trait_type: TraitType = trait_type
-        self.display_name: str = self.trait_type.display_name_it()
-        self.description: str = f"Effetti e comportamenti associati al tratto '{self.display_name}'."
 
     @abstractmethod
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
@@ -41,15 +44,23 @@ class BaseTrait(ABC):
 
         Returns:
             float: Il modificatore da applicare al valore di soddisfazione (es. 1.0 per nessuna modifica,
-                   1.2 per un aumento del 20%, 0.8 per una riduzione del 20%).
-                   Nota: il codice chiamante (AIDecisionMaker) si aspetta un moltiplicatore.
+                1.2 per un aumento del 20%, 0.8 per una riduzione del 20%).
+                Nota: il codice chiamante (AIDecisionMaker) si aspetta un moltiplicatore.
         """
         return 1.0 # Default: nessun modificatore
 
+    def get_behavioral_action_modifier(self, action: 'BaseAction', simulation_context: 'Simulation') -> float:
+        """
+        Restituisce un modificatore di punteggio basato su regole comportamentali specifiche del tratto.
+        Permette a un tratto di "vetare" o penalizzare pesantemente un'azione in base al contesto.
+        Restituisce 1.0 per default (nessun impatto).
+        """
+        return 1.0
+
     def get_action_choice_priority_modifier(self, 
-                                          action_type: ActionType, 
-                                          simulation_context: 'Simulation' # Aggiunto per coerenza con la chiamata
-                                          ) -> float:
+                                        action_type: ActionType, 
+                                        simulation_context: 'Simulation' # Aggiunto per coerenza con la chiamata
+                                        ) -> float:
         """
         Permette al tratto di modificare il punteggio/priorità di un'azione potenziale.
         Per impostazione predefinita, non modifica la priorità (moltiplicatore 1.0).
@@ -58,7 +69,7 @@ class BaseTrait(ABC):
         Args:
             action_type (ActionType): Il tipo di azione che si sta valutando.
             simulation_context (Simulation): Il contesto della simulazione, utile se il tratto
-                                             necessita di informazioni sul mondo per decidere.
+                                            necessita di informazioni sul mondo per decidere.
 
         Returns:
             float: Un moltiplicatore da applicare allo score dell'azione (es. 1.0 per nessuna modifica).

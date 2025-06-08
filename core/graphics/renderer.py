@@ -8,7 +8,8 @@ from typing import Optional, TYPE_CHECKING, List, Tuple # Aggiunto Tuple per typ
 
 from core import settings
 from core.config import (ui_config, time_config)
-from core.enums import Gender, ObjectType 
+from core.enums import Gender, ObjectType
+from core.modules.time_manager import TimeManager 
 
 if TYPE_CHECKING:
     from core.simulation import Simulation
@@ -177,6 +178,51 @@ class Renderer:
                         self.selected_npc_id = None 
                         if settings.DEBUG_MODE:
                             print(f"  [Renderer] Cambiata locazione visualizzata a: ID '{self.current_visible_location_id}'")
+                elif event.key == pygame.K_SPACE:
+                    if simulation and simulation.npcs: # Controlla se ci sono NPC nella simulazione
+                        
+                        # 1. Ottieni una lista ordinata di TUTTI gli ID degli NPC
+                        all_npc_ids = sorted(list(simulation.npcs.keys()))
+                        
+                        if not all_npc_ids:
+                            # Nessun NPC da ciclare, non fare nulla
+                            pass
+                        else:
+                            next_index = 0 # Default: seleziona il primo NPC della lista
+                            
+                            # 2. Cerca l'NPC attualmente selezionato nella lista globale
+                            if self.selected_npc_id in all_npc_ids:
+                                try:
+                                    current_index = all_npc_ids.index(self.selected_npc_id)
+                                    # Calcola l'indice del prossimo NPC, tornando all'inizio se necessario
+                                    next_index = (current_index + 1) % len(all_npc_ids)
+                                except ValueError:
+                                    # Se c'è un errore (improbabile con il check 'in'), seleziona il primo
+                                    next_index = 0
+                            
+                            # 3. Imposta il nuovo NPC selezionato
+                            self.selected_npc_id = all_npc_ids[next_index]
+                            newly_selected_npc = simulation.get_npc_by_id(self.selected_npc_id)
+                            
+                            if newly_selected_npc and newly_selected_npc.current_location_id:
+                                new_location_id = newly_selected_npc.current_location_id
+                                
+                                # 4. CAMBIA LA VISTA ALLA LOCAZIONE DEL NUOVO NPC
+                                if self.current_visible_location_id != new_location_id:
+                                    self.current_visible_location_id = new_location_id
+                                    # Sincronizza l'indice della locazione per il tasto TAB
+                                    if new_location_id in self.location_keys_list:
+                                        self.current_location_index = self.location_keys_list.index(new_location_id)
+                                    if settings.DEBUG_MODE:
+                                        print(f"  [Renderer] Vista cambiata a: '{new_location_id}' per seguire l'NPC.")
+
+                                # 5. Centra la telecamera sul nuovo NPC nella sua nuova locazione
+                                current_loc = simulation.get_location_by_id(new_location_id)
+                                if current_loc:
+                                    self._center_camera_on_npc(newly_selected_npc, current_loc)
+
+                                if settings.DEBUG_MODE:
+                                    print(f"  [Renderer] NPC selezionato globalmente con Spazio: {newly_selected_npc.name}")
                 elif event.key == pygame.K_LEFT:
                     self.camera_offset_x = max(0, self.camera_offset_x - 1)
                 elif event.key == pygame.K_RIGHT:

@@ -78,13 +78,13 @@ class SleepAction(BaseAction):
     def execute_tick(self):
         super().execute_tick()
         if self.is_started and settings.DEBUG_MODE:
-            if self.ticks_elapsed > 0 and self.ticks_elapsed % time_config.IXH == 0 and \
-            self.ticks_elapsed < self.duration_ticks and not self.is_finished:
-                hours_slept = self.ticks_elapsed // time_config.IXH
+            if self.elapsed_ticks > 0 and self.elapsed_ticks % time_config.IXH == 0 and \
+            self.elapsed_ticks < self.duration_ticks and not self.is_finished:
+                hours_slept = self.elapsed_ticks // time_config.IXH
                 print(f"    [{self.action_type_name} PROGRESS - {self.npc.name}] Sta dormendo... ({hours_slept} ore passate, {self.get_progress_percentage():.0%})")
 
     def _calculate_energy_gain(self) -> float:
-        hours_slept = self.ticks_elapsed / time_config.IXH
+        hours_slept = self.elapsed_ticks / time_config.IXH
         energy_gained = hours_slept * cast(float, self.energy_gain_per_hour)
         return energy_gained
 
@@ -116,6 +116,6 @@ class SleepAction(BaseAction):
         if self.npc:
             energy_gained_on_interrupt = self._calculate_energy_gain()
             if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Sonno interrotto. Tick dormiti: {self.ticks_elapsed}. Energia guadagnata: {energy_gained_on_interrupt:.2f}")
+                print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Sonno interrotto. Tick dormiti: {self.elapsed_ticks}. Energia guadagnata: {energy_gained_on_interrupt:.2f}")
             if energy_gained_on_interrupt > 0:
                 self.npc.change_need_value(NeedType.ENERGY, energy_gained_on_interrupt)

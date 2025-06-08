@@ -91,7 +91,7 @@ class EatAction(BaseAction):
         super().on_interrupt_effects()
         # Applica effetti parziali in base a quanto è stata completata l'azione
         if self.npc and self.duration_ticks > 0:
-            proportion_completed = self.ticks_elapsed / self.duration_ticks
+            proportion_completed = self.elapsed_ticks / self.duration_ticks
             partial_hunger_gain = self.effects_on_needs.get(NeedType.HUNGER, 0.0) * proportion_completed
             
             if partial_hunger_gain > 0:

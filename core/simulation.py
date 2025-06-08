@@ -21,23 +21,27 @@ class Simulation:
         self.time_manager = TimeManager()
         if settings.DEBUG_MODE: print(f"  [Simulation INIT] TimeManager creato. Ora: {self.time_manager.get_formatted_datetime_string()}")
 
+        self.time_manager = TimeManager()
+        self.weather_manager = WeatherManager() # Assumendo che esista
+        
         self.current_tick: int = 0
         self.is_running: bool = False
         self.npcs: Dict[str, Character] = {}
-        self.social_hubs: List[Dict] = []
-        self.time_manager = TimeManager()
-        self.weather_manager = WeatherManager()
-        self.lod_manager = LODManager(self)
-
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
         self.game_speed: float = 1.0
         self.default_starting_location_id: Optional[str] = None
+        
+        # Inizializza l'attributo per l'ID del personaggio del giocatore a None.
+        self.player_character_id: Optional[str] = None
+
         self._initialize_world_data()
-        self.ai_coordinator = AICoordinator(self)
+
+        # Istanzia i manager che richiedono il contesto della simulazione (self)
+        self.lod_manager = LODManager(self)
+        self.ai_coordinator = AICoordinator(self) 
         self.social_manager = SocialManager(self)
         self.consequence_analyzer = ConsequenceAnalyzer()
-        self.ai_coordinator = AICoordinator(self)
         
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
         if settings.DEBUG_MODE: print("  [Simulation INIT] Simulation inizializzata.")

@@ -39,7 +39,7 @@ class EngageIntimacyAction(BaseAction):
             p_simulation_context=simulation_context,
             is_interruptible=True 
         )
-        self.target_npc: 'Character' = target_npc
+        self.target_npc = target_npc
         
         # Salva i parametri specifici dell'azione
         self.initiator_intimacy_gain: float = initiator_intimacy_gain
@@ -121,12 +121,13 @@ class EngageIntimacyAction(BaseAction):
         return True
 
     def on_start(self):
-        super().on_start() 
-        # Occupa anche il target NPC
-        self.target_npc.is_busy = True
-        self.target_npc.current_action = self # Entrambi gli NPC sono in questa azione
-        if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} START - {self.npc.name}] Inizia intimità con {self.target_npc.name}. Target reso occupato.")
+        super().on_start()
+        # Occupa anche il target
+        if self.target_npc:
+            self.target_npc.is_busy = True
+            self.target_npc.current_action = self 
+            if settings.DEBUG_MODE:
+                print(f"    [{self.action_type_name} START - {self.npc.name}] Inizia intimità con {self.target_npc.name}. Target reso occupato.")
         # Resetta il flag di accettazione una volta che l'azione inizia
         if hasattr(self.npc, 'pending_intimacy_target_accepted'):
             self.npc.pending_intimacy_target_accepted = None
@@ -178,7 +179,7 @@ class EngageIntimacyAction(BaseAction):
         super().on_interrupt_effects()
         # Applica effetti parziali ai bisogni se interrotta
         if self.npc and self.target_npc and self.duration_ticks > 0:
-            proportion_completed = self.ticks_elapsed / self.duration_ticks
+            proportion_completed = self.elapsed_ticks / self.duration_ticks
             if settings.DEBUG_MODE:
                 print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Azione intimità interrotta. Applico effetti parziali.")
             

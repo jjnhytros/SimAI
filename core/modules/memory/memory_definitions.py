@@ -5,6 +5,17 @@ Definisce la dataclass Memory, che rappresenta un singolo ricordo.
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
 import uuid
+from core.enums import ProblemType, NeedType 
+
+@dataclass
+class Problem:
+    """Rappresenta un problema strutturato che l'IA deve affrontare."""
+    npc_id: str
+    problem_type: ProblemType
+    urgency: float
+    problem_id: uuid.UUID = field(default_factory=uuid.uuid4)
+    details: Dict[str, Any] = field(default_factory=dict)
+    timestamp: Optional[float] = None
 
 @dataclass
 class Memory:

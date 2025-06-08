@@ -110,7 +110,7 @@ class NeedsProcessor:
 
     # Il NeedsProcessor potrebbe anche mantenere il metodo per il decadimento dei bisogni
     # se vogliamo centralizzare tutta la logica dei bisogni qui, come da TODO I.2.c.
-    # def process_needs_decay(self, npc: 'Character', time_manager: 'TimeManager', ticks_elapsed: int):
+    # def process_needs_decay(self, npc: 'Character', time_manager: 'TimeManager', elapsed_ticks: int):
     #     # Logica di Character.update_needs() spostata qui
     #     pass 
 

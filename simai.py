@@ -6,7 +6,9 @@ Punto di ingresso principale per l'applicazione.
 import sys
 import os
 import random
-from typing import Set
+from typing import List, Optional
+from core.factories.npc_factory import NPCFactory
+from core.config import time_config
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 settings_path_check = os.path.join(project_root, 'core', 'settings.py')
@@ -17,7 +19,7 @@ try:
     from core.simulation import Simulation
     from core.character import Character
     from core.enums import (
-        Gender, Interest, RelationshipStatus, AspirationType, TraitType
+        Gender, Interest, RelationshipType, AspirationType, TraitType
     )
     from core import settings
     from core.graphics import Renderer
@@ -26,56 +28,110 @@ except ImportError as e:
     sys.exit(1)
 
 def setup_test_simulation() -> Simulation:
-    """Imposta una simulazione di test con alcuni NPC e locazioni."""
-    sim = Simulation() # La creazione delle locazioni e degli oggetti con coordinate logiche avviene qui dentro
+    """
+    Configura una simulazione di test con locazioni, oggetti e un cast di NPC
+    generati casualmente e posizionati in modo casuale nel mondo.
+    """
+    print("  [Setup] Avvio configurazione simulazione di test...")
+    sim = Simulation()
+    # Ora che posizioniamo gli NPC casualmente, il default non è più strettamente necessario per il setup
+    # sim.default_starting_location_id = "max_casa_cucina" 
 
-    if sim.locations:
-        sim.default_starting_location_id = list(sim.locations.keys())[0] # Es. "max_casa_cucina"
-    else:
-        print("[Setup WARN] Nessuna locazione creata. Impossibile impostare default_starting_location_id per NPC.")
+    # --- OTTIENI LISTA LOCAZIONI DISPONIBILI ---
+    available_location_ids = list(sim.locations.keys())
+    if not available_location_ids:
+        print("  [Setup FATAL ERROR] Nessuna locazione definita nella simulazione. Impossibile posizionare gli NPC.")
+        return sim # Ritorna una simulazione vuota
 
-    npc1_interests: Set[Interest] = {Interest.READING, Interest.MUSIC_PLAYING, Interest.TECHNOLOGY}
-    npc1_attr_genders: Set[Gender] = {Gender.FEMALE, Gender.NON_BINARY}
-    npc1_traits: Set[TraitType] = {TraitType.BOOKWORM, TraitType.LOGICAL, TraitType.LONER}
-    npc1 = Character(
-        npc_id="Max001", name="Max Power", initial_gender=Gender.MALE,
-        initial_age_days=16 * settings.DXY,
-        initial_logical_x=2,  # Coordinate logiche per Max
-        initial_logical_y=2,
-        initial_interests=npc1_interests,
-        initial_sexually_attracted_to_genders=npc1_attr_genders,
-        initial_romantically_attracted_to_genders=npc1_attr_genders,
-        initial_relationship_status=RelationshipStatus.SINGLE,
-        initial_aspiration=AspirationType.KNOWLEDGE_SEEKER,
-        initial_traits=npc1_traits
-    )
-    sim.add_npc(npc1)
-    sim.set_player_character(npc1.npc_id) 
-
-
-    npc2_interests: Set[Interest] = {Interest.SPORTS_PRACTICING, Interest.GAMING}
-    npc2_traits: Set[TraitType] = {TraitType.ACTIVE, TraitType.SOCIAL, TraitType.OPTIMIST}
-    npc2 = Character(
-        npc_id="Erika002", name="Erika Sky", initial_gender=Gender.FEMALE,
-        initial_age_days=14 * settings.DXY,
-        initial_logical_x=4,  # Coordinate logiche per Erika
-        initial_logical_y=2,
-        initial_interests=npc2_interests,
-        initial_sexually_attracted_to_genders={Gender.MALE},
-        initial_romantically_attracted_to_genders={Gender.MALE},
-        initial_traits=npc2_traits
-    )
-    sim.add_npc(npc2)
+    # --- Creazione NPC Casuali con la Factory e POSIZIONAMENTO CASUALE ---
+    npc_factory = NPCFactory()
+    num_random_npcs = random.randint(4, 6)
     
-    if settings.DEBUG_MODE:
-        print(f"  [Setup] {npc1.name} si trova in locazione ID: {npc1.current_location_id}")
-        print(f"  [Setup] {npc2.name} si trova in locazione ID: {npc2.current_location_id}")
+    print(f"  [Setup] Generazione e posizionamento di {num_random_npcs} NPC casuali...")
+    
+    random_npcs_list: List[Character] = []
+    for i in range(num_random_npcs):
+        try:
+            # 1. Scegli una locazione casuale
+            chosen_loc_id = random.choice(available_location_ids)
+            chosen_loc = sim.get_location_by_id(chosen_loc_id)
+            if not chosen_loc: continue # Salta se la locazione non viene trovata
 
-        print("\n--- Bisogni Iniziali NPC ---")
-        for npc_obj in sim.npcs.values():
-            npc_obj.print_needs_summary()
-        print("----------------------------\n")
+            # 2. Scegli coordinate casuali all'interno della locazione
+            rand_x = random.randint(0, chosen_loc.logical_width - 1)
+            rand_y = random.randint(0, chosen_loc.logical_height - 1)
+            
+            # 3. Crea l'NPC (la factory ora potrebbe accettare questi parametri o li impostiamo dopo)
+            # Per semplicità, creiamo l'NPC e poi aggiorniamo la sua posizione.
+            random_npc = npc_factory.create_random_npc()
+            random_npc.current_location_id = chosen_loc_id
+            random_npc.logical_x = rand_x
+            random_npc.logical_y = rand_y
+
+            sim.add_npc(random_npc)
+            random_npcs_list.append(random_npc)
+        except Exception as e:
+            if settings.DEBUG_MODE:
+                print(f"  [Setup ERROR] Impossibile creare l'NPC casuale n.{i+1}: {e}")
+    
+    # --- Creazione e POSIZIONAMENTO del Personaggio Principale ---
+    print("  [Setup] Creazione e posizionamento del personaggio principale 'Alex Valdis'...")
+    player_character: Optional[Character] = None
+    player_traits = {TraitType.BOOKWORM, TraitType.LONER, TraitType.AMBITIOUS}
+    try:
+        # Scegli una locazione e coordinate anche per il personaggio principale
+        player_loc_id = random.choice(available_location_ids)
+        player_loc = sim.get_location_by_id(player_loc_id)
+        player_x = 0
+        player_y = 0
+        if player_loc:
+            player_x = random.randint(0, player_loc.logical_width - 1)
+            player_y = random.randint(0, player_loc.logical_height - 1)
+            
+        player_character = Character(
+            npc_id="player_char_001", 
+            name="Alex Valdis",
+            initial_gender=Gender.NON_BINARY,
+            initial_age_days=int(25 * time_config.DXY),
+            initial_traits=player_traits,
+            initial_aspiration=AspirationType.LOREMASTER_OF_ANTHALYS,
+            # Passa qui i valori di posizione
+            initial_location_id=player_loc_id,
+            initial_logical_x=player_x,
+            initial_logical_y=player_y
+        )
+        sim.add_npc(player_character)
+        sim.set_player_character(player_character.npc_id)
+    except Exception as e:
+        if settings.DEBUG_MODE:
+            print(f"  [Setup ERROR] Impossibile creare il personaggio principale: {e}")
+
+    if player_character and random_npcs_list:
+        # Scegliamo il primo NPC casuale come target per la relazione
+        first_random_npc = random_npcs_list[0]
         
+        # Imposta il tipo di relazione e un punteggio iniziale
+        initial_rel_type = RelationshipType.ACQUAINTANCE # Si conoscono appena
+        initial_score = 15 # Un punteggio iniziale leggermente positivo
+        
+        # Imposta la relazione in entrambe le direzioni
+        player_character.update_relationship(
+            target_npc_id=first_random_npc.npc_id,
+            new_type=initial_rel_type,
+            new_score=initial_score
+        )
+        
+        first_random_npc.update_relationship(
+            target_npc_id=player_character.npc_id,
+            new_type=initial_rel_type,
+            new_score=initial_score
+        )
+        
+        if settings.DEBUG_MODE:
+            print(f"  [Setup] Creata relazione base ({initial_rel_type.name}, Score: {initial_score}) "
+                f"tra {player_character.name} e {first_random_npc.name}.")
+
+    print("  [Setup] Configurazione simulazione completata.")
     return sim
 
 def main():

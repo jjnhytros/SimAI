@@ -8,28 +8,39 @@ Riferimento TODO: IV.3.b
 class TraitType(Enum):
     """Enum per i diversi tratti di personalità."""
     # Esempi di tratti iniziali
-    AMBITIOUS = auto()          # Ambizioso
-    LAZY = auto()               # Pigro
-    SOCIAL = auto()             # Socievole (o Extrovert)
-    LONER = auto()              # Solitario (o Introvert)
-    GLUTTON = auto()            # Goloso
-    FRUGAL = auto()             # Frugale
-    OPTIMIST = auto()           # Ottimista
-    PESSIMIST = auto()          # Pessimista
-    NEAT = auto()               # Ordinato
-    SLOB = auto()               # Disordinato/Sciatto
-    CREATIVE = auto()           # Creativo
-    LOGICAL = auto()            # Logico
     ACTIVE = auto()             # Attivo (ama lo sport/movimento)
+    AMBITIOUS = auto()          # Ambizioso
     BOOKWORM = auto()           # Topo di biblioteca
-    GOOD = auto()               # Buono (gentile, empatico)
+    CHARMER = auto()            # Charmante
+    CONSERVATIVE = auto()       # Conservativo
+    DARING = auto()             # Dardoso
+    DETERMINED = auto()         # Determinato
+    EMBARRASSING = auto()       # Embarrassante
+    EMBRACER = auto()           # Embracante
+    ENTHUSIAST = auto()         # Entusiasta
+    FAMOUS = auto()             # Noto
+    FAVORABLE = auto()          # Favorito
+    FRIENDLY = auto()           # Amabile
+    CREATIVE = auto()           # Creativo
     EVIL = auto()               # Malvagio (meschino, crudele) - da considerare con attenzione
-    ROMANTIC = auto()           # Romantico
-    UNFLIRTY = auto()           # Non portato per il flirt
     FAMILY_ORIENTED = auto()    # Orientato alla famiglia
+    FRUGAL = auto()             # Frugale
+    GLUTTON = auto()            # Goloso
+    GOOD = auto()               # Buono (gentile, empatico)
     HATES_CHILDREN = auto()     # Odia i bambini
     JEALOUS = auto()            # Geloso
+    LAZY = auto()               # Pigro
+    LOGICAL = auto()            # Logico
+    LONER = auto()              # Solitario (o Introvert)
     LOYAL = auto()              # Leale
+    NEAT = auto()               # Ordinato
+    OPTIMIST = auto()           # Ottimista
+    PESSIMIST = auto()          # Pessimista
+    ROMANTIC = auto()           # Romantico
+    SHY = auto()                # Timido
+    SLOB = auto()               # Disordinato/Sciatto
+    SOCIAL = auto()             # Socievole (o Extrovert)
+    UNFLIRTY = auto()           # Non portato per il flirt
 
     # TODO: Aggiungere molti altri tratti come da TODO_04.md (IV.3.b)
 
@@ -38,27 +49,29 @@ class TraitType(Enum):
         # Semplice implementazione, potrebbe essere migliorata con un dizionario di traduzione
         # o integrata con il sistema i18n futuro.
         mapping = {
-            TraitType.AMBITIOUS: "Ambizioso",
-            TraitType.LAZY: "Pigro",
-            TraitType.SOCIAL: "Socievole",
-            TraitType.LONER: "Solitario",
-            TraitType.GLUTTON: "Ghiottone",
-            TraitType.FRUGAL: "Frugale",
-            TraitType.OPTIMIST: "Ottimista",
-            TraitType.PESSIMIST: "Pessimista",
-            TraitType.NEAT: "Ordinato",
-            TraitType.SLOB: "Disordinato",
-            TraitType.CREATIVE: "Creativo",
-            TraitType.LOGICAL: "Logico",
             TraitType.ACTIVE: "Attivo",
+            TraitType.AMBITIOUS: "Ambizioso",
             TraitType.BOOKWORM: "Topo di Biblioteca",
-            TraitType.GOOD: "Buono",
+            TraitType.CREATIVE: "Creativo",
+            TraitType.CHARMER: "Charmante",
             TraitType.EVIL: "Malvagio",
-            TraitType.ROMANTIC: "Romantico",
-            TraitType.UNFLIRTY: "Non Ammiccante",
             TraitType.FAMILY_ORIENTED: "Orientato alla Famiglia",
+            TraitType.FRUGAL: "Frugale",
+            TraitType.GLUTTON: "Ghiottone",
+            TraitType.GOOD: "Buono",
             TraitType.HATES_CHILDREN: "Odia i Bambini",
             TraitType.JEALOUS: "Geloso",
+            TraitType.LAZY: "Pigro",
+            TraitType.LOGICAL: "Logico",
+            TraitType.LONER: "Solitario",
             TraitType.LOYAL: "Leale",
+            TraitType.NEAT: "Ordinato",
+            TraitType.OPTIMIST: "Ottimista",
+            TraitType.PESSIMIST: "Pessimista",
+            TraitType.ROMANTIC: "Romantico",
+            TraitType.SHY: "Timido",
+            TraitType.SLOB: "Disordinato",
+            TraitType.SOCIAL: "Socievole",
+            TraitType.UNFLIRTY: "Non Ammiccante",
         }
         return mapping.get(self, self.name.replace("_", " ").capitalize())

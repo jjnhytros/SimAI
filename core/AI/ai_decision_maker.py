@@ -81,116 +81,103 @@ class AIDecisionMaker:
         return total_score
 
     def _evaluate_action_candidate(self, action: BaseAction, simulation_context: 'Simulation') -> float:
-        """Valuta un'azione candidata calcolando un punteggio complessivo basato su più fattori."""
-        time_manager = simulation_context.time_manager
-        weather_manager = simulation_context.weather_manager
-        
+        """
+        Valuta un'azione candidata calcolando un punteggio complessivo basato su 
+        efficacia, personalità, comportamento, memoria, contesto e stato mentale.
+        """
         # --- 1. Punteggio Base: Efficacia sui Bisogni ---
-        need_score = self._calculate_action_score(getattr(action, 'effects_on_needs', {}))
+        # Questo ci dice quanto l'azione è "utile" in questo momento.
+        action_effects = getattr(action, 'effects_on_needs', {})
+        need_score = self._calculate_action_score(action_effects)
         if need_score <= 0:
-            need_score = 1.0
+            need_score = 1.0 # Punteggio base minimo per azioni senza impatto sui bisogni (es. chiacchierare)
 
-        # --- 2. Modificatore Personalità: Influenza dei Tratti ---
+        # --- 2. Modificatore Personalità: Influenza dei Tratti (Preferenze Generali) ---
+        # Questo ci dice quanto l'azione è "in carattere" per l'NPC in generale.
         personality_modifier = 1.0
         if action.action_type_enum is not None:
             for trait_obj in self.npc.traits.values():
                 modifier = trait_obj.get_action_choice_priority_modifier(action.action_type_enum, simulation_context)
                 personality_modifier *= modifier
 
-        # --- 3. Modificatore Memoria (con BIAS DI CONFERMA) ---
+        # --- 3. Modificatore Comportamentale: Regole Specifiche dei Tratti (Veti/Incoraggiamenti Forti) ---
+        # Questo permette a un tratto di imporre una regola forte (es. "un timido non socializza nella folla").
+        behavioral_modifier = 1.0
+        for trait_obj in self.npc.traits.values():
+            modifier = trait_obj.get_behavioral_action_modifier(action, simulation_context)
+            behavioral_modifier *= modifier
+        
+        # Se un tratto ha "vetato" l'azione, il punteggio crolla e la valutazione si interrompe.
+        if behavioral_modifier <= 0.1: # Usiamo 0.1 per gestire anche la penalità dello 0.1 dello SHY
+            return 0.0 
+
+        # --- 4. Modificatore Memoria: Influenza delle Esperienze Passate ---
+        # Questo ci dice se all'NPC "piace" o "non piace" fare questa azione.
         memory_modifier = 1.0
         if self.npc.memory_system and action.action_type_enum:
             query: Dict[str, Any] = {"action_type": action.action_type_enum}
-            target_npc = getattr(action, 'target_npc', None)
             activity_type = getattr(action, 'activity_type', None)
-            
+            target_npc = getattr(action, 'target_npc', None)
             if target_npc: query["target_npc_id"] = target_npc.npc_id
             if activity_type:
-                if isinstance(action, SocializeAction): query["interaction_type"] = action.interaction_type
-                else: query["activity_type"] = activity_type
-                
-            relevant_memories = self.npc.memory_system.get_memories_about(query)
+                # Controlliamo il tipo specifico per usare la chiave giusta nella query
+                if isinstance(activity_type, SocialInteractionType):
+                    query["interaction_type"] = activity_type
+                elif isinstance(activity_type, FunActivityType):
+                    query["activity_type"] = activity_type
             
+            relevant_memories = self.npc.memory_system.get_memories_about(query)
             if relevant_memories:
-                total_weighted_impact = 0.0 # Rinomino per chiarezza
-
-                # --- BIAS DI CONFERMA ---
-                # Per ogni ricordo pertinente, ne "pesiamo" l'impatto in base ai tratti dell'NPC
-                for memory in relevant_memories[:5]: # Consideriamo i 5 ricordi più recenti
-                    
-                    weighted_impact = memory.emotional_impact # Partiamo dall'impatto originale
-
-                    # BIAS: Un OTTIMISTA amplifica i ricordi positivi e smorza quelli negativi
+                total_weighted_impact = 0.0
+                for memory in relevant_memories[:5]:
+                    weighted_impact = memory.emotional_impact
                     if self.npc.has_trait(TraitType.OPTIMIST):
-                        if weighted_impact > 0:
-                            weighted_impact *= 1.5 # I bei ricordi sono il 50% più impattanti
-                        else:
-                            weighted_impact *= 0.5 # I brutti ricordi pesano la metà
-
-                    # BIAS: Un PESSIMISTA fa l'opposto
+                        if weighted_impact > 0: weighted_impact *= 1.5
+                        else: weighted_impact *= 0.5
                     if self.npc.has_trait(TraitType.PESSIMIST):
-                        if weighted_impact < 0:
-                            weighted_impact *= 1.5 # I brutti ricordi sono il 50% più impattanti
-                        else:
-                            weighted_impact *= 0.5 # I bei ricordi pesano la metà
-
-                    # TODO: Aggiungere altri bias per altri tratti (es. GELOSO, BUONO, MALVAGIO...)
-                    
+                        if weighted_impact < 0: weighted_impact *= 1.5
+                        else: weighted_impact *= 0.5
                     total_weighted_impact += weighted_impact
-
-                # Calcola il modificatore finale basato sull'impatto "filtrato" dai bias
                 memory_modifier = max(0.1, 1.0 + total_weighted_impact)
 
-        # --- 4. Modificatore Contestuale (Ora, Luogo, Meteo) ---
+        # --- 5. Modificatore Contestuale: Ora, Luogo, Meteo ---
+        # Questo ci dice se è il "momento giusto" per fare questa azione.
         context_modifier = 1.0
-        is_night_time = time_manager.is_night() if time_manager else False
-        if getattr(action, 'is_outdoors', False) and weather_manager and weather_manager.is_raining():
-            context_modifier *= 0.1
-        if getattr(action, 'is_noisy', False) and is_night_time:
-            context_modifier *= 0.2
-        if action.action_type_enum == ActionType.ACTION_SLEEP:
-            context_modifier *= 2.0 if is_night_time else 0.3
-
-        # --- 5. Modificatore Stato Mentale (Carico Cognitivo) ---
-        cognitive_state_modifier = 1.0 - (self.npc.cognitive_load * getattr(action, 'cognitive_effort', 0.1))
-
-        # --- 6. MODIFICATORE UMORE (NUOVA LOGICA) ---
-        mood_modifier = 1.0
-        current_mood = self.npc.overall_mood # Usa la property di Character
+        time_manager = simulation_context.time_manager
+        weather_manager = simulation_context.weather_manager
+        if time_manager and weather_manager:
+            is_night_time = time_manager.is_night()
+            if getattr(action, 'is_outdoors', False) and weather_manager.is_raining():
+                context_modifier *= 0.1
+            if getattr(action, 'is_noisy', False) and is_night_time:
+                context_modifier *= 0.2
+            if action.action_type_enum == ActionType.ACTION_SLEEP:
+                context_modifier *= 2.0 if is_night_time else 0.3
         
-        # Le soglie possono essere definite in npc_config.py
+        # --- 6. Modificatore Stato Mentale: Carico Cognitivo ---
+        # Questo ci dice se l'NPC ha l'"energia mentale" per compiere l'azione.
+        action_effort = getattr(action, 'cognitive_effort', 0.1)
+        cognitive_state_modifier = max(0.0, 1.0 - (self.npc.cognitive_load * action_effort))
+
+        # --- 7. Modificatore Umore: Stato Emotivo Corrente ---
+        # Questo ci dice se l'NPC si "sente" di fare l'azione.
+        mood_modifier = 1.0
+        current_mood = self.npc.overall_mood
         mood_bad_threshold = getattr(npc_config, 'MOOD_BAD_THRESHOLD', -15)
         mood_good_threshold = getattr(npc_config, 'MOOD_GOOD_THRESHOLD', 15)
-        
         if current_mood < mood_bad_threshold:
-            # Se l'NPC è di cattivo umore, è meno propenso a fare cose
-            mood_modifier *= 0.8 
-            # E ancora meno propenso a fare cose socialmente impegnative
-            if action.action_type_enum in {ActionType.ACTION_SOCIALIZE, ActionType.ACTION_HOST_PARTY}:
-                mood_modifier *= 0.5
+            mood_modifier *= 0.8
         elif current_mood > mood_good_threshold:
-            # Se l'NPC è di ottimo umore, è più propenso a fare cose
             mood_modifier *= 1.2
-            # Specialmente cose creative o sociali
-            if action.action_type_enum == ActionType.ACTION_HAVE_FUN or action.action_type_enum == ActionType.ACTION_SOCIALIZE:
-                mood_modifier *= 1.25
-        
-        # --- Calcolo Finale del Punteggio (AGGIORNATO) ---
-        final_score = need_score * personality_modifier * memory_modifier * context_modifier * cognitive_state_modifier * mood_modifier
+
+        # --- Calcolo Finale del Punteggio ---
+        final_score = need_score * personality_modifier * behavioral_modifier * memory_modifier * context_modifier * cognitive_state_modifier * mood_modifier
         
         if settings.DEBUG_MODE:
-            # Aggiorna la stampa di debug per includere il nuovo modificatore
+            # Stampa di debug completa per analizzare il ragionamento dell'IA
             print(f"      -> Scoring {action.action_type_name}: Base(Need)={need_score:.2f}, "
-                f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f}, "
-                f"CogStateMod={cognitive_state_modifier:.2f}, MoodMod={mood_modifier:.2f} -> FINALE: {final_score:.2f}")
-
-        return final_score
-
-        final_score = need_score * personality_modifier * memory_modifier * context_modifier
-        
-        if settings.DEBUG_MODE:
-            print(f"      -> Scoring {action.action_type_name}: Base(Need)={need_score:.2f}, "
-                f"PersMod={personality_modifier:.2f}, MemMod={memory_modifier:.2f}, CtxMod={context_modifier:.2f} "
+                f"Pers={personality_modifier:.2f}, Behav={behavioral_modifier:.2f}, Mem={memory_modifier:.2f}, "
+                f"Ctx={context_modifier:.2f}, Cog={cognitive_state_modifier:.2f}, Mood={mood_modifier:.2f} "
                 f"-> FINALE: {final_score:.2f}")
 
         return final_score
@@ -220,7 +207,10 @@ class AIDecisionMaker:
                         if action_instance.is_valid(): valid_actions.append(action_instance)
                 
                 elif action_class == SocializeAction:
-                    current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
+                    current_loc: Optional['Location'] = None
+                    # Controlla che l'NPC abbia una locazione valida prima di procedere
+                    if self.npc.current_location_id:
+                        current_loc = simulation_context.get_location_by_id(self.npc.current_location_id)
                     if current_loc:
                         for target_id in current_loc.npcs_present_ids:
                             if target_id == self.npc.npc_id: continue
@@ -361,6 +351,8 @@ class AIDecisionMaker:
         
         # 4c: Gestisci la logica anti-ripetizione sull'azione finale da eseguire
         if best_action_candidate:
+            # Imposta il problema corrente sull'NPC prima di accodare l'azione
+            self.npc.current_problem = current_problem
             # Se l'azione finale è la stessa dell'ultima E non è un movimento (vogliamo permettere movimenti consecutivi)
             if self.last_selected_action_type == best_action_candidate.action_type_enum and not isinstance(best_action_candidate, MoveToAction):
                 self.consecutive_action_type_count += 1

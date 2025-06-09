@@ -12,6 +12,7 @@ class ActionType(Enum):
     ACTION_IDLE = auto()                    # Non sta facendo nulla di specifico
     ACTION_MOVE_TO = auto()                 # Si sta spostando verso una destinazione
     ACTION_SHELTER_FROM_RAIN = auto()       # Cerca riparo dalla pioggia
+    ACTION_TRAVEL_TO = auto()               # Spostamento
 
     # --- Azioni per Bisogni Base ---
     ACTION_DISINFECT_HANDS = auto()

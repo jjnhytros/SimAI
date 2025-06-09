@@ -1,5 +1,6 @@
 # core/modules/traits/social/social_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
+from core.enums.action_types import ActionType
 from core.enums.trait_types import TraitType
 from ..base_trait import BaseTrait # Importa BaseTrait dalla directory genitore ('traits')
 
@@ -8,14 +9,17 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType # Se usato
 
 class SocialTrait(BaseTrait):
-    # Il costruttore ora accetta 'trait_type' e lo passa a super()
-    # Forniamo un default per trait_type se la classe dovesse mai essere istanziata direttamente
-    # senza che _initialize_traits fornisca il tipo esatto.
-    def __init__(self, character_owner: 'Character', trait_type: TraitType = TraitType.SOCIAL):
-        super().__init__(character_owner, trait_type)
-        # display_name è già impostato da BaseTrait usando trait_type.display_name_it()
-        # Puoi sovrascrivere self.description se necessario.
-        self.description = "Questo NPC ama stare in compagnia, fare nuove amicizie e partecipare a eventi sociali." # Già presente
+    trait_type = TraitType.SOCIAL
+    
+    def __init__(self, character_owner: 'Character'):
+        super().__init__(character_owner)
+        self.display_name = "Socievole"
+        self.description = "Questo NPC ha bisogno di interagire con gli altri per essere felice."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        if action.action_type_enum == ActionType.ACTION_SOCIALIZE:
+            return 2.0 # Forte preferenza per le azioni sociali
+        return 1.0
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         # Esempio: Leggero aumento del bisogno Sociale o facilità nel fare amicizia.

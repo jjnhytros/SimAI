@@ -42,18 +42,33 @@ class Simulation:
         self.ai_coordinator = AICoordinator(self) 
         self.social_manager = SocialManager(self)
         self.consequence_analyzer = ConsequenceAnalyzer()
+        self.social_hubs: List[Dict] = []
         
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
         if settings.DEBUG_MODE: print("  [Simulation INIT] Simulation inizializzata.")
 
     def _initialize_world_data(self):
-        self.social_hubs = [
-            {"hub_id": "hub_bibli_club", "name": "Club Libro Biblio", "activity_type_descriptor": "Incontro Settimanale", "location_category": LocationType.PUBLIC_LIBRARY, "associated_interests": {Interest.READING, Interest.HISTORY}},
-            {"hub_id": "hub_galleria_visioni", "name": "Galleria 'Visioni'", "activity_type_descriptor": "Esposizione", "location_category": LocationType.MUSEUM, "associated_interests": {Interest.VISUAL_ARTS, Interest.PHOTOGRAPHY}},
-        ]
-        if settings.DEBUG_MODE: print(f"  [Simulation INIT] Inizializzati {len(self.social_hubs)} social hub.")
+        """
+        Carica tutte le locazioni e gli oggetti del mondo dai file di dati dei distretti.
+        """
+        from core.data.districts.muse_quarter_data import district_locations as muse_locations
+        # ... (import da altri distretti)
+        
+        all_locations = muse_locations # + ...
+        
+        for loc in all_locations:
+            self.locations[loc.location_id] = loc
+            
+            # --- CORREZIONE QUI ---
+            # Accedi a 'loc.objects' invece di 'loc.initial_objects'
+            for obj_id, obj in loc.objects.items():
+                self.world_objects[obj_id] = obj
 
-        self._create_test_locations_and_objects()
+        if settings.DEBUG_MODE:
+            print(f"  [Simulation INIT] Caricate {len(self.locations)} locazioni e {len(self.world_objects)} oggetti dai file di dati.")
+
+        # Non abbiamo più bisogno di _create_test_locations_and_objects() se usiamo questo sistema
+        # self._create_test_locations_and_objects() 
 
     def _create_test_locations_and_objects(self):
         """Crea alcune locazioni e oggetti di esempio per il test."""
@@ -84,9 +99,9 @@ class Simulation:
             logical_width=15, # Esempio: soggiorno 15x10 celle
             logical_height=10
         )
-        tv_max = GameObject(object_id="tv_max_01", name="TV", object_type=ObjectType.TV, provides_fun_activities=[FunActivityType.WATCH_TV], logical_x=2, logical_y=3)
+        tv_max = GameObject(object_id="tv_max_01", name="TV", object_type=ObjectType.TELEVISION, provides_fun_activities=[FunActivityType.WATCH_TV], logical_x=2, logical_y=3)
         divano_max = GameObject(object_id="divano_max_01", name="Divano", object_type=ObjectType.SOFA, comfort_value=7, logical_x=4, logical_y=3)
-        libreria_max = GameObject(object_id="libreria_max_01", name="Libreria", object_type=ObjectType.BOOKSHELF, provides_fun_activities=[FunActivityType.READ_BOOK_FOR_FUN], logical_x=6, logical_y=3)
+        libreria_max = GameObject(object_id="libreria_max_01", name="Libreria", object_type=ObjectType.BOOKCASE, provides_fun_activities=[FunActivityType.READ_BOOK_FOR_FUN], logical_x=6, logical_y=3)
         
         soggiorno_max.add_object(tv_max)
         soggiorno_max.add_object(divano_max)
@@ -121,42 +136,29 @@ class Simulation:
     def get_location_by_id(self, location_id: str) -> Optional[Location]:
         return self.locations.get(location_id)
 
-    def add_npc(self, new_npc: Character):
-        if not isinstance(new_npc, Character):
-            if settings.DEBUG_MODE: print(f"  [Simulation AddNPC WARN] Tentativo di aggiungere oggetto non Character: {type(new_npc)}")
-            return
-        if new_npc.npc_id in self.npcs:
-            if settings.DEBUG_MODE: print(f"  [Simulation AddNPC WARN] NPC '{new_npc.name}' (ID: {new_npc.npc_id}) già presente nella simulazione.")
-            return
+    def add_npc(self, npc: 'Character'):
+        """Aggiunge un NPC alla simulazione e lo posiziona nel mondo."""
+        if npc.npc_id in self.npcs:
+            if settings.DEBUG_MODE:
+                print(f"[Simulation.add_npc WARN] NPC con ID {npc.npc_id} già presente. Sostituzione.")
+        
+        self.npcs[npc.npc_id] = npc
+        
+        # Calcola lo stadio di vita iniziale ora che abbiamo il contesto temporale
+        if self.time_manager:
+            npc._calculate_and_set_life_stage(self.time_manager.get_current_time())
 
-        self.npcs[new_npc.npc_id] = new_npc
-
-        loc_id_to_assign: Optional[str] = new_npc.current_location_id
-
-        if not loc_id_to_assign:
-            if self.default_starting_location_id and self.default_starting_location_id in self.locations:
-                loc_id_to_assign = self.default_starting_location_id
-                if settings.DEBUG_MODE: print(f"    [Simulation AddNPC] NPC '{new_npc.name}' userà la locazione di default della simulazione: '{loc_id_to_assign}'.")
-            elif self.locations:
-                loc_id_to_assign = list(self.locations.keys())[0]
-                if settings.DEBUG_MODE: print(f"    [Simulation AddNPC WARN] Locazione di default non valida o non impostata. NPC '{new_npc.name}' aggiunto alla prima locazione disponibile: '{loc_id_to_assign}'.")
+        # Posiziona l'NPC nella sua locazione iniziale
+        loc_id = npc.current_location_id
+        if loc_id:
+            location = self.get_location_by_id(loc_id)
+            if location:
+                location.add_npc(npc.npc_id)
             else:
-                if settings.DEBUG_MODE: print(f"    [Simulation AddNPC ERROR] Nessuna locazione definita nella simulazione. Impossibile piazzare '{new_npc.name}'.")
-
-        if loc_id_to_assign and loc_id_to_assign in self.locations:
-            new_npc.set_location(loc_id_to_assign, self)
-        elif loc_id_to_assign:
-             if settings.DEBUG_MODE: print(f"    [Simulation AddNPC ERROR] Locazione specificata '{loc_id_to_assign}' per '{new_npc.name}' non trovata.")
-             new_npc.current_location_id = None
-
-        if settings.DEBUG_MODE:
-            final_loc_name = "Nessuna (Errore)"
-            if new_npc.current_location_id:
-                loc_instance = self.get_location_by_id(new_npc.current_location_id)
-                if loc_instance:
-                    final_loc_name = loc_instance.name
-
-            print(f"  [Simulation] NPC '{new_npc.name}' (ID: {new_npc.npc_id}) aggiunto. Locazione Attuale: {final_loc_name}. Totale NPC: {len(self.npcs)}")
+                if settings.DEBUG_MODE:
+                    print(f"[Simulation.add_npc ERROR] Locazione ID '{loc_id}' per {npc.name} non trovata!")
+        elif settings.DEBUG_MODE:
+            print(f"[Simulation.add_npc WARN] NPC '{npc.name}' aggiunto senza una locazione iniziale.")
 
     def get_npc_by_id(self, npc_id_to_find: str) -> Optional[Character]: return self.npcs.get(npc_id_to_find)
 

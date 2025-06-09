@@ -3,24 +3,37 @@ import collections
 from dataclasses import dataclass
 from typing import List, Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
 
-# Importa solo dati (Enum, config) e moduli semplici al livello superiore
+# Importa Enum, Config e Settings come prima
 from core.enums import *
 from core.config import time_config, npc_config
 from core import settings
 
-# SPOSTA TUTTE LE CLASSI DI LOGICA COMPLESSE NEL BLOCCO TYPE_CHECKING
+# Import dei sistemi che Character deve istanziare
+from core.modules.lifestages.child_life_stage import ChildLifeStage
+from core.modules.memory.memory_definitions import Problem
+from core.modules.memory.memory_system import MemorySystem
+from core.modules.moodlets.moodlet_manager import MoodletManager
+from core.modules.lifestages.base_life_stage import BaseLifeStage
+
 if TYPE_CHECKING:
     from core.simulation import Simulation
     from core.world.location import Location
     from core.modules.time_manager import TimeManager
-    from core.modules.needs import BaseNeed
-    from core.modules.traits import BaseTrait
-    from core.modules.memory.memory_system import MemorySystem
-    from core.modules.moodlets.moodlet_manager import MoodletManager
-    # Importa le classi direttamente dal loro file per evitare di passare da __init__.py
+    # Questi due rimangono qui perché Character e BaseAction/AIDecisionMaker
+    # dipendono l'uno dall'altro, creando un ciclo.
     from core.modules.actions.action_base import BaseAction 
     from core.AI.ai_decision_maker import AIDecisionMaker
-    from core.AI.problem_definitions import Problem
+
+from core.modules.traits import BaseTrait, ActiveTrait, BookwormTrait # e le altre classi Tratto
+from core.modules.needs import BaseNeed, ThirstNeed # e le altre classi Need
+from core.modules.moodlets.moodlet_definitions import Moodlet # <-- SPOSTATO QUI
+# from core.modules.skills.skill_system import SkillManager # <-- Anche questo andrà qui
+from core.world.ATHDateTime.ATHDateTime import ATHDateTime
+
+LIFESTAGE_TYPE_TO_CLASS_MAP: Dict[LifeStage, Type[BaseLifeStage]] = {
+    LifeStage.CHILD: ChildLifeStage,
+    # ... aggiungi qui le altre classi quando le crei
+}
     
 # Le definizioni di classi e mappe locali possono rimanere qui
 @dataclass
@@ -40,11 +53,10 @@ TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type['BaseTrait']] = {
     TraitType.SOCIAL: SocialTrait, TraitType.CREATIVE: CreativeTrait,
 }
 
-
 class Character:
     def __init__(self,
                 npc_id: str, name: str, initial_gender: Gender,
-                initial_age_days: int = 0, 
+                initial_birth_date: 'ATHDateTime',
                 initial_aspiration: Optional[AspirationType] = None,
                 initial_interests: Optional[Set[Interest]] = None,
                 initial_is_on_asexual_spectrum: bool = False, 
@@ -70,7 +82,8 @@ class Character:
         self.npc_id: str = npc_id; 
         self.name: str = name
         self.gender: Gender = initial_gender; 
-        self._age_in_days: int = initial_age_days
+        self.birth_date: 'ATHDateTime' = initial_birth_date
+        self.life_stage_obj: Optional[BaseLifeStage] = None 
         self.life_stage: Optional[LifeStage] = None; 
         self.current_problem: Optional['Problem'] = None
         self.is_busy: bool = False
@@ -115,22 +128,22 @@ class Character:
         # Esecuzione dei Metodi di Inizializzazione
         self._initialize_traits(initial_traits or set())
         self._initialize_needs() 
-        self._calculate_and_set_life_stage()
 
         # Import locale per evitare il ciclo all'avvio
         from core.AI.ai_decision_maker import AIDecisionMaker
-        self.ai_decision_maker: 'AIDecisionMaker' = AIDecisionMaker(self)
+        self.ai_decision_maker: Optional['AIDecisionMaker'] = None
         
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
 
     def _initialize_traits(self, initial_trait_types: Set[TraitType]):
-        for trait_type in initial_trait_types:
-            trait_class = TRAIT_TYPE_TO_CLASS_MAP.get(trait_type)
+        """Inizializza gli oggetti tratto dell'NPC e assegna il proprietario."""
+        for trait_type_enum in initial_trait_types:
+            trait_class = TRAIT_TYPE_TO_CLASS_MAP.get(trait_type_enum)
             if trait_class:
-                # La chiamata al costruttore ora richiede il proprietario
-                self.traits[trait_type] = trait_class(character_owner=self) 
+                trait_instance = trait_class(character_owner=self)
+                self.traits[trait_type_enum] = trait_instance
             elif settings.DEBUG_MODE:
-                print(f"    [Character Traits WARN - {self.name}] Classe non trovata per TraitType.{trait_type.name}")
+                print(f"    [Character Traits WARN - {self.name}] Classe non trovata per TraitType.{trait_type_enum.name}")
 
     def _initialize_needs(self):
         need_class_map: Dict[NeedType, Type[BaseNeed]] = {
@@ -147,9 +160,13 @@ class Character:
             elif settings.DEBUG_MODE:
                 print(f"  [Char Needs Init WARN - {self.name}] Classe per NeedType.{need_type.name} non in map.")
 
-    def _calculate_and_set_life_stage(self):
-        age_days = self._age_in_days
+    def _calculate_and_set_life_stage(self, current_time: 'ATHDateTime'):
+        age_days = self.get_age_in_days(current_time)
         new_stage = None
+        new_stage_enum = LifeStage.CHILD
+        if self.life_stage != new_stage_enum:
+            self.life_stage = new_stage_enum
+
         sorted_thresholds = sorted(npc_config.LIFE_STAGE_AGE_THRESHOLDS_DAYS.items(), key=lambda item: item[1])
         for stage_key, threshold in reversed(sorted_thresholds):
             if age_days >= threshold:
@@ -158,6 +175,12 @@ class Character:
                 break
         if new_stage and self.life_stage != new_stage:
             self.life_stage = new_stage
+            life_stage_class = LIFESTAGE_TYPE_TO_CLASS_MAP.get(new_stage_enum)
+            if life_stage_class:
+                self.life_stage_obj = life_stage_class(self)
+                self.life_stage_obj.on_enter_stage() # Esegui la logica di ingresso
+                if settings.DEBUG_MODE:
+                    print(f"  [Character LIFE STAGE] {self.name} è ora un {self.life_stage_obj.display_name}.")
 
     def set_location(self, new_location_id: str, simulation: 'Simulation'):
         if self.current_location_id:
@@ -176,16 +199,27 @@ class Character:
     def has_trait(self, trait_type: TraitType) -> bool:
         return trait_type in self.traits
 
-    def get_trait(self, trait_type: TraitType) -> Optional[BaseTrait]:
+    def get_trait(self, trait_type: TraitType) -> Optional['BaseTrait']:
         return self.traits.get(trait_type)
 
     def get_trait_types(self) -> Set[TraitType]:
         return set(self.traits.keys())
 
-    def get_age_in_days(self) -> int: return self._age_in_days
+    def get_age_in_days(self, current_time: 'ATHDateTime') -> int:
+        """Calcola l'età dell'NPC in giorni basandosi sulla data corrente."""
+        age_interval = current_time.diff(self.birth_date)
+        
+        # Usa getattr per essere sicuro, nel caso il nome nella tua libreria sia .days
+        # Prova prima 'total_days', se non esiste usa 'days'.
+        total_days = getattr(age_interval, 'total_days', None)
+        if total_days is not None:
+            return total_days
+        
+        return getattr(age_interval, 'days', 0)
 
-    def get_age_in_years_float(self) -> float:
-        return self._age_in_days / time_config.DXY if time_config.DXY > 0 else 0.0
+    def get_age_in_years_float(self, current_time: 'ATHDateTime') -> float:
+        age_in_days = self.get_age_in_days(current_time)
+        return age_in_days / time_config.DXY if time_config.DXY > 0 else 0.0
 
     def _set_age_in_days(self, new_age_days: int):
         if new_age_days != self._age_in_days:
@@ -236,15 +270,20 @@ class Character:
     def overall_mood(self) -> int:
         return self.moodlet_manager.get_total_emotional_impact() if self.moodlet_manager else 0
 
-    def update_needs(self, time_manager: TimeManager, elapsed_ticks: int):
+    def update_needs(self, time_manager: 'TimeManager', elapsed_ticks: int):
         if not self.needs or elapsed_ticks <= 0: return
-        ticks_per_hour = time_config.IXM * time_config.HXD
+        ticks_per_hour = time_config.TXH_SIMULATION
+        if ticks_per_hour == 0: return
         fraction_of_hour = elapsed_ticks / ticks_per_hour
+        modifiers = self.life_stage_obj.get_need_decay_modifiers() if self.life_stage_obj else {}
+
         for need_type, need_obj in self.needs.items():
             decay_rate = npc_config.NEED_DECAY_RATES.get(need_type, 0)
-            change_amount = decay_rate * fraction_of_hour
-            need_obj.change_value(change_amount, is_decay_event=True)
-        
+            modifier = modifiers.get(need_type.name, 1.0)
+            change_amount = (decay_rate * modifier) * fraction_of_hour
+            if change_amount !=0:
+                need_obj.change_value(change_amount, is_decay_event=True)
+
         needs_to_avg = [n.get_value() for t, n in self.needs.items() if t != NeedType.STRESS]
         avg_need_level = sum(needs_to_avg) / len(needs_to_avg) if needs_to_avg else 100.0
         load_thresh = getattr(npc_config, 'COGNITIVE_LOAD_THRESHOLD', 40.0)
@@ -296,4 +335,12 @@ class Character:
     def __str__(self) -> str:
         current_action_str = self.current_action.action_type_name if self.current_action else "Nessuna"
         current_action_progress = f"({self.current_action.get_progress_percentage():.0%})" if self.current_action and self.current_action.is_started else ""
-        return f"Character(ID: {self.npc_id}, Nome: \"{self.name}\")" # Placeholder
+        # Per visualizzare l'età, dobbiamo avere il tempo corrente. 
+        # Questo rende __str__ dipendente dal contesto, il che non è ideale.
+        # Una soluzione migliore è che il RENDERER chiami get_age_in_years_float
+        # passando il tempo corrente dalla simulazione.
+        # Per ora, mostriamo un placeholder.
+        age_in_years_str = "N/A" 
+        # Nel Renderer, userai: f"{npc.get_age_in_years_float(sim.time_manager.get_current_time()):.3f}"
+        
+        return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", ... Età: {age_in_years_str} anni ...)")

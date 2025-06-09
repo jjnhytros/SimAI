@@ -5,7 +5,7 @@ Gestione avanzata dei bisogni NPC
 from typing import TYPE_CHECKING, List, Optional # Aggiunto Optional
 from core import settings
 from core.enums import NeedType
-from core.AI.problem_definitions import Problem, ProblemType
+from core.modules.memory.memory_definitions import Problem, ProblemType
 from core.config import npc_config # Importa npc_config
 # from core.modules.needs.common_needs import IntimacyNeed # Rimosso se update_needs è pass
 

@@ -2,30 +2,34 @@
 from typing import Optional, TYPE_CHECKING, Dict
 
 from core.enums import ActionType, NeedType, ObjectType
+from core.modules.memory.memory_definitions import Problem
 from .action_base import BaseAction
+from core.config import npc_config
 from core import settings
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
     from core.world.game_object import GameObject
+    from core.world.location import Location
 
 class DrinkAction(BaseAction):
     """Azione per l'NPC di bere, configurata dall'esterno."""
 
     def __init__(self,
-                 npc: 'Character',
-                 simulation_context: 'Simulation',
-                 # --- Parametri di configurazione iniettati ---
-                 drink_type_name: str,
-                 duration_ticks: int,
-                 thirst_gain: float,
-                 effects_on_other_needs: Optional[Dict[NeedType, float]] = None
+                npc: 'Character',
+                simulation_context: 'Simulation',
+                drink_type_name: str,
+                duration_ticks: int,
+                thirst_gain: float,
+                effects_on_other_needs: Optional[Dict[NeedType, float]] = None,
+                # Il target object è opzionale
+                target_object: Optional['GameObject'] = None,
+                triggering_problem: Optional['Problem'] = None
                 ):
         
-        self.drink_type_name = drink_type_name
-        self.thirst_gain = thirst_gain
-        # target_object viene trovato in is_valid, quindi lo inizializziamo in BaseAction
+        self.drink_type_name: str = drink_type_name
+        self.thirst_gain: float = thirst_gain
 
         super().__init__(
             npc=npc,
@@ -33,102 +37,84 @@ class DrinkAction(BaseAction):
             action_type_enum=ActionType.ACTION_DRINK,
             duration_ticks=duration_ticks,
             p_simulation_context=simulation_context,
-            is_interruptible=True
+            triggering_problem=triggering_problem
         )
 
-        self.effects_on_needs = {NeedType.THIRST: self.thirst_gain}
+        # Usa l'attributo standard `target_object` ereditato da BaseAction
+        self.target_object = target_object
+
+        self.effects_on_needs: Dict[NeedType, float] = {NeedType.THIRST: self.thirst_gain}
         if effects_on_other_needs:
             self.effects_on_needs.update(effects_on_other_needs)
 
-        if settings.DEBUG_MODE:
-            source_log = self.drink_source_object.name if self.drink_source_object else "auto-detect"
-            print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata. "
-                f"Tipo: {self.drink_type_name}, Sorgente: {source_log}, "
-                f"Gain Sete: {self.thirst_gain:.1f}, Durata: {self.duration_ticks}t, "
-                f"Altri Effetti: {self.effects_on_needs if effects_on_other_needs else 'Nessuno'}")
-
     def is_valid(self) -> bool:
-        if not super().is_valid(): # Chiamata al metodo base se BaseAction.is_valid() ha logica comune
-            return False # Ad esempio, se BaseAction.is_valid() controlla self.npc
+        """Controlla se l'azione di bere è valida."""
+        if not super().is_valid():
+            return False
 
         thirst_need = self.npc.needs.get(NeedType.THIRST)
-        # Assicurati che npc_config sia importato o settings.NEED_MAX_VALUE
-        max_thirst_value = getattr(settings, 'NEED_MAX_VALUE', 100.0) 
-        if thirst_need and thirst_need.get_value() >= (max_thirst_value - 10.0): # Non bere se non si ha sete
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Sete ({thirst_need.get_value():.1f}) già troppo alta.")
+        if thirst_need and thirst_need.get_value() >= (npc_config.NEED_MAX_VALUE - 10.0):
             return False
         
-        # Se un drink_source_object specifico non è stato passato, l'IA ne cerca uno.
-        if not self.drink_source_object:
-            if not self.sim_context: return False # sim_context è p_simulation_context da BaseAction
+        # Se un oggetto non è stato fornito, cercalo nell'ambiente
+        if not self.target_object:
+            if not self.sim_context or not self.npc.current_location_id: return False
             
-            npc_location_id = self.npc.current_location_id
-            if npc_location_id is None: 
-                if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] NPC current_location_id è None.")
-                return False
-            
-            current_loc = self.sim_context.get_location_by_id(npc_location_id)
-            if not current_loc:
-                if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Locazione corrente non trovata.")
-                return False
+            current_loc: Optional['Location'] = self.sim_context.get_location_by_id(self.npc.current_location_id)
+            if not current_loc: return False
 
-            found_object: Optional['GameObject'] = None
-            # Logica per trovare un oggetto sorgente d'acqua appropriato (es. SINK, REFRIGERATOR, WATER_COOLER)
-            # o qualsiasi oggetto con obj.is_water_source == True
-            for obj in current_loc.get_objects():
-                is_obj_water_source = hasattr(obj, 'is_water_source') and obj.is_water_source
-                if obj.object_type == ObjectType.SINK or \
-                   obj.object_type == ObjectType.REFRIGERATOR or \
-                   obj.object_type == ObjectType.WATER_COOLER or \
-                   is_obj_water_source:
-                    # TODO: Qui potresti aggiungere logica per preferire fonti che corrispondono a self.drink_type_name
-                    # se la simulazione traccia il contenuto specifico degli oggetti (es. frigo con succhi)
-                    found_object = obj
-                    break 
+            found_obj: Optional['GameObject'] = None
+            # Tipi di oggetto che possono soddisfare la sete
+            drink_sources = {ObjectType.SINK, ObjectType.REFRIGERATOR, ObjectType.WATER_COOLER}
             
-            if found_object:
-                self.drink_source_object = found_object # Memorizza l'oggetto trovato
-                # Aggiorna dinamicamente action_type_name se vuoi includere l'oggetto specifico
-                self.action_type_name = f"ACTION_DRINK_{self.drink_type_name.upper()}_FROM_{self.drink_source_object.object_type.name}"
-                if settings.DEBUG_MODE:
-                    print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Trovato fonte automatica: {found_object.name}")
+            for obj in current_loc.get_objects():
+                # Controlla se l'oggetto è di un tipo valido E se è disponibile
+                if obj.object_type in drink_sources and obj.is_available():
+                    found_obj = obj
+                    break
+            
+            if found_obj:
+                self.target_object = found_obj # Assegna l'oggetto trovato
             else:
                 if settings.DEBUG_MODE:
-                    print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Nessuna fonte per bere ({self.drink_type_name}) trovata in {current_loc.name}.")
-                return False
+                    print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Nessuna fonte per bere disponibile trovata.")
+                return False # Nessun oggetto valido e disponibile trovato
         
-        # TODO: Controllare se self.drink_source_object è utilizzabile (es. non rotto, non occupato da altri)
+        # Se un oggetto target esiste (passato o appena trovato), verifica la sua disponibilità
+        if not self.target_object.is_available():
+            if settings.DEBUG_MODE:
+                print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Oggetto target '{self.target_object.name}' non è disponibile.")
+            return False
+
         return True
 
     def on_start(self):
         super().on_start()
-        # TODO: Animazione, l'oggetto potrebbe diventare "in uso"
-        if settings.DEBUG_MODE:
-            source_name = self.drink_source_object.name if self.drink_source_object else "fonte sconosciuta"
-            print(f"    [{self.action_type_name} START - {self.npc.name}] Inizia a bere {self.drink_type_name} da {source_name}.")
-
-    # execute_tick da BaseAction
+        # Blocca l'oggetto quando l'azione inizia
+        if self.target_object:
+            self.target_object.set_in_use(self.npc.npc_id)
 
     def on_finish(self):
+        # Applica gli effetti
         if self.npc:
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Finito di bere {self.drink_type_name}. Applico effetti.")
-            
             for need_type, change_amount in self.effects_on_needs.items():
-                self.npc.change_need_value(need_type, change_amount, is_decay_event=False)
+                self.npc.change_need_value(need_type, change_amount)
         
-        # TODO: Se l'oggetto era una risorsa consumabile (es. bottiglia d'acqua), aggiorna il suo stato o rimuovilo.
+        # Libera l'oggetto quando l'azione finisce
+        if self.target_object:
+            self.target_object.set_free()
+        
         super().on_finish()
 
     def on_interrupt_effects(self):
         super().on_interrupt_effects()
+        # Applica effetti parziali
         if self.npc and self.duration_ticks > 0:
             proportion_completed = self.elapsed_ticks / self.duration_ticks
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Azione bere interrotta. Applico effetti parziali.")
-            
             for need_type, total_amount in self.effects_on_needs.items():
                 partial_amount = total_amount * proportion_completed
-                if partial_amount != 0: # Applica solo se c'è un cambiamento effettivo
-                    self.npc.change_need_value(need_type, partial_amount, is_decay_event=False)
+                self.npc.change_need_value(need_type, partial_amount)
+
+        # Libera l'oggetto anche in caso di interruzione
+        if self.target_object:
+            self.target_object.set_free()

@@ -25,7 +25,7 @@ class MoveToAction(BaseAction):
                 npc: 'Character', 
                 simulation_context: 'Simulation',
                 destination: Tuple[int, int],
-                follow_up_action: Optional[BaseAction] = None
+                follow_up_action: Optional[BaseAction] = None,
                 ):
         
         self.destination: Tuple[int, int] = destination

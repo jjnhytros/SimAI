@@ -13,22 +13,17 @@ if TYPE_CHECKING:
 
 class ShyTrait(BaseTrait):
     trait_type = TraitType.SHY
-    display_name = "Timido"
-    description = "Questo NPC si sente a disagio in grandi gruppi..."
-
+    
     def __init__(self, character_owner: 'Character'):
         super().__init__(character_owner)
-````````
-    # Implementiamo il nuovo metodo che abbiamo aggiunto alla classe base
-    def get_behavioral_action_modifier(self, action: 'BaseAction', simulation_context: 'Simulation') -> float:
+        self.display_name = "Timido"
+        self.description = "Questo NPC si sente a disagio in grandi gruppi e preferisce interagire con poche persone alla volta."
+
+    def get_behavioral_action_modifier(self, action, simulation_context):
         if action.action_type_enum == ActionType.ACTION_SOCIALIZE:
-            # Ora usiamo self.character_owner, che sarà impostato correttamente
-            owner_npc = self.character_owner 
-            if not owner_npc or not owner_npc.current_location_id:
-                return 1.0
-
-            current_loc = simulation_context.get_location_by_id(owner_npc.current_location_id)
-            if not current_loc or len(current_loc.npcs_present_ids) > npc_config.SHY_NPC_CROWD_THRESHOLD:
-                return 0.1 # Penalizza pesantemente
-
+            owner_npc = self.character_owner
+            if owner_npc and owner_npc.current_location_id:
+                current_loc = simulation_context.get_location_by_id(owner_npc.current_location_id)
+                if current_loc and len(current_loc.npcs_present_ids) > npc_config.SHY_NPC_CROWD_THRESHOLD:
+                    return 0.1
         return 1.0

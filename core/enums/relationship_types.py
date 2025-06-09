@@ -1,5 +1,7 @@
 # core/enums/relationship_types.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum 'RelationshipType' per rappresentare i tipi di relazione
 tra NPC in SimAI.
@@ -48,29 +50,63 @@ class RelationshipType(Enum):
     MENTEE = auto()                     # Allievo (di un mentore)
     ROOMMATE = auto()                   # Coinquilino (se rilevante)
 
-    def display_name_it(self) -> str:
-        mapping = {
-            RelationshipType.PARENT: "Genitore", RelationshipType.CHILD: "Figlio/a",
-            RelationshipType.GRANDPARENT: "Nonno/a", RelationshipType.GRANDCHILD: "Nipote (di nonni)",
-            RelationshipType.GREAT_GRANDPARENT: "Bisnonno/a", RelationshipType.GREAT_GRANDCHILD: "Pronipote",
-            RelationshipType.GREAT_GREAT_GRANDPARENT: "Trisnonno/a", RelationshipType.GREAT_GREAT_GRANDCHILD: "Bis-pronipote",
-            RelationshipType.SIBLING: "Fratello/Sorella", RelationshipType.SPOUSE: "Coniuge",
-            RelationshipType.EXTENDED_FAMILY: "Parente", RelationshipType.FRIEND_CLOSE: "Amico Stretto",
-            RelationshipType.FRIEND_REGULAR: "Amico", RelationshipType.ACQUAINTANCE: "Conoscente",
-            RelationshipType.ROMANTIC_PARTNER: "Partner Romantico", RelationshipType.CRUSH: "Cotta",
-            RelationshipType.EX_PARTNER: "Ex Partner", RelationshipType.ENEMY_RIVAL: "Nemico/Rivale",
-            RelationshipType.ENEMY_DISLIKED: "Antipatia", RelationshipType.COLLEAGUE: "Collega",
-            RelationshipType.NEIGHBOR: "Vicino di Casa", RelationshipType.MENTOR: "Mentore",
-            RelationshipType.MENTEE: "Allievo", RelationshipType.ROOMMATE: "Coinquilino",
-        }
-        return mapping.get(self, self.name.replace("_", " ").title())
+    AUNT_UNCLE = 100
+    NEPHEW_NIECE = 101
+    
+    COUSIN = 110
+    
+    GREAT_AUNT_UNCLE = 120
+    FIRST_COUSIN_ONCE_REMOVED = 121
+    
+    SECOND_COUSIN = 130
 
-    def is_direct_family_link(self) -> bool:
-        """Indica se è un legame familiare diretto."""
-        return self in {
-            RelationshipType.PARENT, RelationshipType.CHILD,
-            RelationshipType.GRANDPARENT, RelationshipType.GRANDCHILD,
-            RelationshipType.GREAT_GRANDPARENT, RelationshipType.GREAT_GRANDCHILD,
-            RelationshipType.GREAT_GREAT_GRANDPARENT, RelationshipType.GREAT_GREAT_GRANDCHILD,
-            RelationshipType.SIBLING, RelationshipType.SPOUSE
+    def display_name_it(self, gender: Gender) -> str:
+        """Restituisce un nome leggibile e declinato per il tipo di relazione."""
+        mapping = {
+            # --- FAMIGLIA NUCLEARE ---
+            RelationshipType.PARENT: "Genitore",
+            RelationshipType.CHILD: {Gender.MALE: "Figlio", Gender.FEMALE: "Figlia"},
+            RelationshipType.SPOUSE: "Coniuge",
+            RelationshipType.SIBLING: {Gender.MALE: "Fratello", Gender.FEMALE: "Sorella"},
+
+            # --- FAMIGLIA DIRETTA ESTESA (Nonni, Nipoti di nonni) ---
+            RelationshipType.GRANDPARENT: {Gender.MALE: "Nonno", Gender.FEMALE: "Nonna"},
+            RelationshipType.GRANDCHILD: {Gender.MALE: "Nipote", Gender.FEMALE: "Nipote"}, # (di nonni)
+            RelationshipType.GREAT_GRANDPARENT: {Gender.MALE: "Bisnonno", Gender.FEMALE: "Bisnonna"},
+            RelationshipType.GREAT_GRANDCHILD: {Gender.MALE: "Pronipote", Gender.FEMALE: "Pronipote"},
+            RelationshipType.GREAT_GREAT_GRANDPARENT: {Gender.MALE: "Trisnonno", Gender.FEMALE: "Trisnonna"},
+            RelationshipType.GREAT_GREAT_GRANDCHILD: {Gender.MALE: "Bis-pronipote", Gender.FEMALE: "Bis-pronipote"},
+
+            # --- FAMIGLIA COLLATERALE (Zii, Cugini, Nipoti di zii) ---
+            RelationshipType.AUNT_UNCLE: {Gender.MALE: "Zio", Gender.FEMALE: "Zia"},
+            RelationshipType.NEPHEW_NIECE: {Gender.MALE: "Nipote", Gender.FEMALE: "Nipote"}, # (di zii)
+            RelationshipType.COUSIN: {Gender.MALE: "Cugino", Gender.FEMALE: "Cugina"},
+            RelationshipType.GREAT_AUNT_UNCLE: {Gender.MALE: "Prozio", Gender.FEMALE: "Prozia"},
+            RelationshipType.FIRST_COUSIN_ONCE_REMOVED: {Gender.MALE: "Cugino di 2° Grado", Gender.FEMALE: "Cugina di 2° Grado"}, # Esempio di traduzione
+            RelationshipType.SECOND_COUSIN: {Gender.MALE: "Cugino di 3° Grado", Gender.FEMALE: "Cugina di 3° Grado"}, # Esempio di traduzione
+
+            # --- ALTRE RELAZIONI ---
+            RelationshipType.EXTENDED_FAMILY: "Parente",
+            RelationshipType.ACQUAINTANCE: "Conoscente",
+            RelationshipType.FRIEND_CLOSE: {Gender.MALE: "Amico Stretto", Gender.FEMALE: "Amica Stretta"},
+            RelationshipType.FRIEND_REGULAR: {Gender.MALE: "Amico", Gender.FEMALE: "Amica"},
+            RelationshipType.ROMANTIC_PARTNER: {Gender.MALE: "Partner", Gender.FEMALE: "Partner"},
+            RelationshipType.EX_PARTNER: {Gender.MALE: "Ex Partner", Gender.FEMALE: "Ex Partner"},
+            RelationshipType.CRUSH: "Cotta",
+            RelationshipType.ENEMY_RIVAL: "Rivale",
+            RelationshipType.ENEMY_DISLIKED: "Antipatia",
+            RelationshipType.COLLEAGUE: "Collega",
+            RelationshipType.NEIGHBOR: {Gender.MALE: "Vicino di Casa", Gender.FEMALE: "Vicina di Casa"},
+            RelationshipType.MENTOR: "Mentore",
+            RelationshipType.MENTEE: {Gender.MALE: "Allievo", Gender.FEMALE: "Allieva"},
+            RelationshipType.ROOMMATE: {Gender.MALE: "Coinquilino", Gender.FEMALE: "Coinquilina"},
         }
+        
+        value = mapping.get(self)
+
+        if isinstance(value, dict):
+            return value.get(gender, value.get(Gender.MALE, "N/D"))
+        elif isinstance(value, str):
+            return value
+        else:
+            return self.name.replace("_", " ").title()

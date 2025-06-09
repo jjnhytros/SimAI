@@ -4,7 +4,7 @@ Definisce la NPCFactory, una classe per la creazione procedurale di NPC.
 """
 import random
 import uuid
-from typing import Set
+from typing import List, Set
 
 from core.character import Character
 from core.enums import (
@@ -13,6 +13,7 @@ from core.enums import (
 )
 from core.config import npc_config, time_config
 from core.utils import gen_lastname
+from core.world.ATHDateTime.ATHDateTime import ATHDateTime
 
 class NPCFactory:
     """
@@ -23,52 +24,44 @@ class NPCFactory:
         # Il factory potrebbe avere delle configurazioni, ma per ora è semplice.
         pass
 
-    def create_random_npc(self) -> Character:
-        """
-        Crea e restituisce un singolo NPC con attributi casuali.
-        """
-        # Scegli un genere casuale, escludendo NON_BINARY per la scelta del nome
+    def create_random_npc(self, simulation_start_date: 'ATHDateTime', available_location_ids: List[str]) -> Character:
+        """Crea un singolo NPC con attributi, data di nascita e posizione casuali."""
+        from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
+
         gender = random.choice([Gender.MALE, Gender.FEMALE])
-        
-        # Scegli un nome in base al genere
-        if gender == Gender.MALE:
-            first_name = random.choice(npc_config.MALE_NAMES)
-        else:
-            first_name = random.choice(npc_config.FEMALE_NAMES)
+        first_name = random.choice(npc_config.MALE_NAMES if gender == Gender.MALE else npc_config.FEMALE_NAMES)
         last_name = gen_lastname()
         full_name = f"{first_name} {last_name}"
         
-        # Genera un ID unico
-        npc_id = f"npc_random_{uuid.uuid4().hex[:8]}"
-
-        # Genera età casuale (es. tra 20 e 40 anni)
-        min_age_days = 20 * time_config.DXY
-        max_age_days = 40 * time_config.DXY
+        # Calcola la data di nascita
+        min_age_days = int(13 * time_config.DXY)
+        max_age_days = int(120 * time_config.DXY)
         age_in_days = random.randint(min_age_days, max_age_days)
+        age_interval = ATHDateInterval(days=age_in_days)
+        birth_date = simulation_start_date.sub(age_interval)
 
-        # Seleziona un numero casuale di tratti
+        # Scegli tratti, aspirazione, interessi...
         num_traits = random.randint(npc_config.MIN_TRAITS_PER_NPC, npc_config.MAX_TRAITS_PER_NPC)
-        # Seleziona tratti a caso, assicurandoti che siano unici
-        traits_list = [t for t in TraitType if t != TraitType.EVIL] # Esempio di esclusione
-        random_traits: Set[TraitType] = set(random.sample(traits_list, num_traits))
-        
-        # Seleziona un'aspirazione casuale
-        random_aspiration: AspirationType = random.choice(list(AspirationType))
-
-        # Seleziona interessi casuali
+        traits_list = [t for t in TraitType]
+        random_traits = set(random.sample(traits_list, num_traits))
+        random_aspiration = random.choice(list(AspirationType))
         num_interests = random.randint(1, npc_config.MAX_NPC_ACTIVE_INTERESTS)
-        random_interests: Set[Interest] = set(random.sample(list(Interest), num_interests))
+        random_interests = set(random.sample(list(Interest), num_interests))
 
-        # Crea l'istanza di Character
+        # Scegli una locazione e coordinate casuali
+        loc_id = random.choice(available_location_ids)
+        # Il recupero dell'oggetto location e il calcolo x,y è meglio farlo nel setup principale
+        # dato che la factory non ha accesso diretto a simulation_context.
+        # Oppure, passa simulation_context anche alla factory. Per ora, passiamo solo l'ID.
+
         new_npc = Character(
-            npc_id=npc_id,
+            npc_id=f"npc_random_{uuid.uuid4().hex[:8]}",
             name=full_name,
             initial_gender=gender,
-            initial_age_days=age_in_days,
+            initial_birth_date=birth_date,
             initial_traits=random_traits,
             initial_aspiration=random_aspiration,
-            initial_interests=random_interests
-            # Gli altri parametri useranno i valori di default di Character.__init__
+            initial_interests=random_interests,
+            initial_location_id=loc_id
         )
-
         return new_npc

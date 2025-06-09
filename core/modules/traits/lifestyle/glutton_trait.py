@@ -14,17 +14,17 @@ if TYPE_CHECKING:
     from core.character import Character
 
 class GluttonTrait(BaseTrait):
-    """
-    Tratto per gli NPC che sono golosi.
-    Effetti:
-    - Il bisogno di Fame decade più velocemente.
-    - Potrebbe cercare cibo più spesso o mangiare porzioni più grandi (futuro).
-    """
+    trait_type = TraitType.GLUTTON
+    
     def __init__(self, character_owner: 'Character'):
-        super().__init__(
-            trait_type=TraitType.GLUTTON, 
-            character_owner=character_owner
-        )
+        super().__init__(character_owner)
+        self.display_name = "Ghiottone"
+        self.description = "Questo NPC ama il cibo e mangia più del necessario."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        if action.action_type_enum == ActionType.ACTION_EAT:
+            return 1.5 # Più propenso a scegliere di mangiare
+        return 1.0
 
     def get_need_decay_modifier(self, need_type: NeedType, base_decay_rate: float) -> float: # Cambiato NeedTypeHint a NeedType
         if need_type == NeedType.HUNGER:

@@ -1,6 +1,8 @@
 # core/modules/actions/intimacy_actions.py
 from typing import TYPE_CHECKING, Optional, Dict
 
+from core.modules.memory.memory_definitions import Problem
+
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
@@ -17,16 +19,18 @@ from .action_base import BaseAction
 
 class EngageIntimacyAction(BaseAction):
     def __init__(self, 
-                 npc: 'Character', 
-                 simulation_context: 'Simulation',
-                 target_npc: 'Character', # Parametro target esplicito
-                 # --- Parametri di configurazione ora iniettati ---
-                 duration_ticks: int,
-                 initiator_intimacy_gain: float,
-                 target_intimacy_gain: float,
-                 relationship_score_gain: int
-                 # Potresti aggiungere altri parametri se necessario, es:
-                 # required_relationship_types: Set[RelationshipType] = {RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE}
+                npc: 'Character', 
+                simulation_context: 'Simulation',
+                target_npc: 'Character', # Parametro target esplicito
+                # --- Parametri di configurazione ora iniettati ---
+                duration_ticks: int,
+                initiator_intimacy_gain: float,
+                target_intimacy_gain: float,
+                relationship_score_gain: int,
+                triggering_problem: Optional['Problem'] = None,
+
+                # Potresti aggiungere altri parametri se necessario, es:
+                # required_relationship_types: Set[RelationshipType] = {RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE}
                 ):
         
         action_type_enum_val = ActionType.ACTION_ENGAGE_INTIMACY # Assicurati che esista in ActionType
@@ -37,7 +41,8 @@ class EngageIntimacyAction(BaseAction):
             action_type_enum=action_type_enum_val,
             duration_ticks=duration_ticks, # Usa il parametro iniettato
             p_simulation_context=simulation_context,
-            is_interruptible=True 
+            is_interruptible=True,
+            triggering_problem=triggering_problem,
         )
         self.target_npc = target_npc
         
@@ -55,8 +60,8 @@ class EngageIntimacyAction(BaseAction):
         
         if settings.DEBUG_MODE:
             print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata con target {self.target_npc.name}. "
-                  f"Durata: {self.duration_ticks}t, InitGain: {self.initiator_intimacy_gain:.1f}, "
-                  f"TargetGain: {self.target_intimacy_gain:.1f}, RelGain: {self.relationship_score_gain}")
+                f"Durata: {self.duration_ticks}t, InitGain: {self.initiator_intimacy_gain:.1f}, "
+                f"TargetGain: {self.target_intimacy_gain:.1f}, RelGain: {self.relationship_score_gain}")
 
     def is_valid(self) -> bool:
         # La tua logica di validazione esistente è un buon punto di partenza.

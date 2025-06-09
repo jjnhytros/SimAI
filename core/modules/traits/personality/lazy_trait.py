@@ -9,9 +9,21 @@ if TYPE_CHECKING:
     # from core.enums.action_types import ActionType
 
 class LazyTrait(BaseTrait):
+    trait_type = TraitType.LAZY
+    
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner, TraitType.LAZY)
-        self.description = "Questo NPC preferisce rilassarsi e evitare sforzi faticosi. Ama il comfort e i piaceri semplici."
+        super().__init__(character_owner)
+        self.display_name = "Pigro"
+        self.description = "Questo NPC preferisce il relax al duro lavoro."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        # Penalizza le azioni con alto sforzo cognitivo
+        if hasattr(action, 'cognitive_effort') and action.cognitive_effort > 0.6:
+            return 0.5
+        # Incoraggia le azioni a basso sforzo
+        if hasattr(action, 'cognitive_effort') and action.cognitive_effort < 0.2:
+            return 1.5
+        return 1.0
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         return None

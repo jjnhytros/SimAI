@@ -1,16 +1,25 @@
 # core/modules/traits/social/charmer_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
+from core.enums.social_interaction_types import SocialInteractionType
 from core.enums.trait_types import TraitType
+from core.modules.actions.social_actions import SocializeAction
 from ..base_trait import BaseTrait
 
 if TYPE_CHECKING:
     from core.character import Character
 
 class CharmerTrait(BaseTrait):
+    trait_type = TraitType.CHARMER
+    
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner, TraitType.CHARMER)
+        super().__init__(character_owner)
         self.display_name = "Incantatore"
-        self.description = "Questo NPC ha un modo affascinante di interagire e spesso ottiene ciò che vuole."
+        self.description = "Questo NPC ha un fascino naturale e ha successo nelle interazioni romantiche."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        if isinstance(action, SocializeAction) and action.interaction_type == SocialInteractionType.FLIRT:
+            return 2.0
+        return 1.0
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         # Esempio: Aumenta leggermente la skill Carisma iniziale

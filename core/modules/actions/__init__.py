@@ -8,6 +8,7 @@ from .intimacy_actions import EngageIntimacyAction
 from .movement_actions import MoveToAction
 from .social_actions import SocializeAction
 from .thirst_actions import DrinkAction
+from .travel_actions import TravelToAction
 
 __all__ = [
     'BaseAction',
@@ -18,6 +19,7 @@ __all__ = [
     'MoveToAction',
     'SleepAction',
     'SocializeAction',
+    'TravelToAction',
     'UseBathroomAction',
 ]
 # print("  [Actions Package] Package 'core.modules.actions' caricato.")

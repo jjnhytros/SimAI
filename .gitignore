@@ -2,6 +2,7 @@ vscode./
 __pycache__/
 
 .gitignore
+.editorconfig
 run.sh
 generate_version.py
 Timeline_Sviluppo.md

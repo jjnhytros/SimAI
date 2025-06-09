@@ -1,6 +1,8 @@
 # core/enums/life_stages.py
 from enum import Enum, auto
 
+from core.enums.genders import Gender
+
 class LifeStage(Enum):
     """
     Rappresenta le diverse fasi e sotto-fasi della vita di un NPC.
@@ -35,27 +37,41 @@ class LifeStage(Enum):
     # Stato speciale
     NONE = auto()              # Non applicabile
 
-    def display_name_it(self) -> str:
-        """Restituisce un nome leggibile in italiano per la fase della vita."""
+    def display_name_it(self, gender: Gender) -> str:
+        """Restituisce un nome leggibile e declinato in base al genere per lo stadio di vita."""
         mapping = {
-            LifeStage.NEWBORN: "Neonato",
+            # --- Declinabili ---
+            LifeStage.NEWBORN: {Gender.MALE: "Neonato", Gender.FEMALE: "Neonata"},
+            LifeStage.CHILD: {Gender.MALE: "Bambino", Gender.FEMALE: "Bambina"},
+            LifeStage.YOUNG_ADULT: {Gender.MALE: "Giovane Adulto", Gender.FEMALE: "Giovane Adulta"},
+            LifeStage.ADULT: {Gender.MALE: "Adulto", Gender.FEMALE: "Adulta"},
+            LifeStage.MATURE_ADULT: {Gender.MALE: "Adulto Maturo", Gender.FEMALE: "Adulta Matura"},
+            LifeStage.SENIOR: {Gender.MALE: "Anziano", Gender.FEMALE: "Anziana"},
+            LifeStage.ELDERLY: {Gender.MALE: "Grande Anziano", Gender.FEMALE: "Grande Anziana"},
+            LifeStage.NONE: {Gender.MALE: "Nessuno", Gender.FEMALE: "Nessuna"},
+
+            # --- Invariabili ---
             LifeStage.INFANT: "Lattante",
             LifeStage.TODDLER: "Primi Passi",
             LifeStage.PRESCHOOLER: "Età Prescolare",
-            LifeStage.CHILD: "Bambino/a",
             LifeStage.PRE_TEEN: "Preadolescente",
             LifeStage.EARLY_ADOLESCENCE: "Prima Adolescenza",
             LifeStage.MID_ADOLESCENCE: "Media Adolescenza",
             LifeStage.LATE_ADOLESCENCE: "Tarda Adolescenza",
-            LifeStage.YOUNG_ADULT: "Giovane Adulto",
-            LifeStage.ADULT: "Adulto",
             LifeStage.MIDDLE_AGED: "Mezza Età",
-            LifeStage.MATURE_ADULT: "Adulto Maturo",
-            LifeStage.SENIOR: "Anziano",
-            LifeStage.ELDERLY: "Grande Anziano",
-            LifeStage.NONE: "Nessuno",
         }
-        return mapping.get(self, self.name.replace("_", " ").title())
+        value = mapping.get(self)
+
+        if isinstance(value, dict):
+            # Se il valore è un dizionario, restituisci la chiave per il genere corretto.
+            # Usa il maschile come fallback.
+            return value.get(gender, value.get(Gender.MALE, "N/D"))
+        elif isinstance(value, str):
+            # Se è una stringa, è invariabile.
+            return value
+        else:
+            # Fallback se lo stadio di vita non è nella mappa.
+            return self.name.replace("_", " ").title()
 
     # --- Metodi Helper (MOLTO CONSIGLIATI) ---
     @property

@@ -8,9 +8,12 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType
 
 class CreativeTrait(BaseTrait):
+    trait_type = TraitType.CREATIVE
+    
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner, TraitType.CREATIVE)
-        self.description = "Questo NPC ha una mente fantasiosa e un forte impulso a creare ed esprimersi artisticamente."
+        super().__init__(character_owner)
+        self.display_name = "Creativo"
+        self.description = "Questo NPC ha una mente fertile e un bisogno innato di creare."
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         # Potrebbe dare un piccolo boost iniziale a skill come Pittura, Scrittura, Musica

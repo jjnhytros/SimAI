@@ -12,16 +12,14 @@ def count_markers(file_path):
             'x': len(re.findall(r'\[x\]', content, re.IGNORECASE)),
             'P': len(re.findall(r'\[P\]', content, re.IGNORECASE)),
             ' ': len(re.findall(r'\[\s\]', content, re.IGNORECASE)) + 
-                 len(re.findall(r'\[\_\]', content, re.IGNORECASE)),  # Considera [ ] e [_]
+                 len(re.findall(r'\[\_\]', content, re.IGNORECASE)),
             '@': len(re.findall(r'\[@\]', content, re.IGNORECASE)),
+            'legenda': len(re.findall(r'#+\s*Legenda:', content, re.IGNORECASE))
         }
         
-        # Cerca la presenza di una legenda
-        has_legenda = bool(re.search(r'#+\s*Legenda:', content, re.IGNORECASE))
-        
         # Sottrai 1 per ogni tipo di marker se è presente una legenda
-        if has_legenda:
-            for marker in markers:
+        if markers['legenda'] > 0:
+            for marker in ['x', 'P', ' ', '@']:
                 markers[marker] = max(0, markers[marker] - 1)
         
         return markers
@@ -31,43 +29,37 @@ def calculate_versions(roadmap_path, general_path):
     roadmap = count_markers(roadmap_path)
     generale = count_markers(general_path)
     
-    # Calcolo totali per la versione ufficiale
+    # Calcolo valori per la versione ufficiale
     ufficiale_completed = generale['x']
-    ufficiale_partial = generale['P'] + generale['@']  # [P] e [@] sono considerati parziali
-    ufficiale_total = ufficiale_completed + ufficiale_partial + generale[' ']
+    ufficiale_partial = generale['P'] + generale['@']
+    ufficiale_incomplete = generale[' ']
+    ufficiale_total = ufficiale_completed + ufficiale_partial + ufficiale_incomplete
     
-    # Calcolo totali per la versione starter
-    starter_total = roadmap['x'] + roadmap['P'] + roadmap['@'] + roadmap[' ']
+    # Calcolo valori per la versione starter
     starter_completed = roadmap['x']
-    
-    # Calcolo punti aggiuntivi oltre lo Starter
-    additional_completed = max(0, ufficiale_completed - starter_completed)
+    starter_total = roadmap['x'] + roadmap['P'] + roadmap['@'] + roadmap[' ']
     
     # 1. Versione STARTER
-    if starter_completed == starter_total:
-        starter_version = "1.0.0-starter"
-    else:
-        starter_version = f"0.{starter_completed}.0"
+    starter_version = "1.0.0-starter" if starter_completed == starter_total else f"0.{starter_completed}.0"
     
     # 2. Versione UFFICIALE con stato sviluppo
     # Calcolo progresso generale
-    if ufficiale_total > 0:
-        progress_percent = (ufficiale_completed + ufficiale_partial * 0.5) / ufficiale_total
-    else:
-        progress_percent = 0
+    progress_percent = (ufficiale_completed + ufficiale_partial * 0.5) / ufficiale_total if ufficiale_total > 0 else 0
     
-    # Determinazione stato sviluppo
-    if progress_percent >= 0.75:
-        # Calcola numero di RC basato su punti mancanti
+    # Determinazione stato sviluppo con nuovo formato per pre-alpha
+    if progress_percent < 0.25:
+        # Nuovo formato richiesto per pre-alpha
+        stage = f"pre-alpha-b{starter_completed}_{ufficiale_total}+{ufficiale_completed}p{ufficiale_partial}"
+    elif progress_percent < 0.50:
+        stage = f"alpha.{starter_completed}"
+    elif progress_percent < 0.75:
+        stage = f"beta.{starter_completed}"
+    elif progress_percent < 1.0:
         remaining_points = ufficiale_total - (ufficiale_completed + ufficiale_partial)
         rc_number = min(5, (remaining_points // 100) + 1) if remaining_points > 0 else 1
         stage = f"rc{rc_number}"
-    elif progress_percent >= 0.50:
-        stage = f"beta.{starter_completed}"
-    elif progress_percent >= 0.25:
-        stage = f"alpha.{starter_completed}"
     else:
-        stage = "pre-alpha"
+        stage = "stable"
     
     ufficiale_version = f"1.0.0-{stage}" if stage != "stable" else "1.0.0"
     
@@ -75,7 +67,7 @@ def calculate_versions(roadmap_path, general_path):
     release_version = "Non ancora pronta"
     if starter_completed == starter_total:
         release_version = "1.0.0-starter"
-        if ufficiale_completed >= 79 and ufficiale_partial >= 116:
+        if ufficiale_completed == ufficiale_total:
             release_version = "1.0.0"
     
     return {
@@ -91,7 +83,7 @@ def calculate_versions(roadmap_path, general_path):
             'starter_total': starter_total,
             'ufficiale_completed': ufficiale_completed,
             'ufficiale_partial': ufficiale_partial,
-            'ufficiale_incomplete': generale[' '],
+            'ufficiale_incomplete': ufficiale_incomplete,
             'ufficiale_total': ufficiale_total
         }
     }
@@ -129,15 +121,8 @@ def main():
     totals = versions['totals']
     
     # Calcolo percentuali
-    if totals['starter_total'] > 0:
-        starter_percent = totals['starter_completed'] / totals['starter_total'] * 100
-    else:
-        starter_percent = 0
-        
-    if totals['ufficiale_total'] > 0:
-        ufficiale_percent = (totals['ufficiale_completed'] + totals['ufficiale_partial'] * 0.5) / totals['ufficiale_total'] * 100
-    else:
-        ufficiale_percent = 0
+    starter_percent = totals['starter_completed'] / totals['starter_total'] * 100 if totals['starter_total'] > 0 else 0
+    ufficiale_percent = (totals['ufficiale_completed'] + totals['ufficiale_partial'] * 0.5) / totals['ufficiale_total'] * 100 if totals['ufficiale_total'] > 0 else 0
     
     print("\n🚀 ROADMAP (1.0 STARTER):")
     print(f"• Completati [x]: {totals['starter_completed']}/{totals['starter_total']} ({starter_percent:.1f}%)")

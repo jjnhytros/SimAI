@@ -2,49 +2,44 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Dict, Any, Union
 
-# Importa solo gli Enum
 from core.enums import NeedType, ActionType, FunActivityType, SocialInteractionType
 
-# Il blocco TYPE_CHECKING rompe il ciclo di importazione
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
     from core.world.game_object import GameObject
-    from ..memory.memory_definitions import Problem 
+    from core.modules.memory.memory_definitions import Problem 
 
 class BaseAction(ABC):
-    """Classe base astratta per tutte le azioni che un NPC può compiere."""
-
     def __init__(self,
                 npc: 'Character',
                 p_simulation_context: 'Simulation',
                 duration_ticks: int,
                 action_type_enum: Optional[ActionType] = None,
                 action_type_name: Optional[str] = None,
-                #  triggering_problem: Optional['Problem'] = None,
+                triggering_problem: Optional['Problem'] = None,
                 is_outdoors: bool = False,
                 is_noisy: bool = False,
-                is_interruptible: bool = True
+                is_interruptible: bool = True,
+                cognitive_effort: float = 0.2
                 ):
-        
         self.npc: 'Character' = npc
         self.sim_context: 'Simulation' = p_simulation_context
         self.duration_ticks: int = duration_ticks
-        # self.triggering_problem: Optional['Problem'] = triggering_problem
+        self.triggering_problem: Optional['Problem'] = triggering_problem
         self.is_outdoors: bool = is_outdoors
         self.is_noisy: bool = is_noisy
         self.is_interruptible: bool = is_interruptible
+        self.cognitive_effort: float = cognitive_effort
         
         self.action_type_enum: Optional[ActionType] = action_type_enum
         self.action_type_name: str = action_type_name or (action_type_enum.name if action_type_enum else "UNKNOWN_ACTION")
 
-        # Stato dell'azione
         self.elapsed_ticks: int = 0
         self.is_started: bool = False
         self.is_finished: bool = False
         self.is_interrupted: bool = False
 
-        # Attributi che le sottoclassi popoleranno
         self.effects_on_needs: Dict[NeedType, float] = {}
         self.target_object: Optional['GameObject'] = None
         self.target_npc: Optional['Character'] = None

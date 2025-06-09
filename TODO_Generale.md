@@ -88,6 +88,8 @@
         * `[P]` iii. **Fase 3: Creazione del "Pensiero"**
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
         * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (Implementato `ConsequenceAnalyzer` per creare ricordi).
+* `[F]` **5. Evoluzione Architetturale (Pattern Strategy):**
+    * `[ ]` a. Valutare la trasformazione di sistemi basati su Enum (LifeStage, Aspiration, RelationshipType) in sistemi basati su classi specifiche (es. `ChildLifeStage`, `WealthBuilderAspiration`) per incapsulare logica e dati in modo più pulito.
 
 ---
 
@@ -220,7 +222,7 @@
 ## IV. SIMULAZIONE NPC (Bisogni, IA, Ciclo Vita, Caratteristiche)
 
 ### `[ ]` **0. Generazione Procedurale e Creazione NPC:** (`npc_factory.py` scheletro creato, riutilizza l'Editor Personaggio da II).
-  * `[ ]` **1. Implementare la creazione di 2 NPC Random (di base per test).**
+  * `[x]` **1. Implementare la creazione di 4-6 NPC Random con tratti base.**
   * `[ ]` a. Personalizzazione aspetto fisico (viso, corpo, capelli, occhi, pelle).
       * `[ ]` i. Sistema genetico per la creazione di figli con tratti ereditati. (Vedi anche `II.3` e `IV.2.f` per genetica avanzata). (`genetics_system.py` creato).
   * `[ ]` b. Scelta età, sesso, genere (opzioni flessibili). (`enums/character_enums.py`, classe `Identity` in `character.py`).
@@ -228,7 +230,7 @@
   * `[ ]` d. Scelta Aspirazione di Vita (obiettivi a lungo termine) (vedi IV.3.a). (`AspirationManager` e logica in `NPCFactory` previsti).
   * `[ ]` e. Definizione Voce. (Attributo in `Identity`).
   * `[ ]` f. Scelta Abbigliamento (quotidiano, formale, sportivo, notte, feste, nuoto, freddo, caldo). (`ClothingManager` e logica in `NPCFactory` previsti).
-  * `[ ]` g. Definizione Nome e Cognome. (Attributi in `Identity`).
+  * `[x]` g. Definizione Nome e Cognome (con generatore). (Attributi in `Identity`).
   * `[ ]` h. (Opzionale) Breve background narrativo.
 ### `[ ]` **1. Sistema dei Bisogni:**
     * `[x]` a. **Implementati Bisogni modulari con decadimento/soddisfazione.** *(Stato: Struttura base per la gestione dei Bisogni in `Character` implementata. Gli NPC ora hanno oggetti `BaseNeed` per ogni `NeedType`, il decadimento dei bisogni basato sui tassi in `settings.py` è funzionante. Configurazione base dei tassi di decadimento, soglie e guadagni da azioni inserita in `settings.py`)*
@@ -647,10 +649,10 @@
         * `[ ]` iii. Il BG influenza skill iniziali, relazioni, probabilità tratti.
 ### `[P]` **4. Intelligenza Artificiale NPC (Comportamento e Decisioni):**
     * `[x]` a. **Sistema base di azioni e coda di esecuzione.** *(Stato: Il sistema in `Character` con `action_queue`, `current_action`, `is_busy`, `update_action()`, `_start_action()`, `add_action_to_queue()` è integrato e funzionante. La `Simulation` chiama `npc.update_action()` per ogni NPC ad ogni tick.)*
-    * `[P]` b. **Logica decisionale e scelta azioni.**
+    * `[x]` b. **Logica decisionale e scelta azioni.**
         * `[x]` i. Logica decisionale base in `Character.choose_action()` implementata per i bisogni primari con azioni definite (HUNGER, ENERGY, BLADDER, HYGIENE, FUN).
-        * `[P]` ii. Rifattorizzare la logica decisionale in una classe `AIDecisionMaker` dedicata con un sistema di priorità. (Vecchio `VII.1.b` Sistema di priorità per le azioni.)
-    * `[ ]` c. Espansione degli Input Decisionali: L'IA non deve considerare solo i bisogni, ma un insieme più ricco di fattori:
+        * `[x]` ii. Rifattorizzare la logica decisionale in una classe `AIDecisionMaker` dedicata con un sistema di priorità. (Vecchio `VII.1.b` Sistema di priorità per le azioni.)
+    * `[P]` c. Espansione degli Input Decisionali: L'IA non deve considerare solo i bisogni, ma un insieme più ricco di fattori:
         * `[P]` i. Bisogni (urgenza calcolata). *(Implementazione base esistente)*.
         * `[P]` ii. Tratti di Personalità (influenzano le priorità). *(Iniziato)*.
         * `[ ]` iii. Aspirazioni (obiettivi a lungo termine).
@@ -677,8 +679,8 @@
         * `[ ]` i. Whims (Desideri/Ghiribizzi): Piccoli desideri a breve termine che appaiono dinamicamente. *(Definiti concettualmente: ShareGoodNews, LearnNewRecipe)*
         * `[ ]` ii. Soddisfare i whims dà piccole ricompense (moodlet positivi, punti soddisfazione).
         * `[ ]` iii. I whims sono influenzati da tratti, umore, skill, ambiente, eventi recenti.
-    * `[ ]` j. **Pianificazione AI Avanzata, Gestione Interruzioni, Routine, Apprendimento:** *(Concettualizzazione gestione interruzioni e priorità stimoli per NPC dettagliati in corso)*. (Include `VII.1.c` Capacità di pianificare sequenze di azioni per raggiungere un obiettivo. e `VII.4 Routine Giornaliera`)
-        * `[ ]` i. Meccanismo per gestione stimoli/eventi concorrenti per NPC Dettagliati (LOD1/2).
+    * `[P]` j. **Pianificazione AI Avanzata, Gestione Interruzioni, Routine, Apprendimento:** *(Concettualizzazione gestione interruzioni e priorità stimoli per NPC dettagliati in corso)*. (Include `VII.1.c` Capacità di pianificare sequenze di azioni per raggiungere un obiettivo. e `VII.4 Routine Giornaliera`)
+        * `[P]` i. Meccanismo per gestione stimoli/eventi concorrenti per NPC Dettagliati (LOD1/2).
         * `[ ]` ii. L'IA (`AIDecisionMaker`) per NPC Dettagliati valuta se interrompere azione corrente.
         * `[ ]` iii. Gestire stati di azione "in pausa" per NPC Dettagliati.
         * `[ ]` iv. (Avanzato) Routine giornaliere/settimanali più flessibili per NPC Dettagliati. (NPC dovrebbero avere routine di base (dormire, mangiare, lavorare/scuola, tempo libero) influenzate da tratti e orari. Capacità di interrompere la routine per eventi imprevisti o bisogni urgenti.)
@@ -704,7 +706,7 @@
         * `[ ]` iii. **NPC Prossimi (Fascia 2) - Simulazione Semplificata:** *(Concettualizzazione da approfondire)*.
         * `[ ]` iv. **Transizione tra Livelli di Dettaglio (LOD):**
         * `[ ]` v. **(Opzionale ma Consigliato) Sistema di Archetipi NPC:** *(Concettualizzato)*.
-    * `[ ]` l. **Sistema di Moodlet:** (Da vecchio `VI.b`)
+    * `[P]` l. Sistema `Moodlet` base (Creato e visualizzato)
         * `[ ]` i. Ogni moodlet ha un'intensità (positiva/negativa) e una durata. *(Implementato nei tratti)*
         * `[ ]` ii. Moodlet possono accumularsi o annullarsi a vicenda.
     * `[ ]` m. Espressioni facciali e animazioni che riflettono l'umore attuale. (Da vecchio `VI.d`)

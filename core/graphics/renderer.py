@@ -259,8 +259,9 @@ class Renderer:
         
         current_radius = self.effective_npc_radius
         pygame.draw.circle(self.screen, npc_color, (npc_screen_x, npc_screen_y), current_radius)
-
+        
         is_selected = self.selected_npc_id == character.npc_id
+
         has_critical_need = False
         if character.needs: 
             for need in character.needs.values():
@@ -275,7 +276,8 @@ class Renderer:
             pygame.draw.circle(self.screen, ui_config.NPC_CRITICAL_NEED_INDICATOR_COLOR, (npc_screen_x, npc_screen_y), current_radius, 3)
         
         if self.font_debug and self.zoom_level >= 0.7: # Mostra nome se lo zoom è sufficiente
-            name_surface = self.font_debug.render(character.name, True, self.BLACK)
+            name_surface = self.font_main.render(character.name, True, self.current_contrast_color)
+            # name_surface = self.font_debug.render(character.name, True, self.BLACK)
             name_rect = name_surface.get_rect(center=(npc_screen_x, npc_screen_y + current_radius + int(10 * self.zoom_level)))
             self.screen.blit(name_surface, name_rect)
 
@@ -437,30 +439,48 @@ class Renderer:
         # Interpola e restituisce il colore finale
         return self._lerp_color(start_color, end_color, progress)
 
+    def _get_contrast_color(self, bg_color: Tuple[int, int, int]) -> Tuple[int, int, int]:
+        """
+        Calcola un colore di testo ad alto contrasto (bianco o nero)
+        per un dato colore di sfondo.
+        """
+        # Calcola la luminosità percepita del colore di sfondo
+        luminance = (0.299 * bg_color[0] + 0.587 * bg_color[1] + 0.114 * bg_color[2])
+        
+        # Se la luminosità è alta (> 128), lo sfondo è "chiaro", quindi usiamo il testo nero.
+        # Altrimenti, lo sfondo è "scuro", e usiamo il testo bianco.
+        # Puoi usare i tuoi colori self.BLACK e self.WHITE se li hai definiti.
+        return (0, 0, 0) if luminance > 128 else (255, 255, 255)
+
+
     def _render_gui(self, simulation: Optional['Simulation']):
-        # --- LOGICA PER SFONDO DINAMICO (CICLO GIORNO/NOTTE) ---
+        # --- 1. CALCOLO COLORI DI BASE ---
+        # Calcoliamo i colori dinamici una sola volta all'inizio.
         bg_color = ui_config.DEFAULT_DAY_BG_COLOR
-        bg_color = ui_config.DEFAULT_DAY_BG_COLOR
+        title_contrast_color = self.WHITE # Colore di default per il titolo
+
         if simulation and simulation.time_manager:
             bg_color = self._get_interpolated_sky_color(simulation.time_manager)
-        
-        # Applica il colore di sfondo all'area di gioco
+            # Calcola il colore del titolo in base allo sfondo appena calcolato
+            title_contrast_color = self._get_contrast_color(bg_color)
+            self.current_contrast_color = title_contrast_color
+            
+        # --- 2. DISEGNO DELLO SFONDO E DEL PANNELLO ---
         game_area_rect = pygame.Rect(0, 0, self.base_width, self.base_height)
         self.screen.fill(bg_color, game_area_rect)
-        # --- FINE LOGICA SFONDO ---
-
-        # Disegna il pannello laterale
+        
         panel_rect = pygame.Rect(self.base_width, 0, self.PANEL_WIDTH, self.height)
         self.screen.fill(self.PANEL_BG_COLOR, panel_rect)
         pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
 
+        # --- 3. INIZIALIZZAZIONE VARIABILI DI RENDERING ---
         panel_padding = 10
         current_y = panel_padding
         
         npc_to_display_in_panel: Optional['Character'] = None
         current_location_instance_for_panel: Optional['Location'] = None
 
-        # Logica per disegnare il mondo di gioco (NPC e oggetti)
+        # --- 4. LOGICA PER DETERMINARE COSA VISUALIZZARE ---
         if simulation:
             if self.current_visible_location_id:
                 current_location_instance_for_panel = simulation.get_location_by_id(self.current_visible_location_id)
@@ -471,7 +491,7 @@ class Renderer:
                     npc_to_display_in_panel = None 
             
             if npc_to_display_in_panel is None and current_location_instance_for_panel and current_location_instance_for_panel.npcs_present_ids:
-                first_npc_id_in_loc = next(iter(current_location_instance_for_panel.npcs_present_ids), None)
+                first_npc_id_in_loc = next(iter(sorted(list(current_location_instance_for_panel.npcs_present_ids))), None)
                 if first_npc_id_in_loc:
                     npc_to_display_in_panel = simulation.get_npc_by_id(first_npc_id_in_loc)
             
@@ -483,20 +503,20 @@ class Renderer:
                     if npc_in_loc:
                         self._draw_npc(npc_in_loc)
             
-        # --- Inizio renderizzazione del pannello informativo ---
-        current_y = self._draw_text_in_panel("Info Panel", panel_padding, current_y, font=self.font_panel_title, color=self.WHITE)
+        # --- 5. RENDERIZZAZIONE DEL PANNELLO INFORMATIVO ---
+        
+        # Usa il colore del titolo calcolato all'inizio
+        current_y = self._draw_text_in_panel("Info Panel", panel_padding, current_y, font=self.font_panel_title, color=title_contrast_color)
         current_y += 5
         
-        # Disegna la data e l'ora
+        # Disegno data e ora
         if simulation and simulation.time_manager and self.font_debug:
             datetime_str = simulation.time_manager.get_formatted_datetime_string()
             dt_text_surface = self.font_debug.render(datetime_str, True, self.WHITE)
-            if dt_text_surface:
-                self.screen.blit(dt_text_surface, (self.base_width + panel_padding, current_y))
+            if dt_text_surface: self.screen.blit(dt_text_surface, (self.base_width + panel_padding, current_y))
             current_y += self.LINE_HEIGHT
         current_y += 5
 
-        # Disegna le informazioni sulla locazione
         if current_location_instance_for_panel:
             loc_name = current_location_instance_for_panel.name
             num_npcs = len(current_location_instance_for_panel.npcs_present_ids)
@@ -508,24 +528,28 @@ class Renderer:
             current_y = self._draw_text_in_panel("Nessuna locazione selezionata.", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
         current_y += self.LINE_HEIGHT 
 
-        # Disegna le informazioni dell'NPC selezionato
+        # Blocco di disegno per l'NPC selezionato
         if npc_to_display_in_panel:
             npc = npc_to_display_in_panel
             text_indent = panel_padding + 15
             value_max_width = self.PANEL_WIDTH - text_indent - panel_padding
-
-            current_y = self._draw_text_in_panel(f"NPC Sel: {npc.name}", panel_padding, current_y, font=self.font_panel_title)
             
-            age_str = f"{npc.get_age_in_years_float():.1f} anni"
+            # Usa il colore del titolo calcolato all'inizio anche per il nome dell'NPC
+            current_y = self._draw_text_in_panel(f"NPC Sel: {npc.name}", panel_padding, current_y, font=self.font_panel_title, color=title_contrast_color)
+            
+            # Calcola e disegna l'età
+            current_sim_time = simulation.time_manager.get_current_time() # Ora questo è sicuro
+            age_str = f"{npc.get_age_in_years_float(current_sim_time):.12f} anni"
+            
             gender_str = npc.gender.display_name_it() if npc.gender else "N/D"
-            lifestage_str = npc.life_stage.display_name_it() if npc.life_stage else "N/D"
+            lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
             current_y = self._draw_text_in_panel(f"  {gender_str}, {age_str} ({lifestage_str})", panel_padding, current_y)
             current_y += 5
 
             if npc.current_action:
                 action_name = npc.current_action.action_type_name
                 progress = npc.current_action.get_progress_percentage()
-                action_info_str = f"Azione: {action_name} ({progress:.0f}%)"
+                action_info_str = f"Azione: {action_name} ({progress:.0%})"
                 current_y = self._draw_text_in_panel(f"  {action_info_str}", panel_padding, current_y, max_width=value_max_width)
             else:
                 current_y = self._draw_text_in_panel("  Azione: Idle", panel_padding, current_y)
@@ -537,42 +561,25 @@ class Renderer:
             trait_str = ", ".join(sorted(trait_display_names)) if trait_display_names else "Nessuno"
             current_y = self._draw_text_in_panel("  Tratti: " + trait_str, panel_padding, current_y, max_width=value_max_width)
 
-            asp_name = npc.aspiration.display_name_it() if npc.aspiration else "Nessuna"
+            asp_name = npc.aspiration.display_name_it(npc.gender)
             asp_prog = npc.aspiration_progress
             current_y = self._draw_text_in_panel(f"  Aspirazione: {asp_name} ({asp_prog:.0%})", panel_padding, current_y, max_width=value_max_width)
             
-            interest_names = [i.name.replace("_", " ").title() for i in npc.get_interests()]
+            interest_names = [i.display_name_it() for i in npc.get_interests()]
             interest_str = ", ".join(sorted(interest_names)) if interest_names else "Nessuno"
             current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=value_max_width)
             current_y += self.LINE_HEIGHT
 
-            # --- MOODLET ATTIVI ---
             current_y = self._draw_text_in_panel("Stato Emotivo:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
             if npc.moodlet_manager and npc.moodlet_manager.active_moodlets:
-                # Ordina i moodlet per impatto emotivo (dal peggiore al migliore)
                 sorted_moodlets = sorted(npc.moodlet_manager.active_moodlets.values(), key=lambda m: m.emotional_impact)
-                
                 for moodlet in sorted_moodlets:
-                    # Determina il colore in base all'impatto (rosso per negativo, verde per positivo)
-                    if moodlet.emotional_impact < 0:
-                        moodlet_color = self.RED_OBJ # Un rosso che già usi, o un nuovo colore
-                    elif moodlet.emotional_impact > 0:
-                        moodlet_color = (100, 255, 100) # Verde brillante
-                    else:
-                        moodlet_color = self.WHITE
-
+                    moodlet_color = self.WHITE
+                    if moodlet.emotional_impact < 0: moodlet_color = self.RED_OBJ
+                    elif moodlet.emotional_impact > 0: moodlet_color = (100, 255, 100)
                     moodlet_text = f"  {moodlet.display_name} ({moodlet.emotional_impact})"
-                    
-                    # Usa il wrapping per il testo se è troppo lungo
-                    current_y = self._draw_text_in_panel(
-                        moodlet_text, 
-                        panel_padding, 
-                        current_y, 
-                        color=moodlet_color,
-                        max_width=self.PANEL_WIDTH - panel_padding * 2
-                    )
+                    current_y = self._draw_text_in_panel(moodlet_text, panel_padding, current_y, color=moodlet_color, max_width=self.PANEL_WIDTH - panel_padding * 2)
             else:
-                # Se non ci sono moodlet, mostra uno stato neutro
                 current_y = self._draw_text_in_panel("  Neutro", panel_padding, current_y)
             current_y += self.LINE_HEIGHT
 
@@ -583,7 +590,7 @@ class Renderer:
                     need_ui_info = ui_config.NEED_UI_CONFIG.get(need_type, {})
                     need_color_name = need_ui_info.get("color_pygame", "white")
                     try: bar_fill_color = pygame.Color(need_color_name)
-                    except ValueError: bar_fill_color = pygame.Color(self.WHITE) 
+                    except ValueError: bar_fill_color = pygame.Color(self.WHITE)
                     
                     bar_x = self.base_width + panel_padding + 85
                     bar_max_width = self.PANEL_WIDTH - panel_padding * 2 - 90
@@ -597,12 +604,11 @@ class Renderer:
                         fill_rect_tuple = (int(bar_x), int(bar_y_offset), int(bar_current_width), int(bar_height))
                         pygame.draw.rect(self.screen, bar_fill_color, fill_rect_tuple)
                     current_y = self._draw_text_in_panel(f"    {need_obj.get_display_name()}: {val_str}", panel_padding, current_y)
-            else:
-                current_y = self._draw_text_in_panel("    (Nessun bisogno definito)", panel_padding, current_y)
+        
         elif self.font_debug:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
-
-        # Disegna gli FPS se in DEBUG_MODE
+        
+        # Disegno degli FPS e flip finale
         if settings.DEBUG_MODE and self.font_debug:
             fps_text = self.font_debug.render(f"FPS: {self.clock.get_fps():.2f}", True, self.BLACK)
             self.screen.blit(fps_text, (10, 10)) 

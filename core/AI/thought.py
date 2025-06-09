@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Dict, Any
 
-from .problem_definitions import Problem
+from core.modules.memory.memory_definitions import Problem
 from ..modules.actions import BaseAction
 
 @dataclass

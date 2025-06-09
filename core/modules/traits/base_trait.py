@@ -1,27 +1,38 @@
 # core/modules/traits/base_trait.py
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, Dict, Any, List 
+from typing import TYPE_CHECKING, Optional, Dict, Any
 
-from core.enums import TraitType, NeedType, ActionType 
+from core.enums import TraitType, ActionType, Gender
+
 # Assumiamo che NeedType e altri Enum necessari siano importati se usati nei type hint dei metodi
 from core.enums import NeedType
 
 if TYPE_CHECKING:
     from core.character import Character
-    from core.simulation import Simulation # Aggiunto per il type hint
-    from core.modules.actions.action_base import BaseAction # Aggiunto per il nuovo metodo
-    # from core.enums import ActionType, EventType, RelationshipType 
-    # from core.world.moodlet import Moodlet
-    # from core.modules.actions import BaseAction
+    from core.simulation import Simulation
+    from core.modules.actions.action_base import BaseAction
 
 class BaseTrait(ABC):
-    # Questi attributi possono essere definiti nelle sottoclassi
-    trait_type: TraitType
-    display_name: str
-    description: str
-
-    def __init__(self, character_owner: 'Character'):
+    """Classe base per tutti i tratti di personalità."""
+    
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        """
+        Il costruttore di base per un tratto.
+        
+        Args:
+            character_owner (Character): L'NPC a cui questo tratto appartiene.
+            trait_type (TraitType): L'enum che definisce il tipo di questo tratto.
+        """
+        # --- DEFINIZIONE DEGLI ATTRIBUTI DI ISTANZA ---
+        # Definiamo tutti gli attributi qui, all'interno di __init__
         self.character_owner: 'Character' = character_owner
+        self.trait_type: TraitType = trait_type
+        
+        # Imposta automaticamente il display_name usando il metodo di declinazione che abbiamo creato
+        self.display_name: str = self.trait_type.display_name_it(character_owner.gender)
+        
+        # La descrizione specifica verrà impostata nella sottoclasse
+        self.description: str = "Descrizione non specificata."
 
     @abstractmethod
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
@@ -57,24 +68,17 @@ class BaseTrait(ABC):
         """
         return 1.0
 
-    def get_action_choice_priority_modifier(self, 
-                                        action_type: ActionType, 
-                                        simulation_context: 'Simulation' # Aggiunto per coerenza con la chiamata
-                                        ) -> float:
+    def get_action_choice_priority_modifier(self, action: 'BaseAction', simulation_context: 'Simulation') -> float:
         """
-        Permette al tratto di modificare il punteggio/priorità di un'azione potenziale.
-        Per impostazione predefinita, non modifica la priorità (moltiplicatore 1.0).
-        Le sottoclassi possono sovrascrivere questo metodo.
-
+        Restituisce un modificatore di punteggio basato sulle preferenze generali del tratto.
+        Un valore > 1.0 indica una preferenza, < 1.0 indica un'avversione.
+        
         Args:
-            action_type (ActionType): Il tipo di azione che si sta valutando.
-            simulation_context (Simulation): Il contesto della simulazione, utile se il tratto
-                                            necessita di informazioni sul mondo per decidere.
-
-        Returns:
-            float: Un moltiplicatore da applicare allo score dell'azione (es. 1.0 per nessuna modifica).
+            action (BaseAction): L'istanza dell'azione candidata da valutare.
+            simulation_context (Simulation): Il contesto della simulazione.
         """
-        return 1.0 # Default: nessun modificatore di priorità
+        # Per default, un tratto non ha preferenze. Le sottoclassi sovrascriveranno questo.
+        return 1.0
 
     # --- Altri metodi esistenti o placeholder ---
     # def get_need_decay_modifier(self, need_type: 'NeedType', base_decay_rate: float) -> float:

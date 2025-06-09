@@ -1,6 +1,8 @@
 # core/modules/traits/lifestyle/artistic_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
+from core.enums.fun_activity_types import FunActivityType
 from core.enums.trait_types import TraitType
+from core.modules.actions.fun_actions import HaveFunAction
 from ..base_trait import BaseTrait
 
 if TYPE_CHECKING:
@@ -8,10 +10,18 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType
 
 class ArtisticTrait(BaseTrait):
+    trait_type = TraitType.ART_LOVER # Assicurati che esista nell'Enum
+    
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner, TraitType.ARTISTIC)
-        self.display_name = "Artistico"
-        self.description = "Questo NPC ha un'anima creativa e apprezza l'arte in molte forme."
+        super().__init__(character_owner)
+        self.display_name = "Artista"
+        self.description = "Questo NPC ha un'anima artistica e trae grande gioia dalla creazione."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        # Aumenta la priorità per azioni creative
+        if isinstance(action, HaveFunAction) and action.activity_type in {FunActivityType.PAINT, FunActivityType.PLAY_GUITAR}:
+            return 1.5
+        return 1.0
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         return None # Da definire

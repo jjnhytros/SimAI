@@ -1,5 +1,6 @@
 # core/modules/traits/social/loner_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
+from core.enums.action_types import ActionType
 from core.enums.trait_types import TraitType
 from ..base_trait import BaseTrait # Importa BaseTrait dalla directory genitore ('traits')
 
@@ -8,13 +9,17 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType # Se usato
 
 class LonerTrait(BaseTrait):
-    # Il costruttore ora accetta 'trait_type' e lo passa a super()
-    def __init__(self, character_owner: 'Character', trait_type: TraitType = TraitType.LONER):
-        super().__init__(character_owner, trait_type)
-        # display_name è già impostato da BaseTrait usando trait_type.display_name_it()
-        # Puoi sovrascriverlo qui se necessario, o aggiungere una descrizione più specifica.
-        # self.display_name = "Solitario" # Già gestito da Enum e BaseTrait
-        self.description = "Questo NPC preferisce la propria compagnia e trova le grandi folle stancanti."
+    trait_type = TraitType.LONER
+    
+    def __init__(self, character_owner: 'Character'):
+        super().__init__(character_owner)
+        self.display_name = "Solitario"
+        self.description = "Questo NPC preferisce la propria compagnia e si stressa negli eventi sociali."
+
+    def get_action_choice_priority_modifier(self, action, simulation_context):
+        if action.action_type_enum == ActionType.ACTION_SOCIALIZE:
+            return 0.3 # Fortemente improbabile che scelga di socializzare
+        return 1.0
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         # Esempio: potrebbe influenzare il decadimento del bisogno SOCIALE

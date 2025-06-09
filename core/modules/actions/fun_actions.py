@@ -1,6 +1,8 @@
 # core/modules/actions/fun_actions.py
 from typing import Dict, Optional, TYPE_CHECKING, Set as TypingSet, Tuple
 
+from core.modules.memory.memory_definitions import Problem
+
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
@@ -23,24 +25,32 @@ class HaveFunAction(BaseAction):
     """Azione per l'NPC di divertirsi con una specifica attività pre-configurata."""
     
     def __init__(self, 
-                 npc: 'Character', 
-                 simulation_context: 'Simulation',
-                 activity_type: FunActivityType,
-                 duration_ticks: int,
-                 fun_gain: float,
-                 required_object_types: Optional[Tuple[ObjectType, ...]] = None,
-                 skill_to_practice: Optional[SkillType] = None,
-                 skill_xp_gain: float = 0.0
+                npc: 'Character', 
+                simulation_context: 'Simulation',
+                activity_type: FunActivityType,
+                duration_ticks: int,
+                fun_gain: float,
+                required_object_types: Optional[Tuple[ObjectType, ...]] = None,
+                skill_to_practice: Optional[SkillType] = None,
+                skill_xp_gain: float = 0.0,
+                cognitive_effort: float = 0.2,
+                is_noisy: bool = False,
+                is_outdoors: bool = False,
+                triggering_problem: Optional['Problem'] = None
                 ):
         
         # Il costruttore di BaseAction è già stato corretto
         super().__init__(
             npc=npc,
-            action_type_name=f"ACTION_HAVE_FUN_{activity_type.name}", 
-            action_type_enum=ActionType.ACTION_HAVE_FUN,
+            p_simulation_context=simulation_context,
             duration_ticks=duration_ticks,
-            p_simulation_context=simulation_context, 
-            is_interruptible=True
+            action_type_name=f"ACTION_HAVE_FUN_{activity_type.name}",
+            action_type_enum=ActionType.ACTION_HAVE_FUN,
+            # --- E PASSATI A SUPER() ---
+            triggering_problem=triggering_problem,
+            cognitive_effort=cognitive_effort,
+            is_noisy=is_noisy,
+            is_outdoors=is_outdoors
         )
         
         self.activity_type = activity_type
@@ -55,7 +65,7 @@ class HaveFunAction(BaseAction):
         if settings.DEBUG_MODE and self.activity_type:
             skill_info = f", Skill: {self.skill_to_practice.name} +{self.skill_xp_gain}xp" if self.skill_to_practice else ""
             print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata per '{self.activity_type.name}'. "
-                  f"Durata: {self.duration_ticks}t, Gain FUN: {self.fun_gain:.1f}{skill_info}")
+                f"Durata: {self.duration_ticks}t, Gain FUN: {self.fun_gain:.1f}{skill_info}")
 
     def is_valid(self) -> bool:
         if not super().is_valid() or not self.activity_type: return False

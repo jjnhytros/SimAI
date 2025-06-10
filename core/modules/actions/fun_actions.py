@@ -121,7 +121,17 @@ class HaveFunAction(BaseAction):
             if self.skill_to_practice and self.skill_xp_gain > 0:
                 if settings.DEBUG_MODE:
                     print(f"        -> Guadagno Skill: {self.skill_xp_gain:.1f} XP in {self.skill_to_practice.name}")
-        
+
+            # Recupera il money_gain dalla configurazione dell'attività
+            config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(self.activity_type, {})
+            money_gain = config.get("money_gain", 0.0)
+            
+            if money_gain > 0:
+                # Assumiamo che il Character abbia un attributo 'money'
+                self.npc.money += money_gain
+                if settings.DEBUG_MODE:
+                    print(f"        -> Guadagno Economico: +{money_gain:.2f} Athel")
+
         if self.target_object and hasattr(self.target_object, 'set_free'):
             self.target_object.set_free()
         super().on_finish()
@@ -135,7 +145,7 @@ class HaveFunAction(BaseAction):
             if partial_fun_gain > 0:
                 if settings.DEBUG_MODE:
                     print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Attività {self.activity_type.name} interrotta. "
-                          f"Applicato guadagno FUN parziale: {partial_fun_gain:.2f}")
+                        f"Applicato guadagno FUN parziale: {partial_fun_gain:.2f}")
                 self.npc.change_need_value(NeedType.FUN, partial_fun_gain, is_decay_event=False)
         
         if self.target_object and hasattr(self.target_object, 'set_free'):

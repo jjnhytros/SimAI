@@ -2,6 +2,9 @@
 from typing import Optional, TYPE_CHECKING, Dict
 
 from core.enums import ActionType, NeedType, ObjectType
+from core.enums.item_quality import ItemQuality
+from core.enums.moodlet_types import MoodletType
+from core.modules.moodlets.moodlet_definitions import Moodlet
 from .action_base import BaseAction
 from core import settings
 from core.config import npc_config
@@ -64,9 +67,28 @@ class EatAction(BaseAction):
             self.target_object.set_in_use(self.npc.npc_id)
 
     def on_finish(self):
-        if self.npc:
-            for need_type, change_amount in self.effects_on_needs.items():
-                self.npc.change_need_value(need_type, change_amount)
+        if self.npc and self.target_object:
+            # Modificatore di default
+            quality_modifier = 1.0 
+            food_quality = getattr(self.target_object, 'quality', ItemQuality.NORMAL)
+
+            if food_quality == ItemQuality.POOR: quality_modifier = 0.7
+            elif food_quality == ItemQuality.GOOD: quality_modifier = 1.1
+            elif food_quality == ItemQuality.EXCELLENT: quality_modifier = 1.3
+            elif food_quality == ItemQuality.MASTERPIECE: quality_modifier = 1.6
+
+            # Applica il guadagno di fame modificato dalla qualità
+            final_hunger_gain = self.hunger_gain * quality_modifier
+            self.npc.change_need_value(NeedType.HUNGER, final_hunger_gain)
+            
+            # Aggiungi un moodlet in base alla qualità
+            if food_quality in {ItemQuality.EXCELLENT, ItemQuality.MASTERPIECE}:
+                self.npc.moodlet_manager.add_moodlet(Moodlet(
+                    moodlet_type=MoodletType.AMAZING_MEAL, # Da creare
+                    display_name="Pasto Incredibile",
+                    emotional_impact=+15, source_description="Quel piatto era un capolavoro!"
+                ))
+            
         if self.target_object:
             self.target_object.set_free()
         super().on_finish()

@@ -14,7 +14,8 @@ from core.modules.memory.memory_definitions import Problem
 from core.modules.memory.memory_system import MemorySystem
 from core.modules.moodlets.moodlet_manager import MoodletManager
 from core.modules.lifestages.base_life_stage import BaseLifeStage
-
+from core.modules.skills.skill_system import SkillManager
+from core.modules.traits import *
 if TYPE_CHECKING:
     from core.simulation import Simulation
     from core.world.location import Location
@@ -24,7 +25,6 @@ if TYPE_CHECKING:
     from core.modules.actions.action_base import BaseAction 
     from core.AI.ai_decision_maker import AIDecisionMaker
 
-from core.modules.traits import BaseTrait, ActiveTrait, BookwormTrait # e le altre classi Tratto
 from core.modules.needs import BaseNeed, ThirstNeed # e le altre classi Need
 from core.modules.moodlets.moodlet_definitions import Moodlet # <-- SPOSTATO QUI
 # from core.modules.skills.skill_system import SkillManager # <-- Anche questo andrà qui
@@ -46,11 +46,11 @@ class RelationshipInfo:
 # Mappa per creare le istanze dei tratti
 # Per istanziare i tratti, importiamo le classi specifiche qui, è sicuro.
 from core.modules.needs.common_needs import AchievementNeed, AutonomyNeed, BladderNeed, ComfortNeed, CreativityNeed, EnergyNeed, EnvironmentNeed, FunNeed, HungerNeed, HygieneNeed, IntimacyNeed, LearningNeed, SafetyNeed, SocialNeed, SpiritualityNeed, ThirstNeed
-from core.modules.traits import ActiveTrait, BookwormTrait, GluttonTrait, LonerTrait, AmbitiousTrait, LazyTrait, SocialTrait, CreativeTrait
 TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type['BaseTrait']] = {
     TraitType.ACTIVE: ActiveTrait, TraitType.BOOKWORM: BookwormTrait, TraitType.GLUTTON: GluttonTrait,
     TraitType.LONER: LonerTrait, TraitType.AMBITIOUS: AmbitiousTrait, TraitType.LAZY: LazyTrait,
-    TraitType.SOCIAL: SocialTrait, TraitType.CREATIVE: CreativeTrait,
+    TraitType.SOCIAL: SocialTrait, TraitType.CREATIVE: CreativeTrait, TraitType.CHILDISH: ChildishTrait,
+    TraitType.PLAYFUL: PlayfulTrait,
 }
 
 class Character:
@@ -123,7 +123,8 @@ class Character:
         
         self.action_queue: collections.deque['BaseAction'] = collections.deque()
         self.current_action: Optional['BaseAction'] = None
-        
+        self.skill_manager: 'SkillManager' = SkillManager(self)
+
 
         # Esecuzione dei Metodi di Inizializzazione
         self._initialize_traits(initial_traits or set())

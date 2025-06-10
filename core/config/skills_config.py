@@ -1,36 +1,53 @@
 # core/config/skills_config.py
-from core.enums.skill_types import SkillType # Importa il tuo SkillType Enum
+"""
+Configurazioni per il sistema di Abilità (Skills).
+Definisce la progressione, i livelli massimi e altre regole di bilanciamento.
+"""
+from core.enums import SkillType
 
-# --- SKILL SYSTEM CONFIGURATION ---
-DEFAULT_SKILL_MAX_LEVEL = 10 # Livello massimo di default per le skill
+# Livello massimo di default per la maggior parte delle abilità
+DEFAULT_SKILL_MAX_LEVEL = 12
 
-# Livelli massimi specifici per skill (se diversi dal default)
-SKILL_MAX_LEVELS = {
-    SkillType.COOKING: 10,
-    SkillType.LOGIC: 10,
-    SkillType.ROCKET_SCIENCE: 12, # Esempio di skill con più livelli
-    SkillType.MOTOR_CHILD: 5,
-    SkillType.MOVEMENT_TODDLER: 5,
+# Livelli massimi specifici per abilità che fanno eccezione
+SKILL_SPECIFIC_MAX_LEVELS = {
     SkillType.POTTY_TODDLER: 3,
+    SkillType.BOWLING: 6,
+    # Aggiungi qui altre eventuali eccezioni
 }
 
-# XP CUMULATIVO richiesto per raggiungere ogni livello.
-# L'indice 0 è per il livello 1, l'indice 1 per il livello 2, ecc.
-# Assicurati che la lunghezza della lista sia uguale al max_level per quella skill.
-DEFAULT_SKILL_XP_SCHEDULE = [100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800, 5000] # Per 10 livelli
-
-SKILL_XP_PER_LEVEL = {
-    SkillType.COOKING: [100, 220, 450, 700, 1000, 1400, 1900, 2500, 3200, 4000], # Esempio personalizzato
-    SkillType.LOGIC: DEFAULT_SKILL_XP_SCHEDULE, # Usa lo schedule di default
-    SkillType.MOTOR_CHILD: [50, 120, 200, 300, 450], # XP per 5 livelli
-    # ... definisci schedule per altre skill se necessario, altrimenti usano DEFAULT_SKILL_XP_SCHEDULE
-    # adattato al loro SKILL_MAX_LEVELS se diverso da DEFAULT_SKILL_MAX_LEVEL.
-    # (La logica in BaseSkill dovrebbe gestire l'adattamento o potresti definire schedule completi qui)
+# Definisce l'XP TOTALE CUMULATIVO necessario per raggiungere un dato livello.
+# Esempio: Per raggiungere il livello 3, un NPC deve avere accumulato in totale 250 XP.
+XP_PER_LEVEL = {
+    1: 0,        # Livello 1 si inizia con 0 XP
+    2: 100,      # Raggiungi il Lvl 2 a 100 XP totali
+    3: 200,      # Raggiungi il Lvl 3 a 200 XP totali
+    4: 400,
+    5: 800,
+    6: 1600,
+    7: 3200,
+    8: 6400,
+    9: 12800,
+    10: 25600,
+    11: 51200,
+    12: 102400,
+    13: 204800,
+    14: 409600,
+    15: 819200,
+    16: 1638400,
+    17: 3276800,
+    18: 6553600,
+    19: 13107200,
+    20: 26214400,
+    21: 52428800,
+    22: 104857600,
+    23: 209715200,
+    24: 419430400,
 }
 
-# Bonus iniziali per alcune skill (opzionale)
-SKILL_INITIAL_LEVEL_BONUS = {
-    # SkillType.LOGIC: {"level": 1, "xp": 10.0}, # Esempio: Inizia Logica a liv 1 con 10xp
-}
-
-# ...
+# Bonus iniziali per tratti specifici (da implementare in futuro)
+# Esempio di struttura:
+# SKILL_INITIAL_LEVEL_BONUS = {
+#     TraitType.GENIUS: {
+#         SkillType.LOGIC: {"level": 2, "xp": 100},
+#     }
+# }

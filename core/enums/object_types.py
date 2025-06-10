@@ -272,6 +272,7 @@ class ObjectType(Enum):
     VIOLIN = auto()
     VR_GAMING_ZONE = auto()
     YOGA_MAT = auto()
+    STAGE = auto()
 
     # --- Categoria 6: Esterno e Pubblico (50) ---
     BIKE_RACK = auto()
@@ -324,6 +325,8 @@ class ObjectType(Enum):
     VERTICAL_GARDEN = auto()
     WATERING_HOLE = auto()
     WEATHER_STATION = auto()
+    SCULPTURE = auto()
+    ART_INSTALLATION = auto()
 
     # --- Categoria 7: Romantico e Sensuale (50) ---
     AROMA_CANDLES = auto()

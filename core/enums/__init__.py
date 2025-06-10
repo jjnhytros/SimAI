@@ -12,6 +12,7 @@ from .event_types import EventType
 from .fun_activity_types import FunActivityType 
 from .genders import Gender
 from .interests import Interest
+from .item_quality import ItemQuality
 from .life_stages import LifeStage
 from .location_types import LocationType
 from .lod_level import LODLevel
@@ -35,8 +36,9 @@ __all__ = [
     'FunActivityType',
     'Gender',
     'Interest',
-    'LifeStage',
+    'ItemQuality',
     'LODLevel',
+    'LifeStage',
     'LocationType',
     'MoodletType',
     'NeedType',

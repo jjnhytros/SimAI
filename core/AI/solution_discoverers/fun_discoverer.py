@@ -2,6 +2,7 @@
 from typing import List, Optional, TYPE_CHECKING
 
 from core.enums.action_types import ActionType
+from core.enums.skill_types import SkillType
 
 from .base_discoverer import BaseSolutionDiscoverer
 from core.enums import FunActivityType, LocationType, TraitType, Interest
@@ -42,12 +43,50 @@ class FunSolutionDiscoverer(BaseSolutionDiscoverer):
 
         # Esempio: Un NPC con il tratto (ipotetico) CAFE_LOVER considera di andare al bar.
         if npc.has_trait(TraitType.CAFE_LOVER):
-             self._discover_remote_location(
+            self._discover_remote_location(
                 npc, simulation_context, problem, valid_actions,
                 LocationType.CAFE, FunActivityType.DRINK_COFFEE
             )
             
-        # Potresti aggiungere qui molti altri `if` per diversi tratti e interessi
+        if npc.has_trait(TraitType.MUSIC_LOVER) or npc.skill_manager.get_skill_level(SkillType.PIANO) > 0:
+            # Se è un musicista, potrebbe voler esibirsi. Altrimenti, ascoltare.
+            if npc.skill_manager.get_skill_level(SkillType.PIANO) > 4: # Soglia per esibirsi
+                activity_to_perform = FunActivityType.PERFORM_JAZZ
+            else:
+                activity_to_perform = FunActivityType.LISTEN_TO_LIVE_JAZZ
+            
+            self._discover_remote_location(
+                npc, simulation_context, problem, valid_actions,
+                LocationType.JAZZ_CLUB, activity_to_perform
+            )
+
+        skill_level = npc.skill_manager.get_skill_level(SkillType.GUITAR)
+        if skill_level > 2: # Deve avere un minimo di abilità per esibirsi
+            
+            # Cerca un luogo adatto, come un parco o una piazza
+            for loc_id, location in simulation_context.locations.items():
+                if location.location_type in {LocationType.PARK, LocationType.PUBLIC_PLAZA}: # Aggiungi PUBLIC_PLAZA all'enum
+                    
+                    activity_to_perform = FunActivityType.PERFORM_ON_STREET
+                    
+                    # Passiamo la skill giusta all'azione da creare
+                    fun_action_config = {"skill_to_practice": SkillType.GUITAR}
+                    
+                    follow_up_action = self._create_fun_action(
+                        npc, simulation_context, problem, 
+                        activity_to_perform,
+                        # Passa una configurazione parziale per sovrascrivere il default
+                        partial_config=fun_action_config 
+                    )
+
+                    travel_action = TravelToAction(
+                        npc=npc, simulation_context=simulation_context,
+                        destination_location_id=loc_id,
+                        follow_up_action=follow_up_action
+                    )
+                    if travel_action.is_valid():
+                        valid_actions.append(travel_action)
+                    return valid_actions # Trovata una soluzione, esci
 
         return valid_actions
 

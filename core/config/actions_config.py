@@ -211,6 +211,31 @@ HAVEFUN_ACTIVITY_CONFIGS = {
     FunActivityType.NIGHT_MARKET: {"fun_gain": 45.0, "duration_hours": 2.0, "cognitive_effort": 0.4},
     FunActivityType.ROOFTOP_BAR: {"fun_gain": 40.0, "duration_hours": 2.0, "skill_to_practice": SkillType.SOCIALIZING, "skill_xp_gain": 25.0, "cognitive_effort": 0.3},
     FunActivityType.BOAT_PARTY: {"fun_gain": 75.0, "duration_hours": 4.0, "is_noisy": True, "cognitive_effort": 0.5},
+    FunActivityType.VISIT_MUSEUM: {"duration_hours": 2.0,"fun_gain": 45.0,"skill_to_practice": SkillType.HISTORY,"skill_xp_gain": 20.0,"cognitive_effort": 0.3,},
+    FunActivityType.DRINK_COFFEE: {"duration_hours": 0.5,"fun_gain": 15.0,"required_object_types": (ObjectType.COFFEE_MACHINE,),"cognitive_effort": 0.1},
+    FunActivityType.LISTEN_TO_LIVE_JAZZ: {"duration_hours": 2.5,"fun_gain": 50.0,"is_noisy": True,"cognitive_effort": 0.1,},
+    FunActivityType.PERFORM_JAZZ: {"duration_hours": 2.0,"fun_gain": 30.0,
+        # Potrebbe anche dare un piccolo guadagno economico
+        # "money_gain": 50.0,
+        "required_object_types": (ObjectType.STAGE, ObjectType.MICROPHONE, ObjectType.PIANO),"skill_to_practice": SkillType.PIANO,"skill_xp_gain": 75.0,"is_noisy": True,"cognitive_effort": 0.8},
+    FunActivityType.PERFORM_ON_STREET: {
+        "duration_hours": 3.0,
+        "fun_gain": 25.0, # È un po' un lavoro, quindi non è super divertente
+        "money_gain": 75.0, # Guadagno base in Athel
+        # Non richiede un oggetto, ma un tipo di location (gestito dall'IA)
+        "is_outdoors": True,
+        "is_noisy": True,
+        "cognitive_effort": 0.6,
+        "skill_to_practice": SkillType.GUITAR, # O un'altra skill musicale
+        "skill_xp_gain": 60.0,
+    },
+    FunActivityType.JUMP_ON_BENCH: {
+        "duration_hours": 0.1,
+        "fun_gain": 20.0, # Molto divertente!
+        "required_object_types": (ObjectType.BENCH,),
+        "cognitive_effort": 0.1,
+    },
+
     
     # ================= CATEGORIA 6: ROMANTICHE E SENSUALI (30 attività) =================
     FunActivityType.SUNSET_PICNIC: {"fun_gain": 65.0, "duration_hours": 2.0, "is_outdoors": True, "skill_to_practice": SkillType.ROMANCE_PLANNING, "skill_xp_gain": 40.0, "cognitive_effort": 0.4},
@@ -245,7 +270,7 @@ HAVEFUN_ACTIVITY_CONFIGS = {
     FunActivityType.TANTRIC_BREATHWORK: {"fun_gain": 45.0, "duration_hours": 1.0, "skill_to_practice": SkillType.TANTRIC_PRACTICES, "skill_xp_gain": 35.0, "cognitive_effort": 0.6},
     FunActivityType.LINGERIE_SHOPPING: {"fun_gain": 50.0, "duration_hours": 1.5, "skill_to_practice": SkillType.LINGERIE_SELECTION, "skill_xp_gain": 30.0, "cognitive_effort": 0.3},
     FunActivityType.LOVE_POETRY_READING: {"fun_gain": 40.0, "duration_hours": 1.0, "skill_to_practice": SkillType.ROMANTIC_EXPRESSION, "skill_xp_gain": 25.0, "cognitive_effort": 0.4},
-}
+    }
 
 # --- SocializeAction ---
 # Default per interazioni non definite specificamente
@@ -316,6 +341,12 @@ SOCIALIZE_INTERACTION_CONFIGS = {
         "duration_ticks": 80, "initiator_gain": 10.0, "target_gain": 10.0, "rel_change": 20,
         "new_rel_type_on_success": RelationshipType.SPOUSE, "min_rel_score_req": 80
     },
+    SocialInteractionType.KISS: {
+        "duration_ticks": 10,"initiator_social_gain": 5.0,"target_social_gain": 5.0,"rel_change": 4,
+        # Prerequisito FONDAMENTALE: Deve esserci un forte sentimento
+        "min_rel_score_req": 50,"required_rel_types": (RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE, RelationshipType.CRUSH)
+},
+
 
     # --- Interazioni Negative / Conflittuali ---
     SocialInteractionType.ARGUE: {

@@ -192,7 +192,11 @@ class FunActivityType(Enum):
     NIGHT_MARKET = auto()
     ROOFTOP_BAR = auto()
     BOAT_PARTY = auto()
-
+    LISTEN_TO_LIVE_JAZZ = auto()
+    PERFORM_JAZZ = auto()
+    PERFORM_ON_STREET=auto()
+    JUMP_ON_BENCH = auto()
+    
     # --- Attività romantiche e sensuali (già presenti) ---
     SUNSET_PICNIC = auto()
     COUPLES_MASSAGE = auto()
@@ -380,6 +384,8 @@ class FunActivityType(Enum):
         FunActivityType.NIGHT_MARKET: "Mercato notturno",
         FunActivityType.ROOFTOP_BAR: "Bar sul tetto",
         FunActivityType.BOAT_PARTY: "Festa in barca",
+        FunActivityType.JUMP_ON_BENCH: "Saltare sulla panchina",
+        
 
         # Attività romantiche e sensuali
         FunActivityType.SUNSET_PICNIC: "Picnic al tramonto",

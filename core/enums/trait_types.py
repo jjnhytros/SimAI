@@ -1,5 +1,7 @@
 # core/enums/trait_types.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum TraitType per i tipi di tratti di personalità degli NPC.
 Riferimento TODO: IV.3.b
@@ -7,7 +9,7 @@ Riferimento TODO: IV.3.b
 
 class TraitType(Enum):
     """Enum per i diversi tratti di personalità."""
-    # Esempi di tratti iniziali
+    # --- Categoria: Personalità ---
     AMBITIOUS = auto()          # Ambizioso
     CHARMER = auto()            # Charmante
     CONSERVATIVE = auto()       # Conservativo
@@ -26,6 +28,9 @@ class TraitType(Enum):
     OPTIMIST = auto()           # Ottimista
     PESSIMIST = auto()          # Pessimista
     SLOB = auto()               # Disordinato
+    CHILDISH = auto()           # Infantile
+    PLAYFUL = auto()            # Giocherellone
+
 
     # --- Categoria: Sociale ---
     JEALOUS = auto()            # Geloso
@@ -85,7 +90,6 @@ class TraitType(Enum):
     NERD = auto()               # Nerd
     PARTY_ANIMAL = auto()       # Animale da festa
     PHILOSOPHER = auto()        # Filosofo
-    PLAYFUL = auto()            # Giocherellone
     PLEASANT = auto()           # Piacevole
     PREDATOR = auto()           # Predatore
     RICH = auto()               # Ricco
@@ -331,9 +335,11 @@ class TraitType(Enum):
             TraitType.PHILOSOPHER: "Filosofo",
             TraitType.ROMANTIC: "Romantico",
             TraitType.SHY: "Timido",
-            TraitType.SLOB: "Disordinato",
             TraitType.SOCIAL: "Socievole",
-            TraitType.UNFLIRTY: "Non Ammiccante",
+            TraitType.UNFLIRTY: "Non flirtante",
+            TraitType.CHILDISH: "Infantile",
+            TraitType.PLAYFUL: {Gender.MALE: "Giocherellone", Gender.FEMALE: "Giocherellona"},
+            TraitType.SLOB: {Gender.MALE: "Disordinato", Gender.FEMALE: "Disordinata"},
             
             # Nuove traduzioni (organizzate per categoria)
             # Sociale

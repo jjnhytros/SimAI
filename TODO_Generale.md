@@ -53,171 +53,153 @@
 
 ---
 
-## A. ARCHITETTURA CODICE E QUALITÀ
+## ⚙️ I. FONDAMENTA DEL GIOCO E MOTORE
 
-* `[x]` **1. Struttura Modulare del Codice:** `[PRIORITÀ: MEDIA-ALTA]`
-    * `[x]` a. Organizzazione cartelle base.
-    * `[P]` b. Creazione file principali.
-    * `[x]` c. Definizione classe `Character`.
-    * `[P]` d. Implementazione `__init__.py` per i package.
-    * `[x]` e. **Refactoring Strutturale per Enum e Classi Complesse (Tratti, Skill, Azioni):** (Pattern di dependency injection applicato alle azioni base).
+### **1. Loop di Simulazione Principale:** `[P]`
+    * `[x]` a. Avanzamento del `TimeManager` ad ogni tick. `[1.0.0]`
+    * `[P]` b. Aggiornamento di tutti gli NPC (bisogni, azioni, IA). `[1.0.0]`
+    * `[ ]` c. Aggiornamento dello stato del mondo (oggetti, ambiente). `[1.0.1]`
+    * `[ ]` d. Gestione eventi globali (non legati a singoli NPC). `[1.0.2]`
+    * `[ ]` e. Meccanismo di pausa/play della simulazione. `[1.0.0]`
+    * `[ ]` f. Ottimizzazione del loop per performance (es. LOD). `[1.1.0]`
 
-* `[x]` **2. Struttura Modulare del Codice (Avanzata):**
-    * `[x]` a. Organizzazione package e `__init__.py`.
-    * `[x]` b. **Logica di Sistema Modulare:** (`time_manager` implementato).
+### **2. Architettura IA e Decisionale:** `[P]`
+    * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA. `[1.0.0]`
+    * `[P]` b. `AIDecisionMaker`: Logica di scelta delle azioni. `[1.0.0]`
+    * `[P]` c. `NeedsProcessor`: Gestione avanzata del decadimento e aggiornamento dei bisogni. `[1.0.0]`
+    * `[P]` d. `ActionExecutor`: Esecuzione e monitoraggio delle azioni. `[1.0.0]`
+    * `[ ]` e. `DecisionSystem` (Utility AI / Behaviour Tree): Sistema per decisioni più complesse. `[1.2.0]`
 
-* `[P]` **3. Gestione delle Configurazioni e Settings:**
-    * `[x]` a. File `settings.py` per costanti globali.
-    * `[x]` b. Refactoring per Configurazioni Modulari in `core/config/`. (Completate le configurazioni per le azioni base).
-    * `[ ]` c. Sistema di logging avanzato.
-    * `[ ]` d. Supporto per internazionalizzazione (i18n).
-
-* `[P]` **4. Architettura Sistema Decisionale (IA Cognitiva):**
-    * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:**
-        * `[x]` i. **Fase 1: Identificazione del "Problema"**
-        * `[x]` ii. **Fase 2: Ragionamento e Valutazione Opzioni**
-            * `[x]` Ristrutturato `AIDecisionMaker` per implementare un loop di "scoperta e valutazione".
-            * `[x]` Sviluppata una funzione di "punteggio" per valutare ogni soluzione, considerando:
-                * `[x]` Efficienza (effetti sui bisogni).
-                * `[x]` Personalità (tratti).
-                * `[x]` Contesto (oggetti/luoghi/meteo/ora).
-                * `[x]` Memoria (`MemorySystem`).
-                * `[x]` Stato Mentale (Carico Cognitivo).
-                * `[x]` **Bias Cognitivi** (Implementato Bias di Conferma).
-                * `[x]` **Gestione dei Conflitti Decisionali e Priorità**.
-        * `[P]` iii. **Fase 3: Creazione del "Pensiero"**
-        * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"**
-        * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (Implementato `ConsequenceAnalyzer` per creare ricordi).
-* `[F]` **5. Evoluzione Architetturale (Pattern Strategy):**
-    * `[ ]` a. Valutare la trasformazione di sistemi basati su Enum (LifeStage, Aspiration, RelationshipType) in sistemi basati su classi specifiche (es. `ChildLifeStage`, `WealthBuilderAspiration`) per incapsulare logica e dati in modo più pulito.
-
----
-
-## B. SIMULAZIONE NPC: BISOGNI E AZIONI
-
-### `[x]` **1. Sistema dei Bisogni:** (`NeedType`, `NeedBase`, `common_needs`).
-### `[P]` **2. Sistema di Azioni (`BaseAction`):** Struttura base implementata.
-### `[ ]` **3. Catalogo Azioni:**
-    * `[P]` a. Azioni per bisogni base.
-    * `[ ]` b. **Azioni Sociali Complesse e Intimità Fisica:** `[RAFFINAMENTO]`
-        * `[ ]` Definire e implementare azioni specifiche per costruire e manifestare intimità fisica all'interno delle relazioni (es. Abbracciare, Baciare, Coccolare).
-        * `[ ]` Collegare queste azioni ai livelli di relazione, al bisogno di `INTIMACY` e a specifici `Moodlet` (stati d'animo).
-    * `[ ]` c. Azioni legate a carriera e skill.
-    * `[ ]` d. **Azioni per Piacere, Intrattenimento Avanzato e Sessualità:** `[NUOVO]`
-        * `[ ]` Definire e implementare azioni per l'attività sessuale, distinguendo tra finalità ricreative/di piacere e quelle riproduttive.
-        * `[ ]` Specificare prerequisiti complessi: consenso (meccanica da definire), livello relazione (o tratti/contesti che lo modulano), privacy della `Location`, umore e bisogni (`FUN`, `INTIMACY`) dei partecipanti.
-        * `[ ]` Modellare il "Piacere" come risultato:
-            * `[ ]` Forte soddisfazione dei bisogni coinvolti.
-            * `[ ]` Generazione di `Moodlet` positivi potenti e specifici (es. "Estasiato", "Appagato").
-            * `[ ]` Possibile impatto sulla riduzione dello stress o su altri stati emotivi.
-
-
-
-## I. FONDAMENTA DEL GIOCO E MOTORE
-
-### **1. Loop di Simulazione Principale (`Simulation.run()` e `Simulation._update_simulation_state()`):** `[P]` *(Loop base esistente. `AICoordinator` integrato strutturalmente per l'aggiornamento degli NPC. Logica di invecchiamento base presente. Ulteriori integrazioni necessarie con eventi, input GUI, e LOD.)*
-    * `[x]` a. Avanzamento del `TimeManager` ad ogni tick. *(Fatto in `Simulation._update_simulation_state()`)*.
-    * `[P]` b. Aggiornamento di tutti gli NPC (bisogni, azioni, IA). *(Parzialmente fatto tramite `AICoordinator` che chiama `npc.update_needs` e `npc.update_action`. `AIDecisionMaker` ha logica base per bisogni e priorità. Sottosistemi IA (`NeedsProcessor`, `ActionExecutor`, `DecisionSystem`) ancora scheletrici.)*
-    * `[ ]` c. Aggiornamento dello stato del mondo (oggetti, ambiente). *(Minimale, solo interazioni base con oggetti per azioni)*.
-    * `[ ]` d. Gestione eventi globali (non legati a singoli NPC).
-    * `[ ]` e. Meccanismo di pausa/play della simulazione.
-    * `[ ]` f. Ottimizzazione del loop per performance (es. LOD per NPC/oggetti "off-screen" - Riferimento IV.4.h).
-### **2. Architettura IA e Decisionale (`AICoordinator`, `AIDecisionMaker`):** `[P]` *(`AICoordinator` integrato strutturalmente. `AIDecisionMaker` implementa scelta azioni base per bisogni primari con un sistema di priorità pesata. Sottosistemi (`NeedsProcessor`, `DecisionSystem`, `ActionExecutor`) ancora scheletrici.)*
-    * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA per ogni NPC. *(Creata e integrata in `Simulation._update_simulation_state`, attualmente delega a `npc.update_needs/action`)*.
-    * `[P]` b. `AIDecisionMaker`: Logica di scelta delle azioni. *(Spostata da `Character`, implementa scelta per bisogni primari con priorità pesata)*.
-    * `[ ]` c. `NeedsProcessor`: Gestione avanzata del decadimento e aggiornamento dei bisogni. *(Scheletro presente)*.
-    * `[ ]` d. `ActionExecutor`: Esecuzione e monitoraggio delle azioni. *(Scheletro presente)*.
-    * `[ ]` e. `DecisionSystem` (Utility AI / Behaviour Tree): Sistema per decisioni più complesse. *(Scheletro presente per Utility AI, BT da definire)*.
 ### **3. Salvataggio e Caricamento:** `[ ]`
-    * `[ ]` a. Definire formato dei dati di salvataggio (es. JSON, Pickle, database SQLite). (`save_load_manager.py` creato).
-    * `[ ]` b. Implementare la serializzazione dello stato della simulazione (NPC, mondo, tempo).
-    * `[ ]` c. Implementare la deserializzazione per caricare uno stato salvato.
-    * `[ ]` d. UI per salvare/caricare (slots di salvataggio).
-### **4. Gestione Oggetti di Gioco (`GameObject`):** `[P]` *(Classe base `GameObject` creata. Attributi base come `object_id`, `name`, `object_type`. Aggiunto `is_water_source` e `provides_fun_activities`. Interazione base per `DrinkWaterAction` e `HaveFunAction` implementata.)*
-    * `[P]` a. Definizione classe `GameObject` con attributi base. *(Fatto)*.
-    * `[P]` b. Capacità degli oggetti di influenzare bisogni o abilitare azioni. *(Implementato per `is_water_source` e `provides_fun_activities`)*.
-    * `[ ]` c. Stato degli oggetti (es. "in uso", "rotto", "sporco").
-    * `[ ]` d. Interazione NPC-Oggetto: logica per trovare e usare oggetti.
-### **5. Sistema di Locazioni (`Location`):** `[P]` *(Classe `Location` creata con gestione oggetti e NPC presenti. Tipo di locazione definito da `LocationType` enum.)*
-    * `[x]` a. Classe `Location` per rappresentare aree del mondo. *(Fatto)*.
-    * `[x]` b. Capacità delle locazioni di contenere oggetti e NPC. *(Fatto)*.
-    * `[ ]` c. Attributi della locazione (es. pulizia, livello di rumore, tipo di lotto).
-    * `[ ]` d. Navigazione NPC tra locazioni (Pathfinding - Rif. IV.4.f).
----
+    * `[ ]` a. Definire formato dei dati di salvataggio (es. JSON, Pickle). `[1.0.0]`
+    * `[ ]` b. Implementare la serializzazione dello stato della simulazione. `[1.0.0]`
+    * `[ ]` c. Implementare la deserializzazione per caricare uno stato salvato. `[1.0.0]`
+    * `[ ]` d. UI per salvare/caricare (slots di salvataggio). `[1.0.1]`
 
+### **4. Gestione Oggetti di Gioco (`GameObject`):** `[P]`
+    * `[x]` a. Definizione classe `GameObject` con attributi base. `[1.0.0]`
+    * `[P]` b. Capacità degli oggetti di influenzare bisogni o abilitare azioni. `[1.0.0]`
+    * `[x]` c. Stato degli oggetti (es. "in uso", "rotto", "sporco"). `[1.0.0]`
+    * `[P]` d. Interazione NPC-Oggetto: logica per trovare e usare oggetti. `[1.0.0]`
 
-### 👤 II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE  
-
-### `[!]` **1. Filosofia della Creazione Iniziale:**
-    * `[ ]` a. Permettere al giocatore di definire il punto di partenza della sua storia nella simulazione attraverso la creazione di uno o più personaggi giocabili iniziali (es. un single, una coppia, una famiglia).
-    * `[ ]` b. Il processo deve essere intuitivo ma offrire profondità di personalizzazione coerente con i sistemi di gioco (tratti, aspirazioni, aspetto).
-    * `[ ]` c. I personaggi creati dal giocatore sono NPC "Dettagliati" (LOD1) fin dall'inizio, con pieno accesso ai sistemi di bisogni, emozioni, IA decisionale, etc. (`Character` class è LOD1).
-    * `[ ]` d. Fornire al giocatore un'esperienza di creazione che lo connetta emotivamente ai suoi SimAI iniziali.
-    * `[ ]` e. Architettura della Coscienza dell'NPC:
-        * `[ ]` i. Distinguere tra un'"Anima Digitale" (nucleo immutabile con ID, tratti fondamentali, memorie chiave) e una "Personalità Agente" (manifestazione comportamentale influenzata da bisogni, stato attuale, e memoria a breve termine).
-
-### `[ ]` **2. Interfaccia di Creazione (Editor Personaggio/Nucleo Familiare):** (`editor_manager.py` creato)
-    * `[ ]` a. **Personalizzazione Aspetto Fisico Dettagliata:** (Utilizza gli stessi asset e logiche di `IV.0.a` per la generazione NPC, ma con interfaccia per il giocatore) (`appearance_data.py` creato).
-        * `[ ]` i. Strumenti per modificare parti del viso (occhi, naso, bocca, forma viso, mascella, etc.) e del corpo (altezza, corporatura, percentuale muscoli/grasso).
-        * `[ ]` ii. Ampia selezione di colori per pelle (con tonalità realistiche e fantasy se previste dal lore), capelli (acconciature e colori naturali e non), occhi (inclusa eterocromia opzionale).
-        * `[ ]` iii. Opzioni per dettagli aggiuntivi: cicatrici, nei, vitiligine, efelidi, tatuaggi (collegamento a Skill Tatuaggi IX.e e carriera Tatuatore VIII.1.j), piercing.
-        * `[ ]` iv. Sistema di anteprima dinamica del personaggio durante la personalizzazione.
-    * `[ ]` b. **Definizione Identità di Base:** (Utilizza gli stessi attributi di `IV.0.b, IV.0.g` e `IV.3.j`) (classe `Identity` in `character.py` e `core/enums/character_enums.py` creati).
-        * `[ ]` i. Scelta Nome e Cognome (con suggerimenti opzionali basati sul lore di Anthalys).
-        * `[ ]` ii. Scelta Età Iniziale (generalmente limitata a certi stadi di vita per i fondatori, es. `YOUNG_ADULT`, `ADULT`, o `CHILD`/`TEENAGER` se creati come parte di una famiglia con adulti) (Attributi in `Identity` e `LifeStage` enum).
-        * `[ ]` iii. Scelta Sesso Biologico e Identità di Genere (opzioni flessibili e inclusive come da `IV.3.b.viii.11` e `IV.3.j`, con pronomi personalizzabili) (Enums e attributi creati).
-        * `[ ]` iv. Definizione Voce (selezione da preset con pitch e modulazione regolabili) (Attributo `voiceId` in `Identity`).
-        * `[ ]` v. Definizione Orientamento Sessuale e Romantico (come da `IV.3.j`, con opzione per "esplorazione" per personaggi più giovani) (Enums e attributi creati).
-    * `[ ]` c. **Assegnazione Tratti di Personalità:** (Selezione dalla lista definita in `IV.3.b`) (`TraitManager` e `Character::addTrait` previsti).
-        * `[ ]` i. Il giocatore assegna un numero limitato di tratti (es. 3-5, come da `IV.3.b.i`) scelti dalla lista completa e categorizzata dei tratti disponibili.
-        * `[ ]` ii. L'interfaccia di creazione deve mostrare chiaramente le descrizioni dei tratti, i loro effetti principali e le eventuali incompatibilità o conflitti tra tratti selezionati (come da `IV.3.b.ix` e `IV.3.b.x.1`).
-    * `[ ]` d. **Scelta Aspirazione di Vita:** (Selezione dalle aspirazioni definite in `IV.3.a`) (`AspirationManager` e `Character::setAspiration` previsti).
-        * `[ ]` i. Il giocatore sceglie un'Aspirazione di Vita a lungo termine per ogni personaggio giocabile creato.
-        * `[ ]` ii. L'interfaccia di creazione mostra le diverse categorie di aspirazioni e le aspirazioni specifiche disponibili, con una descrizione dei loro obiettivi generali e delle ricompense (tratti bonus, soddisfazione).
-    * `[ ]` e. **Definizione Abbigliamento Iniziale:** (Utilizza il sistema di abbigliamento di `IV.0.f`) (`clothing_manager.py`, `outfit.py`, `clothing_item.py` creati; `Character` ha `wardrobe_`).
-        * `[ ]` i. Selezione di outfit per ogni categoria richiesta (quotidiano, formale, sportivo, notte, feste, nuoto, freddo, caldo) da un guardaroba iniziale fornito.
-        * `[ ]` ii. (Avanzato) Possibilità di personalizzare i colori/pattern di alcuni capi di vestiario base.
-        * `[ ]` iii. Gli outfit scelti saranno il guardaroba base del personaggio all'inizio del gioco.
-    * `[ ]` f. **(Opzionale) Definizione Relazioni Iniziali (se si crea una famiglia/gruppo):** (`relationship_manager.py`, `enums/relationship_types.py` creati).
-        * `[ ]` i. Se il giocatore crea più personaggi contemporaneamente (es. una famiglia, coinquilini), deve poter definire le loro relazioni iniziali (es. coniugi, partner, genitori-figli, fratelli, amici intimi).
-        * `[ ]` ii. Impostazione dei punteggi di relazione iniziali (default positivi per familiari stretti, neutri o leggermente positivi per amici/coinquilini).
-        * `[ ]` iii. Integrazione con l'Albero Genealogico (`IV.2.f`) per i membri della famiglia creati.
-    * `[ ]` g. **(Opzionale Avanzato) Background Narrativo e Eventi Formativi:** (Espansione di `IV.0.h`)
-        * `[ ]` i. Possibilità per il giocatore di scegliere alcuni "eventi formativi" chiave o un "archetipo di background" per i propri personaggi (es. "infanzia difficile", "talento artistico precoce", "background accademico brillante", "sopravvissuto a una tragedia").
-        * `[ ]` ii. Questi potrebbero assegnare piccole quantità di XP skill iniziali, influenzare la probabilità di certi tratti nascosti o acquisibili, o fornire memorie iniziali uniche (IV.5).
-        * `[ ]` iii. (Alternativa) Consentire al giocatore di scrivere un breve testo di background che il gioco potrebbe (opzionalmente) analizzare in modo astratto per questi effetti.
-
-### `[ ]` **3. Sistema Genetico per Famiglie Iniziali e Discendenti:** (Stesso sistema di `IV.0.a.i`, `IV.2.c`, `IV.2.f`) (`genetics_system.py`, `genome.py` creati).
-    * `[ ]` a. Durante la creazione di una famiglia nell'editor, se si creano personaggi imparentati (es. genitori e figli, fratelli), l'aspetto dei figli (o la somiglianza tra fratelli) dovrebbe poter ereditare caratteristiche visibili dai genitori (o condividerle) in modo plausibile.
-        * `[ ]` i. Interfaccia per "generare" figli da due genitori nell'editor, con possibilità di randomizzazione e ritocco.
-    * `[ ]` b. Questo stesso sistema genetico (aspetto fisico e potenziale ereditarietà dei tratti di personalità `IV.2.f.vi`) verrà utilizzato per tutti i nuovi NPC nati nel corso della simulazione (`IV.2.c`).
-    * `[ ]` c. Possibilità di "gemelli identici" o "gemelli fraterni" se si creano figli multipli contemporaneamente.
-    * `[ ]` d. **Estensione "Total Realism" - Genetica Avanzata:** (Collegamento a `IV.2.f.vii` e `IV.1.g`) (`genome.py` è un inizio).
-        * `[ ]` i. Ereditarietà di un range più ampio di caratteristiche fisiche (oltre l'aspetto base) e predisposizioni (es. talenti innati per certe skill `IV.3.f`, suscettibilità a malattie specifiche `IV.1.g`). *(Aggiornato stato a [] per definizione di `genome.py` e placeholder per malattie genetiche)*
-            * `[ ]` 1. Definire meccanismo per come i "tratti recessivi (potenzialmente negativi per la salute `IV.1.g` o altre caratteristiche `IV.3.b`)" sono rappresentati nel genoma astratto di un NPC.
-            * `[ ]` 2. Implementare la logica di ereditarietà che aumenta la probabilità di espressione di questi tratti recessivi in caso di relazioni consanguinee (`VII.2.d.vi`), basata sul grado di parentela.
-        * `[ ]` ii. (Molto Avanzato) Simulazione di mutazioni genetiche casuali (rare) con effetti variabili (positivi, negativi, neutri) che possono introdurre nuovi tratti o modificare quelli esistenti.
-
-### [] **4. Fase Finale: Scelta del Mondo/Lotto Iniziale e Fondi:** (`world_manager.py`, `lot_manager.py`, `player_household.py` creati).
-    * `[ ]` a. Dopo la creazione della famiglia/personaggio giocabile, il giocatore seleziona un mondo o quartiere di partenza (se più di uno disponibile).
-    * `[ ]` b. Il giocatore sceglie un lotto residenziale vuoto o una casa pre-costruita disponibile in cui trasferirsi (collegamento a `XVIII.5.j` Proprietà Immobiliari e `I. MONDO DI ANTHALYS E SIMULAZIONE GENERALE` per la struttura del mondo).
-    * `[P]` c. Assegnazione di fondi iniziali ("Athel") alla famiglia/personaggio giocabile. **Questi fondi sono un grant che rappresenta anche la prima erogazione del Reddito di Cittadinanza Universale (RCU), come previsto dall'Art. 11 della Costituzione.** L'ammontare potrebbe: (`PlayerHousehold` ha `currentFunds_`).
-        * `[ ]` i. Essere uno standard fisso.
-        * `[ ]` ii. Variare in base a "scenari di partenza" o difficoltà scelte dal giocatore.
-        * `[ ]` iii. Essere influenzato dal numero di membri della famiglia o dal background scelto (II.2.g).
-    * `[ ]` d. La simulazione inizia una volta che la famiglia è stata trasferita in un lotto.
-
-### `[ ]` **5. (Futuro) Scenari di Inizio Partita ("Story Mode Starters"):**
-    * `[ ]` a. Oltre alla creazione libera, offrire al giocatore scenari predefiniti con personaggi, relazioni, e situazioni iniziali uniche che presentano sfide o obiettivi specifici (es. "Single al verde in città nuova", "Famiglia con troppi figli e pochi soldi", "Erede di una fortuna misteriosa").
-    * `[ ]` b. Questi scenari potrebbero utilizzare l'editor personaggio per la personalizzazione estetica dei personaggi predefiniti.
+### **5. Sistema di Locazioni (`Location`):** `[P]`
+    * `[x]` a. Classe `Location` per rappresentare aree del mondo. `[1.0.0]`
+    * `[x]` b. Capacità delle locazioni di contenere oggetti e NPC. `[1.0.0]`
+    * `[ ]` c. Attributi della locazione (es. pulizia, livello di rumore). `[1.1.0]`
+    * `[ ]` d. Navigazione NPC tra locazioni (Pathfinding). `[1.1.0]`
 
 ---
 
+## 👤 II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE  
 
-## III. MONDO DI ANTHALYS (Open World e Costruzione) `[ ]`
+### **1. Filosofia della Creazione Iniziale:** `[!]`
+    * `[ ]` a. Permettere al giocatore di definire il punto di partenza della sua storia. `[1.0.0]`
+    * `[ ]` b. Il processo deve essere intuitivo ma offrire profondità di personalizzazione. `[1.0.0]`
+    * `[x]` c. I personaggi creati dal giocatore sono NPC "Dettagliati" (LOD1). `[1.0.0]`
+    * `[ ]` d. Fornire al giocatore un'esperienza di creazione che lo connetta emotivamente ai suoi SimAI. `[1.0.0]`
+    * `[ ]` e. Architettura della Coscienza dell'NPC: Distinguere tra "Anima Digitale" e "Personalità Agente". `[2.0.0]`
+
+### **2. Interfaccia di Creazione (Editor Personaggio):** `[ ]`
+    * `[ ]` a. **Personalizzazione Aspetto Fisico Dettagliata:** `[1.0.0]`
+        * `[ ]` i. Strumenti per modificare viso e corpo. `[1.0.0]`
+        * `[ ]` ii. Ampia selezione di colori per pelle, capelli, occhi. `[1.0.0]`
+        * `[ ]` iii. Opzioni per dettagli aggiuntivi: cicatrici, tatuaggi, piercing. `[1.0.1]`
+        * `[ ]` iv. Sistema di anteprima dinamica del personaggio. `[1.0.0]`
+    * `[ ]` b. **Definizione Identità di Base:** `[1.0.0]`
+        * `[x]` i. Scelta Nome e Cognome. `[1.0.0]`
+        * `[x]` ii. Scelta Età Iniziale. `[1.0.0]`
+        * `[x]` iii. Scelta Sesso Biologico e Identità di Genere. `[1.0.0]`
+        * `[ ]` iv. Definizione Voce. `[1.1.0]`
+        * `[x]` v. Definizione Orientamento Sessuale e Romantico. `[1.0.0]`
+    * `[ ]` c. **Assegnazione Tratti di Personalità:** `[1.0.0]`
+        * `[x]` i. Il giocatore assegna un numero limitato di tratti. `[1.0.0]`
+        * `[ ]` ii. L'interfaccia deve mostrare descrizioni ed effetti dei tratti. `[1.0.0]`
+    * `[ ]` d. **Scelta Aspirazione di Vita:** `[1.0.0]`
+        * `[x]` i. Il giocatore sceglie un'Aspirazione di Vita. `[1.0.0]`
+        * `[ ]` ii. L'interfaccia mostra dettagli e obiettivi delle aspirazioni. `[1.0.0]`
+    * `[ ]` e. **Definizione Abbigliamento Iniziale:** `[1.0.0]`
+        * `[ ]` i. Selezione di outfit per ogni categoria richiesta. `[1.0.0]`
+        * `[ ]` ii. (Avanzato) Personalizzazione colori/pattern. `[1.1.0]`
+        * `[ ]` iii. Gli outfit scelti saranno il guardaroba base del personaggio. `[1.0.0]`
+    * `[ ]` f. **(Opzionale) Definizione Relazioni Iniziali:** `[1.0.0]`
+        * `[P]` i. Il giocatore può definire le relazioni iniziali in una famiglia. `[1.0.0]`
+        * `[P]` ii. Impostazione dei punteggi di relazione iniziali. `[1.0.0]`
+        * `[ ]` iii. Integrazione con l'Albero Genealogico. `[1.0.0]`
+    * `[ ]` g. **(Opzionale Avanzato) Background Narrativo e Eventi Formativi:** `[1.2.0]`
+        * `[ ]` i. Possibilità di scegliere "eventi formativi" chiave. `[1.2.0]`
+        * `[ ]` ii. Questi eventi assegnano XP skill o memorie iniziali. `[1.2.0]`
+        * `[ ]` iii. (Alternativa) Consentire al giocatore di scrivere un breve testo di background. `[FUTURO]`
+
+### **3. Sistema Genetico:** `[ ]`
+    * `[P]` a. L'aspetto dei figli eredita caratteristiche visibili dai genitori. `[1.0.0]`
+    * `[ ]` b. Il sistema genetico verrà utilizzato per tutti i nuovi NPC nati nel gioco. `[1.0.0]`
+    * `[ ]` c. Possibilità di "gemelli identici" o "gemelli fraterni". `[1.0.1]`
+    * `[ ]` d. **Estensione "Total Realism" - Genetica Avanzata:** `[2.0.0]`
+        * `[ ]` i. Ereditarietà di predisposizioni a talenti, malattie, ecc. `[2.0.0]`
+        * `[ ]` ii. (Molto Avanzato) Simulazione di mutazioni genetiche casuali. `[FUTURO]`
+
+### **4. Fase Finale: Scelta del Mondo e Fondi Iniziali:** `[ ]`
+    * `[ ]` a. Il giocatore seleziona un quartiere di partenza. `[1.0.0]`
+    * `[ ]` b. Il giocatore sceglie un lotto residenziale in cui trasferirsi. `[1.0.0]`
+    * `[P]` c. Assegnazione di fondi iniziali ("Athel") alla famiglia (RCU). `[1.0.0]`
+        * `[ ]` i. Essere uno standard fisso. `[1.0.0]`
+        * `[ ]` ii. Variare in base a "scenari di partenza". `[1.1.0]`
+        * `[ ]` iii. Essere influenzato dal numero di membri della famiglia. `[1.0.1]`
+    * `[ ]` d. La simulazione inizia una volta che la famiglia è stata trasferita. `[1.0.0]`
+
+### **5. (Futuro) Scenari di Inizio Partita:** `[ ]`
+    * `[ ]` a. Offrire al giocatore scenari predefiniti con personaggi e situazioni uniche. `[1.2.0]`
+    * `[ ]` b. Questi scenari potrebbero utilizzare l'editor per la personalizzazione estetica. `[1.2.0]`
 
 ---
 
+## 🏗️ III. MONDO DI ANTHALYS (Open World e Costruzione) `[ ]`
+
+### **1. Struttura del Mondo e dei Lotti:** `[P]`
+    * `[P]` a. Mappa del mondo persistente che contiene i distretti e i lotti. `[1.0.0]`
+    * `[ ]` b. Definizione della Classe `Lot` per rappresentare le singole parcelle di terreno. `[1.0.0]`
+    * `[P]` c. Tipologie di Lotto (`LotType` Enum): Residenziale, Commerciale, Comunitario. `[1.0.0]`
+    * `[ ]` d. Assegnazione di un indirizzo unico per ogni lotto. `[1.0.1]`
+
+### **2. Modalità Costruzione (Build Mode) - Strutture:** `[ ]`
+    * `[ ]` a. Strumento Muri per disegnare stanze e pareti. `[1.0.0]`
+    * `[ ]` b. Strumento Pavimenti per creare le fondamenta e i piani. `[1.0.0]`
+    * `[ ]` c. Strumenti per Porte e Finestre con posizionamento automatico sui muri. `[1.0.0]`
+    * `[ ]` d. Gestione Piani Multipli (sopra e sotto il livello del suolo - sotterranei). `[1.1.0]`
+    * `[ ]` e. Strumento Tetti (con opzioni di pendenza e forma). `[1.0.2]`
+    * `[ ]` f. (Avanzato) Tetti Automatici che si adattano alla forma dell'edificio. `[1.1.0]`
+    * `[ ]` g. Colonne, Fregi, e altri elementi architettonici strutturali. `[1.0.2]`
+    * `[ ]` h. Scale per collegare i piani. `[1.1.0]`
+    * `[ ]` i. Recinzioni e cancelli per il perimetro del lotto. `[1.0.1]`
+
+### **3. Modalità Arredamento (Buy Mode) - Oggetti:** `[ ]`
+    * `[ ]` a. Catalogo Oggetti: UI per sfogliare, filtrare (per stanza, per funzione) e acquistare oggetti. `[1.0.0]`
+    * `[ ]` b. Logica di Posizionamento Oggetti su una griglia interna al lotto. `[1.0.0]`
+    * `[ ]` c. Rotazione e Spostamento degli oggetti posizionati. `[1.0.0]`
+    * `[ ]` d. Strumento "Contagocce" per clonare lo stile e il colore di un oggetto. `[1.0.1]`
+    * `[ ]` e. Strumento "Mazza" per vendere/eliminare oggetti. `[1.0.0]`
+    * `[ ]` f. (Avanzato) Posizionamento libero (off-grid) con un tasto modificatore. `[1.2.0]`
+    * `[ ]` g. (Avanzato) Oggetti modulari che si connettono automaticamente (es. banconi da cucina, divani componibili). `[1.1.0]`
+
+### **4. Modalità Stile (Style Mode) - Pittura e Rivestimenti:** `[ ]`
+    * `[ ]` a. Strumento Pittura per applicare pattern e colori a muri (interni ed esterni) e pavimenti. `[1.0.0]`
+    * `[ ]` b. Catalogo di pattern per muri (vernice, carta da parati, mattoni, ecc.). `[1.0.0]`
+    * `[ ]` c. Catalogo di pattern per pavimenti (legno, piastrelle, moquette, ecc.). `[1.0.0]`
+    * `[ ]` d. Possibilità di applicare lo stile a una singola mattonella o a un'intera stanza. `[1.0.1]`
+
+### **5. Modalità Terreno (Terrain Mode) - Landscaping:** `[ ]`
+    * `[ ]` a. Strumenti di modifica del terreno: Alza, Abbassa, Appiattisci, Leviga. `[1.1.0]`
+    * `[ ]` b. Strumento di pittura del terreno con diversi campioni (erba, terra, sassi, sabbia). `[1.1.0]`
+    * `[ ]` c. Posizionamento di Piante, Fiori, Cespugli e Alberi. `[1.0.2]`
+    * `[ ]` d. Strumenti per l'Acqua: creazione di Piscine e Fontane/Laghetti ornamentali. `[1.1.0]`
+
+### **6. Gestione del Mondo (Livello Città):** `[ ]`
+    * `[P]` a. Visualizzazione della mappa della città con i suoi distretti e lotti. `[1.0.0]`
+    * `[ ]` b. Possibilità per il giocatore di entrare in Modalità Costruzione per ogni lotto residenziale posseduto. `[1.0.0]`
+    * `[ ]` c. (Avanzato) Modalità "Modifica la Città": possibilità di modificare i lotti comunitari (parchi, biblioteche). `[2.0.0]`
+    * `[ ]` d. (Avanzato) NPC che modificano autonomamente le loro case nel tempo (es. aggiungono una stanza quando nasce un figlio). `[FUTURO]`
+
+---
 
 ## IV. SIMULAZIONE NPC (Bisogni, IA, Ciclo Vita, Caratteristiche)
 
@@ -949,6 +931,14 @@
     * `[ ]` b. (Facoltativo) Diario automatico generato da NPC che riflettono su sé stessi, utile per giocatori narrativi o tool di analisi/debug.
 
 ---
+
+
+
+
+
+
+
+
 
 
 ## V. SISTEMA SCOLASTICO DI ANTHALYS `[ ]`
@@ -3712,7 +3702,7 @@
 
 
 
-## Lore per Anthalys
+## 000. Lore per Anthalys
 
 ### Origini e Fondazione (Anno 0 - Anno di Fondazione 5775 Attuale)
 

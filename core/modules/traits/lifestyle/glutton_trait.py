@@ -17,9 +17,9 @@ class GluttonTrait(BaseTrait):
     trait_type = TraitType.GLUTTON
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Ghiottone"
-        self.description = "Questo NPC ama il cibo e mangia più del necessario."
+        super().__init__(character_owner=character_owner, trait_type=TraitType.GLUTTON)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
+        self.description = "Ama il cibo e mangia più del necessario."
 
     def get_action_choice_priority_modifier(self, action, simulation_context):
         if action.action_type_enum == ActionType.ACTION_EAT:

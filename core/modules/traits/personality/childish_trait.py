@@ -1,5 +1,5 @@
 # core/modules/traits/personality/childish_trait.py
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from ..base_trait import BaseTrait
 from core.enums import TraitType, FunActivityType
 from core.modules.actions import HaveFunAction
@@ -23,3 +23,11 @@ class ChildishTrait(BaseTrait):
             return 6.0 # Bonus molto alto per un comportamento "folle"
         
         return 1.0
+
+    def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
+        # Per ora questo tratto non ha effetti speciali quando viene aggiunto
+        return None
+        
+    def get_on_remove_effects(self) -> Optional[Dict[str, Any]]:
+        # Per ora questo tratto non ha effetti speciali quando viene rimosso
+        return None

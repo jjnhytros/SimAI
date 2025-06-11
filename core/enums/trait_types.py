@@ -30,6 +30,7 @@ class TraitType(Enum):
     SLOB = auto()               # Disordinato
     CHILDISH = auto()           # Infantile
     PLAYFUL = auto()            # Giocherellone
+    UNINHIBITED = auto()        # Disinibito
 
 
     # --- Categoria: Sociale ---
@@ -157,6 +158,7 @@ class TraitType(Enum):
 
     # --- Categoria: Intellettuale ---
     ANALYTICAL = auto()         # Analitico
+    ARTISTIC = auto()           # Artistico
     CURIOUS = auto()            # Curioso
     DETAIL_ORIENTED = auto()    # Attento ai dettagli
     EDUCATED = auto()           # Istruito
@@ -320,6 +322,7 @@ class TraitType(Enum):
             TraitType.FAMILY_ORIENTED: "Orientato alla Famiglia",
             TraitType.FOODIE: "Buongustaio",
             TraitType.FRUGAL: "Frugale",
+            TraitType.UNINHIBITED: {Gender.MALE: "Disinibito", Gender.FEMALE: "Disinibita"},
             TraitType.GLUTTON: "Ghiottone",
             TraitType.GOOD: "Buono",
             TraitType.HATES_CHILDREN: "Odia i Bambini",

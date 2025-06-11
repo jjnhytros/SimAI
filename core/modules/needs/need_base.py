@@ -4,25 +4,27 @@ Definizione della classe base astratta per tutti i Bisogni (Needs) degli NPC.
 Riferimento TODO: IV.1.a, IV.1.b, IV.1.c
 """
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 import random # Assicurati che random sia importato
 
 from core.enums import NeedType
 from core import settings
+
+if TYPE_CHECKING:
+    from core.character import Character
 
 class BaseNeed(ABC):
     """
     Classe base per i bisogni degli NPC.
     Gestisce il valore del bisogno, il suo decadimento e i limiti.
     """
-    def __init__(self,
-                p_need_type: NeedType, 
-                initial_value: Optional[float] = None,
+    def __init__(self, character_owner: 'Character', p_need_type: NeedType, initial_value: Optional[float] = None,
                 decay_rate_per_hour: float = 0.0,
                 min_value: float = settings.NEED_MIN_VALUE,
                 max_value: float = settings.NEED_MAX_VALUE
                 ):
-        self.need_type: NeedType = p_need_type # Assegna il tipo di bisogno
+        self.character_owner: 'Character' = character_owner
+        self.need_type = p_need_type
         self.decay_rate_per_hour: float = decay_rate_per_hour
         self._min_value: float = min_value
         self._max_value: float = max_value

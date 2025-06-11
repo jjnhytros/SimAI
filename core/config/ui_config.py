@@ -42,6 +42,7 @@ NPC_GENDER_COLORS = {
     Gender.OTHER: (100, 100, 100),     # Grigio
     Gender.UNKNOWN: (200, 200, 200)    # Grigio chiaro
 }
+NPC_NAME_FONT_SIZE = 16
 
 DEFAULT_NPC_COLOR = (50, 50, 50) # Grigio scuro per fallback
 NPC_CRITICAL_NEED_INDICATOR_COLOR = (255, 0, 0) # Rosso per il bordo

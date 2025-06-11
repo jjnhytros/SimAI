@@ -1,4 +1,4 @@
-# core/modules/traits/lifestyle/artistic_trait.py
+# core/modules/traits/creative/artistic_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
 from core.enums.fun_activity_types import FunActivityType
 from core.enums.trait_types import TraitType
@@ -13,8 +13,8 @@ class ArtisticTrait(BaseTrait):
     trait_type = TraitType.ART_LOVER # Assicurati che esista nell'Enum
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Artista"
+        super().__init__(character_owner=character_owner, trait_type=TraitType.ARTISTIC)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ha un'anima artistica e trae grande gioia dalla creazione."
 
     def get_action_choice_priority_modifier(self, action, simulation_context):

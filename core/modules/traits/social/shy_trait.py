@@ -15,9 +15,9 @@ class ShyTrait(BaseTrait):
     trait_type = TraitType.SHY
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Timido"
-        self.description = "Questo NPC si sente a disagio in grandi gruppi e preferisce interagire con poche persone alla volta."
+        super().__init__(character_owner=character_owner, trait_type=TraitType.SHY)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
+        self.description = "Si sente a disagio in grandi gruppi e preferisce interagire con poche persone alla volta."
 
     def get_behavioral_action_modifier(self, action, simulation_context):
         if action.action_type_enum == ActionType.ACTION_SOCIALIZE:

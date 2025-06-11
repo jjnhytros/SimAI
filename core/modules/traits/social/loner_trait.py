@@ -12,8 +12,8 @@ class LonerTrait(BaseTrait):
     trait_type = TraitType.LONER
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Solitario"
+        super().__init__(character_owner=character_owner, trait_type=TraitType.LONER)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC preferisce la propria compagnia e si stressa negli eventi sociali."
 
     def get_action_choice_priority_modifier(self, action, simulation_context):

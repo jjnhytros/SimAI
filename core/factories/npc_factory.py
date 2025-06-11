@@ -35,7 +35,7 @@ class NPCFactory:
         
         # Calcola la data di nascita
         min_age_days = int(13 * time_config.DXY)
-        max_age_days = int(120 * time_config.DXY)
+        max_age_days = int(40 * time_config.DXY)
         age_in_days = random.randint(min_age_days, max_age_days)
         age_interval = ATHDateInterval(days=age_in_days)
         birth_date = simulation_start_date.sub(age_interval)
@@ -43,7 +43,10 @@ class NPCFactory:
         # Scegli tratti, aspirazione, interessi...
         num_traits = random.randint(npc_config.MIN_TRAITS_PER_NPC, npc_config.MAX_TRAITS_PER_NPC)
         traits_list = [t for t in TraitType]
-        random_traits = set(random.sample(traits_list, num_traits))
+        random_traits: Set[TraitType] = set(random.sample(
+            npc_config.IMPLEMENTED_TRAITS, 
+            min(num_traits, len(npc_config.IMPLEMENTED_TRAITS))
+        ))
         random_aspiration = random.choice(list(AspirationType))
         num_interests = random.randint(1, npc_config.MAX_NPC_ACTIVE_INTERESTS)
         random_interests = set(random.sample(list(Interest), num_interests))

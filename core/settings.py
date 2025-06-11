@@ -6,7 +6,7 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 # --- Impostazioni Generali del Gioco ---
 GAME_NAME = "SimAI"
 GAME_VERSION = "0.5.116-alpha_274"
-DEBUG_MODE = False
+DEBUG_MODE = True
 FPS = 60
 
 from .config.time_config import (

@@ -14,8 +14,8 @@ class BookwormTrait(BaseTrait):
     trait_type = TraitType.BOOKWORM
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Topo di Biblioteca"
+        super().__init__(character_owner=character_owner, trait_type=TraitType.BOOKWORM)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ama leggere e impara più velocemente dai libri."
 
     def get_action_choice_priority_modifier(self, action, simulation_context):

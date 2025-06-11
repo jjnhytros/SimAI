@@ -8,6 +8,7 @@ class LocationType(Enum):
     # --- Tipi Generici o Non Assegnati ---
     GENERIC_COMMUNITY_LOT = auto()
     GENERIC_LOT = auto()
+    RESIDENTIAL_APARTMENT = auto()
 
     # --- Tipi di Stanze / Micro-Locazioni (Interni) ---
     RESIDENTIAL_BATHROOM = auto()

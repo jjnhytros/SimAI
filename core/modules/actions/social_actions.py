@@ -8,6 +8,8 @@ import random
 # Import di base
 from core.enums import NeedType, RelationshipType, SocialInteractionType, ActionType
 from core import settings
+from core.config import actions_config
+
 from .action_base import BaseAction
 
 # Import solo per il type-checking

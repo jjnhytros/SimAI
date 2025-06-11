@@ -12,11 +12,7 @@ if TYPE_CHECKING:
 
 class ActiveTrait(BaseTrait):
     def __init__(self, character_owner: 'Character'):
-        # --- CORREZIONE DEFINITIVA QUI ---
-        # Passa sia il proprietario che hai ricevuto, sia il tipo di tratto specifico
-        # di questa classe (TraitType.ACTIVE) al costruttore della classe base.
         super().__init__(character_owner=character_owner, trait_type=TraitType.ACTIVE)
-        # --- FINE CORREZIONE ---
         
         # Ora puoi impostare la descrizione specifica per questo tratto.
         self.description = "Questo NPC ama muoversi e fare attività fisica, sentendosi rinvigorito dall'esercizio."

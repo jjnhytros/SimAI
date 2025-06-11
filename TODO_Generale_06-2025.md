@@ -549,7 +549,9 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[x]` iv. Tratti conflittuali. `[1.0.0]`
         * `[x]` v. Suddivisione in categorie. `[1.0.0]`
         * `[ ]` vi. Espandere numero di tratti e profondità del loro impatto. `[1.0.1]`
-        * `[ ]` vii. Elenco Tratti (Implementare le classi per ogni tratto). `[1.0.1]`
+            * `[ ]` vii. Elenco Tratti (da implementare o dettagliare): `[1.0.1]`
+                * **Categoria: Lifestyle/Hobby**
+                    * `[ ]` Art Lover (Amante dell'Arte - visita musei, compra opere) `[NUOVA IDEA]` `[1.1.0]`
         * `[ ]` viii. Tratti Dipendenti da Sistemi Futuri. `[DLC]`
         * `[ ]` ix. Implementare meccaniche di conflitto tra tratti. `[1.0.2]`
         * `[P]` x. Integrare pienamente gli effetti di ogni nuovo tratto definito. `[1.0.0]`
@@ -1828,7 +1830,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 ---
 
 ## 🌐 XXIV. SoNet - Portale Unico dei Servizi al Cittadino di Anthalys `[ ]`
-
+* `[@]` **[DA REVISIONARE]** Il modulo presenta errori di tipo `Pylance` da risolvere prima di proseguire con l'implementazione. `[1.0.1]`
 * `[!]` a. **Definizione Concettuale e Architettura del Portale SoNet:** `[1.0.0]`
 * `[ ]` b. **Implementazione Tecnica dell'Interfaccia Utente (TUI o futura GUI) per SoNet:** `[1.1.0]`
 * `[ ]` c. **Integrazione Funzionalità dei Servizi tramite SoNet:**
@@ -2018,6 +2020,19 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` i. Simulazione delle sfide delle famiglie ricomposte. `[1.2.0]`
     * `[ ]` ii. Simulazione delle sfide specifiche per famiglie monogenitoriali. `[1.2.0]`
     * `[ ]` iii. Processo di adozione (se implementato). `[1.3.0]`
+* `[ ]` g. **Sistema di Supervisione per Minori Emancipati:** `[1.2.0]`
+    * `[ ]` i. Creare un archetipo di NPC "Assistente Sociale" che viene assegnato ai minori che vivono da soli. `[1.2.0]`
+    * `[ ]` ii. Implementare un evento `SOCIAL_WORKER_VISIT` che si attiva periodicamente (es. una volta al mese) e viene segnato nel calendario dei minori. `[1.2.0]`
+    * `[ ]` iii. **Logica dell'Ispezione:** Durante la visita, l'assistente sociale valuta diversi parametri:
+        * `[ ]` 1. Lo stato della casa (pulizia, ordine - da `XVIII.3`).
+        * `[ ]` 2. La disponibilità di cibo (scorte domestiche - da `IV.1.k`).
+        * `[ ]` 3. Lo stato generale dei bisogni e dell'umore dei minori.
+        * `[ ]` 4. Il loro rendimento scolastico (`V.3`).
+    * `[ ]` iv. **Conseguenze della Visita:** L'esito della visita ha conseguenze tangibili.
+        * `[ ]` 1. **Esito Positivo:** Genera un moodlet "Rassicurato" e conferma lo status di indipendenza.
+        * `[ ]` 2. **Esito Negativo:** Genera un moodlet "Preoccupato", un avvertimento ufficiale, e forse un "compito" da svolgere (es. "Migliora i tuoi voti", "Pulisci la casa").
+        * `[ ]` 3. **Esito Molto Negativo (dopo avvertimenti ripetuti):** Rischio di revoca dello status di emancipazione (meccanica avanzata). `[1.3.0]`
+    * `[ ]` v. **Impatto sull'IA:** L'avvicinarsi della visita può creare un "Problema" ad alta priorità per l'IA dei minori ("Pulisci la casa prima dell'arrivo dell'assistente sociale!"). `[1.2.0]`
 
 ---
 

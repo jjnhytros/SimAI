@@ -2,7 +2,6 @@
 """
 Package per la gestione delle abilità (skills) degli NPC.
 """
-from settings import DEBUG_MODE
 from .base_skill import BaseSkill
 
 # Import dalle sottocartelle di categoria
@@ -29,4 +28,6 @@ __all__ = [
     # ... e i nomi delle altre classi Skill
 ]
 
-if DEBUG_MODE: print("  [Skills Package] Package 'core.modules.skills' caricato.")
+from core import settings
+if settings.DEBUG_MODE:
+    print("  [Skills Package] Package 'core.modules.skills' caricato.")

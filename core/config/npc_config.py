@@ -3,6 +3,7 @@
 Configurazione NPC, tratti, bisogni e ciclo di vita
 """
 
+from core.enums.trait_types import TraitType
 from .time_config import DXY, DXM
 from core.enums import NeedType
 
@@ -149,6 +150,15 @@ LASTNAME_SUFFIXES = [
         "ussa", "ussi", "usso", "ut", "uta", "uti", "uto", "utta", "utti", "uzzi", 
         "uzzo", "y", "z"
     ]
+
+IMPLEMENTED_TRAITS = [
+    TraitType.ACTIVE, TraitType.BOOKWORM, TraitType.GLUTTON, TraitType.LONER,
+    TraitType.AMBITIOUS, TraitType.LAZY, TraitType.SOCIAL, TraitType.CREATIVE,
+    TraitType.ARTISTIC, TraitType.CHARMER, TraitType.SHY, TraitType.PLAYFUL,
+    TraitType.CHILDISH, TraitType.UNINHIBITED, TraitType.GOOD,
+    # Aggiungi qui altri tratti man mano che crei le loro classi
+]
+
 
 
 # --- PESI PER L'IA ---

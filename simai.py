@@ -1,117 +1,184 @@
 # simai.py
 """
-SimAI - Simulatore di Vita Artificiale
-Punto di ingresso principale per l'applicazione.
+Punto di ingresso principale per la simulazione SimAI.
+Gestisce l'inizializzazione e l'avvio della simulazione in modalità GUI o TUI.
 """
 import sys
 import os
 import random
 from typing import List, Optional
-from core.factories.npc_factory import NPCFactory
-from core.AI.ai_decision_maker import AIDecisionMaker
-from core.config import time_config
-from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
 
-project_root = os.path.dirname(os.path.abspath(__file__))
-settings_path_check = os.path.join(project_root, 'core', 'settings.py')
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Aggiunge la directory principale al path per permettere import assoluti
+# come 'from core.simulation import Simulation'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
+    from core import settings
     from core.simulation import Simulation
     from core.character import Character
-    from core.enums import (
-        Gender, Interest, RelationshipType, AspirationType, TraitType
-    )
-    from core import settings
-    from core.graphics import Renderer
+    from core.enums import *
+    from core.config import time_config
+    from core.factories.npc_factory import NPCFactory
+    from core.AI.ai_decision_maker import AIDecisionMaker
+    from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
+    from core.graphics.renderer import Renderer
+    # from core.tui.tui_manager import TuiManager # Decommenta quando crei la TUI
 except ImportError as e:
     print(f"Errore di importazione: {e}. Assicurati che i moduli siano nel PYTHONPATH.")
     sys.exit(1)
 
 def setup_test_simulation() -> Simulation:
     """
-    Configura una simulazione di test con NPC generati casualmente
-    con una data di nascita e posizione casuale.
+    Configura una simulazione di test con locazioni, oggetti,
+    i due NPC principali (Erika e Max) e un cast di personaggi casuali.
     """
     print("  [Setup] Avvio configurazione simulazione di test...")
     sim = Simulation()
-    
-    # Ottieni la data di inizio per i calcoli della data di nascita
     sim_start_date = sim.time_manager.get_current_time()
 
+    # --- Caricamento Dati del Mondo ---
+    # Importa le location dai file di dati dei distretti
+    try:
+        from core.data.districts.muse_quarter_data import district_locations as muse_locations
+        from core.data.residential.dosinvelos_data import district_locations as dosinvelos_locations
+        
+        all_locations = muse_locations + dosinvelos_locations
+        
+        for loc in all_locations:
+            sim.locations[loc.location_id] = loc
+            for obj_id, obj in loc.objects.items():
+                sim.world_objects[obj_id] = obj
+    except ImportError:
+        print("  [Setup WARN] File di dati dei distretti non trovati. Caricamento saltato.")
+    
     available_location_ids = list(sim.locations.keys())
     if not available_location_ids:
         print("  [Setup FATAL ERROR] Nessuna locazione definita. Impossibile creare NPC.")
         return sim
 
+    # --- Creazione NPC Fissi (Erika e Max) ---
+    print("  [Setup] Creazione di Erika Lamboretti e Max Volpi...")
+    try:
+        # Calcola la loro data di nascita condivisa (15 anni)
+        age_in_days = int(15 * time_config.DXY)
+        birth_date = sim_start_date.sub(ATHDateInterval(days=age_in_days))
+
+        # --- LOGICA DI POSIZIONAMENTO CASUALE ---
+        dosinvelos_loc_id = "loc_dosinvelos_apt_01"
+        dosinvelos_loc = sim.get_location_by_id(dosinvelos_loc_id)
+        
+        erika_x, erika_y, max_x, max_y = 0, 0, 1, 1 # Valori di default
+
+        if dosinvelos_loc:
+            # Calcola posizioni casuali entro i limiti della location
+            erika_x = random.randint(0, dosinvelos_loc.logical_width - 1)
+            erika_y = random.randint(0, dosinvelos_loc.logical_height - 1)
+            
+            # Calcola una posizione diversa per Max
+            max_x = random.randint(0, dosinvelos_loc.logical_width - 1)
+            max_y = random.randint(0, dosinvelos_loc.logical_height - 1)
+        else:
+            if settings.DEBUG_MODE:
+                print(f"  [Setup WARN] Locazione '{dosinvelos_loc_id}' non trovata per posizionare Erika e Max.")
+        # --- FINE LOGICA DI POSIZIONAMENTO ---
+
+        # Creazione di Erika
+        erika = Character(
+            npc_id="erika_lamboretti", name="Erika Lamboretti", initial_gender=Gender.FEMALE,
+            initial_birth_date=birth_date,
+            initial_traits={TraitType.SOCIAL, TraitType.ACTIVE, TraitType.PARTY_ANIMAL, TraitType.UNINHIBITED},
+            initial_aspiration=AspirationType.SOCIAL_BUTTERFLY,
+            initial_location_id=dosinvelos_loc_id,
+            initial_logical_x=erika_x, # <-- Usa la coordinata casuale
+            initial_logical_y=erika_y,  # <-- Usa la coordinata casuale
+            is_player_character=True
+        )
+        erika.ai_decision_maker = AIDecisionMaker(erika)
+        erika.skill_manager.get_skill(SkillType.COOKING)._level = 3
+        erika.skill_manager.get_skill(SkillType.CHARISMA)._level = 4
+        erika.skill_manager.get_skill(SkillType.DANCING)._level = 2
+        sim.add_npc(erika)
+
+        # Creazione di Max
+        max_v = Character(
+            npc_id="max_volpi", name="Max Volpi", initial_gender=Gender.MALE,
+            initial_birth_date=birth_date,
+            initial_traits={TraitType.LONER, TraitType.BOOKWORM, TraitType.CREATIVE, TraitType.UNINHIBITED},
+            initial_aspiration=AspirationType.BESTSELLING_AUTHOR,
+            initial_location_id=dosinvelos_loc_id,
+            initial_logical_x=max_x, # <-- Usa la coordinata casuale
+            initial_logical_y=max_y,  # <-- Usa la coordinata casuale
+            is_player_character=True
+        )
+        max_v.ai_decision_maker = AIDecisionMaker(max_v)
+        max_v.skill_manager.get_skill(SkillType.WRITING)._level = 4
+        max_v.skill_manager.get_skill(SkillType.LOGIC)._level = 3
+        max_v.skill_manager.get_skill(SkillType.PROGRAMMING)._level = 2
+        sim.add_npc(max_v)
+
+        # Imposta la loro relazione speciale
+        erika.update_relationship(max_v.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=95)
+        max_v.update_relationship(erika.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=95)
+
+        # --- ESPERIMENTO: INNESCO DEI BISOGNI ---
+        print("  [Setup] Innesco bisogni per test IA...")
+        
+        # Rendiamo Erika molto annoiata
+        erika.change_need_value(NeedType.FUN, -75) # Imposta il divertimento a 25
+        
+        # Rendiamo Max molto solo
+        max_v.change_need_value(NeedType.SOCIAL, -80) # Imposta la socialità a 20
+
+        if settings.DEBUG_MODE:
+            print(f"    Bisogno FUN di Erika: {erika.get_need_value(NeedType.FUN):.1f}")
+            print(f"    Bisogno SOCIAL di Max: {max_v.get_need_value(NeedType.SOCIAL):.1f}")
+        # --- FINE ESPERIMENTO ---
+
+        # Imposta Erika come personaggio "osservato" di default
+        sim.set_player_character(erika.npc_id)
+
+    except Exception as e:
+        print(f"  [Setup ERROR] Impossibile creare gli NPC principali: {e}")
+
     # --- Creazione NPC Casuali ---
     npc_factory = NPCFactory()
     num_random_npcs = random.randint(4, 6)
-    print(f"  [Setup] Generazione e posizionamento di {num_random_npcs} NPC casuali...")
+    print(f"  [Setup] Generazione di {num_random_npcs} NPC casuali...")
     
     for i in range(num_random_npcs):
         try:
-            # La factory ora richiede la data di inizio per calcolare la nascita
             random_npc = npc_factory.create_random_npc(
                 simulation_start_date=sim_start_date,
                 available_location_ids=available_location_ids
             )
+            random_npc.ai_decision_maker = AIDecisionMaker(random_npc)
             sim.add_npc(random_npc)
         except Exception as e:
             print(f"  [Setup ERROR] Impossibile creare l'NPC casuale n.{i+1}: {e}")
     
-    # --- Creazione Personaggio Principale ---
-    print("  [Setup] Creazione del personaggio principale 'Alex Valdis'...")
-    try:
-        player_age_days = int(25 * time_config.DXY)
-        player_age_interval = ATHDateInterval(days=player_age_days)
-        player_birth_date = sim_start_date.sub(player_age_interval)
-        
-        player_loc_id = random.choice(available_location_ids)
-        player_loc = sim.get_location_by_id(player_loc_id)
-        player_x = random.randint(0, player_loc.logical_width - 1) if player_loc else 0
-        player_y = random.randint(0, player_loc.logical_height - 1) if player_loc else 0
-
-        player_character = Character(
-            npc_id="player_char_001", 
-            name="Alex Valdis",
-            initial_gender=Gender.NON_BINARY,
-            initial_birth_date=player_birth_date,
-            initial_traits={TraitType.BOOKWORM, TraitType.LONER, TraitType.AMBITIOUS},
-            initial_aspiration=AspirationType.LOREMASTER_OF_ANTHALYS,
-            initial_location_id=player_loc_id,
-            initial_logical_x=player_x,
-            initial_logical_y=player_y
-        )
-        sim.add_npc(player_character)
-        sim.set_player_character(player_character.npc_id)
-    except Exception as e:
-        print(f"  [Setup ERROR] Impossibile creare il personaggio principale: {e}")
-
     print("  [Setup] Configurazione simulazione completata.")
     return sim
 
-def main():
-    """Funzione principale che avvia la simulazione."""
-    print(f"--- Avvio {settings.GAME_NAME} v{settings.GAME_VERSION} ---")
 
+def main():
+    """Punto di ingresso principale dell'applicazione."""
+    print(f"--- Avvio SimAI {settings.GAME_VERSION} ---")
+    
     simulation = setup_test_simulation()
 
-    if not settings.DEBUG_MODE: # Se DEBUG_MODE è False, avvia la GUI
-        print("  Modalità GUI Pygame attivata.")
-        renderer = Renderer(caption=f"{settings.GAME_NAME} - GUI Edition")
-        # Passa la simulazione al game loop della GUI in modo che possa accedervi
-        renderer.run_game_loop(simulation) 
-    else: # Altrimenti (DEBUG_MODE è True), avvia la simulazione testuale come prima
+    if settings.DEBUG_MODE:
+        # --- ESECUZIONE IN MODALITÀ TESTUALE (TUI) ---
         print("  Modalità Testuale (TUI/Debug) attivata.")
-        # Esegui per un numero limitato di tick per il test in modalità TUI
-        # Oppure un loop più lungo se la TUI è interattiva
-        max_ticks_tui = 5000 # Esempio, puoi cambiarlo o rimuoverlo per un loop infinito
+        max_ticks_tui = 5000
         print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
         simulation.run(max_ticks=max_ticks_tui)
+    else:
+        # --- ESECUZIONE IN MODALITÀ GRAFICA (GUI) ---
+        print("  Modalità GUI Pygame attivata.")
+        renderer = Renderer(width=1280, height=768)
+        renderer.run_game_loop(simulation)
 
-    print(f"--- Fine Simulazione {settings.GAME_NAME} ---")
+    print("--- Fine Simulazione SimAI ---")
 
 if __name__ == "__main__":
     main()

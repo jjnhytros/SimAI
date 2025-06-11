@@ -35,7 +35,7 @@ class RelationshipType(Enum):
     FRIEND_CLOSE = auto()               # Amico Stretto
     FRIEND_REGULAR = auto()             # Amico
     ACQUAINTANCE = auto()               # Conoscente
-    
+    CHILDHOOD_BEST_FRIEND = auto()      # Migliori Amici d'Infanzia
     ROMANTIC_PARTNER = auto()           # Partner Romantico (non sposato)
     CRUSH = auto()                      # Cotta / Infatuazione
     EX_PARTNER = auto()                 # Ex Partner Romantico / Ex Coniuge

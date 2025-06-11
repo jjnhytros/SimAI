@@ -3,7 +3,7 @@ import collections
 from dataclasses import dataclass
 from typing import List, Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
 
-# Importa Enum, Config e Settings come prima
+# Importa Enum, Config e Settings
 from core.enums import *
 from core.config import time_config, npc_config
 from core import settings
@@ -16,18 +16,18 @@ from core.modules.moodlets.moodlet_manager import MoodletManager
 from core.modules.lifestages.base_life_stage import BaseLifeStage
 from core.modules.skills.skill_system import SkillManager
 from core.modules.traits import *
+from core.modules.traits.personality.uninhibited_trait import UninhibitedTrait
+from core.modules.traits.social.party_animal_trait import PartyAnimalTrait
 if TYPE_CHECKING:
     from core.simulation import Simulation
     from core.world.location import Location
     from core.modules.time_manager import TimeManager
-    # Questi due rimangono qui perché Character e BaseAction/AIDecisionMaker
-    # dipendono l'uno dall'altro, creando un ciclo.
     from core.modules.actions.action_base import BaseAction 
     from core.AI.ai_decision_maker import AIDecisionMaker
 
-from core.modules.needs import BaseNeed, ThirstNeed # e le altre classi Need
-from core.modules.moodlets.moodlet_definitions import Moodlet # <-- SPOSTATO QUI
-# from core.modules.skills.skill_system import SkillManager # <-- Anche questo andrà qui
+from core.modules.needs import BaseNeed, AchievementNeed, ThirstNeed
+from core.modules.moodlets.moodlet_definitions import Moodlet
+# from core.modules.skills.skill_system import SkillManager
 from core.world.ATHDateTime.ATHDateTime import ATHDateTime
 
 LIFESTAGE_TYPE_TO_CLASS_MAP: Dict[LifeStage, Type[BaseLifeStage]] = {
@@ -35,7 +35,6 @@ LIFESTAGE_TYPE_TO_CLASS_MAP: Dict[LifeStage, Type[BaseLifeStage]] = {
     # ... aggiungi qui le altre classi quando le crei
 }
     
-# Le definizioni di classi e mappe locali possono rimanere qui
 @dataclass
 class RelationshipInfo:
     target_npc_id: str
@@ -45,12 +44,12 @@ class RelationshipInfo:
 
 # Mappa per creare le istanze dei tratti
 # Per istanziare i tratti, importiamo le classi specifiche qui, è sicuro.
-from core.modules.needs.common_needs import AchievementNeed, AutonomyNeed, BladderNeed, ComfortNeed, CreativityNeed, EnergyNeed, EnvironmentNeed, FunNeed, HungerNeed, HygieneNeed, IntimacyNeed, LearningNeed, SafetyNeed, SocialNeed, SpiritualityNeed, ThirstNeed
+from core.modules.needs.common_needs import AchievementNeed, AutonomyNeed, BladderNeed, ComfortNeed, CreativityNeed, EnergyNeed, EnvironmentNeed, FunNeed, HungerNeed, HygieneNeed, IntimacyNeed, LearningNeed, SafetyNeed, SocialNeed, SpiritualityNeed, StressNeed, ThirstNeed
 TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type['BaseTrait']] = {
     TraitType.ACTIVE: ActiveTrait, TraitType.BOOKWORM: BookwormTrait, TraitType.GLUTTON: GluttonTrait,
     TraitType.LONER: LonerTrait, TraitType.AMBITIOUS: AmbitiousTrait, TraitType.LAZY: LazyTrait,
     TraitType.SOCIAL: SocialTrait, TraitType.CREATIVE: CreativeTrait, TraitType.CHILDISH: ChildishTrait,
-    TraitType.PLAYFUL: PlayfulTrait,
+    TraitType.PLAYFUL: PlayfulTrait, TraitType.PARTY_ANIMAL: PartyAnimalTrait, TraitType.UNINHIBITED: UninhibitedTrait,
 }
 
 class Character:
@@ -69,7 +68,8 @@ class Character:
                 initial_romantically_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_school_level: SchoolLevel = SchoolLevel.NONE,
                 initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
-                initial_traits: Optional[Set[TraitType]] = None
+                initial_traits: Optional[Set[TraitType]] = None,
+                is_player_character: bool = False
             ):
 
         # Validazioni
@@ -89,6 +89,7 @@ class Character:
         self.is_busy: bool = False
         self.cognitive_load: float = 0.0; 
         self.lod: LODLevel = initial_lod
+        self.is_player_character: bool = is_player_character
 
         # Personalità e Relazioni
         self.aspiration: Optional[AspirationType] = initial_aspiration
@@ -152,12 +153,18 @@ class Character:
             NeedType.HYGIENE: HygieneNeed, NeedType.BLADDER: BladderNeed, NeedType.INTIMACY: IntimacyNeed,
             NeedType.COMFORT: ComfortNeed, NeedType.ENVIRONMENT: EnvironmentNeed, NeedType.SAFETY: SafetyNeed,
             NeedType.CREATIVITY: CreativityNeed, NeedType.LEARNING: LearningNeed, NeedType.SPIRITUALITY: SpiritualityNeed,
-            NeedType.AUTONOMY: AutonomyNeed, NeedType.ACHIEVEMENT: AchievementNeed, NeedType.THIRST: ThirstNeed
+            NeedType.AUTONOMY: AutonomyNeed, NeedType.ACHIEVEMENT: AchievementNeed, NeedType.THIRST: ThirstNeed,
+            NeedType.STRESS: StressNeed,
         }
         for need_type in NeedType:
             if need_type in need_class_map:
                 # La chiamata esplicita con nome del parametro è più sicura
-                self.needs[need_type] = need_class_map[need_type](p_need_type=need_type)
+                # --- CORREZIONE QUI ---
+                # Ora passiamo i parametri richiesti dal costruttore di BaseNeed
+                self.needs[need_type_enum] = need_class_map[need_type_enum](
+                    character_owner=self,
+                    p_need_type=need_type_enum
+                )
             elif settings.DEBUG_MODE:
                 print(f"  [Char Needs Init WARN - {self.name}] Classe per NeedType.{need_type.name} non in map.")
 

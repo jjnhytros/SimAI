@@ -1,4 +1,4 @@
-# core/modules/traits/lifestyle/creative_trait.py
+# core/modules/traits/creative/creative_trait.py
 from typing import TYPE_CHECKING, Optional, Dict, Any
 from core.enums.trait_types import TraitType
 from ..base_trait import BaseTrait
@@ -11,8 +11,8 @@ class CreativeTrait(BaseTrait):
     trait_type = TraitType.CREATIVE
     
     def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner)
-        self.display_name = "Creativo"
+        super().__init__(character_owner=character_owner, trait_type=TraitType.CREATIVE)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ha una mente fertile e un bisogno innato di creare."
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:

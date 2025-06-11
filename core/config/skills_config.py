@@ -10,8 +10,8 @@ DEFAULT_SKILL_MAX_LEVEL = 12
 
 # Livelli massimi specifici per abilità che fanno eccezione
 SKILL_SPECIFIC_MAX_LEVELS = {
-    SkillType.POTTY_TODDLER: 3,
-    SkillType.BOWLING: 6,
+    # SkillType.POTTY_TODDLER: 3,
+    # SkillType.BOWLING: 6,
     # Aggiungi qui altre eventuali eccezioni
 }
 

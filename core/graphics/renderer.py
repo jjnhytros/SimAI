@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from core.world.location import Location
 
 class Renderer:
-    TILE_SIZE = 32 
+    TILE_SIZE = 18 
     PANEL_WIDTH = 300 
     TEXT_COLOR = (230, 230, 230) 
     PANEL_BG_COLOR = (40, 40, 60) 
@@ -52,23 +52,24 @@ class Renderer:
         self.RED_OBJ = (200, 0, 0)
 
         try:
-            self.font_debug = pygame.font.Font(None, 22)
-            self.font_panel_title = pygame.font.Font(None, 28)
-            self.font_panel_text = pygame.font.Font(None, 20)
+            self.font_main = pygame.font.Font(None, 18)
+            self.font_debug = pygame.font.Font(None, 16)
+            self.font_panel_title = pygame.font.Font(None, 16)
+            self.font_panel_text = pygame.font.Font(None, 16)
             common_system_font_name = "arial"
             try:
-                self.font_main = pygame.font.SysFont(common_system_font_name, 48)
+                self.font_main = pygame.font.SysFont(common_system_font_name, 18)
             except pygame.error:
                 if settings.DEBUG_MODE:
                     print(f"  [Renderer WARN] Font di sistema '{common_system_font_name}' non trovato.")
-                self.font_main = pygame.font.Font(None, 48)
+                self.font_main = pygame.font.Font(None, 16)
         except pygame.error as e:
             if settings.DEBUG_MODE:
                 print(f"  [Renderer ERROR] Errore imprevisto inizializzazione font: {e}.")
-            self.font_debug = pygame.font.Font(None, 22)
-            self.font_panel_title = pygame.font.Font(None, 28)
-            self.font_panel_text = pygame.font.Font(None, 20)
-            self.font_main = pygame.font.Font(None, 48)
+            self.font_debug = pygame.font.Font(None, 16)
+            self.font_panel_title = pygame.font.Font(None, 18)
+            self.font_panel_text = pygame.font.Font(None, 16)
+            self.font_main = pygame.font.Font(None, 20)
 
         self.current_visible_location_id: Optional[str] = None
         self.location_keys_list: List[str] = []
@@ -179,50 +180,52 @@ class Renderer:
                         if settings.DEBUG_MODE:
                             print(f"  [Renderer] Cambiata locazione visualizzata a: ID '{self.current_visible_location_id}'")
                 elif event.key == pygame.K_SPACE:
-                    if simulation and simulation.npcs: # Controlla se ci sono NPC nella simulazione
+                    if simulation and simulation.npcs:
                         
-                        # 1. Ottieni una lista ordinata di TUTTI gli ID degli NPC
-                        all_npc_ids = sorted(list(simulation.npcs.keys()))
+                        # 1. Filtra per ottenere solo gli ID degli NPC contrassegnati come "giocabili"
+                        player_npc_ids = sorted([
+                            npc.npc_id for npc in simulation.npcs.values() if npc.is_player_character
+                        ])
                         
-                        if not all_npc_ids:
-                            # Nessun NPC da ciclare, non fare nulla
-                            pass
-                        else:
-                            next_index = 0 # Default: seleziona il primo NPC della lista
-                            
-                            # 2. Cerca l'NPC attualmente selezionato nella lista globale
-                            if self.selected_npc_id in all_npc_ids:
-                                try:
-                                    current_index = all_npc_ids.index(self.selected_npc_id)
-                                    # Calcola l'indice del prossimo NPC, tornando all'inizio se necessario
-                                    next_index = (current_index + 1) % len(all_npc_ids)
-                                except ValueError:
-                                    # Se c'è un errore (improbabile con il check 'in'), seleziona il primo
-                                    next_index = 0
-                            
-                            # 3. Imposta il nuovo NPC selezionato
-                            self.selected_npc_id = all_npc_ids[next_index]
-                            newly_selected_npc = simulation.get_npc_by_id(self.selected_npc_id)
-                            
-                            if newly_selected_npc and newly_selected_npc.current_location_id:
-                                new_location_id = newly_selected_npc.current_location_id
-                                
-                                # 4. CAMBIA LA VISTA ALLA LOCAZIONE DEL NUOVO NPC
-                                if self.current_visible_location_id != new_location_id:
-                                    self.current_visible_location_id = new_location_id
-                                    # Sincronizza l'indice della locazione per il tasto TAB
-                                    if new_location_id in self.location_keys_list:
-                                        self.current_location_index = self.location_keys_list.index(new_location_id)
-                                    if settings.DEBUG_MODE:
-                                        print(f"  [Renderer] Vista cambiata a: '{new_location_id}' per seguire l'NPC.")
+                        # Se non ci sono NPC giocabili, non fare nulla
+                        if not player_npc_ids:
+                            continue
 
-                                # 5. Centra la telecamera sul nuovo NPC nella sua nuova locazione
-                                current_loc = simulation.get_location_by_id(new_location_id)
-                                if current_loc:
-                                    self._center_camera_on_npc(newly_selected_npc, current_loc)
-
+                        next_index = 0
+                        
+                        # 2. Cerca l'NPC attualmente selezionato nella lista filtrata
+                        if self.selected_npc_id in player_npc_ids:
+                            try:
+                                current_index = player_npc_ids.index(self.selected_npc_id)
+                                # Calcola l'indice del prossimo NPC, tornando all'inizio se necessario
+                                next_index = (current_index + 1) % len(player_npc_ids)
+                            except ValueError:
+                                # Se c'è un errore (improbabile), seleziona il primo
+                                next_index = 0
+                        
+                        # 3. Imposta il nuovo NPC selezionato
+                        self.selected_npc_id = player_npc_ids[next_index]
+                        newly_selected_npc = simulation.get_npc_by_id(self.selected_npc_id)
+                        
+                        if newly_selected_npc and newly_selected_npc.current_location_id:
+                            new_location_id = newly_selected_npc.current_location_id
+                            
+                            # 4. Cambia la vista alla locazione del nuovo NPC se è diversa da quella attuale
+                            if self.current_visible_location_id != new_location_id:
+                                self.current_visible_location_id = new_location_id
+                                # Sincronizza l'indice della locazione per il tasto TAB
+                                if new_location_id in self.location_keys_list:
+                                    self.current_location_index = self.location_keys_list.index(new_location_id)
                                 if settings.DEBUG_MODE:
-                                    print(f"  [Renderer] NPC selezionato globalmente con Spazio: {newly_selected_npc.name}")
+                                    print(f"  [Renderer] Vista cambiata a: '{new_location_id}' per seguire l'NPC.")
+
+                            # 5. Centra la telecamera sul nuovo NPC nella sua locazione
+                            current_loc = simulation.get_location_by_id(new_location_id)
+                            if current_loc:
+                                self._center_camera_on_npc(newly_selected_npc, current_loc)
+
+                            if settings.DEBUG_MODE:
+                                print(f"  [Renderer] NPC selezionato con Spazio: {newly_selected_npc.name}")
                 elif event.key == pygame.K_LEFT:
                     self.camera_offset_x = max(0, self.camera_offset_x - 1)
                 elif event.key == pygame.K_RIGHT:
@@ -276,10 +279,11 @@ class Renderer:
             pygame.draw.circle(self.screen, ui_config.NPC_CRITICAL_NEED_INDICATOR_COLOR, (npc_screen_x, npc_screen_y), current_radius, 3)
         
         if self.font_debug and self.zoom_level >= 0.7: # Mostra nome se lo zoom è sufficiente
-            name_surface = self.font_main.render(character.name, True, self.current_contrast_color)
+            # name_surface = self.font_main.render(character.name, True, self.current_contrast_color)
             # name_surface = self.font_debug.render(character.name, True, self.BLACK)
-            name_rect = name_surface.get_rect(center=(npc_screen_x, npc_screen_y + current_radius + int(10 * self.zoom_level)))
-            self.screen.blit(name_surface, name_rect)
+            # name_rect = name_surface.get_rect(center=(npc_screen_x, npc_screen_y + current_radius + int(10 * self.zoom_level)))
+            # self.screen.blit(name_surface, name_rect)
+            pass
 
     def _draw_game_object(self, game_obj: 'GameObject'):
         if game_obj.logical_x is None or game_obj.logical_y is None:
@@ -304,6 +308,7 @@ class Renderer:
             name_surface = self.font_debug.render(display_name, True, self.BLACK)
             name_rect = name_surface.get_rect(center=(obj_screen_x, obj_screen_y + obj_height // 2 + int(10 * self.zoom_level)))
             self.screen.blit(name_surface, name_rect)
+
     def _draw_text_in_panel(self, text: str, x: int, y: int, font=None, color=None, max_width: Optional[int] = None) -> int:
         """
         Disegna testo nel pannello. Se max_width è specificato, il testo andrà a capo.
@@ -545,6 +550,8 @@ class Renderer:
             gender_str = npc.gender.display_name_it() if npc.gender else "N/D"
             lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
             current_y = self._draw_text_in_panel(f"  {gender_str}, {age_str} ({lifestage_str})", panel_padding, current_y)
+            birth_date_str = npc.birth_date.format("JJ MONTH Y")
+            current_y = self._draw_text_in_panel(f"  Nato il: {birth_date_str}", panel_padding, current_y)
             current_y += 5
 
             if npc.current_action:

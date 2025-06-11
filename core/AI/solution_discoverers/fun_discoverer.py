@@ -1,5 +1,5 @@
 # core/AI/solution_discoverers/fun_discoverer.py
-from typing import List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from core.enums.action_types import ActionType
 from core.enums.skill_types import SkillType
@@ -90,9 +90,18 @@ class FunSolutionDiscoverer(BaseSolutionDiscoverer):
 
         return valid_actions
 
-    def _create_fun_action(self, npc: 'Character', sim: 'Simulation', problem: 'Problem', activity: FunActivityType) -> 'HaveFunAction':
+    def _create_fun_action(self, npc: 'Character', sim: 'Simulation', problem: 'Problem', 
+                           activity: FunActivityType, 
+                             partial_config: Optional[Dict[str, Any]] = None) -> 'HaveFunAction':
         """Metodo helper per creare un'istanza di HaveFunAction con la configurazione corretta."""
-        config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity, {})
+        # 1. Prendi la configurazione base per l'attività
+        config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity, {}).copy()
+
+        # 2. Se viene passata una configurazione parziale, usala per sovrascrivere i valori base
+        if partial_config:
+            config.update(partial_config)
+
+        # 3. Ora crea l'azione usando la configurazione finale
         duration = config.get("duration_hours", actions_config.HAVEFUN_DEFAULT_DURATION_HOURS)
         
         return HaveFunAction(

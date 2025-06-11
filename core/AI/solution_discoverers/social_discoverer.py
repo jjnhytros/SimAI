@@ -1,12 +1,11 @@
 # core/AI/solution_discoverers/social_discoverer.py
-from typing import List, Optional, TYPE_CHECKING, Dict, Any, Tuple, Type, Union
+from typing import List, Optional, TYPE_CHECKING, Dict, Any, Set
 
-from core.enums.object_types import ObjectType
-
-from core.AI.solution_discoverers.base_discoverer import BaseSolutionDiscoverer
-from core.enums import SocialInteractionType
+from .base_discoverer import BaseSolutionDiscoverer
+from core.enums import SocialInteractionType, TraitType, Gender, RelationshipType, NeedType # Aggiungi gli import necessari
 from core.modules.actions import SocializeAction
 from core.config import actions_config
+from core import settings # Aggiungi import settings se non presente
 
 if TYPE_CHECKING:
     from core.modules.memory.memory_definitions import Problem
@@ -17,62 +16,75 @@ if TYPE_CHECKING:
 
 class SocialSolutionDiscoverer(BaseSolutionDiscoverer):
     """
-    Scopre tutte le possibili interazioni sociali con gli NPC presenti nella stessa locazione.
+    Scopre interazioni sociali appropriate basandosi sulla personalità e relazione.
     """
-    def __init__(self, action_class: Type[BaseAction], required_object_types: Union[ObjectType, Tuple[ObjectType, ...]]):
-        self.action_class = action_class
-        self.required_object_types = required_object_types if isinstance(required_object_types, tuple) else (required_object_types,)
 
     def discover(self, problem: 'Problem', npc: 'Character', simulation_context: 'Simulation') -> List['BaseAction']:
         valid_actions: List['BaseAction'] = []
         
+        # FIX 1: Controlla che l'ID della locazione esista prima di usarlo
         current_loc: Optional['Location'] = None
         if npc.current_location_id:
             current_loc = simulation_context.get_location_by_id(npc.current_location_id)
+
         if not current_loc or len(current_loc.npcs_present_ids) <= 1:
-            # Non ci sono altre persone nella stanza, nessuna azione sociale possibile
             return valid_actions
 
-        # Itera su ogni potenziale target nella locazione
         for target_id in current_loc.npcs_present_ids:
-            if target_id == npc.npc_id:
-                continue
+            if target_id == npc.npc_id: continue
             
             target_char = simulation_context.get_npc_by_id(target_id)
-            if not target_char:
-                continue
+            if not target_char: continue
 
-            # Per ogni target, itera su ogni possibile tipo di interazione sociale
-            for interaction_type in SocialInteractionType:
-                # Recupera la configurazione per questa specifica interazione
+            possible_interactions = self._get_possible_interactions(npc, target_char)
+            
+            for interaction_type in possible_interactions:
                 interaction_config = actions_config.SOCIALIZE_INTERACTION_CONFIGS.get(interaction_type, {})
                 
-                # Controlla i prerequisiti (es. punteggio minimo di relazione)
+                # Spostiamo il controllo dei prerequisiti qui, è più pulito
                 min_score_req = interaction_config.get("min_rel_score_req")
                 if min_score_req is not None:
                     relationship = npc.get_relationship_with(target_char.npc_id)
                     if not relationship or relationship.score < min_score_req:
-                        continue # Salta questa interazione, la relazione non è adatta
+                        continue
 
-                # TODO: Aggiungere altri controlli di prerequisiti (es. tratti incompatibili)
-
-                # Se i prerequisiti sono soddisfatti, crea un'istanza dell'azione
                 action_instance = self._create_socialize_action(
                     npc, simulation_context, problem, 
                     target_char, interaction_type, interaction_config
                 )
-
-                # Aggiungila alla lista delle soluzioni valide solo se è eseguibile
                 if action_instance.is_valid():
                     valid_actions.append(action_instance)
         
         return valid_actions
 
-    def _create_socialize_action(self, npc: 'Character', sim: 'Simulation', problem: 'Problem', 
-                                target: 'Character', interaction: 'SocialInteractionType', 
-                                config: Dict[str, Any]) -> 'SocializeAction':
-        """Metodo helper per creare un'istanza di SocializeAction con la configurazione corretta."""
+    def _get_possible_interactions(self, initiator: 'Character', target: 'Character') -> Set[SocialInteractionType]:
+        """Seleziona un set di interazioni sociali appropriate."""
+        possible: Set[SocialInteractionType] = {SocialInteractionType.TALK}
         
+        if initiator.has_trait(TraitType.PLAYFUL):
+            possible.add(SocialInteractionType.TELL_JOKE)
+        
+        # FIX 2: Usa solo il tratto GOOD, che sappiamo esistere
+        if initiator.has_trait(TraitType.GOOD):
+            possible.add(SocialInteractionType.COMPLIMENT)
+            
+        relationship = initiator.get_relationship_with(target.npc_id)
+        if relationship and relationship.score > 30:
+            possible.add(SocialInteractionType.DEEP_CONVERSATION)
+
+        # La logica per flirt e litigi la lasciamo qui per ora
+        # Potrebbe essere spostata in AIDecisionMaker se diventa più complessa
+        if relationship and relationship.score > 10 and (target.gender in initiator.get_romantic_attraction()):
+            possible.add(SocialInteractionType.FLIRT)
+        if relationship and relationship.score < -20:
+            possible.add(SocialInteractionType.ARGUE)
+
+        return possible
+
+    def _create_socialize_action(self, npc: 'Character', sim: 'Simulation', problem: 'Problem', 
+                                target: 'Character', interaction: SocialInteractionType, 
+                                config: Dict[str, Any]) -> 'SocializeAction':
+        """Metodo helper per creare un'istanza di SocializeAction."""
         return SocializeAction(
             npc=npc,
             simulation_context=sim,

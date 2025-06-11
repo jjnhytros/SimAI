@@ -15,6 +15,7 @@ class ObjectType(Enum):
     BOOKSHELF = auto()
     CHEMISTRY_SET = auto()
     TV = auto()
+    FOOD = auto()
 
     # --- Categoria 1: Arredamento (50) ---
     ARMCHAIR = auto()

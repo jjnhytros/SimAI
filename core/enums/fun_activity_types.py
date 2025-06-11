@@ -1,5 +1,7 @@
 # core/enums/fun_activity_types.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum FunActivityType per le attività di svago degli NPC.
 Questa è una versione fusa e dettagliata.
@@ -231,8 +233,11 @@ class FunActivityType(Enum):
     PRIVATE_CONCERT = auto()
     EROTIC_PHOTOGRAPHY = auto()
 
-    def display_name_it(self) -> str:
-        """Restituisce un nome leggibile in italiano per l'attività."""
+    def display_name_it(self, gender: 'Gender') -> str:
+        """
+        Restituisce un nome leggibile per l'attività.
+        La firma accetta 'gender' per coerenza.
+        """
         mapping = {
         # Attività Creative e Artigianali
         FunActivityType.PAINT: "Dipingere",
@@ -416,4 +421,11 @@ class FunActivityType(Enum):
         FunActivityType.LINGERIE_SHOPPING: "Shopping di lingerie",
         FunActivityType.LOVE_POETRY_READING: "Lettura di poesia d’amore"
         }
-        return mapping.get(self, self.name.replace("_", " ").title())
+        value = mapping.get(self)
+
+        if isinstance(value, dict):
+            return value.get(gender, value.get(Gender.MALE, "N/D"))
+        elif isinstance(value, str):
+            return value
+        else:
+            return self.name.replace("_", " ").title()

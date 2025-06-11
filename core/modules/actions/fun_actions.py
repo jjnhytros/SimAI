@@ -9,7 +9,8 @@ if TYPE_CHECKING:
     from core.world.game_object import GameObject
     from core.world.location import Location
 
-from core.enums import NeedType, FunActivityType, ActionType, ObjectType, SkillType
+from core.enums.fun_activity_types import FunActivityType
+from core.enums import NeedType, ActionType, ObjectType, SkillType
 from core.config import time_config, actions_config, npc_config
 from core import settings
 from .action_base import BaseAction
@@ -98,13 +99,25 @@ class HaveFunAction(BaseAction):
 
     def on_start(self):
         super().on_start()
-        if self.target_object and hasattr(self.target_object, 'set_in_use'):
+        if self.target_object:
             self.target_object.set_in_use(self.npc.npc_id)
 
-        # FIX per Errore su Ln 100
-        if settings.DEBUG_MODE and self.activity_type:
-            target_info = f" usando '{self.target_object.name}'" if self.target_object else ""
-            print(f"    [{self.action_type_name} START - {self.npc.name}] Inizia a: {self.activity_type.display_name_it()}{target_info}.")
+        if settings.DEBUG_MODE:
+            # 1. Assegniamo le variabili a dei nomi locali per aiutare Pylance
+            activity = self.activity_type
+            owner_npc = self.npc
+
+            # 2. Aggiungiamo un controllo di sicurezza che forza Pylance a riconoscere i tipi
+            if activity and owner_npc:
+                
+                # 3. Otteniamo il genere
+                owner_gender = owner_npc.gender
+
+                # 4. Ora chiamiamo il metodo.
+                activity_name = getattr(activity, 'display_name_it')(owner_gender)
+                
+                target_info = f" usando '{self.target_object.name}'" if self.target_object else ""
+                print(f"    [{self.action_type_name} START - {owner_npc.name}] Inizia a: {activity_name}{target_info}.")
 
     def execute_tick(self):
         super().execute_tick()
@@ -123,14 +136,16 @@ class HaveFunAction(BaseAction):
                     print(f"        -> Guadagno Skill: {self.skill_xp_gain:.1f} XP in {self.skill_to_practice.name}")
 
             # Recupera il money_gain dalla configurazione dell'attività
-            config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(self.activity_type, {})
-            money_gain = config.get("money_gain", 0.0)
-            
-            if money_gain > 0:
-                # Assumiamo che il Character abbia un attributo 'money'
-                self.npc.money += money_gain
-                if settings.DEBUG_MODE:
-                    print(f"        -> Guadagno Economico: +{money_gain:.2f} Athel")
+        # --- LOGICA TEMPORANEAMENTE COMMENTATA ---
+        # TODO: Decommentare quando Character.money viene implementato (TODO VIII.1.l)
+        # config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(self.activity_type, {})
+        # money_gain = config.get("money_gain", 0.0)
+        # 
+        # if money_gain > 0:
+        #     self.npc.money += money_gain
+        #     if settings.DEBUG_MODE:
+        #         print(f"        -> Guadagno Economico: +{money_gain:.2f} Athel")
+        # --- FINE BLOCCO COMMENTATO ---
 
         if self.target_object and hasattr(self.target_object, 'set_free'):
             self.target_object.set_free()

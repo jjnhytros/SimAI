@@ -1,0 +1,54 @@
+
+version v1.1.1
+name Claire
+age 0.4
+gender female
+
+muscle 0.3
+weight 0.35
+height 0.68
+
+# Proporzioni principali
+breastsize 0.4
+breastfirmness 0.7
+waist 0.3
+hips 0.45
+buttocks 0.4
+leg_length 0.2
+torso_length 0.05
+
+# Pelle e capelli
+skinColor light
+hairColor #A84D2D
+eyesColor #A3AEC7
+eyebrows default
+eyelashes default
+
+# Parti corporee aggiuntive
+headHeight 0.0
+headWidth -0.05
+headDepth -0.05
+
+# Braccia e mani
+armLength 0.0
+armBulk -0.1
+handSize -0.05
+
+# Gambe e piedi
+legWidth -0.1
+footSize -0.05
+
+# Seno dettagliato
+areola_size 0.35
+areola_visibility 0.2
+nipple_size 0.2
+nipple_visibility 0.25
+
+# Peli e dettaglio pelle
+bodyHair light
+pubicHair custom
+freckles low
+skinDetails medium
+
+# Altri tratti
+ethnicity caucasian

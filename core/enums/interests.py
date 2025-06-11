@@ -1,5 +1,7 @@
 # core/enums/interests.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum Interest per gli interessi degli NPC.
 Riferimento TODO: II.2.b, IV.3.b
@@ -215,7 +217,7 @@ class Interest(Enum):
     LOCAL_HISTORY_PRESERVATION = auto() # Preservazione storia locale
     GENEALOGY = auto()              # Genealogia
 
-    def display_name_it(self) -> str:
+    def display_name_it(self, gender: 'Gender') -> str:
         """Restituisce un nome leggibile in italiano per l'interesse."""
         mapping = {
             # Accademici (30)

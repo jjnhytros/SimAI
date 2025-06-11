@@ -3,6 +3,7 @@
 Definizione di SocializeAction, l'azione per le interazioni sociali tra NPC.
 """
 from typing import Dict, Optional, TYPE_CHECKING
+import random
 
 # Import di base
 from core.enums import NeedType, RelationshipType, SocialInteractionType, ActionType
@@ -20,17 +21,17 @@ class SocializeAction(BaseAction):
     Azione per eseguire una specifica interazione sociale tra due NPC.
     """
     def __init__(self, 
-                 npc: 'Character', 
-                 simulation_context: 'Simulation',
-                 target_npc: 'Character',
-                 interaction_type: SocialInteractionType,
-                 duration_ticks: int,
-                 initiator_social_gain: float,
-                 target_social_gain: float,
-                 relationship_score_change: int,
-                 new_relationship_type_on_success: Optional[RelationshipType] = None,
-                 effects_on_target: Optional[Dict[NeedType, float]] = None,
-                 triggering_problem: Optional['Problem'] = None
+                npc: 'Character', 
+                simulation_context: 'Simulation',
+                target_npc: 'Character',
+                interaction_type: SocialInteractionType,
+                duration_ticks: int,
+                initiator_social_gain: float,
+                target_social_gain: float,
+                relationship_score_change: int,
+                new_relationship_type_on_success: Optional[RelationshipType] = None,
+                effects_on_target: Optional[Dict[NeedType, float]] = None,
+                triggering_problem: Optional['Problem'] = None
                 ):
         
         # Salviamo subito l'attributo specifico prima di chiamare super()
@@ -101,23 +102,48 @@ class SocializeAction(BaseAction):
     def on_finish(self):
         # Garantiamo che entrambi gli NPC esistano prima di procedere
         assert self.npc is not None and self.target_npc is not None
+
+        # 1. Recupera la configurazione per questa specifica interazione
+        config = actions_config.SOCIALIZE_INTERACTION_CONFIGS.get(self.interaction_type)
+        if not config:
+            if settings.DEBUG_MODE:
+                print(f"    [{self.action_type_name} WARN] Nessuna configurazione trovata per {self.interaction_type.name}")
+            super().on_finish()
+            self._free_both_npcs()
+            return
+
+        # 2. Determina se l'azione ha avuto successo
+        success_chance = config.get("success_chance", 1.0) # Di default, l'azione ha sempre successo
+        is_successful = random.random() < success_chance
+
+        if is_successful:
+            # Se ha successo, usa i valori di successo o i default
+            rel_change = config.get("rel_change_success", self.relationship_score_change)
+            target_fun_gain = config.get("target_fun_gain", 0.0)
+            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Interazione RIUSCITA. Applico effetti.")
+        else:
+            # Se fallisce, usa i valori di fallimento
+            rel_change = config.get("rel_change_fail", 0)
+            target_fun_gain = 0.0 # Nessun divertimento se la battuta fallisce
+            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Interazione FALLITA. Applico effetti.")
+            # TODO: Aggiungere un moodlet negativo "Imbarazzato" all'iniziatore
+
+        # --- APPLICAZIONE DEGLI EFFETTI CALCOLATI ---
         
-        # Tutti gli accessi seguenti sono ora sicuri per Pylance
-        if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Interazione terminata. Applico effetti.")
-        
+        # 3. Applica effetti sui bisogni
         self.npc.change_need_value(NeedType.SOCIAL, self.initiator_social_gain)
         self.target_npc.change_need_value(NeedType.SOCIAL, self.target_social_gain)
-        if self.effects_on_target:
-            for need_type, amount in self.effects_on_target.items():
-                self.target_npc.change_need_value(need_type, amount)
+        if target_fun_gain > 0:
+            self.target_npc.change_need_value(NeedType.FUN, target_fun_gain)
 
+        # 4. Aggiorna la relazione con il punteggio calcolato
         current_rel = self.npc.get_relationship_with(self.target_npc.npc_id)
         rel_type_to_set = self.new_rel_type_on_success or (current_rel.type if current_rel else RelationshipType.ACQUAINTANCE)
         
-        self.npc.update_relationship(self.target_npc.npc_id, rel_type_to_set, score_change=self.relationship_score_change)
-        self.target_npc.update_relationship(self.npc.npc_id, rel_type_to_set, score_change=self.relationship_score_change)
+        self.npc.update_relationship(self.target_npc.npc_id, rel_type_to_set, score_change=rel_change)
+        self.target_npc.update_relationship(self.npc.npc_id, rel_type_to_set, score_change=rel_change)
 
+        # 5. Chiama il super() e libera gli NPC
         super().on_finish()
         self._free_both_npcs()
         if settings.DEBUG_MODE:

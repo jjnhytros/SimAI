@@ -28,10 +28,6 @@ class ConsequenceAnalyzer:
             print("  [ConsequenceAnalyzer INIT] ConsequenceAnalyzer creato.")
 
     def analyze_action_and_create_memory(self, npc: 'Character', finished_action: 'BaseAction'):
-        """
-        Analizza un'azione completata e, se rilevante, crea e aggiunge un
-        oggetto Memory al MemorySystem dell'NPC.
-        """
         if not npc.memory_system or finished_action.is_interrupted:
             return
 
@@ -61,7 +57,7 @@ class ConsequenceAnalyzer:
             
             emotional_impact = rel_change / 40.0
             salience = abs(emotional_impact) + 0.1
-            description = f"Ho interagito ({interaction_type.name}) con {target_npc.name}."
+            description = f"Ho interagito con {target_npc.name}."
             if interaction_type in {SocialInteractionType.DEEP_CONVERSATION, SocialInteractionType.ARGUE, SocialInteractionType.FLIRT, SocialInteractionType.CONFESS_ATTRACTION, SocialInteractionType.PROPOSE_MARRIAGE}:
                 salience = min(1.0, salience * 2)
 
@@ -77,7 +73,13 @@ class ConsequenceAnalyzer:
         elif isinstance(finished_action, HaveFunAction):
             salience = (finished_action.fun_gain / 100.0) * 0.6
             emotional_impact = salience * 0.9
-            description = f"Mi sono divertito/a: {finished_action.activity_type.display_name_it()}."
+            activity = finished_action.activity_type
+            if activity:
+                # Usiamo il nome dell'enum o una mappatura semplice se necessario
+                # In questo modo, ConsequenceAnalyzer non ha bisogno di conoscere il genere.
+                description = f"Mi sono divertito/a facendo: {activity.name}"
+            else:
+                description = "Mi sono divertito/a."
             related_entities["activity_type"] = finished_action.activity_type
 
         elif isinstance(finished_action, (EatAction, DrinkAction, UseBathroomAction, SleepAction)):

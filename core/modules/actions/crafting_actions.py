@@ -1,8 +1,12 @@
 # core/modules/actions/crafting_actions.py
 import random
+import uuid
+
+from core.enums.object_types import ObjectType
 from .action_base import BaseAction
 from core.enums import ActionType, SkillType, ItemQuality
 from core.world.game_object import GameObject
+from core import settings
 
 class CookAction(BaseAction):
     """Azione per cucinare un pasto. L'esito è un oggetto 'cibo' con una qualità."""

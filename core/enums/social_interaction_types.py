@@ -10,6 +10,7 @@ class SocialInteractionType(Enum):
     
     DEEP_CONVERSATION = auto()
     COMPLIMENT = auto()
+    TALK = auto()
     
     # ================= CATEGORIA 1: INTERAZIONI QUOTIDIANE E AMICHEVOLI (50) =================
     ASK_ABOUT_DAY = auto()

@@ -39,6 +39,7 @@ class LocationType(Enum):
     MUSIC_VENUE_SMALL = auto() # Es. Jazz Club
     PUBLIC_LIBRARY = auto()
     THEATER_VENUE = auto()
+    PUBLIC_PLAZA = auto()
 
     # Via Aeterna (Distretto 3)
     BANK_BRANCH = auto()

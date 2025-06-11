@@ -867,6 +867,14 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` e. Il successo/fallimento delle interazioni dipende da skill, tratti, umore, relazione. `[1.0.0]`
     * `[ ]` f. Dialoghi dinamici (testo che riflette la conversazione). `[FUTURO]`
     * `[ ]` g. Estensione "Total Realism" - Comunicazione Non Verbale. `[2.0.0]`
+    * `[ ]` h. **Calcolo Logico del Successo Sociale:** `[NUOVA IDEA]` `[1.1.0]`
+        * `[ ]` i. Sostituire la `success_chance` fissa con un calcolo dinamico. `[1.1.0]`
+        * `[ ]` ii. Il calcolo considera: Skill dell'iniziatore (Charisma, Comedy), Umore di entrambi, Punteggio relazione, Tratti compatibili/incompatibili. `[1.1.0]`
+    * `[ ]` i. **Sistema di Conversazione Contestuale e Stateful:** `[NUOVA IDEA]` `[1.2.0]`
+        * `[ ]` i. Creare un oggetto `ConversationState` per tracciare lo stato di una conversazione attiva (partecipanti, argomento attuale, umore della conversazione). `[1.2.0]`
+        * `[ ]` ii. Il `SocialManager` gestisce le conversazioni attive, creandole quando due NPC iniziano a parlare e distruggendole quando si allontanano. `[1.2.0]`
+        * `[ ]` iii. Espandere `SocialInteractionType` con interazioni contestuali (es. `ASK_ABOUT_HOBBY`, `COMPLAIN_ABOUT_WEATHER`, `CHANGE_TOPIC`, `GIVE_DETAILED_COMPLIMENT`). `[1.2.0]`
+        * `[ ]` iv. `SocialSolutionDiscoverer` diventa "conversation-aware": se l'NPC è già in una conversazione, propone interazioni pertinenti all'argomento e all'umore attuali, invece di interazioni generiche. `[1.2.0]`
 
 ### **3. Dinamiche di Coppia (Adolescenti):** `[ ]`
     * `[P]` a. Background e Sviluppo Puberale. `[1.2.0]`
@@ -982,6 +990,8 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` i. "Side Gigs" (Lavoretti Extra). `[1.1.0]`
     * `[ ]` j. Elenco Carriere (Implementare le classi per ogni carriera). `[1.0.1]`
     * `[ ]` k. Estensione "Total Realism" - Imprenditorialità e Gestione Aziendale NPC. `[2.0.0]`
+    * `[ ]` l. **Attributo Finanziario Base del Personaggio:** `[1.0.1]`
+        * `[ ]` i. Aggiungere `self.money: float` alla classe `Character` per tracciare i fondi personali. `[1.0.1]`
 
 * **2. Sistema Fiscale e Finanze Pubbliche (Contributo al Sostentamento Civico - CSC):** `[P]`
     * `[!]` a. Principio del CSC. `[1.0.0]`

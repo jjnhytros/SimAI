@@ -59,6 +59,35 @@ HAVEFUN_DEFAULT_COGNITIVE_EFFORT = 0.4 # Default per lo sforzo cognitivo
 
 # Mappa di configurazione per ogni attività di divertimento
 HAVEFUN_ACTIVITY_CONFIGS = {
+    # ================= CATEGORIA 0: Generali =================
+    SocialInteractionType.TALK: {
+        "duration_ticks": 20,
+        "initiator_social_gain": 10.0,
+        "target_social_gain": 10.0,
+        "rel_change": 1, # Una chiacchierata base migliora leggermente la relazione
+    },
+
+    SocialInteractionType.TELL_JOKE: {
+        "duration_ticks": 15,
+        "initiator_social_gain": 5.0, # Meno guadagno sociale, più divertimento
+        "target_fun_gain": 20.0, # L'obiettivo principale è far divertire l'altro
+        "rel_change_success": 3, # Una buona battuta rafforza molto il legame
+        "rel_change_fail": -2,   # Una pessima battuta lo danneggia
+        "success_chance": 0.75,  # 75% di probabilità che la battuta riesca
+        # In futuro, la skill CHARISMA o COMEDY potrebbe influenzare questa probabilità
+    },
+
+    SocialInteractionType.COMPLIMENT: {
+        "duration_ticks": 10,
+        "initiator_social_gain": 2.0,
+        "target_social_gain": 15.0, # Il complimento fa sentire bene chi lo riceve
+        "rel_change_success": 2,
+        "rel_change_fail": -4, # Un complimento goffo o mal percepito è molto dannoso
+        "success_chance": 0.85,
+        # In futuro, un tratto come SHY potrebbe abbassare la probabilità di successo
+    },
+
+    
     # ================= CATEGORIA 1: CREATIVE (30 attività) =================
     FunActivityType.PAINT: {"fun_gain": 45.0, "duration_hours": 2.0, "required_object_types": (ObjectType.EASEL,), "skill_to_practice": SkillType.PAINTING, "skill_xp_gain": 60.0, "cognitive_effort": 0.8},
     FunActivityType.PLAY_GUITAR: {"fun_gain": 40.0, "duration_hours": 1.0, "required_object_types": (ObjectType.GUITAR,), "skill_to_practice": SkillType.GUITAR, "skill_xp_gain": 50.0, "cognitive_effort": 0.7},

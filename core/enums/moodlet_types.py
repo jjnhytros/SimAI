@@ -1,6 +1,8 @@
 # core/enums/moodlet_types.py
 from enum import Enum, auto
 
+from core.enums.genders import Gender
+
 class MoodletType(Enum):
     """Tipi di modificatori di umore (Moodlet) che un NPC può avere."""
     # Categoria 1: Bisogni Fisiologici (50 voci)
@@ -227,47 +229,51 @@ class MoodletType(Enum):
     def display_name_it(self, gender: Gender) -> str:
         """Restituisce un nome leggibile e declinato in base al genere per il moodlet."""
         mapping = {
-            # --- Declinabili (Aggettivi) ---
-            MoodletType.FEELING_ENERGIZED: {Gender.MALE: "Rinvigorito", Gender.FEMALE: "Rinvigorita"},
-            MoodletType.FEELING_TIRED: {Gender.MALE: "Stanco", Gender.FEMALE: "Stanca"},
-            MoodletType.FEELING_EXHAUSTED: {Gender.MALE: "Esausto", Gender.FEMALE: "Esausta"},
-            MoodletType.FEELING_FULL: {Gender.MALE: "Sazio", Gender.FEMALE: "Sazia"},
-            MoodletType.FEELING_HUNGRY: {Gender.MALE: "Affamato", Gender.FEMALE: "Affamata"},
-            MoodletType.FEELING_STARVING: {Gender.MALE: "Morto di fame", Gender.FEMALE: "Morta di fame"},
-            MoodletType.FEELING_REFRESHED: {Gender.MALE: "Rifocillato", Gender.FEMALE: "Rifocillata"},
-            MoodletType.FEELING_THIRSTY: {Gender.MALE: "Assetato", Gender.FEMALE: "Assetata"},
-            MoodletType.FEELING_DEHYDRATED: {Gender.MALE: "Disidratato", Gender.FEMALE: "Disidratata"},
-            MoodletType.FEELING_HAPPY: {Gender.MALE: "Felice", Gender.FEMALE: "Felice"}, # Invariabile
-            MoodletType.FEELING_SAD: {Gender.MALE: "Triste", Gender.FEMALE: "Triste"}, # Invariabile
-            MoodletType.FEELING_ANGRY: {Gender.MALE: "Arrabbiato", Gender.FEMALE: "Arrabbiata"},
-            MoodletType.FEELING_STRESSED: {Gender.MALE: "Stressato", Gender.FEMALE: "Stressata"},
-            MoodletType.FEELING_BORED: {Gender.MALE: "Annoiato", Gender.FEMALE: "Annoiata"},
-            MoodletType.FEELING_INSPIRED: {Gender.MALE: "Ispirato", Gender.FEMALE: "Ispirata"},
-            MoodletType.FEELING_CONFIDENT: {Gender.MALE: "Sicuro di sé", Gender.FEMALE: "Sicura di sé"},
-            MoodletType.FEELING_EMBARRASSED: {Gender.MALE: "Imbarazzato", Gender.FEMALE: "Imbarazzata"},
-            MoodletType.FEELING_FLIRTY: {Gender.MALE: "Ammiccante", Gender.FEMALE: "Ammiccante"}, # Invariabile
-            MoodletType.FEELING_LONELY: {Gender.MALE: "Solo", Gender.FEMALE: "Sola"},
-            MoodletType.FEELING_LOVED: {Gender.MALE: "Amato", Gender.FEMALE: "Amata"},
-            MoodletType.FEELING_CLEAN: {Gender.MALE: "Pulito", Gender.FEMALE: "Pulita"},
-            MoodletType.FEELING_DIRTY: {Gender.MALE: "Sporco", Gender.FEMALE: "Sporca"},
+            # --- Declinabili (Aggettivi) - NOMI CORRETTI ---
+            MoodletType.ENERGETIC: {Gender.MALE: "Rinvigorito", Gender.FEMALE: "Rinvigorita"},
+            MoodletType.TIRED: {Gender.MALE: "Stanco", Gender.FEMALE: "Stanca"},
+            MoodletType.EXHAUSTED: {Gender.MALE: "Esausto", Gender.FEMALE: "Esausta"},
+            MoodletType.WELL_FED: {Gender.MALE: "Sazio", Gender.FEMALE: "Sazia"}, # WELL_FED o SATIATED
+            MoodletType.HUNGRY: {Gender.MALE: "Affamato", Gender.FEMALE: "Affamata"},
+            MoodletType.STARVING: {Gender.MALE: "Morto di fame", Gender.FEMALE: "Morta di fame"},
+            MoodletType.REFRESHED: {Gender.MALE: "Rifocillato", Gender.FEMALE: "Rifocillata"},
+            MoodletType.THIRSTY: {Gender.MALE: "Assetato", Gender.FEMALE: "Assetata"},
+            MoodletType.DEHYDRATED: {Gender.MALE: "Disidratato", Gender.FEMALE: "Disidratata"},
+            MoodletType.HAPPY: {Gender.MALE: "Felice", Gender.FEMALE: "Felice"},
+            MoodletType.SAD: {Gender.MALE: "Triste", Gender.FEMALE: "Triste"},
+            MoodletType.ENRAGED: {Gender.MALE: "Arrabbiato", Gender.FEMALE: "Arrabbiata"}, # ENRAGED o IRRITATED
+            MoodletType.STRESSED: {Gender.MALE: "Stressato", Gender.FEMALE: "Stressata"},
+            MoodletType.BORED: {Gender.MALE: "Annoiato", Gender.FEMALE: "Annoiata"},
+            MoodletType.INSPIRED: {Gender.MALE: "Ispirato", Gender.FEMALE: "Ispirata"},
+            MoodletType.CONFIDENT: {Gender.MALE: "Sicuro di sé", Gender.FEMALE: "Sicura di sé"},
+            # Nota: Manca un ENUM per Imbarazzato, puoi aggiungerlo se vuoi
+            # MoodletType.EMBARRASSED: {Gender.MALE: "Imbarazzato", Gender.FEMALE: "Imbarazzata"}, 
+            MoodletType.FLIRTATIOUS: {Gender.MALE: "Ammiccante", Gender.FEMALE: "Ammiccante"},
+            MoodletType.LONELY: {Gender.MALE: "Solo", Gender.FEMALE: "Sola"},
+            MoodletType.LOVED: {Gender.MALE: "Amato", Gender.FEMALE: "Amata"},
+            MoodletType.CLEAN: {Gender.MALE: "Pulito", Gender.FEMALE: "Pulita"},
+            MoodletType.DIRTY: {Gender.MALE: "Sporco", Gender.FEMALE: "Sporca"},
 
-            # --- Invariabili (Nomi) ---
-            MoodletType.BLADDER_DISTRESS: "Vescica Piena",
-            MoodletType.NEW_FRIEND: "Nuovo Amico",
-            MoodletType.FIRST_KISS: "Primo Bacio",
-            MoodletType.GOT_PROMOTED: "Promozione Ottenuta",
-            MoodletType.GOT_FIRED: "Licenziamento Subito",
-            MoodletType.DEATH_OF_A_LOVED_ONE: "Lutto",
-            MoodletType.BEAUTIFUL_SURROUNDINGS: "Ambiente Magnifico",
-            MoodletType.POOR_ENVIRONMENT: "Ambiente Scadente",
+            # --- Invariabili (Nomi) - NOMI CORRETTI ---
+            # Nota: Alcuni di questi potrebbero non avere un membro enum corrispondente esatto,
+            # dovrai creare i membri dell'enum se vuoi usarli.
+            # Es: BLADDER_DISTRESS non esiste, ma BLADDER_FULL sì.
+            MoodletType.BLADDER_FULL: "Vescica Piena", 
+            # MoodletType.NEW_FRIEND: "Nuovo Amico", # Manca nell'enum
+            # MoodletType.FIRST_KISS: "Primo Bacio", # Manca nell'enum
+            # MoodletType.GOT_PROMOTED: "Promozione Ottenuta", # Manca
+            # MoodletType.GOT_FIRED: "Licenziamento Subito", # Manca
+            # MoodletType.DEATH_OF_A_LOVED_ONE: "Lutto", # Manca
+            # MoodletType.BEAUTIFUL_SURROUNDINGS: "Ambiente Magnifico", # Manca
+            # MoodletType.POOR_ENVIRONMENT: "Ambiente Scadente", # Manca
         }
         
         value = mapping.get(self)
 
         if isinstance(value, dict):
-            # Usa il maschile come fallback se il genere non è specificato
             return value.get(gender, value.get(Gender.MALE, "N/D"))
         elif isinstance(value, str):
             return value
         else:
+            # Se un moodlet non è nella mappa, restituisce il suo nome "pulito"
             return self.name.replace("_", " ").title()

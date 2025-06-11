@@ -5,7 +5,7 @@ Definizione della classe GameObject, per oggetti interattivi nel mondo di gioco.
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from core.enums import ObjectType, FunActivityType
+from core.enums import ObjectType, FunActivityType, ItemQuality
 
 @dataclass
 class GameObject:
@@ -22,7 +22,7 @@ class GameObject:
     comfort_value: int = 0
     is_water_source: bool = False
     provides_fun_activities: List[FunActivityType] = field(default_factory=list)
-
+    quality: Optional[ItemQuality] = None
     # --- Campi di STATO (non nel costruttore, inizializzati dopo) ---
     # Usiamo init=False per dire alla dataclass di non includerli in __init__.
     # Saranno inizializzati a un valore di default tramite __post_init__.

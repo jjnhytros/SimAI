@@ -37,36 +37,36 @@ class ConfigValidator:
             ],
             'npc_config': [
                 ('MIN_TRAITS_PER_NPC', lambda v: 1 <= v <= MAX_TRAITS_PER_NPC, 
-                 "MIN_TRAITS_PER_NPC deve essere <= MAX_TRAITS_PER_NPC"),
+                    "MIN_TRAITS_PER_NPC deve essere <= MAX_TRAITS_PER_NPC"),
                 ('LIFE_STAGE_AGE_THRESHOLDS_DAYS', self._check_ascending_thresholds,
-                 "Soglie età devono essere in ordine crescente"),
+                    "Soglie età devono essere in ordine crescente"),
                 ('NEED_DECAY_RATES', self._check_negative_values,
-                 "Tassi decadimento bisogni devono essere negativi"),
+                    "Tassi decadimento bisogni devono essere negativi"),
                 ('NEED_CRITICAL_THRESHOLD', lambda v: 0 <= v <= 100,
-                 "Soglia critica bisogni deve essere tra 0 e 100"),
+                    "Soglia critica bisogni deve essere tra 0 e 100"),
             ],
             'school_config': [
                 ('SCHOOL_LEVELS', self._check_school_levels,
-                 "Livelli scolastici devono avere età di inizio e durata coerenti"),
+                    "Livelli scolastici devono avere età di inizio e durata coerenti"),
                 ('PERFORMANCE_THRESHOLDS', self._check_performance_thresholds,
-                 "Soglie prestazioni devono essere in ordine decrescente"),
+                "Soglie prestazioni devono essere in ordine decrescente"),
             ],
             'economy_config': [
                 ('TAX_BRACKETS_CSC_R', self._check_tax_brackets,
-                 "Scaglioni fiscali devono essere ordinati e con aliquote crescenti"),
+                    "Scaglioni fiscali devono essere ordinati e con aliquote crescenti"),
                 ('SALARY_RANGES_ATHEL_ANNUAL', self._check_salary_ranges,
-                 "Range salariali devono avere min <= max"),
+                    "Range salariali devono avere min <= max"),
             ],
             'social_config': [
                 ('DATING_CANDIDATE_MIN_AGE_DAYS', 
-                 lambda v: v >= AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS,
-                 "Età minima appuntamenti deve essere >= età minima servizio Amori Curati"),
+                    lambda v: v >= AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS,
+                    "Età minima appuntamenti deve essere >= età minima servizio Amori Curati"),
             ],
             'environment_config': [
                 ('PLANET_AXIAL_TILT_DEGREES', lambda v: -90 <= v <= 90,
-                 "Inclinazione assiale deve essere tra -90 e 90 gradi"),
+                    "Inclinazione assiale deve essere tra -90 e 90 gradi"),
                 ('PLANET_ORBITAL_ECCENTRICITY', lambda v: 0 <= v < 1,
-                 "Eccentricità orbitale deve essere tra 0 e 1"),
+                    "Eccentricità orbitale deve essere tra 0 e 1"),
             ]
         }
     

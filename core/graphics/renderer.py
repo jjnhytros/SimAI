@@ -482,6 +482,7 @@ class Renderer:
 
         # --- 4. LOGICA PER DETERMINARE COSA VISUALIZZARE ---
         if simulation:
+            current_sim_time = simulation.time_manager.get_current_time()
             if self.current_visible_location_id:
                 current_location_instance_for_panel = simulation.get_location_by_id(self.current_visible_location_id)
 
@@ -533,13 +534,13 @@ class Renderer:
             npc = npc_to_display_in_panel
             text_indent = panel_padding + 15
             value_max_width = self.PANEL_WIDTH - text_indent - panel_padding
-            
+
             # Usa il colore del titolo calcolato all'inizio anche per il nome dell'NPC
             current_y = self._draw_text_in_panel(f"NPC Sel: {npc.name}", panel_padding, current_y, font=self.font_panel_title, color=title_contrast_color)
             
             # Calcola e disegna l'età
-            current_sim_time = simulation.time_manager.get_current_time() # Ora questo è sicuro
-            age_str = f"{npc.get_age_in_years_float(current_sim_time):.12f} anni"
+            # current_sim_time = simulation.time_manager.get_current_time() # Ora questo è sicuro
+            age_str = f"{npc.get_age_in_years_float(current_sim_time):.12f} anni" # type: ignore
             
             gender_str = npc.gender.display_name_it() if npc.gender else "N/D"
             lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
@@ -561,11 +562,16 @@ class Renderer:
             trait_str = ", ".join(sorted(trait_display_names)) if trait_display_names else "Nessuno"
             current_y = self._draw_text_in_panel("  Tratti: " + trait_str, panel_padding, current_y, max_width=value_max_width)
 
-            asp_name = npc.aspiration.display_name_it(npc.gender)
+            asp_name = "Nessuna" # Valore di default
+            # Controlla prima se l'NPC ha un'aspirazione
+            if npc.aspiration:
+                # Solo se esiste, chiama il metodo per ottenere il nome declinato
+                asp_name = npc.aspiration.display_name_it(npc.gender)
+            
             asp_prog = npc.aspiration_progress
             current_y = self._draw_text_in_panel(f"  Aspirazione: {asp_name} ({asp_prog:.0%})", panel_padding, current_y, max_width=value_max_width)
             
-            interest_names = [i.display_name_it() for i in npc.get_interests()]
+            interest_names = [i.display_name_it(npc.gender) for i in npc.get_interests()]
             interest_str = ", ".join(sorted(interest_names)) if interest_names else "Nessuno"
             current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=value_max_width)
             current_y += self.LINE_HEIGHT

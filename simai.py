@@ -8,6 +8,8 @@ import os
 import random
 from typing import TYPE_CHECKING, List, Optional
 
+from core.world.location import Location
+
 # Aggiunge la directory principale al path per permettere import assoluti
 # come 'from core.simulation import Simulation'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -52,9 +54,11 @@ def setup_test_simulation() -> Simulation:
     print("  [Setup] Avvio configurazione simulazione di test...")
     sim = Simulation()
     sim_start_date = sim.time_manager.get_current_time()
+    all_locations: List[Location] = [] # Assicurati di importare List e Location da typing
 
     # --- Caricamento Dati del Mondo ---
-    # Importa le location dai file di dati dei distretti
+    all_locations: List['Location'] = [] 
+
     try:
         from core.data.districts.muse_quarter_data import district_locations as muse_locations
         from core.data.residential.dosinvelos_data import district_locations as dosinvelos_locations
@@ -65,38 +69,53 @@ def setup_test_simulation() -> Simulation:
             sim.locations[loc.location_id] = loc
             for obj_id, obj in loc.objects.items():
                 sim.world_objects[obj_id] = obj
-    except ImportError:
-        print("  [Setup WARN] File di dati dei distretti non trovati. Caricamento saltato.")
+
+    # --- MODIFICA QUI ---
+    except ImportError as e:
+        # Stampiamo l'errore esatto per capire cosa non va
+        print(f"\n  [Setup FATAL ERROR] Impossibile importare i file di dati dei distretti: {e}")
+        print("  [Setup INFO] Assicurati che i file .py dei dati e le cartelle che li contengono (data, districts, residential) abbiano tutte un file __init__.py vuoto.\n")
+    # --- FINE MODIFICA ---
     
     available_location_ids = list(sim.locations.keys())
     if not available_location_ids:
         print("  [Setup FATAL ERROR] Nessuna locazione definita. Impossibile creare NPC.")
         return sim
+    # if not public_spawn_location_ids:
+    #     # Se non ci sono locazioni pubbliche, usiamo tutte quelle disponibili come fallback
+    #     print("  [Setup WARN] Nessuna locazione pubblica per lo spawn trovata. Uso tutte le locazioni.")
+    #     public_spawn_location_ids = list(sim.locations.keys())
+
 
     # --- Creazione NPC Fissi (Erika e Max) ---
     print("  [Setup] Creazione di Erika Lamboretti e Max Volpi...")
     try:
         # Calcola la loro data di nascita condivisa (15 anni)
-        age_in_days = int(15 * time_config.DXY)
+        age_in_days = int(15.153845649346 * time_config.DXY)
         birth_date = sim_start_date.sub(ATHDateInterval(days=age_in_days))
 
         # --- LOGICA DI POSIZIONAMENTO CASUALE ---
         dosinvelos_loc_id = "loc_dosinvelos_apt_01"
         dosinvelos_loc = sim.get_location_by_id(dosinvelos_loc_id)
-        
-        erika_x, erika_y, max_x, max_y = 0, 0, 1, 1 # Valori di default
 
-        if dosinvelos_loc:
-            # Calcola posizioni casuali entro i limiti della location
-            erika_x = random.randint(0, dosinvelos_loc.logical_width - 1)
-            erika_y = random.randint(0, dosinvelos_loc.logical_height - 1)
-            
-            # Calcola una posizione diversa per Max
-            max_x = random.randint(0, dosinvelos_loc.logical_width - 1)
-            max_y = random.randint(0, dosinvelos_loc.logical_height - 1)
+        # --- LOGICA DI POSIZIONAMENTO SICURO ---
+        walkable_tiles = []
+        if dosinvelos_loc and dosinvelos_loc.walkable_grid:
+            # Trova tutte le coordinate (x,y) dove il valore è True
+            walkable_tiles = [
+                (x, y) for y, row in enumerate(dosinvelos_loc.walkable_grid)
+                for x, is_walkable in enumerate(row) if is_walkable
+            ]
+
+        if walkable_tiles:
+            # Scegli due posizioni casuali dalla lista di quelle valide
+            pos_erika = random.choice(walkable_tiles)
+            pos_max = random.choice(walkable_tiles)
         else:
+            # Fallback se non ci sono tile calpestabili
+            pos_erika, pos_max = (0, 0), (1, 1)
             if settings.DEBUG_MODE:
-                print(f"  [Setup WARN] Locazione '{dosinvelos_loc_id}' non trovata per posizionare Erika e Max.")
+                print(f"  [Setup WARN] Nessuna mattonella calpestabile trovata in '{dosinvelos_loc_id}'.")
         # --- FINE LOGICA DI POSIZIONAMENTO ---
 
         # Creazione di Erika
@@ -106,8 +125,8 @@ def setup_test_simulation() -> Simulation:
             initial_traits={TraitType.SOCIAL, TraitType.ACTIVE, TraitType.PARTY_ANIMAL, TraitType.UNINHIBITED},
             initial_aspiration=AspirationType.SOCIAL_BUTTERFLY,
             initial_location_id=dosinvelos_loc_id,
-            initial_logical_x=erika_x, # <-- Usa la coordinata casuale
-            initial_logical_y=erika_y,  # <-- Usa la coordinata casuale
+            initial_logical_x=pos_erika[0], # Usa la coordinata x sicura
+            initial_logical_y=pos_erika[1], # Usa la coordinata y sicura
             is_player_character=True
         )
         erika.ai_decision_maker = AIDecisionMaker(erika)
@@ -123,8 +142,8 @@ def setup_test_simulation() -> Simulation:
             initial_traits={TraitType.LONER, TraitType.BOOKWORM, TraitType.CREATIVE, TraitType.UNINHIBITED},
             initial_aspiration=AspirationType.BESTSELLING_AUTHOR,
             initial_location_id=dosinvelos_loc_id,
-            initial_logical_x=max_x, # <-- Usa la coordinata casuale
-            initial_logical_y=max_y,  # <-- Usa la coordinata casuale
+            initial_logical_x=pos_max[0], # Usa la coordinata x sicura
+            initial_logical_y=pos_max[1], # Usa la coordinata y sicura
             is_player_character=True
         )
         max_v.ai_decision_maker = AIDecisionMaker(max_v)
@@ -157,6 +176,20 @@ def setup_test_simulation() -> Simulation:
     except Exception as e:
         print(f"  [Setup ERROR] Impossibile creare gli NPC principali: {e}")
 
+    # Filtra le locazioni per trovare quelle pubbliche adatte allo spawn
+    public_spawn_location_types = {
+        LocationType.PARK, 
+        LocationType.CAFE, 
+        LocationType.MUSEUM, 
+        LocationType.JAZZ_CLUB
+    }
+    public_spawn_location_ids = [
+        loc.location_id for loc in sim.locations.values() if loc.location_type in public_spawn_location_types
+    ]
+    # Se non ci sono locazioni pubbliche, usiamo tutte quelle disponibili come fallback
+    if not public_spawn_location_ids:
+        public_spawn_location_ids = list(sim.locations.keys())
+
     # --- Creazione NPC Casuali ---
     npc_factory = NPCFactory()
     num_random_npcs = random.randint(4, 6)
@@ -164,12 +197,40 @@ def setup_test_simulation() -> Simulation:
     
     for i in range(num_random_npcs):
         try:
+            # 1. Scegli una locazione pubblica a caso dove far apparire l'NPC
+            random_loc_id = random.choice(public_spawn_location_ids)
+            spawn_loc = sim.get_location_by_id(random_loc_id)
+            
+            if not spawn_loc: continue # Salta se la locazione non esiste
+
+            # 2. Trova tutte le mattonelle calpestabili in quella locazione
+            walkable_tiles = []
+            if spawn_loc.walkable_grid:
+                walkable_tiles = [
+                    (x, y) for y, row in enumerate(spawn_loc.walkable_grid)
+                    for x, is_walkable in enumerate(row) if is_walkable
+                ]
+            
+            # Se non ci sono punti validi, salta la creazione di questo NPC
+            if not walkable_tiles: continue
+
+            # 3. Scegli coordinate casuali da quelle valide
+            spawn_x, spawn_y = random.choice(walkable_tiles)
+
+            # 4. Crea l'NPC "vuoto" con la factory
             random_npc = npc_factory.create_random_npc(
-                simulation_start_date=sim_start_date,
-                available_location_ids=available_location_ids
+                simulation_start_date=sim_start_date
             )
+            
+            # 5. Assegna la posizione e l'IA all'NPC appena creato
+            random_npc.current_location_id = random_loc_id
+            random_npc.logical_x = spawn_x
+            random_npc.logical_y = spawn_y
             random_npc.ai_decision_maker = AIDecisionMaker(random_npc)
+            
+            # 6. Aggiungi l'NPC completo alla simulazione
             sim.add_npc(random_npc)
+
         except Exception as e:
             print(f"  [Setup ERROR] Impossibile creare l'NPC casuale n.{i+1}: {e}")
     

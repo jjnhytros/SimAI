@@ -5,10 +5,13 @@ che può contenere oggetti e NPC.
 Riferimento TODO: XVIII.1
 """
 from dataclasses import dataclass, field
-from typing import List, Set, Optional, Dict
+from typing import Any, List, Set, Optional, Dict
+import random
 
 from core.enums import LocationType, ObjectType
+from core.enums.tile_types import TileType
 from .game_object import GameObject  # Importa la classe GameObject che abbiamo appena definito
+from core.config import graphics_config
 
 @dataclass
 class Location:
@@ -16,15 +19,24 @@ class Location:
     location_id: str
     name: str
     location_type: LocationType
-    description: str = ""
-    logical_width: int = 20  # Default: 20 celle di larghezza
-    logical_height: int = 15 # Default: 15 celle di altezza
+    logical_width: int
+    logical_height: int
+    tile_map: List[List[TileType]]
 
-    # Dizionario degli oggetti presenti in questa locazione (object_id -> GameObject)
-    objects: Dict[str, GameObject] = field(default_factory=dict)
+    style: str = "default"
+    description: str = ""
     
-    # Set degli ID degli NPC attualmente presenti in questa locazione
+    # --- CAMPI CON GESTIONE SPECIALE ---
+    processed_tile_map: List[List[Dict[str, Any]]] = field(init=False, default_factory=list)
+    objects: Dict[str, GameObject] = field(default_factory=dict)
     npcs_present_ids: Set[str] = field(default_factory=set)
+    walkable_grid: List[List[bool]] = field(init=False, default_factory=list)
+
+    def __post_init__(self):
+        """Metodo speciale chiamato dalle dataclass dopo l'__init__."""
+        if self.tile_map:
+            self._process_tile_map()
+            self._create_walkability_grid()
 
     def add_object(self, obj: GameObject):
         """Aggiunge un oggetto alla locazione."""
@@ -75,3 +87,37 @@ class Location:
     #         if activity_type in obj.provides_fun_activities and not obj.is_in_use:
     #             return obj
     #     return None
+
+    def _process_tile_map(self):
+        """
+        Analizza la mappa di base e crea una mappa processata e stabile.
+        Sceglie una variante casuale per i tipi di mattonelle che ne hanno più di una.
+        """
+        self.processed_tile_map = []
+        for y, row in enumerate(self.tile_map):
+            new_row = []
+            for x, tile_type in enumerate(row):
+                tile_info = {"type": tile_type, "variant_index": 0}
+                
+                # Se il tipo di tile ha più varianti (come il nostro muro esterno)
+                # Scegliamo una variante a caso QUI, una sola volta.
+                tile_def = graphics_config.TILE_DEFINITIONS.get(self.style, {}).get(tile_type)
+                if isinstance(tile_def, list) and len(tile_def) > 0:
+                    tile_info["variant_index"] = random.randint(0, len(tile_def) - 1)
+                
+                new_row.append(tile_info)
+            self.processed_tile_map.append(new_row)
+
+    def _create_walkability_grid(self):
+        """
+        Crea una griglia booleana basata sulla tile_map, indicando le
+        celle calpestabili (True) e quelle solide (False).
+        """
+        self.walkable_grid = []
+        for y, row in enumerate(self.tile_map):
+            new_row = []
+            for x, tile_type in enumerate(row):
+                # Una cella è calpestabile se il suo tipo NON è nella lista dei solidi
+                is_walkable = tile_type not in graphics_config.SOLID_TILE_TYPES
+                new_row.append(is_walkable)
+            self.walkable_grid.append(new_row)

@@ -1237,8 +1237,11 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[x]` f. Integrazione pulita di `pygame.quit()`. `[1.0.0]`
     * `[P]` g. Possibilità di visualizzare testo base sullo schermo. `[1.0.0]`
     * `[P]` h. Struttura per disegnare entità base della simulazione. `[1.0.0]`
-        * `[P]` i. Funzione per disegnare un NPC. `[1.0.0]`
-        * `[ ]` **ii. Indicatore Visivo per NPC Selezionato (il "Focus Astrale"):** `[NUOVO]`
+        * `[x]` i. Funzione per disegnare un NPC (come cerchio). `[1.0.0]`
+        * `[P]` ii. Indicatore Visivo per NPC Selezionato (il "Focus Astrale"). `[1.0.1]`
+        * `[x]` iii. Funzione per disegnare un oggetto (da spritesheet). `[1.0.0]`
+        * `[x]` iv. Implementare un sistema di "telecamera" (offset, zoom). `[1.0.0]`
+        * `[x]` v. **Disegnare il mondo con una mappa a mattonelle (Tilemap).** `[1.0.0]`
             * `[ ]` 1. Disegnare un indicatore visivo (es. un rombo o un cristallo stilizzato fluttuante) sopra la testa dell'NPC attualmente selezionato dal giocatore. `[1.0.1]`
             * `[ ]` 2. Il colore del Focus Astrale cambia in base all'umore generale dell'NPC selezionato (es. verde per felice, blu per triste, rosso per arrabbiato). `[1.0.2]`
         * `[P]` iii. Funzione per disegnare un oggetto. `[1.0.0]`

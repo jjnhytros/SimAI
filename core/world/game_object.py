@@ -22,13 +22,14 @@ class GameObject:
     comfort_value: int = 0
     is_water_source: bool = False
     provides_fun_activities: List[FunActivityType] = field(default_factory=list)
+    style: str = "default"
     quality: Optional[ItemQuality] = None
     # --- Campi di STATO (non nel costruttore, inizializzati dopo) ---
     # Usiamo init=False per dire alla dataclass di non includerli in __init__.
     # Saranno inizializzati a un valore di default tramite __post_init__.
     is_in_use_by: Optional[str] = field(init=False, default=None)
     is_broken: bool = field(init=False, default=False)
-
+    
     def __post_init__(self):
         """
         Metodo speciale delle dataclass che viene chiamato automaticamente dopo __init__.

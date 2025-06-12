@@ -4,12 +4,17 @@ Gestisce l'inizializzazione di Pygame, la finestra di gioco e il loop di renderi
 Riferimento TODO: I.1
 """
 import pygame
+import random
 from typing import Optional, TYPE_CHECKING, List, Tuple # Aggiunto Tuple per type hint
 
 from core import settings
-from core.config import (ui_config, time_config)
+from core.config import (ui_config, time_config, graphics_config)
+from core.config.graphics_config import SHEET_DOORS, SHEET_FLOORS
+
 from core.enums import Gender, ObjectType
+from core.enums.tile_types import TileType
 from core.modules.time_manager import TimeManager 
+from assets.asset_manager import AssetManager
 
 if TYPE_CHECKING:
     from core.simulation import Simulation
@@ -54,8 +59,13 @@ class Renderer:
         try:
             self.font_main = pygame.font.Font(None, 18)
             self.font_debug = pygame.font.Font(None, 16)
-            self.font_panel_title = pygame.font.Font(None, 16)
+            self.font_panel_title = pygame.font.Font(None, 32)
             self.font_panel_text = pygame.font.Font(None, 16)
+            self.tile_size = 32
+
+            self.asset_manager = AssetManager()
+            self.asset_manager.load_assets(tile_size=(self.tile_size, self.tile_size))
+
             common_system_font_name = "arial"
             try:
                 self.font_main = pygame.font.SysFont(common_system_font_name, 18)
@@ -285,29 +295,105 @@ class Renderer:
             # self.screen.blit(name_surface, name_rect)
             pass
 
-    def _draw_game_object(self, game_obj: 'GameObject'):
-        if game_obj.logical_x is None or game_obj.logical_y is None:
+    def _draw_tilemap(self, location: 'Location'):
+        """
+        Disegna la mappa a mattonelle leggendo la mappa processata e scalando le tile.
+        Include stampe di debug per trovare l'errore dello schermo nero.
+        """
+        print("\n[Debug Tilemap] Avvio _draw_tilemap...")
+        
+        if not location.processed_tile_map:
+            print("[Debug Tilemap] ERRORE: La 'processed_tile_map' della location è vuota! La logica in Location.__post_init__ potrebbe essere fallita.")
             return
-        obj_screen_x, obj_screen_y = self._map_logical_to_screen(float(game_obj.logical_x), float(game_obj.logical_y))
-        effective_obj_size_padding = max(1, int(4 * self.zoom_level))
-        obj_width = self.effective_tile_size - effective_obj_size_padding 
-        obj_height = self.effective_tile_size - effective_obj_size_padding
         
-        obj_width = max(1, int(obj_width))
-        obj_height = max(1, int(obj_height))
+        print(f"[Debug Tilemap] Mappa processata trovata. Dimensioni: {len(location.processed_tile_map[0])}x{len(location.processed_tile_map)}")
+        
+        scaled_tile_size = int(self.tile_size * self.zoom_level)
+        print(f"[Debug Tilemap] Livello di zoom: {self.zoom_level:.2f}, Dimensione tile scalata: {scaled_tile_size}px")
 
-        obj_rect = pygame.Rect(obj_screen_x - obj_width // 2, obj_screen_y - obj_height // 2, obj_width, obj_height)
-        obj_color = ui_config.GAME_OBJECT_TYPE_COLORS.get(game_obj.object_type, ui_config.DEFAULT_GAME_OBJECT_COLOR)
-        pygame.draw.rect(self.screen, obj_color, obj_rect)
+        if scaled_tile_size <= 1:
+            print("[Debug Tilemap] Uscita: tile troppo piccole per essere disegnate a questo livello di zoom.")
+            return
+
+        # Itera sulla mappa della location
+        for y, row in enumerate(location.processed_tile_map):
+            for x, tile_info in enumerate(row):
+                tile_type = tile_info.get("type")
+                variant_index = tile_info.get("variant_index", 0)
+
+                if not tile_type or tile_type == TileType.EMPTY:
+                    continue
+
+                # Stampa di debug per ogni singola mattonella
+                print(f"  [Debug Tile] Cella ({x},{y}): Tipo={tile_type.name}, Variante={variant_index}")
+
+                style_name = SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else SHEET_FLOORS
+                spritesheet = self.asset_manager.get_spritesheet(style_name)
+                
+                if not spritesheet:
+                    print(f"    -> ERRORE: Spritesheet '{style_name}' non trovato nell'AssetManager!")
+                    continue
+
+                tile_def_or_list = graphics_config.TILE_DEFINITIONS.get(style_name, {}).get(tile_type)
+                
+                if not tile_def_or_list:
+                    print(f"    -> ERRORE: Nessuna definizione trovata per {tile_type.name} in graphics_config.py!")
+                    continue
+                
+                if isinstance(tile_def_or_list, list):
+                    if variant_index >= len(tile_def_or_list):
+                        print(f"    -> ERRORE: Indice variante {variant_index} fuori dai limiti per {tile_type.name}")
+                        continue
+                    chosen_def = tile_def_or_list[variant_index]
+                else:
+                    chosen_def = tile_def_or_list
+                
+                tile_rect_to_cut = pygame.Rect(chosen_def['rect'])
+                print(f"    -> OK! Uso lo spritesheet '{style_name}' e ritaglio il rettangolo: {tile_rect_to_cut}")
+
+                try:
+                    tile_image = spritesheet.subsurface(tile_rect_to_cut)
+                    scaled_tile_image = pygame.transform.scale(tile_image, (scaled_tile_size, scaled_tile_size))
+                    
+                    screen_x, screen_y = self._map_logical_to_screen(x, y)
+                    sprite_height = scaled_tile_image.get_height()
+                    if sprite_height > scaled_tile_size:
+                        screen_y -= (sprite_height - scaled_tile_size)
+
+                    self.screen.blit(scaled_tile_image, (screen_x, screen_y))
+                except ValueError as e:
+                    print(f"    -> ERRORE PYGAME: Impossibile ritagliare o scalare lo sprite. {e}")
+
+    def _draw_game_object(self, game_obj: 'GameObject'):
+        """Disegna un oggetto leggendo il suo stile."""
+        # 1. Ottieni lo stile e il tipo dell'oggetto
+        obj_style_name = game_obj.style
+        obj_type = game_obj.object_type
+
+        # 2. Trova la definizione dello sprite nello spritesheet corretto
+        sprite_def = graphics_config.SPRITE_DEFINITIONS.get(obj_style_name, {}).get(obj_type)
         
-        if game_obj.is_water_source:
-             pygame.draw.rect(self.screen, self.BLACK, obj_rect, max(1,int(2 * self.zoom_level)))
+        if not sprite_def: return # Non disegna nulla se non trova la definizione
+
+        # 3. Ottieni lo spritesheet corretto dall'AssetManager
+        spritesheet_surface = self.asset_manager.get_spritesheet(obj_style_name)
+        if not spritesheet_surface: return
+
+        # 3. Calcola dove disegnare l'oggetto sullo schermo
+        screen_x, screen_y = self._map_logical_to_screen(game_obj.logical_x, game_obj.logical_y)
         
+        # 4. L'area da "ritagliare" dallo spritesheet
+        sprite_rect_to_cut = pygame.Rect(sprite_def['rect'])
+        
+        # 5. Disegna solo quella porzione dell'immagine sulla schermo
+        #    La magia la fa il terzo argomento di blit (l'area)
+        self.screen.blit(spritesheet_surface, (screen_x, screen_y), area=sprite_rect_to_cut)
+
+        # Disegna il nome dell'oggetto se lo zoom è sufficiente (logica esistente)
         if self.font_debug and self.zoom_level >= 0.8:
-            display_name = game_obj.name if len(game_obj.name) < 15 else game_obj.object_type.name
-            name_surface = self.font_debug.render(display_name, True, self.BLACK)
-            name_rect = name_surface.get_rect(center=(obj_screen_x, obj_screen_y + obj_height // 2 + int(10 * self.zoom_level)))
-            self.screen.blit(name_surface, name_rect)
+            text = self.font_debug.render(f"{game_obj.name}", True, self.BLACK)
+            text_rect = text.get_rect(center=(screen_x + sprite_rect_to_cut.width / 2, screen_y - 10))
+            self.screen.blit(text, text_rect)
 
     def _draw_text_in_panel(self, text: str, x: int, y: int, font=None, color=None, max_width: Optional[int] = None) -> int:
         """
@@ -459,61 +545,70 @@ class Renderer:
 
 
     def _render_gui(self, simulation: Optional['Simulation']):
-        # --- 1. CALCOLO COLORI DI BASE ---
-        # Calcoliamo i colori dinamici una sola volta all'inizio.
+        # 1. PULIZIA SCHERMO INIZIALE
+        # Riempiamo l'intero schermo con un colore di base (es. nero o grigio scuro).
+        # Questo previene artefatti grafici tra un frame e l'altro.
         bg_color = ui_config.DEFAULT_DAY_BG_COLOR
-        title_contrast_color = self.WHITE # Colore di default per il titolo
+        self.screen.fill(self.BLACK)
+        title_contrast_color = self.WHITE 
 
         if simulation and simulation.time_manager:
             bg_color = self._get_interpolated_sky_color(simulation.time_manager)
-            # Calcola il colore del titolo in base allo sfondo appena calcolato
+            # E la aggiorniamo con il valore corretto
             title_contrast_color = self._get_contrast_color(bg_color)
-            self.current_contrast_color = title_contrast_color
-            
-        # --- 2. DISEGNO DELLO SFONDO E DEL PANNELLO ---
-        game_area_rect = pygame.Rect(0, 0, self.base_width, self.base_height)
-        self.screen.fill(bg_color, game_area_rect)
         
-        panel_rect = pygame.Rect(self.base_width, 0, self.PANEL_WIDTH, self.height)
-        self.screen.fill(self.PANEL_BG_COLOR, panel_rect)
-        pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
-
-        # --- 3. INIZIALIZZAZIONE VARIABILI DI RENDERING ---
-        panel_padding = 10
-        current_y = panel_padding
+        # Salviamo il colore per il metodo _draw_npc
+        self.current_contrast_color = title_contrast_color
         
+        # 2. PREPARAZIONE DATI
+        # In questa fase non disegniamo nulla, prepariamo solo le variabili.
         npc_to_display_in_panel: Optional['Character'] = None
         current_location_instance_for_panel: Optional['Location'] = None
+        current_sim_time = None
 
-        # --- 4. LOGICA PER DETERMINARE COSA VISUALIZZARE ---
-        if simulation:
+
+        if simulation and simulation.time_manager:
             current_sim_time = simulation.time_manager.get_current_time()
+            
+            # Determina quale locazione visualizzare
             if self.current_visible_location_id:
                 current_location_instance_for_panel = simulation.get_location_by_id(self.current_visible_location_id)
 
+            # Determina quale NPC mostrare nel pannello
             if self.selected_npc_id:
                 npc_to_display_in_panel = simulation.get_npc_by_id(self.selected_npc_id)
+                # Se l'NPC selezionato non è nella locazione visibile, non mostrarlo nel pannello
                 if npc_to_display_in_panel and npc_to_display_in_panel.current_location_id != self.current_visible_location_id:
-                    npc_to_display_in_panel = None 
+                    npc_to_display_in_panel = None
             
-            if npc_to_display_in_panel is None and current_location_instance_for_panel and current_location_instance_for_panel.npcs_present_ids:
+            # Se nessun NPC è selezionato, mostra il primo della lista nella locazione corrente
+            if not npc_to_display_in_panel and current_location_instance_for_panel and current_location_instance_for_panel.npcs_present_ids:
                 first_npc_id_in_loc = next(iter(sorted(list(current_location_instance_for_panel.npcs_present_ids))), None)
                 if first_npc_id_in_loc:
                     npc_to_display_in_panel = simulation.get_npc_by_id(first_npc_id_in_loc)
             
-            if current_location_instance_for_panel:
-                for game_obj in current_location_instance_for_panel.get_objects():
-                    self._draw_game_object(game_obj)
-                for npc_id_in_loc in current_location_instance_for_panel.npcs_present_ids:
-                    npc_in_loc = simulation.get_npc_by_id(npc_id_in_loc)
-                    if npc_in_loc:
-                        self._draw_npc(npc_in_loc)
+        # 3. DISEGNO DEL MONDO DI GIOCO (LIVELLO 1: PAVIMENTO)
+        if current_location_instance_for_panel:
+            self._draw_tilemap(current_location_instance_for_panel)
+
+        # 4. DISEGNO DEGLI ELEMENTI NEL MONDO (LIVELLO 2: OGGETTI E NPC)
+        if simulation and current_location_instance_for_panel:
+            # Disegna gli oggetti SOPRA il pavimento
+            for game_obj in current_location_instance_for_panel.get_objects():
+                self._draw_game_object(game_obj)
+            # Disegna gli NPC SOPRA il pavimento
+            for npc_id_in_loc in current_location_instance_for_panel.npcs_present_ids:
+                npc_in_loc = simulation.get_npc_by_id(npc_id_in_loc)
+                if npc_in_loc:
+                    self._draw_npc(npc_in_loc)
             
-        # --- 5. RENDERIZZAZIONE DEL PANNELLO INFORMATIVO ---
-        
-        # Usa il colore del titolo calcolato all'inizio
-        current_y = self._draw_text_in_panel("Info Panel", panel_padding, current_y, font=self.font_panel_title, color=title_contrast_color)
-        current_y += 5
+        # 5. DISEGNO DELLA GUI (PANNELLO LATERALE)
+        panel_rect = pygame.Rect(self.base_width, 0, self.PANEL_WIDTH, self.height)
+        self.screen.fill(self.PANEL_BG_COLOR, panel_rect)
+        pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
+
+        panel_padding = 10
+        current_y = panel_padding
         
         # Disegno data e ora
         if simulation and simulation.time_manager and self.font_debug:

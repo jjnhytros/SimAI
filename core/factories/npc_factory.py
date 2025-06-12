@@ -25,7 +25,7 @@ class NPCFactory:
         # Il factory potrebbe avere delle configurazioni, ma per ora è semplice.
         pass
 
-    def create_random_npc(self, simulation_start_date: 'ATHDateTime', available_location_ids: List[str]) -> 'Character':
+    def create_random_npc(self, simulation_start_date: 'ATHDateTime') -> Character:
         """Crea un singolo NPC con attributi, data di nascita e posizione casuali."""
         from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
 
@@ -53,7 +53,7 @@ class NPCFactory:
         random_interests = set(random.sample(list(Interest), num_interests))
 
         # Scegli una locazione e coordinate casuali
-        loc_id = random.choice(available_location_ids)
+        # loc_id = random.choice(available_location_ids)
         # Il recupero dell'oggetto location e il calcolo x,y è meglio farlo nel setup principale
         # dato che la factory non ha accesso diretto a simulation_context.
         # Oppure, passa simulation_context anche alla factory. Per ora, passiamo solo l'ID.
@@ -66,6 +66,6 @@ class NPCFactory:
             initial_traits=random_traits,
             initial_aspiration=random_aspiration,
             initial_interests=random_interests,
-            initial_location_id=loc_id
+            # Non impostiamo più initial_location_id qui
         )
         return new_npc

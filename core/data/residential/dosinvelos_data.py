@@ -2,27 +2,53 @@
 from core.world.location import Location
 from core.world.game_object import GameObject
 from core.enums import LocationType, ObjectType
+from core.enums import TileType, LocationType
 
-# Oggetti per l'appartamento
-dosinvelos_fridge = GameObject(object_id="obj_dosinvelos_fridge", name="Frigo Anni '90", object_type=ObjectType.REFRIGERATOR, logical_x=1, logical_y=1)
-dosinvelos_bed_erika = GameObject(object_id="obj_dosinvelos_bed_erika", name="Letto di Erika", object_type=ObjectType.BED, logical_x=8, logical_y=2)
-dosinvelos_bed_max = GameObject(object_id="obj_dosinvelos_bed_max", name="Letto di Max", object_type=ObjectType.BED, logical_x=8, logical_y=6)
-dosinvelos_computer = GameObject(object_id="obj_dosinvelos_computer", name="PC Assemblato", object_type=ObjectType.COMPUTER, logical_x=2, logical_y=8)
-dosinvelos_bookshelf = GameObject(object_id="obj_dosinvelos_bookshelf", name="Libreria Caotica", object_type=ObjectType.BOOKSHELF, logical_x=1, logical_y=8)
+# Definiamo delle scorciatoie per leggibilità
+LV = TileType.FLOOR_LIVING_ROOM # Living Room
+BD = TileType.FLOOR_BEDROOM     # Bedroom
+BT = TileType.FLOOR_BATHROOM    # Bathroom
+WI = TileType.WALL_INTERNAL     # Wall Internal
+WE = TileType.WALL_EXTERNAL     # Wall External (casuale)
+D = TileType.DOORWAY
+P = TileType.DOOR_MAIN_ENTRANCE
 
-# La Location
+# Disegniamo una pianta più grande, ad esempio 15x12
+# Questo layout rappresenta un piccolo appartamento con un soggiorno,
+# una camera da letto e un bagno.
+dosinvelos_layout = [
+    [WE, WE, WE, WE, WE, WE, WE, WE, WE, WE, WE, WE, WE, WE, WE],
+    [WE, LV, LV, LV, LV, LV, WI, LV, WI, BT, BT, BT, BT, BT, WE],
+    [WE, LV, LV, LV, LV, LV, LV, LV, BT, BT, BT, BT, BT, BT, WE],
+    [WE, LV, LV, LV, LV, LV, WI, LV, WI, BT, BT, BT, BT, BT, WE],
+    [WE, LV, LV, LV, LV, LV, WI, LV, WI, BT, BT, BT, BT, BT, WE],
+    [WE, WI, WI, WI, WI, WI, WI, LV, WI, WI, WI, WI, WI, WI, WE],
+    [WE, BD, BD, BD, BD, BD, BD, LV, LV, LV, LV, LV, LV, LV, WE],
+    [WE, BD, BD, BD, BD, BD, WI, LV, LV, LV, LV, LV, LV, LV, WE],
+    [WE, BD, BD, BD, BD, BD, WI, LV, LV, LV, LV, LV, LV, LV, WE],
+    [WE, BD, BD, BD, BD, BD, WI, LV, LV, LV, LV, LV, LV, LV, WE],
+    [WE, BD, BD, BD, BD, BD, WI, LV, LV, LV, LV, LV, LV, LV, WE],
+    [WE, WE, WE, WE, WE, WE, WE, LV, WE, WE, WE, WE, WE, WE, WE],
+]
+
+# 1. Crea l'istanza della Location senza passare la tile_map nel costruttore
 loc_dosinvelos = Location(
     location_id="loc_dosinvelos_apt_01",
     name="Appartamento Dosinvelos",
-    location_type=LocationType.RESIDENTIAL_APARTMENT, # Da aggiungere a LocationType
-    logical_width=10, logical_height=10
+    location_type=LocationType.RESIDENTIAL_APARTMENT,
+    style="floors", # Lo stile per le mattonelle
+    logical_width=len(dosinvelos_layout[0]),
+    logical_height=len(dosinvelos_layout),
+    tile_map=dosinvelos_layout # <-- La mappa ora è un parametro
 )
-loc_dosinvelos.objects = {
-    dosinvelos_fridge.object_id: dosinvelos_fridge,
-    dosinvelos_bed_erika.object_id: dosinvelos_bed_erika,
-    dosinvelos_bed_max.object_id: dosinvelos_bed_max,
-    dosinvelos_computer.object_id: dosinvelos_computer,
-    dosinvelos_bookshelf.object_id: dosinvelos_bookshelf,
-}
 
-district_locations = [loc_dosinvelos]
+# 2. Assegna la pianta all'attributo .tile_map dopo la creazione
+# loc_dosinvelos.tile_map = dosinvelos_layout
+
+district_locations = [
+    loc_dosinvelos,
+]
+
+# Aggiungi anche gli oggetti, se ne hai
+# loc_dosinvelos.objects = { ... }
+

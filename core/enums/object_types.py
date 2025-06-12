@@ -66,6 +66,7 @@ class ObjectType(Enum):
     SHELVING_UNIT = auto()
     SOFA = auto()
     SOFA_BED = auto()
+    FIREPLACE = auto()
     STOOL = auto()
     TABLE = auto()
     WARDROBE = auto()
@@ -407,6 +408,7 @@ def display_name_it(self) -> str:
         ObjectType.DRESSER: "Comò",
         ObjectType.DRESSING_TABLE: "Toeletta",
         ObjectType.END_TABLE: "Tavolino laterale",
+        ObjectType.FIREPLACE: "Camino",
         ObjectType.FLOOR_LAMP: "Lampada da terra",
         ObjectType.FOOTSTOOL: "Poggiapiedi",
         ObjectType.FUTON: "Futon",

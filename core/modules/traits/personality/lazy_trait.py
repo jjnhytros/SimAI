@@ -8,11 +8,10 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType
     # from core.enums.action_types import ActionType
 
-class LazyTrait(BaseTrait):
-    trait_type = TraitType.LAZY
-    
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.LAZY)
+class LazyTrait(BaseTrait):    
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.LAZY
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC preferisce il relax al duro lavoro."
 

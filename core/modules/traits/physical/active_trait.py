@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from core.character import Character
 
 class ActiveTrait(BaseTrait):
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.ACTIVE)
-        
-        # Ora puoi impostare la descrizione specifica per questo tratto.
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.ACTIVE
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
+        self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ama muoversi e fare attività fisica, sentendosi rinvigorito dall'esercizio."
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:

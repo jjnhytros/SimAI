@@ -27,12 +27,8 @@ class BaseTrait(ABC):
         # Definiamo tutti gli attributi qui, all'interno di __init__
         self.character_owner: 'Character' = character_owner
         self.trait_type: TraitType = trait_type
-        
-        # Imposta automaticamente il display_name usando il metodo di declinazione che abbiamo creato
         self.display_name: str = self.trait_type.display_name_it(character_owner.gender)
-        
-        # La descrizione specifica verrà impostata nella sottoclasse
-        self.description: str = "Descrizione non specificata."
+        self.description: str = "" # La descrizione specifica viene sovrascritta dalla sottoclasse
 
     @abstractmethod
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:

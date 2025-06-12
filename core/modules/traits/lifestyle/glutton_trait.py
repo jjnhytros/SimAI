@@ -3,7 +3,7 @@
 Definizione del tratto di personalità "Goloso" (Glutton).
 Riferimento TODO: IV.3.b
 """
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.enums.trait_types import TraitType
 from core.enums.need_types import NeedType # Per identificare il bisogno di Fame
@@ -14,12 +14,22 @@ if TYPE_CHECKING:
     from core.character import Character
 
 class GluttonTrait(BaseTrait):
-    trait_type = TraitType.GLUTTON
     
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.GLUTTON)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.GLUTTON
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Ama il cibo e mangia più del necessario."
+
+    def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
+        """Effetti da applicare quando il tratto viene aggiunto a un NPC."""
+        # Per ora questo tratto non ha effetti speciali quando viene aggiunto
+        return None
+        
+    def get_on_remove_effects(self) -> Optional[Dict[str, Any]]:
+        """Effetti da applicare quando il tratto viene rimosso."""
+        # Per ora questo tratto non ha effetti alla rimozione
+        return None
 
     def get_action_choice_priority_modifier(self, action, simulation_context):
         if action.action_type_enum == ActionType.ACTION_EAT:
@@ -41,3 +51,4 @@ class GluttonTrait(BaseTrait):
         if action_type == ActionType.ACTION_EAT:
             return 1.5 # 50% più propenso a scegliere di mangiare (valore da bilanciare)
         return 1.0
+

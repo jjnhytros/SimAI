@@ -1,10 +1,12 @@
 # core/modules/needs/common_needs.py
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from core.character import Character
 from core.enums import NeedType
 from core import settings
 from .need_base import BaseNeed
+
+if TYPE_CHECKING:
+    from core.character import Character
 
 class HungerNeed(BaseNeed):
     def __init__(self, character_owner: 'Character', p_need_type: NeedType, initial_value: Optional[float] = None):
@@ -80,8 +82,8 @@ class IntimacyNeed(BaseNeed):
         self.display_name = "Intimità"
 
     def decay(self, fraction_of_hour_elapsed: float,
-            character_age_days: Optional[int] = None,
-            character_name_for_log: Optional[str] = None):
+            character_name_for_log: Optional[str] = None,
+            character_age_days: Optional[int] = None):
         if character_age_days is not None and \
         character_age_days < settings.MIN_AGE_FOR_INTIMACY_DAYS:
             return
@@ -148,3 +150,5 @@ class StressNeed(BaseNeed):
 
     def get_value(self) -> float:
         """Il valore di questo bisogno è direttamente legato al carico cognitivo del suo proprietario."""
+        # return ?
+        return 0.0

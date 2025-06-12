@@ -3,59 +3,75 @@ import collections
 from dataclasses import dataclass
 from typing import List, Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
 
-# Importa Enum, Config e Settings
+# Import Enum
 from core.enums import *
+
+# Import Config e Settings
 from core.config import time_config, npc_config
 from core import settings
 
-# Import dei sistemi che Character deve istanziare
+# --- IMPORT PER L'ESECUZIONE (FUORI DA TYPE_CHECKING) ---
 from core.modules.lifestages.child_life_stage import ChildLifeStage
-from core.modules.memory.memory_definitions import Problem
 from core.modules.memory.memory_system import MemorySystem
 from core.modules.moodlets.moodlet_manager import MoodletManager
-from core.modules.lifestages.base_life_stage import BaseLifeStage
 from core.modules.skills.skill_system import SkillManager
-from core.modules.traits import *
-from core.modules.traits.personality.uninhibited_trait import UninhibitedTrait
-from core.modules.traits.social.party_animal_trait import PartyAnimalTrait
+from core.world.ATHDateTime.ATHDateTime import ATHDateTime
+
+# --- IMPORT SOLO PER IL TYPE CHECKING (PER ROMPERE I CICLI) ---
 if TYPE_CHECKING:
     from core.simulation import Simulation
     from core.world.location import Location
     from core.modules.time_manager import TimeManager
-    from core.modules.actions.action_base import BaseAction 
+    from core.modules.actions.action_base import BaseAction
     from core.AI.ai_decision_maker import AIDecisionMaker
+    from core.modules.memory.memory_definitions import Problem
+    from core.modules.lifestages.base_life_stage import BaseLifeStage
+    from core.modules.traits.base_trait import BaseTrait
+    from core.modules.needs.need_base import BaseNeed
 
-from core.modules.needs import BaseNeed, AchievementNeed, ThirstNeed
-from core.modules.moodlets.moodlet_definitions import Moodlet
-# from core.modules.skills.skill_system import SkillManager
-from core.world.ATHDateTime.ATHDateTime import ATHDateTime
-
-LIFESTAGE_TYPE_TO_CLASS_MAP: Dict[LifeStage, Type[BaseLifeStage]] = {
-    LifeStage.CHILD: ChildLifeStage,
-    # ... aggiungi qui le altre classi quando le crei
-}
-    
+# Dataclass per le relazioni
 @dataclass
 class RelationshipInfo:
     target_npc_id: str
     type: RelationshipType
     score: int = 0
-    def __str__(self): return f"({self.type.display_name_it()} con {self.target_npc_id}, Score: {self.score})"
+    # Nota: display_name_it richiede gender, usiamo un default o lo rimuoviamo da qui
+    def __str__(self): return f"({self.type.name} con {self.target_npc_id}, Score: {self.score})"
 
-# Mappa per creare le istanze dei tratti
-# Per istanziare i tratti, importiamo le classi specifiche qui, è sicuro.
-from core.modules.needs.common_needs import AchievementNeed, AutonomyNeed, BladderNeed, ComfortNeed, CreativityNeed, EnergyNeed, EnvironmentNeed, FunNeed, HungerNeed, HygieneNeed, IntimacyNeed, LearningNeed, SafetyNeed, SocialNeed, SpiritualityNeed, StressNeed, ThirstNeed
+# --- MAPPE DI CLASSI ---
+# Importiamo le classi specifiche prima di usarle nelle mappe
+from core.modules.traits import *
 TRAIT_TYPE_TO_CLASS_MAP: Dict[TraitType, Type['BaseTrait']] = {
     TraitType.ACTIVE: ActiveTrait, TraitType.BOOKWORM: BookwormTrait, TraitType.GLUTTON: GluttonTrait,
     TraitType.LONER: LonerTrait, TraitType.AMBITIOUS: AmbitiousTrait, TraitType.LAZY: LazyTrait,
     TraitType.SOCIAL: SocialTrait, TraitType.CREATIVE: CreativeTrait, TraitType.CHILDISH: ChildishTrait,
-    TraitType.PLAYFUL: PlayfulTrait, TraitType.PARTY_ANIMAL: PartyAnimalTrait, TraitType.UNINHIBITED: UninhibitedTrait,
+    TraitType.PLAYFUL: PlayfulTrait, TraitType.PARTY_ANIMAL: PartyAnimalTrait, 
+    TraitType.UNINHIBITED: UninhibitedTrait, TraitType.GOOD: GoodTrait, 
+    TraitType.ARTISTIC: ArtisticTrait, TraitType.CHARMER: CharmerTrait, TraitType.SHY: ShyTrait,
 }
 
+from core.modules.needs.common_needs import *
+NEED_TYPE_TO_CLASS_MAP: Dict[NeedType, Type['BaseNeed']] = {
+    NeedType.HUNGER: HungerNeed, NeedType.ENERGY: EnergyNeed, NeedType.SOCIAL: SocialNeed, NeedType.FUN: FunNeed,
+    NeedType.HYGIENE: HygieneNeed, NeedType.BLADDER: BladderNeed, NeedType.INTIMACY: IntimacyNeed,
+    NeedType.COMFORT: ComfortNeed, NeedType.ENVIRONMENT: EnvironmentNeed, NeedType.SAFETY: SafetyNeed,
+    NeedType.CREATIVITY: CreativityNeed, NeedType.LEARNING: LearningNeed, NeedType.SPIRITUALITY: SpiritualityNeed,
+    NeedType.AUTONOMY: AutonomyNeed, NeedType.ACHIEVEMENT: AchievementNeed, NeedType.THIRST: ThirstNeed,
+    NeedType.STRESS: StressNeed,
+}
+
+from core.modules.lifestages import *
+LIFESTAGE_TYPE_TO_CLASS_MAP: Dict[LifeStage, Type['BaseLifeStage']] = {
+    LifeStage.CHILD: ChildLifeStage,
+    # Aggiungi qui le altre classi LifeStage quando le crei
+}
+
+    
 class Character:
     def __init__(self,
                 npc_id: str, name: str, initial_gender: Gender,
                 initial_birth_date: 'ATHDateTime',
+                is_player_character: bool = False,
                 initial_aspiration: Optional[AspirationType] = None,
                 initial_interests: Optional[Set[Interest]] = None,
                 initial_is_on_asexual_spectrum: bool = False, 
@@ -69,7 +85,6 @@ class Character:
                 initial_school_level: SchoolLevel = SchoolLevel.NONE,
                 initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_traits: Optional[Set[TraitType]] = None,
-                is_player_character: bool = False
             ):
 
         # Validazioni
@@ -83,13 +98,32 @@ class Character:
         self.name: str = name
         self.gender: Gender = initial_gender; 
         self.birth_date: 'ATHDateTime' = initial_birth_date
+        self.is_player_character: bool = is_player_character
+
+        # --- CORREZIONE ARCHITETTURALE ---
+        # Contenitori e Sistemi Interni
+        self.traits: Dict[TraitType, BaseTrait] = {}
+        self.needs: Dict[NeedType, BaseNeed] = {}
+        self.action_queue: collections.deque['BaseAction'] = collections.deque()
+        self.current_action: Optional['BaseAction'] = None
+        self.current_problem: Optional['Problem'] = None
         self.life_stage_obj: Optional[BaseLifeStage] = None 
         self.life_stage: Optional[LifeStage] = None; 
-        self.current_problem: Optional['Problem'] = None
+
+        # L'IA viene assegnata dall'esterno, dopo la creazione.
+        self.ai_decision_maker: Optional['AIDecisionMaker'] = None
+        self.memory_system: MemorySystem = MemorySystem(self)
+        self.moodlet_manager: MoodletManager = MoodletManager(self)
+        self.skill_manager: 'SkillManager' = SkillManager(self)
+
+        # Esecuzione dei Metodi di Inizializzazione
+        self._initialize_traits(initial_traits or set())
+        self._initialize_needs()
+
+
         self.is_busy: bool = False
         self.cognitive_load: float = 0.0; 
         self.lod: LODLevel = initial_lod
-        self.is_player_character: bool = is_player_character
 
         # Personalità e Relazioni
         self.aspiration: Optional[AspirationType] = initial_aspiration
@@ -115,80 +149,44 @@ class Character:
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
 
-        # Contenitori e Sistemi Interni
-        self.traits: Dict[TraitType, BaseTrait] = {}
-        self.needs: Dict[NeedType, BaseNeed] = {}
-        self.memory_system: MemorySystem = MemorySystem(self)
-        self.moodlet_manager: MoodletManager = MoodletManager(self)
-        # self.skill_manager: SkillManager = SkillManager(self)
-        
-        self.action_queue: collections.deque['BaseAction'] = collections.deque()
-        self.current_action: Optional['BaseAction'] = None
-        self.skill_manager: 'SkillManager' = SkillManager(self)
-
-
-        # Esecuzione dei Metodi di Inizializzazione
-        self._initialize_traits(initial_traits or set())
-        self._initialize_needs() 
-
-        # Import locale per evitare il ciclo all'avvio
-        from core.AI.ai_decision_maker import AIDecisionMaker
-        self.ai_decision_maker: Optional['AIDecisionMaker'] = None
-        
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
 
     def _initialize_traits(self, initial_trait_types: Set[TraitType]):
-        """Inizializza gli oggetti tratto dell'NPC e assegna il proprietario."""
         for trait_type_enum in initial_trait_types:
             trait_class = TRAIT_TYPE_TO_CLASS_MAP.get(trait_type_enum)
             if trait_class:
-                trait_instance = trait_class(character_owner=self)
+                trait_instance = trait_class(
+                    character_owner=self,
+                    trait_type=trait_type_enum
+                )
                 self.traits[trait_type_enum] = trait_instance
             elif settings.DEBUG_MODE:
-                print(f"    [Character Traits WARN - {self.name}] Classe non trovata per TraitType.{trait_type_enum.name}")
+                print(f"    [Character Traits WARN - {self.name}] Classe non trovata per {trait_type_enum.name}")
 
     def _initialize_needs(self):
-        need_class_map: Dict[NeedType, Type[BaseNeed]] = {
-            NeedType.HUNGER: HungerNeed, NeedType.ENERGY: EnergyNeed, NeedType.SOCIAL: SocialNeed, NeedType.FUN: FunNeed,
-            NeedType.HYGIENE: HygieneNeed, NeedType.BLADDER: BladderNeed, NeedType.INTIMACY: IntimacyNeed,
-            NeedType.COMFORT: ComfortNeed, NeedType.ENVIRONMENT: EnvironmentNeed, NeedType.SAFETY: SafetyNeed,
-            NeedType.CREATIVITY: CreativityNeed, NeedType.LEARNING: LearningNeed, NeedType.SPIRITUALITY: SpiritualityNeed,
-            NeedType.AUTONOMY: AutonomyNeed, NeedType.ACHIEVEMENT: AchievementNeed, NeedType.THIRST: ThirstNeed,
-            NeedType.STRESS: StressNeed,
-        }
-        for need_type in NeedType:
-            if need_type in need_class_map:
-                # La chiamata esplicita con nome del parametro è più sicura
-                # --- CORREZIONE QUI ---
-                # Ora passiamo i parametri richiesti dal costruttore di BaseNeed
-                self.needs[need_type_enum] = need_class_map[need_type_enum](
-                    character_owner=self,
-                    p_need_type=need_type_enum
-                )
-            elif settings.DEBUG_MODE:
-                print(f"  [Char Needs Init WARN - {self.name}] Classe per NeedType.{need_type.name} non in map.")
+        for need_type, need_class in NEED_TYPE_TO_CLASS_MAP.items():
+            self.needs[need_type] = need_class(character_owner=self, p_need_type=need_type)
 
     def _calculate_and_set_life_stage(self, current_time: 'ATHDateTime'):
         age_days = self.get_age_in_days(current_time)
-        new_stage = None
-        new_stage_enum = LifeStage.CHILD
-        if self.life_stage != new_stage_enum:
-            self.life_stage = new_stage_enum
-
+        new_stage_enum = None
         sorted_thresholds = sorted(npc_config.LIFE_STAGE_AGE_THRESHOLDS_DAYS.items(), key=lambda item: item[1])
         for stage_key, threshold in reversed(sorted_thresholds):
             if age_days >= threshold:
-                try: new_stage = LifeStage[stage_key]
+                try:
+                    new_stage_enum = LifeStage[stage_key]
+                    break
                 except KeyError: continue
-                break
-        if new_stage and self.life_stage != new_stage:
-            self.life_stage = new_stage
+        
+        if new_stage_enum and self.life_stage != new_stage_enum:
+            self.life_stage = new_stage_enum
             life_stage_class = LIFESTAGE_TYPE_TO_CLASS_MAP.get(new_stage_enum)
             if life_stage_class:
                 self.life_stage_obj = life_stage_class(self)
-                self.life_stage_obj.on_enter_stage() # Esegui la logica di ingresso
+                if hasattr(self.life_stage_obj, 'on_enter_stage'):
+                    self.life_stage_obj.on_enter_stage()
                 if settings.DEBUG_MODE:
-                    print(f"  [Character LIFE STAGE] {self.name} è ora un {self.life_stage_obj.display_name}.")
+                    print(f"  [Character LIFE STAGE] {self.name} è ora {self.life_stage_obj.display_name}.")
 
     def set_location(self, new_location_id: str, simulation: 'Simulation'):
         if self.current_location_id:
@@ -228,11 +226,6 @@ class Character:
     def get_age_in_years_float(self, current_time: 'ATHDateTime') -> float:
         age_in_days = self.get_age_in_days(current_time)
         return age_in_days / time_config.DXY if time_config.DXY > 0 else 0.0
-
-    def _set_age_in_days(self, new_age_days: int):
-        if new_age_days != self._age_in_days:
-            self._age_in_days = new_age_days
-            self._calculate_and_set_life_stage()
 
     def get_interests(self) -> Set[Interest]: return self._interests.copy()
     def add_interest(self, i: Interest) -> bool:

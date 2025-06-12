@@ -25,12 +25,24 @@ class TimeManager:
         )
         print(f"TimeManager inizializzato. Ora di inizio: {self.get_formatted_datetime_string()}")
 
-    def advance_time(self, game_speed: float):
-        """Avanza il tempo della simulazione ad ogni tick del gioco."""
-        seconds_to_add = int(time_config.SECONDS_PER_SIMULATION_TICK * game_speed)
-        interval = ATHDateInterval(seconds=seconds_to_add) # ATHDateTime può gestire secondi float
+    def advance_time(self, ticks: int = 1):
+        """
+        Avanza il tempo della simulazione di un dato numero di tick.
+        """
+        if ticks <= 0:
+            return
+
+        # Calcola i secondi totali di tempo di gioco da avanzare
+        # basandosi sulla costante che definisce quanti secondi di gioco vale un tick.
+        total_seconds_to_advance = ticks * time_config.SECONDS_PER_SIMULATION_TICK
+        
+        # Crea l'oggetto intervallo che la tua libreria si aspetta
+        total_seconds_to_advance = int(total_seconds_to_advance)
+        interval = ATHDateInterval(seconds=total_seconds_to_advance)
+        
+        # Aggiungi l'intervallo al tempo corrente
         self._current_time = self._current_time.add(interval)
-        self.total_ticks_sim_run += 1
+        self.total_ticks_sim_run += ticks
 
     def get_current_time(self) -> ATHDateTime:
         """Restituisce l'oggetto ATHDateTime corrente."""

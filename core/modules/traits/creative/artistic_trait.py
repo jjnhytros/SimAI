@@ -10,10 +10,10 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType
 
 class ArtisticTrait(BaseTrait):
-    trait_type = TraitType.ART_LOVER # Assicurati che esista nell'Enum
     
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.ARTISTIC)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.ARTISTIC
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ha un'anima artistica e trae grande gioia dalla creazione."
 

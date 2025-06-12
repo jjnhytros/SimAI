@@ -8,10 +8,10 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType
 
 class CreativeTrait(BaseTrait):
-    trait_type = TraitType.CREATIVE
     
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.CREATIVE)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.CREATIVE
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC ha una mente fertile e un bisogno innato di creare."
 

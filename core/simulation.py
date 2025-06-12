@@ -1,9 +1,8 @@
 # core/simulation.py
-from typing import List, Dict, Any, Set, Optional # Aggiungi Optional e gli altri tipi generici
+from typing import TYPE_CHECKING, List, Dict, Any, Set, Optional # Aggiungi Optional e gli altri tipi generici
 import random
 
 # Importiamo le classi e le Enum necessarie
-from core.character import Character
 from core.enums import *
 from core import settings
 from core.modules.time_manager import TimeManager
@@ -14,6 +13,9 @@ from core.AI.lod_manager import LODManager
 from core.AI.social_manager import SocialManager
 from core.world.weather_manager import WeatherManager
 from core.AI.consequence_analyzer import ConsequenceAnalyzer
+
+if TYPE_CHECKING:
+    from character import Character
 
 class Simulation:
     def __init__(self):
@@ -26,7 +28,7 @@ class Simulation:
         
         self.current_tick: int = 0
         self.is_running: bool = False
-        self.npcs: Dict[str, Character] = {}
+        self.npcs: Dict[str, 'Character'] = {}
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
         self.game_speed: float = 1.0
@@ -160,7 +162,8 @@ class Simulation:
         elif settings.DEBUG_MODE:
             print(f"[Simulation.add_npc WARN] NPC '{npc.name}' aggiunto senza una locazione iniziale.")
 
-    def get_npc_by_id(self, npc_id_to_find: str) -> Optional[Character]: return self.npcs.get(npc_id_to_find)
+    def get_npc_by_id(self, npc_id_to_find: str) -> Optional['Character']:
+        return self.npcs.get(npc_id_to_find)
 
     def set_player_character(self, npc_id: str):
         """Imposta l'NPC specificato come personaggio del giocatore."""
@@ -171,10 +174,17 @@ class Simulation:
         elif settings.DEBUG_MODE:
             print(f"  [Simulation WARN] Tentativo di impostare un player character non esistente: {npc_id}")
 
-    def get_player_character(self) -> Optional[Character]:
-        """Restituisce l'istanza del personaggio del giocatore, se impostata."""
+    def get_player_character(self) -> Optional['Character']:
+        """
+        Restituisce l'oggetto Character del giocatore, se ne è stato impostato uno.
+        Questo metodo non richiede argomenti.
+        """
+        # Controlla se abbiamo un ID del personaggio del giocatore salvato
         if self.player_character_id:
+            # Usa un altro metodo della classe stessa per trovare e restituire l'NPC
             return self.get_npc_by_id(self.player_character_id)
+        
+        # Se non è stato impostato nessun personaggio, restituisce None
         return None
 
     def find_social_hubs(self, target_interests: Set[Interest]) -> list[dict]:
@@ -184,21 +194,31 @@ class Simulation:
             if hub.get("associated_interests") and hub["associated_interests"].intersection(target_interests): suggested.append(hub)
         return suggested
 
-    def get_eligible_dating_candidates(self, requesting_npc: Character, search_preferences: Optional[Dict[str, Any]] = None) -> list[Character]:
+    def get_eligible_dating_candidates(self, requesting_npc: 'Character', search_preferences: Optional[Dict[str, Any]] = None) -> List['Character']:
         if not requesting_npc: return []
-        if requesting_npc.is_asexual() and requesting_npc.is_aromantic() and not (search_preferences and search_preferences.get("explicitly_seeking_qpr")): return []
-        eligible_candidates: list[Character] = []
-        req_npc_age_days = requesting_npc.get_age_in_days()
+        if not self.time_manager: return [] # Aggiunto controllo di sicurezza
+
+        # Ottieni il tempo corrente una sola volta all'inizio
+        current_time = self.time_manager.get_current_time()
+        
+        if requesting_npc.is_asexual() and requesting_npc.is_aromantic() and not (search_preferences and search_preferences.get("explicitly_seeking_qpr")):
+            return []
+            
+        eligible_candidates: list['Character'] = []
+        
+        # Passa current_time alla chiamata del metodo
+        req_npc_age_days = requesting_npc.get_age_in_days(current_time)
+        
         min_cand_age_days = settings.DATING_CANDIDATE_MIN_AGE_DAYS
         max_age_diff_days = settings.DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS * settings.DXY
+        
+        # Logica per le preferenze di genere (già corretta)
         genders_from_prefs: Optional[Set[Gender]] = None
         if search_preferences:
             genders_from_prefs_value = search_preferences.get("target_genders")
-            if isinstance(genders_from_prefs_value, set): # Assicurati che sia un set se fornito
+            if isinstance(genders_from_prefs_value, set):
                 genders_from_prefs = genders_from_prefs_value
-            elif genders_from_prefs_value is not None and settings.DEBUG_MODE:
-                # Logga un avviso se "target_genders" è fornito ma non è un set
-                print(f"  [WARN - DatingCandidates] 'target_genders' in search_preferences per {requesting_npc.name} non è un set, ma {type(genders_from_prefs_value)}. Verrà ignorato.")
+        
         if genders_from_prefs is not None:
             preferred_target_genders: Set[Gender] = genders_from_prefs
         else:
@@ -209,13 +229,19 @@ class Simulation:
 
         for cand_npc in self.npcs.values():
             if cand_npc.npc_id == requesting_npc.npc_id: continue
-            cand_age_days = cand_npc.get_age_in_days()
+            
+            # Passa current_time alle chiamate del metodo
+            cand_age_days = cand_npc.get_age_in_days(current_time)
+            
             if cand_age_days < min_cand_age_days: continue
-            if cand_npc.life_stage not in {LifeStage.YOUNG_ADULT, LifeStage.ADULT, LifeStage.MIDDLE_AGED}: continue
             if abs(cand_age_days - req_npc_age_days) > max_age_diff_days: continue
+            
+            # Assicurati che anche qui venga passato il tempo corrente per il calcolo del LifeStage
+            cand_npc._calculate_and_set_life_stage(current_time) 
+            if cand_npc.life_stage not in {LifeStage.YOUNG_ADULT, LifeStage.ADULT, LifeStage.MIDDLE_AGED}: continue
+            
             if cand_npc.get_relationship_status() not in {RelationshipStatus.SINGLE, RelationshipStatus.OPEN_RELATIONSHIP}: continue
             
-            # Ora preferred_target_genders è garantito essere un Set[Gender]
             if not (cand_npc.gender in preferred_target_genders): continue
             
             if preference_for_asexual_partner is True and not cand_npc.is_asexual(): continue
@@ -232,30 +258,50 @@ class Simulation:
 
             if not req_is_ace and not cand_is_ace:
                 if requesting_npc.gender in cand_sexual_attraction: compatible_orientation = True
-            elif not req_is_aro and not cand_is_aro: # Considera anche l'attrazione romantica se uno o entrambi sono asessuali
+            elif not req_is_aro and not cand_is_aro:
                 if requesting_npc.gender in cand_romantic_attraction: compatible_orientation = True
-            # Se entrambi sono sullo spettro ace E aro, la compatibilità potrebbe basarsi su altri fattori (QPR)
-            # Questa logica potrebbe necessitare di ulteriore affinamento per QPR. Per ora, la escludiamo se non c'è attrazione sessuale/romantica.
-            
+
             if not compatible_orientation: continue
             
             eligible_candidates.append(cand_npc)
+            
         return eligible_candidates
 
-    def get_potential_friend_candidates(self, requesting_npc: Character) -> list[Character]:
-        if not requesting_npc: return []
-        potential_friends: list[Character] = []; requesting_npc_age_days = requesting_npc.get_age_in_days()
-        min_candidate_age_days = settings.FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS
-        max_age_diff_days = settings.FRIEND_MAX_AGE_DIFFERENCE_YEARS * settings.DXY
-        for candidate_npc in self.npcs.values():
-            if candidate_npc.npc_id == requesting_npc.npc_id: continue
-            candidate_age_days = candidate_npc.get_age_in_days()
-            if candidate_age_days < min_candidate_age_days: continue
-            if abs(candidate_age_days - requesting_npc_age_days) > max_age_diff_days: continue
-            potential_friends.append(candidate_npc)
-        return potential_friends
+    def get_potential_friend_candidates(self, requesting_npc: 'Character') -> List['Character']:
+        """
+        Restituisce una lista di NPC idonei per una nuova amicizia,
+        filtrando principalmente per età.
+        """
+        eligible: List['Character'] = []
+        if not self.time_manager:
+            return eligible
+            
+        current_time = self.time_manager.get_current_time()
+        req_age_days = requesting_npc.get_age_in_days(current_time)
+        
+        min_cand_age_days = settings.FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS
+        max_age_diff_days = settings.FRIEND_MAX_AGE_DIFFERENCE_YEARS * time_config.DXY
 
-    def find_available_social_target(self, requesting_npc: Character) -> Optional[Character]:
+        for cand_npc in self.npcs.values():
+            # Escludi il richiedente stesso e persone con cui ha già una relazione forte/negativa
+            if cand_npc.npc_id == requesting_npc.npc_id:
+                continue
+            if requesting_npc.get_relationship_with(cand_npc.npc_id):
+                # Potremmo aggiungere una logica più fine qui in futuro
+                continue
+
+            # Filtro: Età
+            cand_age_days = cand_npc.get_age_in_days(current_time)
+            if cand_age_days < min_cand_age_days:
+                continue
+            if abs(cand_age_days - req_age_days) > max_age_diff_days:
+                continue
+            
+            eligible.append(cand_npc)
+            
+        return eligible
+
+    def find_available_social_target(self, requesting_npc: 'Character') -> Optional['Character']:
         if not self.npcs or len(self.npcs) <= 1 or not requesting_npc.current_location_id:
             return None
 
@@ -297,41 +343,27 @@ class Simulation:
 
     def _update_simulation_state(self):
         """
-        Aggiorna lo stato di tutti gli elementi della simulazione per il tick corrente.
-        Ora utilizza AICoordinator.
+        Metodo privato che avanza la logica della simulazione di un singolo tick.
         """
-        if not self.time_manager:
-            # if settings.DEBUG_MODE: print("    [Sim WARN] TimeManager non inizializzato!")
-            self.current_tick += 1
+        if not self.is_running:
             return
+            
+        current_time = self.time_manager.get_current_time()
 
-        self.time_manager.advance_time(self.game_speed) 
-        if settings.DEBUG_MODE and self.current_tick % 100 == 0:
-            print(f"[DEBUG] Simulation Tick: {self.current_tick}, TimeManager Ticks: {self.time_manager.total_ticks_sim_run}")
+        # 1. Aggiorna il LOD per tutti gli NPC
+        player_character = self.get_player_character() # La chiamata ora è corretta
+        if player_character:
+            # a. Ottieni la posizione del giocatore
+            player_pos = (float(player_character.logical_x), float(player_character.logical_y))
+            # b. Chiama il metodo corretto del tuo LODManager, passando la posizione
+            self.lod_manager.update_all_npcs_lod(player_position=player_pos)
 
-        self.weather_manager.update_weather()
-
-        if settings.DEBUG_MODE and self.time_manager.get_current_minute() == 0 :
-            print(f"      [SimTime] Ora: {self.time_manager.get_formatted_datetime_string()} (Tick Sim: {self.current_tick})")
-
-        # Invece di ciclare sugli NPC e chiamare i loro metodi di update direttamente,
-        # chiamiamo il metodo dell'AICoordinator.
-        # Il 'time_delta' per update_all_npcs è il numero di tick trascorsi, che è 1 in questo caso.
+        # 2. Aggiorna ogni NPC tramite il coordinatore IA
         if self.ai_coordinator:
-            self.ai_coordinator.update_all_npcs(time_delta=1) # Passiamo 1 perché questo metodo è chiamato per ogni tick
-        else:
-            # Fallback alla vecchia logica se ai_coordinator non fosse inizializzato (non dovrebbe succedere)
-            if settings.DEBUG_MODE: print("    [Sim WARN] AICoordinator non disponibile! Uso logica di update NPC diretta.")
-            is_new_day = (self.time_manager.get_current_hour() == 0 and
-                            self.time_manager.get_current_minute() == 0 and
-                            # self.time_manager.total_ticks > 1)
-                            self.time_manager.total_ticks_sim_run > 1)
-            for npc in self.npcs.values():
-                if npc:
-                    npc.update_needs(self.time_manager, 1)
-                    if is_new_day: npc._set_age_in_days(npc.get_age_in_days() + 1)
-                    npc.update_action(self.time_manager, simulation_context=self)
+            self.ai_coordinator.update_all_npcs(time_delta=1)
 
+        # 3. Avanza il tempo globale
+        self.time_manager.advance_time(ticks=1)
         self.current_tick += 1
 
         # Ottieni la posizione del giocatore (questo è un esempio, adattalo)

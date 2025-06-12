@@ -1,4 +1,4 @@
-# core/modules/traits/personality/playful_trait.py
+# core/modules/traits/personality/good_trait.py
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from ..base_trait import BaseTrait
 from core.enums import TraitType, ActionType, SocialInteractionType
@@ -6,14 +6,19 @@ from core.enums import TraitType, ActionType, SocialInteractionType
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
-    from core.modules.actions import BaseAction, SocializeAction
+    from core.modules.actions.action_base import BaseAction
+    from core.modules.actions.social_actions import SocializeAction
 
-class PlayfulTrait(BaseTrait):
+class GoodTrait(BaseTrait):
+    """
+    Rappresenta un NPC con una natura fondamentalmente buona, gentile e altruista.
+    """
+    
     def __init__(self, character_owner: 'Character', trait_type: TraitType):
-        trait_type = TraitType.PLAYFUL
+        trait_type = TraitType.GOOD
         super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
-        self.description = "Ama scherzare e divertirsi, e cerca sempre di alleggerire l'atmosfera."
+        self.description = "È gentile, empatic* e cerca sempre di fare la cosa giusta."
 
     def get_on_add_effects(self) -> Optional[Dict[str, Any]]:
         """Effetti da applicare quando il tratto viene aggiunto a un NPC."""
@@ -26,12 +31,18 @@ class PlayfulTrait(BaseTrait):
         return None
 
     def get_action_choice_priority_modifier(self, action: 'BaseAction', simulation_context: 'Simulation') -> float:
-        # Incoraggia a raccontare barzellette
-        if isinstance(action, SocializeAction) and action.interaction_type == SocialInteractionType.TELL_JOKE:
-            return 1.8
-        
-        # Dà un piccolo bonus a tutte le azioni di divertimento
-        if action.action_type_enum == ActionType.ACTION_HAVE_FUN:
-            return 1.3
+        """
+        Gli NPC buoni preferiscono le interazioni positive e detestano quelle negative.
+        """
+        if isinstance(action, SocializeAction):
+            # Forte bonus per i complimenti
+            if action.interaction_type == SocialInteractionType.COMPLIMENT:
+                return 2.0
+            
+            # Forte penalità per i litigi
+            if action.interaction_type == SocialInteractionType.ARGUE:
+                return 0.2
+
+        # In futuro, potremmo aggiungere un bonus per azioni di volontariato o per aiutare gli altri
         
         return 1.0

@@ -6,26 +6,43 @@ Gestisce l'inizializzazione e l'avvio della simulazione in modalità GUI o TUI.
 import sys
 import os
 import random
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 # Aggiunge la directory principale al path per permettere import assoluti
 # come 'from core.simulation import Simulation'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-try:
-    from core import settings
-    from core.simulation import Simulation
-    from core.character import Character
-    from core.enums import *
-    from core.config import time_config
-    from core.factories.npc_factory import NPCFactory
-    from core.AI.ai_decision_maker import AIDecisionMaker
-    from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
-    from core.graphics.renderer import Renderer
-    # from core.tui.tui_manager import TuiManager # Decommenta quando crei la TUI
-except ImportError as e:
-    print(f"Errore di importazione: {e}. Assicurati che i moduli siano nel PYTHONPATH.")
-    sys.exit(1)
+# try:
+#     from core import settings
+#     from core.simulation import Simulation
+#     from core.enums import (
+#         Gender, TraitType, AspirationType, RelationshipType, SkillType, NeedType
+#     )
+#     from core.config import time_config
+#     from core.factories.npc_factory import NPCFactory
+#     from core.AI.ai_decision_maker import AIDecisionMaker
+#     from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
+#     from core.graphics.renderer import Renderer
+    
+#     # from core.tui.tui_manager import TuiManager # Decommenta quando crei la TUI
+#     if TYPE_CHECKING:
+#         from core.character import Character
+        
+# except ImportError as e:
+#     print(f"Errore di importazione: {e}. Assicurati che i moduli siano nel PYTHONPATH.")
+#     sys.exit(1)
+
+from core import settings
+from core.simulation import Simulation
+from core.character import Character
+from core.enums import * # O gli import specifici
+from core.config import time_config
+from core.factories.npc_factory import NPCFactory
+from core.AI.ai_decision_maker import AIDecisionMaker
+from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
+from core.graphics.renderer import Renderer
+# from core.tui.tui_manager import TuiManager
+
 
 def setup_test_simulation() -> Simulation:
     """
@@ -117,8 +134,8 @@ def setup_test_simulation() -> Simulation:
         sim.add_npc(max_v)
 
         # Imposta la loro relazione speciale
-        erika.update_relationship(max_v.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=95)
-        max_v.update_relationship(erika.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=95)
+        erika.update_relationship(max_v.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=96)
+        max_v.update_relationship(erika.npc_id, RelationshipType.CHILDHOOD_BEST_FRIEND, new_score=96)
 
         # --- ESPERIMENTO: INNESCO DEI BISOGNI ---
         print("  [Setup] Innesco bisogni per test IA...")

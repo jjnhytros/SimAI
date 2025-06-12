@@ -9,10 +9,9 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType # Se usato
 
 class SocialTrait(BaseTrait):
-    trait_type = TraitType.SOCIAL
-    
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.SOCIAL)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.SOCIAL
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Ha bisogno di interagire con gli altri per essere felice."
 

@@ -9,10 +9,10 @@ if TYPE_CHECKING:
     # from core.enums.action_types import ActionType # Se usato
 
 class AmbitiousTrait(BaseTrait):
-    trait_type = TraitType.AMBITIOUS
     
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=self.trait_type)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.AMBITIOUS
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
         self.description = "Questo NPC è determinato a raggiungere la vetta della sua carriera."
 

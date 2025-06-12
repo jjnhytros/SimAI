@@ -156,7 +156,6 @@ IMPLEMENTED_TRAITS = [
     TraitType.AMBITIOUS, TraitType.LAZY, TraitType.SOCIAL, TraitType.CREATIVE,
     TraitType.ARTISTIC, TraitType.CHARMER, TraitType.SHY, TraitType.PLAYFUL,
     TraitType.CHILDISH, TraitType.UNINHIBITED, TraitType.GOOD,
-    # Aggiungi qui altri tratti man mano che crei le loro classi
 ]
 
 
@@ -257,3 +256,8 @@ CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
 
 # Soglia di urgenza sopra la quale l'IA considera un problema per la decisione
 AI_URGENT_PROBLEM_THRESHOLD: float = 0.5 # Esempio: considera problemi con urgenza > 50%
+
+# --- Livelli di Dettaglio (LOD) ---
+LOD_DISTANCE_HIGH = 50.0   # NPC a HIGH detail entro 50 unità di distanza
+LOD_DISTANCE_MEDIUM = 150.0 # NPC a MEDIUM detail entro 150 unità
+# Oltre i 150, l'NPC passa a LOW o CULLED.

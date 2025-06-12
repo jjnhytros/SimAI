@@ -4,9 +4,8 @@ Definisce la NPCFactory, una classe per la creazione procedurale di NPC.
 """
 import random
 import uuid
-from typing import List, Set
+from typing import TYPE_CHECKING, List, Set
 
-from core.character import Character
 from core.enums import (
     Gender, Interest, RelationshipStatus, AspirationType, TraitType,
     SchoolLevel, LODLevel
@@ -14,7 +13,9 @@ from core.enums import (
 from core.config import npc_config, time_config
 from core.utils import gen_lastname
 from core.world.ATHDateTime.ATHDateTime import ATHDateTime
-
+from core.character import Character
+if TYPE_CHECKING:
+    pass
 class NPCFactory:
     """
     Classe responsabile della creazione di istanze di Character (NPC)
@@ -24,7 +25,7 @@ class NPCFactory:
         # Il factory potrebbe avere delle configurazioni, ma per ora è semplice.
         pass
 
-    def create_random_npc(self, simulation_start_date: 'ATHDateTime', available_location_ids: List[str]) -> Character:
+    def create_random_npc(self, simulation_start_date: 'ATHDateTime', available_location_ids: List[str]) -> 'Character':
         """Crea un singolo NPC con attributi, data di nascita e posizione casuali."""
         from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
 

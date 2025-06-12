@@ -91,4 +91,6 @@ class BaseSkill:
         return {}
 
     def __str__(self):
-        return f"{self.skill_type.display_name_it()}: Liv {self.level}/{self.max_level} (XP: {self.xp:.0f})"
+        # Passa il genere del proprietario al metodo
+        display_name = self.skill_type.display_name_it(self.character_owner.gender)
+        return f"{display_name}: Liv {self.level}/{self.max_level} (XP: {self.xp:.0f})"

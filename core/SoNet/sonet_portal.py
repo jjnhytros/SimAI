@@ -1,5 +1,5 @@
 # core/SoNet/sonet_portal.py
-from typing import List, Dict, Any, Set, Optional # Aggiungi Optional e gli altri tipi generici
+from typing import TYPE_CHECKING, List, Dict, Any, Set, Optional # Aggiungi Optional e gli altri tipi generici
 
 """
 Modulo per la gestione del portale SoNet, il sistema unico dei servizi
@@ -9,7 +9,9 @@ Riferimento: TODO.md, Sezione XXIV.
 
 from core import settings
 from core.enums import *
-from core.character import Character # Per type hinting dell'oggetto NPC
+
+if TYPE_CHECKING:
+    from core.character import Character
 
 # Potremmo definire un numero massimo di suggerimenti da restituire
 MAX_MATCHMAKING_SUGGESTIONS = 3 # TODO: Forse in settings.py
@@ -105,7 +107,7 @@ class SoNetPortal:
 
         # 3. Ottenere la lista di candidati preliminari dalla simulazione
         # Questo metodo applica già filtri su età, stato sentimentale e orientamento di base
-        potential_candidates: List[Character] = self.simulation.get_eligible_dating_candidates(requesting_npc)
+        potential_candidates: List['Character'] = self.simulation.get_eligible_dating_candidates(requesting_npc)
 
         if not potential_candidates:
             return {
@@ -177,7 +179,7 @@ class SoNetPortal:
             print(f"    [SoNetPortal Service] NPC '{npc_id}' richiede 'Trova Amici'.")
 
         # 1. Recuperare l'NPC richiedente
-        requesting_npc: Optional[Character] = self.simulation.get_npc_by_id(npc_id)
+        requesting_npc: Optional['Character'] = self.simulation.get_npc_by_id(npc_id)
         if not requesting_npc:
             return {"status": "error", "message": f"NPC con ID '{npc_id}' non trovato."}
 
@@ -193,7 +195,7 @@ class SoNetPortal:
         
         # 3. Ottenere la lista di candidati preliminari dalla simulazione
         # Questo metodo usa già filtri per età e auto-esclusione specifici per amicizia
-        potential_friends: List[Character] = self.simulation.get_potential_friend_candidates(requesting_npc)
+        potential_friends: List['Character'] = self.simulation.get_potential_friend_candidates(requesting_npc)
 
         if not potential_friends:
             return {
@@ -320,10 +322,10 @@ if __name__ == '__main__':
         def add_npc_for_test(self, npc: MockCharacterForSoNetFriendTest):
             self.npcs_for_test[npc.npc_id] = npc
 
-        def get_npc_by_id(self, npc_id_to_find: str) -> Optional[Character]: # Modificato per coerenza
+        def get_npc_by_id(self, npc_id_to_find: str) -> Optional['Character']: # Modificato per coerenza
             return self.npcs_for_test.get(npc_id_to_find)
 
-        def get_potential_friend_candidates(self, requesting_npc: Character) -> list[Character]:
+        def get_potential_friend_candidates(self, requesting_npc: 'Character') -> list['Character']:
             # Mock della logica di Simulation.get_potential_friend_candidates
             eligible = []
             req_age_days = requesting_npc.get_age_in_days()
@@ -338,7 +340,7 @@ if __name__ == '__main__':
             return eligible
         
         # Mock per gli altri metodi chiamati da SoNetPortal se necessario per altri test
-        def get_eligible_dating_candidates(self, requesting_npc: Character, search_preferences = None) -> list[Character]: return []
+        def get_eligible_dating_candidates(self, requesting_npc: 'Character', search_preferences = None) -> list['Character']: return []
         def find_social_hubs(self, target_interests: Set[Interest]) -> list[dict]: return []
 
 

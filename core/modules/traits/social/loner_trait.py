@@ -9,12 +9,11 @@ if TYPE_CHECKING:
     # from core.enums.need_types import NeedType # Se usato
 
 class LonerTrait(BaseTrait):
-    trait_type = TraitType.LONER
-    
-    def __init__(self, character_owner: 'Character'):
-        super().__init__(character_owner=character_owner, trait_type=TraitType.LONER)
+    def __init__(self, character_owner: 'Character', trait_type: TraitType):
+        trait_type = TraitType.LONER
+        super().__init__(character_owner=character_owner, trait_type=trait_type)
         self.display_name = self.trait_type.display_name_it(character_owner.gender)
-        self.description = "Questo NPC preferisce la propria compagnia e si stressa negli eventi sociali."
+        self.description = "Preferisce la propria compagnia e si stressa negli eventi sociali."
 
     def get_action_choice_priority_modifier(self, action, simulation_context):
         if action.action_type_enum == ActionType.ACTION_SOCIALIZE:

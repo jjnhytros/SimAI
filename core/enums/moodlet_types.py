@@ -4,6 +4,7 @@ from enum import Enum, auto
 from core.enums.genders import Gender
 
 class MoodletType(Enum):
+    AMAZING_MEAL = auto()
     """Tipi di modificatori di umore (Moodlet) che un NPC può avere."""
     # Categoria 1: Bisogni Fisiologici (50 voci)
     ATHLETIC = auto()              # Atletico
@@ -259,6 +260,7 @@ class MoodletType(Enum):
             # dovrai creare i membri dell'enum se vuoi usarli.
             # Es: BLADDER_DISTRESS non esiste, ma BLADDER_FULL sì.
             MoodletType.BLADDER_FULL: "Vescica Piena", 
+            MoodletType.AMAZING_MEAL: "Pasto squisito", 
             # MoodletType.NEW_FRIEND: "Nuovo Amico", # Manca nell'enum
             # MoodletType.FIRST_KISS: "Primo Bacio", # Manca nell'enum
             # MoodletType.GOT_PROMOTED: "Promozione Ottenuta", # Manca

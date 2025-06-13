@@ -88,7 +88,7 @@ def setup_test_simulation() -> Simulation:
 
 
     # --- Creazione NPC Fissi (Erika e Max) ---
-    print("  [Setup] Creazione di Erika Lamboretti e Max Volpi...")
+    print("  [Setup] Creazione di Erika Lamborghetti e Max Volpi...")
     try:
         # Calcola la loro data di nascita condivisa (15 anni)
         age_in_days = int(15.153845649346 * time_config.DXY)
@@ -120,7 +120,7 @@ def setup_test_simulation() -> Simulation:
 
         # Creazione di Erika
         erika = Character(
-            npc_id="erika_lamboretti", name="Erika Lamboretti", initial_gender=Gender.FEMALE,
+            npc_id="erika_lamborghetti", name="Erika Lamborghetti", initial_gender=Gender.FEMALE,
             initial_birth_date=birth_date,
             initial_traits={TraitType.SOCIAL, TraitType.ACTIVE, TraitType.PARTY_ANIMAL, TraitType.UNINHIBITED},
             initial_aspiration=AspirationType.SOCIAL_BUTTERFLY,

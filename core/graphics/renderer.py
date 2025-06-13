@@ -4,14 +4,14 @@ Gestisce l'inizializzazione di Pygame, la finestra di gioco e il loop di renderi
 Riferimento TODO: I.1
 """
 import pygame
-import random
-from typing import Optional, TYPE_CHECKING, List, Tuple # Aggiunto Tuple per type hint
+from typing import Optional, TYPE_CHECKING, List, Tuple
+from pygame.surface import Surface
 
 from core import settings
-from core.config import (ui_config, time_config, graphics_config)
+from core.config import (npc_config, ui_config, time_config, graphics_config)
 from core.config.graphics_config import SHEET_DOORS, SHEET_FLOORS
 
-from core.enums import Gender, ObjectType
+from core.enums import Gender
 from core.enums.tile_types import TileType
 from core.modules.time_manager import TimeManager 
 from assets.asset_manager import AssetManager
@@ -36,59 +36,47 @@ class Renderer:
 
     def __init__(self, width: int = 1280, height: int = 768, caption: str = "SimAI Game"):
         pygame.init()
-        pygame.font.init()
-
-        self.base_width = width
-        self.base_height = height
-        self.width = self.base_width + self.PANEL_WIDTH 
-        self.height = self.base_height
-        self.screen_size = (self.width, self.height)
+        self.width = width
+        self.height = height
         
-        display_flags = pygame.RESIZABLE 
-        self.screen = pygame.display.set_mode(self.screen_size, display_flags)
-        pygame.display.set_caption(caption)
-
+        # Definiamo le dimensioni delle aree prima di creare lo schermo
+        self.PANEL_WIDTH = ui_config.PANEL_WIDTH
+        self.base_width = self.width - self.PANEL_WIDTH
+        self.base_height = self.height
+        
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        pygame.display.set_caption(f"SimAI {settings.GAME_VERSION} - GUI Edition")
+        
         self.clock = pygame.time.Clock()
         self.is_running = False
 
-        self.BLACK = (0, 0, 0)
+        # --- Sezione Colori ---
         self.WHITE = (255, 255, 255)
-        self.GREY = (128, 128, 128)
-        self.RED_OBJ = (200, 0, 0)
+        self.BLACK = (0, 0, 0)
+        self.PANEL_BG_COLOR = (30, 30, 40)
+        self.SELECTION_COLOR = (255, 255, 0)
+        self.current_contrast_color = self.WHITE
 
-        try:
-            self.font_main = pygame.font.Font(None, 18)
-            self.font_debug = pygame.font.Font(None, 16)
-            self.font_panel_title = pygame.font.Font(None, 32)
-            self.font_panel_text = pygame.font.Font(None, 16)
-            self.tile_size = 32
-
-            self.asset_manager = AssetManager()
-            self.asset_manager.load_assets(tile_size=(self.tile_size, self.tile_size))
-
-            common_system_font_name = "arial"
-            try:
-                self.font_main = pygame.font.SysFont(common_system_font_name, 18)
-            except pygame.error:
-                if settings.DEBUG_MODE:
-                    print(f"  [Renderer WARN] Font di sistema '{common_system_font_name}' non trovato.")
-                self.font_main = pygame.font.Font(None, 16)
-        except pygame.error as e:
-            if settings.DEBUG_MODE:
-                print(f"  [Renderer ERROR] Errore imprevisto inizializzazione font: {e}.")
-            self.font_debug = pygame.font.Font(None, 16)
-            self.font_panel_title = pygame.font.Font(None, 18)
-            self.font_panel_text = pygame.font.Font(None, 16)
-            self.font_main = pygame.font.Font(None, 20)
-
-        self.current_visible_location_id: Optional[str] = None
+        # --- Caricamento Font ---
+        self._load_fonts()
+        
+        # --- Asset Manager e Tiles ---
+        self.tile_size = 32
+        self.asset_manager = AssetManager()
+        self.asset_manager.load_assets(tile_size=(self.tile_size, self.tile_size))
+        
+        # --- Camera e Stato UI ---
+        self.camera_offset_x = 0.0
+        self.camera_offset_y = 0.0
+        self.zoom_level = 1.0
+        
         self.location_keys_list: List[str] = []
         self.current_location_index: int = 0
+        self.current_visible_location_id: Optional[str] = None
         
-        self.camera_offset_x: int = 0
-        self.camera_offset_y: int = 0
         self.selected_npc_id: Optional[str] = None
-        self.zoom_level: float = 1.0
+        self.hovered_npc: Optional['Character'] = None
+        self.hovered_object: Optional['GameObject'] = None
 
         if settings.DEBUG_MODE:
             print(f"  [Renderer] Inizializzato Pygame con finestra {self.width}x{self.height} (Area gioco: {self.base_width}x{self.base_height}, Pannello: {self.PANEL_WIDTH}x{self.base_height})")
@@ -101,6 +89,40 @@ class Renderer:
     def effective_npc_radius(self) -> int:
         base_radius = self.TILE_SIZE / 2 - 3 
         return max(2, int(base_radius * self.zoom_level))
+
+    def _load_fonts(self):
+        """
+        Carica tutti i font necessari per la GUI con una logica di fallback.
+        """
+        print("  [Renderer] Caricamento fonts...")
+        try:
+            # 1. Prova a caricare il font personalizzato
+            print(f"    - Tento di caricare font personalizzato: '{ui_config.FONT_PATH}'")
+            self.font_large = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_LARGE)
+            self.font_medium_bold = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_MEDIUM_BOLD)
+            self.font_small = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_SMALL)
+            self.font_debug = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_DEBUG)
+            print("    -> Font personalizzato caricato con successo.")
+        except pygame.error:
+            print(f"  [Renderer WARN] Font '{ui_config.FONT_PATH}' non trovato o illeggibile.")
+            try:
+                # 2. Se fallisce, prova a caricare un font di sistema comune
+                print(f"    - Tento di caricare font di sistema: '{ui_config.FONT_FALLBACK_SYSTEM}'")
+                self.font_large = pygame.font.SysFont(ui_config.FONT_FALLBACK_SYSTEM, ui_config.FONT_SIZE_LARGE)
+                self.font_medium_bold = pygame.font.SysFont(ui_config.FONT_FALLBACK_SYSTEM, ui_config.FONT_SIZE_MEDIUM_BOLD)
+                self.font_small = pygame.font.SysFont(ui_config.FONT_FALLBACK_SYSTEM, ui_config.FONT_SIZE_SMALL)
+                self.font_debug = pygame.font.SysFont(ui_config.FONT_FALLBACK_SYSTEM, ui_config.FONT_SIZE_DEBUG)
+                print("    -> Font di sistema caricato con successo.")
+            except pygame.error:
+                # 3. Se fallisce anche quello, usa il font di default di Pygame
+                print(f"  [Renderer WARN] Font di sistema non trovato. Caricamento font di default.")
+                self.font_large = pygame.font.Font(None, ui_config.FONT_SIZE_LARGE + 2) # Aumento leggermente per compensare
+                self.font_medium_bold = pygame.font.Font(None, ui_config.FONT_SIZE_MEDIUM_BOLD)
+                self.font_small = pygame.font.Font(None, ui_config.FONT_SIZE_SMALL)
+                self.font_debug = pygame.font.Font(None, ui_config.FONT_SIZE_DEBUG)
+        
+        # Imposta il grassetto dove serve
+        self.font_medium_bold.set_bold(True)
 
     def _center_camera_on_npc(self, npc: 'Character', current_location: Optional['Location']):
         if not current_location: return
@@ -123,6 +145,29 @@ class Renderer:
         if settings.DEBUG_MODE:
             print(f"  [Renderer] Telecamera centrata su {npc.name}. Offset logico: ({self.camera_offset_x}, {self.camera_offset_y})")
 
+    def _get_object_at_screen_pos(self, screen_pos: Tuple[int, int], simulation: 'Simulation') -> Optional['GameObject']:
+        """
+        Restituisce l'oggetto GameObject che si trova in una data posizione dello schermo.
+        """
+        if not self.current_visible_location_id: return None
+        location = simulation.get_location_by_id(self.current_visible_location_id)
+        if not location: return None
+
+        for obj in location.get_objects():
+            sprite_def = graphics_config.SPRITE_DEFINITIONS.get(obj.style, {}).get(obj.object_type)
+            if not sprite_def: continue
+
+            obj_rect_on_sheet = pygame.Rect(sprite_def['rect'])
+            obj_screen_x, obj_screen_y = self._map_logical_to_screen(obj.logical_x, obj.logical_y)
+            
+            # Crea il rettangolo dell'oggetto sullo schermo
+            obj_screen_rect = pygame.Rect(obj_screen_x, obj_screen_y, obj_rect_on_sheet.width * self.zoom_level, obj_rect_on_sheet.height * self.zoom_level)
+
+            if obj_screen_rect.collidepoint(screen_pos):
+                return obj
+        
+        return None
+
     def _handle_events(self, simulation: Optional['Simulation']):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -141,7 +186,17 @@ class Renderer:
                 self.screen = pygame.display.set_mode(self.screen_size, pygame.RESIZABLE)
                 if settings.DEBUG_MODE:
                     print(f"  [Renderer] Finestra ridimensionata a: {self.width}x{self.height}")
-            
+
+            elif event.type == pygame.MOUSEMOTION:
+                if simulation:
+                    mouse_pos = event.pos
+                    # Diamo priorità all'NPC se si sovrappone a un oggetto
+                    self.hovered_npc = self._get_npc_at_screen_pos(mouse_pos, simulation)
+                    if self.hovered_npc:
+                        self.hovered_object = None # Se siamo su un NPC, non mostriamo il tooltip dell'oggetto
+                    else:
+                        self.hovered_object = self._get_object_at_screen_pos(mouse_pos, simulation)
+
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: 
                     mouse_x, mouse_y = event.pos
@@ -264,52 +319,52 @@ class Renderer:
         screen_y = (logical_y - self.camera_offset_y + 0.5) * self.effective_tile_size
         return int(screen_x), int(screen_y)
 
-    def _draw_npc(self, character: 'Character'):
-        if character.logical_x is None or character.logical_y is None:
-            return 
-        npc_screen_x, npc_screen_y = self._map_logical_to_screen(float(character.logical_x), float(character.logical_y))
-        npc_color = ui_config.NPC_GENDER_COLORS.get(character.gender, ui_config.DEFAULT_NPC_COLOR)
-        
-        current_radius = self.effective_npc_radius
-        pygame.draw.circle(self.screen, npc_color, (npc_screen_x, npc_screen_y), current_radius)
-        
-        is_selected = self.selected_npc_id == character.npc_id
+    def _draw_npc(self, npc: 'Character'): # <-- Il parametro è chiamato 'npc'
+        """Disegna un singolo NPC nell'area di gioco, con i suoi indicatori."""
+        if not self.font_small: return
 
+        # Calcola la posizione sullo schermo
+        npc_screen_x, npc_screen_y = self._map_logical_to_screen(npc.logical_x, npc.logical_y)
+        
+        # Disegna il cerchio che rappresenta l'NPC
+        npc_color = ui_config.NPC_GENDER_COLORS.get(npc.gender, ui_config.DEFAULT_NPC_COLOR)
+        pygame.draw.circle(self.screen, npc_color, (npc_screen_x, npc_screen_y), self.effective_npc_radius)
+        
+        # Disegna un indicatore se un bisogno è critico
         has_critical_need = False
-        if character.needs: 
-            for need in character.needs.values():
-                if hasattr(settings, 'NEED_CRITICAL_THRESHOLD') and \
-                need.get_value() <= settings.NEED_CRITICAL_THRESHOLD:
-                    has_critical_need = True
-                    break
+        # Usiamo 'npc' qui, che è il parametro ricevuto dal metodo
+        for need in npc.needs.values(): 
+            if need.get_value() <= npc_config.NEED_CRITICAL_THRESHOLD:
+                has_critical_need = True
+                break
         
-        if is_selected:
-            pygame.draw.circle(self.screen, self.SELECTION_BORDER_COLOR, (npc_screen_x, npc_screen_y), current_radius + 2, self.SELECTION_BORDER_WIDTH)
-        elif has_critical_need: 
-            pygame.draw.circle(self.screen, ui_config.NPC_CRITICAL_NEED_INDICATOR_COLOR, (npc_screen_x, npc_screen_y), current_radius, 3)
+        if has_critical_need:
+            pygame.draw.circle(self.screen, ui_config.NPC_CRITICAL_NEED_INDICATOR_COLOR, (npc_screen_x, npc_screen_y), self.effective_npc_radius + 2, 3)
         
-        if self.font_debug and self.zoom_level >= 0.7: # Mostra nome se lo zoom è sufficiente
-            # name_surface = self.font_main.render(character.name, True, self.current_contrast_color)
-            # name_surface = self.font_debug.render(character.name, True, self.BLACK)
-            # name_rect = name_surface.get_rect(center=(npc_screen_x, npc_screen_y + current_radius + int(10 * self.zoom_level)))
-            # self.screen.blit(name_surface, name_rect)
-            pass
+        # Disegna il cerchio di selezione
+        if self.selected_npc_id == npc.npc_id:
+            pygame.draw.circle(self.screen, self.SELECTION_COLOR, (npc_screen_x, npc_screen_y), self.effective_npc_radius, 2)
+
+        # Disegna il nome dell'NPC
+        text_surface = self.font_small.render(npc.name, True, self.current_contrast_color)
+        text_rect = text_surface.get_rect(center=(npc_screen_x, npc_screen_y - self.effective_npc_radius - 10))
+        self.screen.blit(text_surface, text_rect)
 
     def _draw_tilemap(self, location: 'Location'):
         """
         Disegna la mappa a mattonelle leggendo la mappa processata e scalando le tile.
         Include stampe di debug per trovare l'errore dello schermo nero.
         """
-        print("\n[Debug Tilemap] Avvio _draw_tilemap...")
+        # print("\n[Debug Tilemap] Avvio _draw_tilemap...")
         
         if not location.processed_tile_map:
             print("[Debug Tilemap] ERRORE: La 'processed_tile_map' della location è vuota! La logica in Location.__post_init__ potrebbe essere fallita.")
             return
         
-        print(f"[Debug Tilemap] Mappa processata trovata. Dimensioni: {len(location.processed_tile_map[0])}x{len(location.processed_tile_map)}")
+        # print(f"[Debug Tilemap] Mappa processata trovata. Dimensioni: {len(location.processed_tile_map[0])}x{len(location.processed_tile_map)}")
         
         scaled_tile_size = int(self.tile_size * self.zoom_level)
-        print(f"[Debug Tilemap] Livello di zoom: {self.zoom_level:.2f}, Dimensione tile scalata: {scaled_tile_size}px")
+        # print(f"[Debug Tilemap] Livello di zoom: {self.zoom_level:.2f}, Dimensione tile scalata: {scaled_tile_size}px")
 
         if scaled_tile_size <= 1:
             print("[Debug Tilemap] Uscita: tile troppo piccole per essere disegnate a questo livello di zoom.")
@@ -325,7 +380,7 @@ class Renderer:
                     continue
 
                 # Stampa di debug per ogni singola mattonella
-                print(f"  [Debug Tile] Cella ({x},{y}): Tipo={tile_type.name}, Variante={variant_index}")
+                # print(f"  [Debug Tile] Cella ({x},{y}): Tipo={tile_type.name}, Variante={variant_index}")
 
                 style_name = SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else SHEET_FLOORS
                 spritesheet = self.asset_manager.get_spritesheet(style_name)
@@ -349,7 +404,7 @@ class Renderer:
                     chosen_def = tile_def_or_list
                 
                 tile_rect_to_cut = pygame.Rect(chosen_def['rect'])
-                print(f"    -> OK! Uso lo spritesheet '{style_name}' e ritaglio il rettangolo: {tile_rect_to_cut}")
+                # print(f"    -> OK! Uso lo spritesheet '{style_name}' e ritaglio il rettangolo: {tile_rect_to_cut}")
 
                 try:
                     tile_image = spritesheet.subsurface(tile_rect_to_cut)
@@ -363,6 +418,43 @@ class Renderer:
                     self.screen.blit(scaled_tile_image, (screen_x, screen_y))
                 except ValueError as e:
                     print(f"    -> ERRORE PYGAME: Impossibile ritagliare o scalare lo sprite. {e}")
+
+    def _get_npc_at_screen_pos(self, screen_pos: Tuple[int, int], simulation: 'Simulation') -> Optional['Character']:
+        """
+        Restituisce l'oggetto NPC che si trova in una data posizione dello schermo, se presente.
+        """
+        # Dobbiamo controllare solo gli NPC nella locazione attualmente visibile
+        if not self.current_visible_location_id:
+            return None
+            
+        location = simulation.get_location_by_id(self.current_visible_location_id)
+        if not location:
+            return None
+
+        # Itera sugli NPC in ordine inverso di disegno (così becchiamo quello sopra)
+        # se fossero sovrapposti. Per ora non è un problema.
+        for npc_id in location.npcs_present_ids:
+            npc = simulation.get_npc_by_id(npc_id)
+            if not npc:
+                continue
+
+            # Calcola la posizione e l'area cliccabile dell'NPC sullo schermo
+            npc_screen_x, npc_screen_y = self._map_logical_to_screen(npc.logical_x, npc.logical_y)
+            radius = self.effective_npc_radius
+            
+            # Crea un rettangolo per il "bounding box" dell'NPC
+            npc_rect = pygame.Rect(
+                npc_screen_x - radius, 
+                npc_screen_y - radius, 
+                radius * 2, 
+                radius * 2
+            )
+            
+            # Controlla se il punto del mouse è dentro il rettangolo dell'NPC
+            if npc_rect.collidepoint(screen_pos):
+                return npc # Trovato! Restituisci questo NPC.
+        
+        return None # Nessun NPC trovato in quella posizione
 
     def _draw_game_object(self, game_obj: 'GameObject'):
         """Disegna un oggetto leggendo il suo stile."""
@@ -400,7 +492,7 @@ class Renderer:
         Disegna testo nel pannello. Se max_width è specificato, il testo andrà a capo.
         Restituisce la coordinata y sotto l'ultima linea di testo disegnata.
         """
-        if font is None: font = self.font_panel_text
+        if font is None: font = self.font_small
         if color is None: color = self.TEXT_COLOR
         
         if not font: return y # Non possiamo disegnare senza un font
@@ -543,6 +635,73 @@ class Renderer:
         # Puoi usare i tuoi colori self.BLACK e self.WHITE se li hai definiti.
         return (0, 0, 0) if luminance > 128 else (255, 255, 255)
 
+    def _get_need_bar_color(self, value: float) -> Tuple[int, int, int]:
+        """
+        Restituisce il colore corretto per la barra di un bisogno in base al suo valore.
+        """
+        if value <= 6.25:
+            return ui_config.NEED_BAR_DARK_RED
+        elif value <= 12.5:
+            return ui_config.NEED_BAR_RED
+        elif value <= 25:
+            return ui_config.NEED_BAR_ORANGE
+        elif value <= 50:
+            return ui_config.NEED_BAR_YELLOW
+        else: # > 50
+            return ui_config.NEED_BAR_GREEN
+
+    def _draw_text_and_get_surface(self, text: str, x: int, y: int, font=None, color=None, max_width=None) -> Optional[Surface]:
+        """
+        Disegna il testo sullo schermo e restituisce la superficie pygame creata.
+        Gestisce il wrapping del testo se viene superata una larghezza massima.
+        
+        Args:
+            text (str): Il testo da disegnare.
+            x (int): La coordinata x di partenza.
+            y (int): La coordinata y di partenza.
+            font (pygame.Font, optional): Il font da usare. Usa il font di debug di default.
+            color (Tuple[int,int,int], optional): Il colore del testo. Usa il bianco di default.
+            max_width (int, optional): La larghezza massima prima di andare a capo.
+
+        Returns:
+            Optional[Surface]: La superficie pygame del testo (o dell'ultima riga di testo),
+                                o None se il font non è disponibile.
+        """
+        # Se non vengono passati font o colori, usa quelli di default
+        active_font = font or self.font_debug
+        active_color = color or self.WHITE
+
+        if not active_font: 
+            return None
+
+        # Gestisce il wrapping del testo se supera la larghezza massima
+        if max_width and active_font.size(text)[0] > max_width:
+            words = text.split(' ')
+            lines = []
+            current_line = ""
+            for word in words:
+                # Controlla se la nuova parola fa sforare la linea
+                if active_font.size(current_line + " " + word)[0] <= max_width:
+                    current_line += " " + word if current_line else word
+                else:
+                    # Vai a capo
+                    lines.append(current_line)
+                    current_line = word
+            lines.append(current_line)
+            
+            # Disegna ogni linea e restituisce solo la superficie dell'ultima linea
+            # per calcoli di posizione successivi, se necessari.
+            text_surface = None
+            for i, line in enumerate(lines):
+                text_surface = active_font.render(line, True, active_color)
+                self.screen.blit(text_surface, (x, y + i * self.LINE_HEIGHT))
+            return text_surface
+        
+        else:
+            # Disegna il testo in una sola riga
+            text_surface = active_font.render(text, True, active_color)
+            self.screen.blit(text_surface, (x, y))
+            return text_surface
 
     def _render_gui(self, simulation: Optional['Simulation']):
         # 1. PULIZIA SCHERMO INIZIALE
@@ -610,111 +769,137 @@ class Renderer:
         panel_padding = 10
         current_y = panel_padding
         
-        # Disegno data e ora
-        if simulation and simulation.time_manager and self.font_debug:
-            datetime_str = simulation.time_manager.get_formatted_datetime_string()
-            dt_text_surface = self.font_debug.render(datetime_str, True, self.WHITE)
-            if dt_text_surface: self.screen.blit(dt_text_surface, (self.base_width + panel_padding, current_y))
-            current_y += self.LINE_HEIGHT
-        current_y += 5
+        # 1. DATA E ORA
+        if simulation and simulation.time_manager:
+            current_sim_time = simulation.time_manager.get_current_time()
+            date_str = current_sim_time.format("D, Y, d/m (F)")
+            time_str = current_sim_time.format("G:i")
+            current_y = self._draw_text_in_panel(date_str, panel_padding, current_y, font=self.font_small, color=self.WHITE)
+            current_y = self._draw_text_in_panel(time_str, panel_padding, current_y, font=self.font_medium_bold, color=self.WHITE)
+        current_y += self.LINE_HEIGHT # Linea vuota
 
+        # 2. INFO LOCAZIONE
         if current_location_instance_for_panel:
             loc_name = current_location_instance_for_panel.name
+            current_y = self._draw_text_in_panel(loc_name, panel_padding, current_y, font=self.font_small, color=self.WHITE)
+            
+            # Riga opzionale
             num_npcs = len(current_location_instance_for_panel.npcs_present_ids)
             num_objs = len(current_location_instance_for_panel.get_objects())
-            cam_off = f"({self.camera_offset_x:.1f},{self.camera_offset_y:.1f})"
-            current_y = self._draw_text_in_panel(f"Loc: {loc_name}", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
-            current_y = self._draw_text_in_panel(f"  NPCs: {num_npcs}, Oggetti: {num_objs}, Cam: {cam_off}", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
-        else:
-            current_y = self._draw_text_in_panel("Nessuna locazione selezionata.", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
-        current_y += self.LINE_HEIGHT 
+            cam_off = f"({self.camera_offset_x:.0f},{self.camera_offset_y:.0f})"
+            current_y = self._draw_text_in_panel(f"NPCs: {num_npcs}, Oggetti: {num_objs}, Cam: {cam_off}", panel_padding, current_y, font=self.font_small, color=self.WHITE)
+        current_y += self.LINE_HEIGHT # Linea vuota
 
-        # Blocco di disegno per l'NPC selezionato
+        # 3. DETTAGLI NPC SELEZIONATO
         if npc_to_display_in_panel:
             npc = npc_to_display_in_panel
-            text_indent = panel_padding + 15
-            value_max_width = self.PANEL_WIDTH - text_indent - panel_padding
+            
+            # NOME E SIMBOLO GENERE
+            # Disegniamo prima il nome per sapere quanto è largo
+            name_surface = self.font_large.render(npc.name, True, self.WHITE)
+            self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
+            
+            # --- NOME E SIMBOLO GENERE (LOGICA AGGIORNATA) ---
+            # Disegniamo prima il nome per sapere quanto è largo
+            name_surface = self.font_large.render(npc.name, True, self.WHITE)
+            self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
+            
+            # Recupera il colore corretto dal nuovo dizionario in ui_config
+            # Usa il colore per UNKNOWN come fallback se il genere non è trovato
+            gender_color = ui_config.NPC_GENDER_COLORS.get(
+                npc.gender, 
+                ui_config.NPC_GENDER_COLORS[Gender.UNKNOWN]
+            )
 
-            # Usa il colore del titolo calcolato all'inizio anche per il nome dell'NPC
-            current_y = self._draw_text_in_panel(f"NPC Sel: {npc.name}", panel_padding, current_y, font=self.font_panel_title, color=title_contrast_color)
-            
-            # Calcola e disegna l'età
-            # current_sim_time = simulation.time_manager.get_current_time() # Ora questo è sicuro
-            age_str = f"{npc.get_age_in_years_float(current_sim_time):.12f} anni" # type: ignore
-            
-            gender_str = npc.gender.display_name_it() if npc.gender else "N/D"
+            # Disegniamo il simbolo del genere accanto al nome
+            gender_symbol_rect = pygame.Rect(
+                self.base_width + panel_padding + name_surface.get_width() + 8, 
+                current_y + 8, 
+                10, 
+                10
+            )
+            pygame.draw.rect(self.screen, gender_color, gender_symbol_rect)
+            current_y += self.LINE_HEIGHT
+
+            # DATA DI NASCITA E ETÀ
+            birth_date_str = npc.birth_date.format("Y, d/m")
             lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
-            current_y = self._draw_text_in_panel(f"  {gender_str}, {age_str} ({lifestage_str})", panel_padding, current_y)
-            birth_date_str = npc.birth_date.format("JJ MONTH Y")
-            current_y = self._draw_text_in_panel(f"  Nato il: {birth_date_str}", panel_padding, current_y)
-            current_y += 5
+            current_y = self._draw_text_in_panel(f"Nato/a il: {birth_date_str}", panel_padding, current_y, font=self.font_small)
+            current_y = self._draw_text_in_panel(f"Età: {lifestage_str}", panel_padding, current_y, font=self.font_small)
+            current_y += self.LINE_HEIGHT # Linea vuota
 
-            if npc.current_action:
-                action_name = npc.current_action.action_type_name
-                progress = npc.current_action.get_progress_percentage()
-                action_info_str = f"Azione: {action_name} ({progress:.0%})"
-                current_y = self._draw_text_in_panel(f"  {action_info_str}", panel_padding, current_y, max_width=value_max_width)
-            else:
-                current_y = self._draw_text_in_panel("  Azione: Idle", panel_padding, current_y)
-            current_y += 5
-
-            current_y = self._draw_text_in_panel("Personalità:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
+            # AZIONE
+            action_str = f"Azione: {npc.current_action.action_type_name}" if npc.current_action else "Azione: Inattivo"
+            current_y = self._draw_text_in_panel(action_str, panel_padding, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding * 2)
+            current_y += self.LINE_HEIGHT # Linea vuota
             
-            trait_display_names = [trait_obj.display_name for trait_obj in npc.traits.values()]
-            trait_str = ", ".join(sorted(trait_display_names)) if trait_display_names else "Nessuno"
-            current_y = self._draw_text_in_panel("  Tratti: " + trait_str, panel_padding, current_y, max_width=value_max_width)
+            # --- BLOCCO PERSONALITÀ ---
+            current_y = self._draw_text_in_panel("Personalità", panel_padding, current_y, font=self.font_medium_bold)
+            trait_str = ", ".join(sorted([t.display_name for t in npc.traits.values()]))
+            current_y = self._draw_text_in_panel(f"Tratti: {trait_str}", panel_padding + 10, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding*2-10)
+            asp_str = npc.aspiration.display_name_it(npc.gender) if npc.aspiration else "Nessuna"
+            current_y = self._draw_text_in_panel(f"Aspirazione: {asp_str}", panel_padding + 10, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding*2-10)
+            interest_str = ", ".join(sorted([i.display_name_it(npc.gender) for i in npc.get_interests()]))
+            current_y = self._draw_text_in_panel(f"Interessi: {interest_str}", panel_padding + 10, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding*2-10)
+            current_y += self.LINE_HEIGHT # Linea vuota
 
-            asp_name = "Nessuna" # Valore di default
-            # Controlla prima se l'NPC ha un'aspirazione
-            if npc.aspiration:
-                # Solo se esiste, chiama il metodo per ottenere il nome declinato
-                asp_name = npc.aspiration.display_name_it(npc.gender)
+            # --- BLOCCO STATO EMOTIVO E BISOGNI ---
+            emotional_state_str = npc.moodlet_manager.get_dominant_emotion_display_name(npc.gender)
+            current_y = self._draw_text_in_panel(f"Stato Emotivo: {emotional_state_str}", panel_padding, current_y, font=self.font_small)
+            current_y += self.LINE_HEIGHT # Linea vuota
+
+            current_y = self._draw_text_in_panel("Bisogni", panel_padding, current_y, font=self.font_medium_bold)
             
-            asp_prog = npc.aspiration_progress
-            current_y = self._draw_text_in_panel(f"  Aspirazione: {asp_name} ({asp_prog:.0%})", panel_padding, current_y, max_width=value_max_width)
-            
-            interest_names = [i.display_name_it(npc.gender) for i in npc.get_interests()]
-            interest_str = ", ".join(sorted(interest_names)) if interest_names else "Nessuno"
-            current_y = self._draw_text_in_panel(f"  Interessi: {interest_str}", panel_padding, current_y, max_width=value_max_width)
-            current_y += self.LINE_HEIGHT
-
-            current_y = self._draw_text_in_panel("Stato Emotivo:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
-            if npc.moodlet_manager and npc.moodlet_manager.active_moodlets:
-                sorted_moodlets = sorted(npc.moodlet_manager.active_moodlets.values(), key=lambda m: m.emotional_impact)
-                for moodlet in sorted_moodlets:
-                    moodlet_color = self.WHITE
-                    if moodlet.emotional_impact < 0: moodlet_color = self.RED_OBJ
-                    elif moodlet.emotional_impact > 0: moodlet_color = (100, 255, 100)
-                    moodlet_text = f"  {moodlet.display_name} ({moodlet.emotional_impact})"
-                    current_y = self._draw_text_in_panel(moodlet_text, panel_padding, current_y, color=moodlet_color, max_width=self.PANEL_WIDTH - panel_padding * 2)
-            else:
-                current_y = self._draw_text_in_panel("  Neutro", panel_padding, current_y)
-            current_y += self.LINE_HEIGHT
-
-            current_y = self._draw_text_in_panel("Bisogni:", panel_padding, current_y, font=self.font_debug, color=self.WHITE)
             if npc.needs:
+                bar_x = self.base_width + panel_padding
+                bar_max_width = self.PANEL_WIDTH - panel_padding * 2
+                bar_height = self.font_small.get_height() + 2 # Altezza barra basata sul font
+
                 for need_type, need_obj in sorted(npc.needs.items(), key=lambda item: item[0].name):
-                    val_str = f"{need_obj.get_value():.0f}"
-                    need_ui_info = ui_config.NEED_UI_CONFIG.get(need_type, {})
-                    need_color_name = need_ui_info.get("color_pygame", "white")
-                    try: bar_fill_color = pygame.Color(need_color_name)
-                    except ValueError: bar_fill_color = pygame.Color(self.WHITE)
+                    value = need_obj.get_value()
+                    bar_color = self._get_need_bar_color(value)
+                    bar_current_width = int((value / settings.NEED_MAX_VALUE) * bar_max_width)
                     
-                    bar_x = self.base_width + panel_padding + 85
-                    bar_max_width = self.PANEL_WIDTH - panel_padding * 2 - 90
-                    bar_current_width = int((need_obj.get_value() / settings.NEED_MAX_VALUE) * bar_max_width)
-                    bar_height = self.LINE_HEIGHT - 8
-                    bar_y_offset = current_y + 4
+                    # Disegna lo sfondo della barra
+                    bg_rect = pygame.Rect(bar_x, current_y, bar_max_width, bar_height)
+                    pygame.draw.rect(self.screen, (50, 50, 50), bg_rect)
                     
-                    bg_rect_tuple = (int(bar_x), int(bar_y_offset), int(bar_max_width), int(bar_height))
-                    pygame.draw.rect(self.screen, (80,80,80), bg_rect_tuple)
+                    # Disegna la barra colorata
                     if bar_current_width > 0:
-                        fill_rect_tuple = (int(bar_x), int(bar_y_offset), int(bar_current_width), int(bar_height))
-                        pygame.draw.rect(self.screen, bar_fill_color, fill_rect_tuple)
-                    current_y = self._draw_text_in_panel(f"    {need_obj.get_display_name()}: {val_str}", panel_padding, current_y)
-        
-        elif self.font_debug:
+                        fill_rect = pygame.Rect(bar_x, current_y, bar_current_width, bar_height)
+                        pygame.draw.rect(self.screen, bar_color, fill_rect)
+                    
+                    # Disegna il testo SOPRA la barra
+                    need_name_str = need_obj.get_display_name(npc.gender)
+                    text_surface = self.font_small.render(need_name_str, True, self.WHITE)
+                    # Centra verticalmente il testo nella barra
+                    text_rect = text_surface.get_rect(centery=bg_rect.centery)
+                    text_rect.left = bg_rect.left + 5 # Con un piccolo padding
+                    self.screen.blit(text_surface, text_rect)
+                    
+                    current_y += bar_height + 4 # Avanza alla riga successiva
+        else:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
+
+        tooltip_text = None
+        if self.hovered_npc:
+            tooltip_text = self.hovered_npc.name
+        elif self.hovered_object:
+            tooltip_text = self.hovered_object.name
+
+        if tooltip_text and self.font_debug:
+            text_surface = self.font_debug.render(tooltip_text, True, self.BLACK)
+            text_rect = text_surface.get_rect()
+            tooltip_bg_rect = pygame.Rect(
+                text_rect.left - 5, text_rect.top - 3,
+                text_rect.width + 10, text_rect.height + 6
+            )
+            mouse_pos = pygame.mouse.get_pos()
+            tooltip_bg_rect.topleft = (mouse_pos[0] + 15, mouse_pos[1] + 10)
+            
+            pygame.draw.rect(self.screen, self.WHITE, tooltip_bg_rect)
+            pygame.draw.rect(self.screen, self.BLACK, tooltip_bg_rect, 1)
+            self.screen.blit(text_surface, (tooltip_bg_rect.left + 5, tooltip_bg_rect.top + 3))
         
         # Disegno degli FPS e flip finale
         if settings.DEBUG_MODE and self.font_debug:
@@ -723,27 +908,41 @@ class Renderer:
             
         pygame.display.flip()
 
-    def run_game_loop(self, simulation: Optional['Simulation'] = None):
+    def run_game_loop(self, simulation: Optional['Simulation']):
+        if not simulation:
+            print("[Renderer ERROR] Tentativo di avviare il game loop senza una simulazione.")
+            return
+
         if settings.DEBUG_MODE:
             print(f"  [Renderer] Avvio Game Loop Pygame...")
-        if simulation and simulation.locations:
-            self.location_keys_list = sorted(list(simulation.locations.keys()))
-            if self.location_keys_list:
-                self.current_location_index = 0
-                self.current_visible_location_id = self.location_keys_list[self.current_location_index]
-                # if settings.DEBUG_MODE:
-                #     print(f"  [Renderer Loop Start] Visualizzazione iniziale locazione: {self.current_visible_location_id}")
-        else:
-            self.location_keys_list = []
-            self.current_visible_location_id = None
+
+        # Imposta la location iniziale visibile
+        self.location_keys_list = sorted(list(simulation.locations.keys()))
+        if self.location_keys_list:
+            self.current_visible_location_id = self.location_keys_list[0]
         
+        # --- CORREZIONE CHIAVE QUI ---
+        # "Accendiamo" sia il loop del renderer sia il motore della simulazione
         self.is_running = True
+        simulation.is_running = True
+        # --- FINE CORREZIONE ---
+        
         while self.is_running:
+            # Limita il framerate
+            self.clock.tick(settings.FPS)
+            
+            # 1. Gestisci Input
             self._handle_events(simulation)
-            self._update_game_state(simulation) 
+            
+            # 2. Aggiorna Stato Simulazione
+            # Ora il controllo 'simulation.is_running' funzionerà correttamente
+            if simulation.is_running:
+                simulation._update_simulation_state()
+            
+            # 3. Disegna tutto
             self._render_gui(simulation)
             
-            self.clock.tick(settings.FPS) 
+        # Quando il loop finisce, chiudi pygame
         self._quit_pygame()
 
     def _quit_pygame(self):

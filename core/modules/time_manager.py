@@ -64,7 +64,6 @@ class TimeManager:
             'month_name': self._current_time.month_name
         }
 
-    # --- METODI GETTER AGGIORNATI PER USARE _current_time ---
     def get_current_minute(self) -> int:
         return self._current_time.minute
 
@@ -78,10 +77,17 @@ class TimeManager:
 
     def get_formatted_datetime_string(self) -> str:
         """Restituisce una stringa formattata con data e ora correnti."""
-        # Usa i codici definiti nel tuo metodo ATHDateTime.format
-        # 'DAY' per il nome del giorno, 'JJ' per il giorno del mese,
-        # 'MONTH' per il nome del mese, 'HH' per l'ora, 'II' per i minuti.
-        format_string = "DAY, JJ MONTH Y - HH:II"
+        
+        # l (L minuscola) = Giorno della settimana testuale completo (es. "Nijahr")
+        # d = Giorno del mese a due cifre (es. "01")
+        # F = Mese testuale completo (es. "Arejal")
+        # Y = Anno a quattro cifre (es. "5775")
+        # H = Ora a due cifre (00-27)
+        # i = Minuti a due cifre (00-59)
+        format_string = "l, Y, d F - H:i"
+        
+        # Chiama il metodo .format() del tuo oggetto ATHDateTime
+        return self._current_time.format(format_string)
         
         return self._current_time.format(format_string)
 

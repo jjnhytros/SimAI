@@ -31,6 +31,14 @@ dosinvelos_layout = [
     [WE, WE, WE, WE, WE, WE, WE, LV, WE, WE, WE, WE, WE, WE, WE],
 ]
 
+dosinvelos_fridge = GameObject(object_id="obj_dosinvelos_fridge", name="Frigo Anni '90", object_type=ObjectType.REFRIGERATOR, style="dark-wood", logical_x=1, logical_y=1)
+dosinvelos_bed_erika = GameObject(object_id="obj_dosinvelos_bed_erika", name="Letto di Erika", object_type=ObjectType.BED, style="dark-wood", logical_x=1, logical_y=6)
+dosinvelos_bed_max = GameObject(object_id="obj_dosinvelos_bed_max", name="Letto di Max", object_type=ObjectType.BED, style="dark-wood", logical_x=4, logical_y=6)
+dosinvelos_computer = GameObject(object_id="obj_dosinvelos_computer", name="PC Assemblato", object_type=ObjectType.COMPUTER, style="dark-wood", logical_x=1, logical_y=2)
+dosinvelos_bookshelf = GameObject(object_id="obj_dosinvelos_bookshelf", name="Libreria Caotica", object_type=ObjectType.BOOKSHELF, style="dark-wood", logical_x=3, logical_y=1)
+dosinvelos_toilet = GameObject(object_id="obj_dosinvelos_toilet", name="WC", object_type=ObjectType.TOILET, style="dark-wood", logical_x=11, logical_y=1)
+dosinvelos_sink = GameObject(object_id="obj_dosinvelos_sink", name="Lavandino", object_type=ObjectType.SINK, style="dark-wood", logical_x=13, logical_y=1)
+
 # 1. Crea l'istanza della Location senza passare la tile_map nel costruttore
 loc_dosinvelos = Location(
     location_id="loc_dosinvelos_apt_01",
@@ -43,12 +51,18 @@ loc_dosinvelos = Location(
 )
 
 # 2. Assegna la pianta all'attributo .tile_map dopo la creazione
-# loc_dosinvelos.tile_map = dosinvelos_layout
+loc_dosinvelos.objects = {
+    dosinvelos_fridge.object_id: dosinvelos_fridge,
+    dosinvelos_bed_erika.object_id: dosinvelos_bed_erika,
+    dosinvelos_bed_max.object_id: dosinvelos_bed_max,
+    dosinvelos_computer.object_id: dosinvelos_computer,
+    dosinvelos_bookshelf.object_id: dosinvelos_bookshelf,
+    dosinvelos_toilet.object_id: dosinvelos_toilet,
+    dosinvelos_sink.object_id: dosinvelos_sink,
+}
 
+
+# --- LISTA DI ESPORTAZIONE ---
 district_locations = [
     loc_dosinvelos,
 ]
-
-# Aggiungi anche gli oggetti, se ne hai
-# loc_dosinvelos.objects = { ... }
-

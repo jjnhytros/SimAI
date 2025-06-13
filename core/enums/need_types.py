@@ -1,5 +1,7 @@
 # core/enums/need_types.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum 'NeedType' per rappresentare i bisogni fondamentali
 degli NPC in SimAI.
@@ -37,23 +39,31 @@ class NeedType(Enum):
     # BELONGING è coperto da SOCIAL, ma potremmo specificarlo se necessario
     # SELF_ESTEEM è un concetto più alto, potrebbe derivare dal soddisfacimento di altri
 
-    def display_name_it(self) -> str:
+    def display_name_it(self, gender: 'Gender') -> str:
+        """
+        Restituisce un nome leggibile per il bisogno.
+        La firma accetta 'gender' per coerenza, anche se la maggior parte dei nomi è invariabile.
+        """
+        # La maggior parte dei nomi dei bisogni in italiano sono sostantivi e invariabili
         mapping = {
             NeedType.HUNGER: "Fame",
-            NeedType.BLADDER: "Vescica",
-            NeedType.HYGIENE: "Igiene",
+            NeedType.THIRST: "Sete",
             NeedType.ENERGY: "Energia",
             NeedType.FUN: "Divertimento",
-            NeedType.SOCIAL: "Sociale",
+            NeedType.SOCIAL: "Socialità",
+            NeedType.HYGIENE: "Igiene",
+            NeedType.BLADDER: "Vescica",
             NeedType.INTIMACY: "Intimità",
-            NeedType.THIRST: "Sete",
+            NeedType.STRESS: "Stress",
             NeedType.COMFORT: "Comfort",
             NeedType.ENVIRONMENT: "Ambiente",
             NeedType.SAFETY: "Sicurezza",
             NeedType.CREATIVITY: "Creatività",
             NeedType.LEARNING: "Apprendimento",
-            NeedType.SPIRITUALITY: "Spiritualità",
             NeedType.AUTONOMY: "Autonomia",
             NeedType.ACHIEVEMENT: "Realizzazione",
+            NeedType.SPIRITUALITY: "Spiritualità",
         }
+        
+        # Usiamo .get() con un fallback che formatta il nome dell'enum
         return mapping.get(self, self.name.replace("_", " ").title())

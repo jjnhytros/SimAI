@@ -37,7 +37,7 @@ class HaveFunAction(BaseAction):
                 cognitive_effort: float = 0.2,
                 is_noisy: bool = False,
                 is_outdoors: bool = False,
-                triggering_problem: Optional['Problem'] = None
+                triggering_problem: Optional['Problem'] = None,
                 ):
         
         # Il costruttore di BaseAction è già stato corretto
@@ -61,8 +61,11 @@ class HaveFunAction(BaseAction):
         self.required_object_types: Optional[Tuple[ObjectType, ...]] = required_object_types
         
         self.effects_on_needs: Dict[NeedType, float] = { NeedType.FUN: self.fun_gain }
-        
-        # FIX per Errore su Ln 79
+        config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type, {})
+        other_effects = config.get("effects_on_needs")
+        if other_effects:
+            self.effects_on_needs.update(other_effects)
+
         if settings.DEBUG_MODE and self.activity_type:
             skill_info = f", Skill: {self.skill_to_practice.name} +{self.skill_xp_gain}xp" if self.skill_to_practice else ""
             print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata per '{self.activity_type.name}'. "
@@ -91,7 +94,6 @@ class HaveFunAction(BaseAction):
                 self.target_object = game_obj
                 return True
         
-        # FIX per Errore su Ln 111 (e simili)
         activity_name = self.activity_type.name if self.activity_type else "sconosciuta"
         if settings.DEBUG_MODE:
             print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Nessun oggetto disponibile trovato per '{activity_name}' in {current_location.name}.")
@@ -127,6 +129,9 @@ class HaveFunAction(BaseAction):
                 print(f"    [{self.action_type_name} PROGRESS - {self.npc.name}] Si sta divertendo ({self.activity_type.name})... ({self.get_progress_percentage():.0%})")
 
     def on_finish(self):
+        if self.npc and self.effects_on_needs:
+            for need_type, change_amount in self.effects_on_needs.items():
+                self.npc.change_need_value(need_type, change_amount)
         if self.npc and self.activity_type:
             if settings.DEBUG_MODE:
                 print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Finito di: {self.activity_type.name}. Applico effetti completi.")

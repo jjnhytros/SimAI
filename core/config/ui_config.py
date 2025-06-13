@@ -5,6 +5,18 @@ from core.enums import (
     NeedType, Gender, ObjectType, TimeOfDay
 )
 
+FONT_PATH = "assets/fonts/EasyReading.otf"
+FONT_FALLBACK_SYSTEM = "arial" # Un font comune che potrebbe essere sul sistema
+
+# Definiamo le dimensioni che useremo
+FONT_SIZE_LARGE = 22
+FONT_SIZE_MEDIUM_BOLD = 18
+FONT_SIZE_SMALL = 16
+FONT_SIZE_DEBUG = 14
+
+# Larghezza in pixel del pannello informativo laterale
+PANEL_WIDTH = 320 
+
 # Mappa che associa ogni NeedType a un dizionario di configurazione per la UI
 NEED_UI_CONFIG = {
     NeedType.HUNGER: {
@@ -36,16 +48,13 @@ NEED_UI_CONFIG = {
 # --- Colori per la Rappresentazione degli NPC per Genere ---
 # Usiamo tuple RGB (0-255) per i colori Pygame
 NPC_GENDER_COLORS = {
-    Gender.MALE: (0, 128, 255),        # Blu
-    Gender.FEMALE: (255, 105, 180),    # Rosa (HotPink)
-    Gender.NON_BINARY: (128, 0, 128),  # Viola
-    Gender.OTHER: (100, 100, 100),     # Grigio
-    Gender.UNKNOWN: (200, 200, 200)    # Grigio chiaro
+    Gender.MALE: (100, 150, 255),        # Blu
+    Gender.FEMALE: (255, 100, 150),      # Rosa (HotPink)
+    Gender.NON_BINARY: (150, 100, 255),  # Viola
+    Gender.OTHER: (100, 100, 100),       # Grigio
+    Gender.UNKNOWN: (200, 200, 200)      # Grigio chiaro
 }
-NPC_NAME_FONT_SIZE = 16
-
-DEFAULT_NPC_COLOR = (50, 50, 50) # Grigio scuro per fallback
-NPC_CRITICAL_NEED_INDICATOR_COLOR = (255, 0, 0) # Rosso per il bordo
+DEFAULT_NPC_COLOR = (128, 128, 128) # Un grigio neutro
 
 # --- Colori per la Rappresentazione degli Oggetti per Tipo ---
 # Usiamo tuple RGB (0-255) per i colori Pygame
@@ -113,6 +122,14 @@ class ANSIColors:
     EVENT_NEUTRAL_COLOR = "\033[94m"
     REPORT_TITLE_COLOR = "\033[1m\033[93m"
     DEBUG_COLOR = "\033[1m\033[93m"
+
+# --- COLORI PER BARRE DI STATO CON GRADIENTE ---
+NEED_BAR_GREEN = (20, 200, 120)
+NEED_BAR_YELLOW = (255, 220, 50)
+NEED_BAR_ORANGE = (255, 140, 50)
+NEED_BAR_RED = (220, 40, 40)
+NEED_BAR_DARK_RED = (150, 20, 20)
+NPC_CRITICAL_NEED_INDICATOR_COLOR = (255, 20, 20) # Rosso acceso
 
 # Mappa che associa ORE SPECIFICHE (su 28) a un colore (RGB).
 # Questi sono i nostri "fotogrammi chiave". La sfumatura avverrà TRA questi punti.

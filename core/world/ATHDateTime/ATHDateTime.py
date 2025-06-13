@@ -347,37 +347,65 @@ class ATHDateTime(ATHDateTimeInterface):
             ath_timezone_obj=effective_tz )
 
     def format(self, format_string: str) -> str:
-        # Questo metodo ora usa le proprietà pubbliche, che è corretto
-        output = format_string
-        offset_val_seconds = 0; offset_str_colon = "+00:00"; tz_name_str = "ATZ"
-        if self.get_timezone():
-            tz_obj = self.get_timezone()
-            offset_val_seconds = tz_obj.get_offset(self) # type: ignore
-            offset_hours = offset_val_seconds // (self.IXH_CALENDAR * self.SXI_CALENDAR)
-            offset_minutes = (abs(offset_val_seconds) % (self.IXH_CALENDAR * self.SXI_CALENDAR)) // self.SXI_CALENDAR
-            sign = "+" if offset_val_seconds >= 0 else "-"
-            offset_str_colon = f"{sign}{abs(offset_hours):02d}:{offset_minutes:02d}"
-            tz_name_str = tz_obj.get_name() # type: ignore
+        """
+        Formatta la data e l'ora secondo una stringa di formato in stile PHP.
+        Versione corretta che calcola i valori mancanti.
+        """
+        output = []
+        tz_obj = self.get_timezone()
+        offset_val_seconds = tz_obj.get_offset(self) if tz_obj else 0
         
-        replacements = {
-            'Y': str(self.year), 'y': str(self.year % 100).zfill(2),
-            'MONTH': self.month_name, 'Mon': self.MONTH_ABBR[self.month_name],
-            'NN': str(self.month_index + 1).zfill(2), 'N': str(self.month_index + 1),
-            'JJ': str(self.day).zfill(2), 'J': str(self.day),
-            'DAY': self.day_of_week_name, 'DayN': self.DAY_ABBR_ATH[self.day_of_week_name],
-            'HH': str(self.hour).zfill(2), 'G': str(self.hour),
-            'II': str(self.minute).zfill(2), 'I': str(self.minute),
-            'SS': str(self.second).zfill(2), 'S': str(self.second),
-            'uu': str(self._earth_datetime_origin_utc.microsecond // 1000).zfill(3),
-            'TZN': tz_name_str, 
-            'TZO': offset_str_colon,  
-            'TZONC': offset_str_colon.replace(":", ""),
-            'TZS': str(offset_val_seconds)
+        day_of_week_map_1_7 = {
+            'Nijahr': 7, 'Majahr': 1, 'Tucmahr': 2, 'Wejahr': 3, 
+            'Þujahr': 4, 'Frijahr': 5, 'Ĝejahr': 6
         }
-        sorted_codes = sorted(replacements.keys(), key=len, reverse=True)
-        for code in sorted_codes:
-            output = output.replace(code, str(replacements[code]))
-        return output
+
+        # --- CALCOLI AGGIUNTIVI NECESSARI ---
+        # Calcoliamo i valori che mancavano usando gli attributi esistenti
+        day_of_year = (self.month_index * self.DXM_CALENDAR) + self.day
+        week_of_year = ((day_of_year - 1) // self.DXW_CALENDAR) + 1
+        days_in_month = self.DXM_CALENDAR # Nel tuo calendario, ogni mese ha lo stesso numero di giorni
+        # --- FINE CALCOLI AGGIUNTIVI ---
+
+        i = 0
+        while i < len(format_string):
+            char = format_string[i]
+            
+            # Controlla se il carattere è un codice di formato
+            if char == 'd': output.append(str(self.day).zfill(2))
+            elif char == 'D': output.append(self.DAY_ABBR_ATH.get(self.day_of_week_name, '??'))
+            elif char == 'j': output.append(str(self.day))
+            elif char == 'l': output.append(self.day_of_week_name)
+            elif char == 'N': output.append(str(day_of_week_map_1_7.get(self.day_of_week_name, 0)))
+            elif char == 'S': output.append('x')
+            elif char == 'w': output.append(str(self._day_of_week_index)) # Usa l'attributo interno
+            elif char == 'z': output.append(str(day_of_year - 1)) # Usa il valore calcolato
+            elif char == 'W': output.append(str(week_of_year)) # Usa il valore calcolato
+            elif char == 'F': output.append(self.month_name)
+            elif char == 'm': output.append(str(self.month_index + 1).zfill(2))
+            elif char == 'M': output.append(self.MONTH_ABBR.get(self.month_name, '???'))
+            elif char == 'n': output.append(str(self.month_index + 1))
+            elif char == 't': output.append(str(days_in_month)) # Usa il valore calcolato
+            elif char == 'Y': output.append(str(self.year))
+            elif char == 'y': output.append(str(self.year % 100).zfill(2))
+            elif char == 'G': output.append(str(self.hour))
+            elif char == 'H': output.append(str(self.hour).zfill(2))
+            elif char == 'i': output.append(str(self.minute).zfill(2))
+            elif char == 's': output.append(str(self.second).zfill(2))
+            elif char == 'u': output.append(str(getattr(self._earth_datetime_origin_utc, 'microsecond', 0)).zfill(6))
+            elif char == 'e': output.append(tz_obj.get_name() if tz_obj else "ATZ")
+            elif char == 'P':
+                sign = "+" if offset_val_seconds >= 0 else "-"
+                offset_hours = abs(offset_val_seconds) // (self.IXH_CALENDAR * self.SXI_CALENDAR)
+                offset_minutes = (abs(offset_val_seconds) % (self.IXH_CALENDAR * self.SXI_CALENDAR)) // self.SXI_CALENDAR
+                output.append(f"{sign}{offset_hours:02d}:{offset_minutes:02d}")
+            elif char == 'U': output.append(str(self.get_earth_timestamp())) # Usa get_earth_timestamp
+            else:
+                output.append(char)
+            
+            i += 1
+            
+        return "".join(output)
 
     def get_earth_timestamp(self) -> int: return int(self._earth_timestamp_origin)
     def get_timezone(self) -> Optional['ATHDateTimeZoneInterface']: return self._ath_timezone_obj

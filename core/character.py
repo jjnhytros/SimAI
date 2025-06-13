@@ -272,6 +272,10 @@ class Character:
         return self.moodlet_manager.get_total_emotional_impact() if self.moodlet_manager else 0
 
     def update_needs(self, time_manager: 'TimeManager', elapsed_ticks: int):
+        if settings.DEBUG_MODE and self.is_player_character and time_manager.total_ticks_sim_run % 100 == 0:
+            print(f"    [update_needs per {self.name}] Inizio calcolo decadimento...")
+        # --- FINE DEBUG ---
+
         if not self.needs or elapsed_ticks <= 0: return
         ticks_per_hour = time_config.TXH_SIMULATION
         if ticks_per_hour == 0: return
@@ -283,6 +287,10 @@ class Character:
             modifier = modifiers.get(need_type.name, 1.0)
             change_amount = (decay_rate * modifier) * fraction_of_hour
             if change_amount !=0:
+                # --- DEBUG PRINT ---
+                if settings.DEBUG_MODE and self.is_player_character and time_manager.total_ticks_sim_run % 100 == 0 and need_type == NeedType.HUNGER:
+                    print(f"      -> Calcolato 'change_amount' per HUNGER: {change_amount:.4f}")
+                # --- FINE DEBUG ---
                 need_obj.change_value(change_amount, is_decay_event=True)
 
         needs_to_avg = [n.get_value() for t, n in self.needs.items() if t != NeedType.STRESS]
@@ -334,14 +342,8 @@ class Character:
             self.ai_decision_maker.decide_next_action(time_manager, simulation_context)
 
     def __str__(self) -> str:
-        current_action_str = self.current_action.action_type_name if self.current_action else "Nessuna"
-        current_action_progress = f"({self.current_action.get_progress_percentage():.0%})" if self.current_action and self.current_action.is_started else ""
-        # Per visualizzare l'età, dobbiamo avere il tempo corrente. 
-        # Questo rende __str__ dipendente dal contesto, il che non è ideale.
-        # Una soluzione migliore è che il RENDERER chiami get_age_in_years_float
-        # passando il tempo corrente dalla simulazione.
-        # Per ora, mostriamo un placeholder.
-        age_in_years_str = "N/A" 
-        # Nel Renderer, userai: f"{npc.get_age_in_years_float(sim.time_manager.get_current_time()):.3f}"
+        """Restituisce una rappresentazione testuale dell'oggetto Character."""
+        # Formattiamo la data di nascita invece di tentare di calcolare l'età
+        birth_date_str = self.birth_date.format("d F Y") # Usa il formato che preferisci
         
-        return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", ... Età: {age_in_years_str} anni ...)")
+        return (f"Character(ID: {self.npc_id}, Nome: \"{self.name}\", Nato/a il: {birth_date_str})")

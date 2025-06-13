@@ -1,6 +1,7 @@
 # core/modules/moodlets/moodlet_manager.py
 from typing import Dict, Optional, TYPE_CHECKING
 from core.enums import MoodletType
+from core.enums.genders import Gender
 from .moodlet_definitions import Moodlet
 
 if TYPE_CHECKING:
@@ -39,3 +40,19 @@ class MoodletManager:
             total_impact += moodlet.emotional_impact
             
         return total_impact
+
+    def get_dominant_emotion_display_name(self, gender: 'Gender') -> str:
+        """
+        Calcola l'emozione dominante e restituisce il suo nome declinato.
+        """
+        if not self.active_moodlets:
+            return "Neutro"
+
+        # Trova il moodlet con l'impatto emotivo più forte (in valore assoluto)
+        dominant_moodlet = max(
+            self.active_moodlets.values(), 
+            key=lambda m: abs(m.emotional_impact)
+        )
+        
+        # Usa il metodo display_name_it dell'enum per la declinazione
+        return dominant_moodlet.moodlet_type.display_name_it(gender)

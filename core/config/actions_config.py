@@ -241,7 +241,15 @@ HAVEFUN_ACTIVITY_CONFIGS = {
     FunActivityType.ROOFTOP_BAR: {"fun_gain": 40.0, "duration_hours": 2.0, "skill_to_practice": SkillType.SOCIALIZING, "skill_xp_gain": 25.0, "cognitive_effort": 0.3},
     FunActivityType.BOAT_PARTY: {"fun_gain": 75.0, "duration_hours": 4.0, "is_noisy": True, "cognitive_effort": 0.5},
     FunActivityType.VISIT_MUSEUM: {"duration_hours": 2.0,"fun_gain": 45.0,"skill_to_practice": SkillType.HISTORY,"skill_xp_gain": 20.0,"cognitive_effort": 0.3,},
-    FunActivityType.DRINK_COFFEE: {"duration_hours": 0.5,"fun_gain": 15.0,"required_object_types": (ObjectType.COFFEE_MACHINE,),"cognitive_effort": 0.1},
+    FunActivityType.DRINK_COFFEE: {
+        "duration_hours": 0.3,
+        "fun_gain": 10.0, # Il guadagno primario di FUN rimane
+        # --- NUOVA SEZIONE EFFETTI MULTIPLI ---
+        "effects_on_needs": {
+            NeedType.ENERGY: 25.0,   # Aumenta l'energia
+            NeedType.THIRST: 15.0,   # Placa un po' la sete
+            NeedType.BLADDER: -20.0, # Riempie la vescica
+        },
     FunActivityType.LISTEN_TO_LIVE_JAZZ: {"duration_hours": 2.5,"fun_gain": 50.0,"is_noisy": True,"cognitive_effort": 0.1,},
     FunActivityType.PERFORM_JAZZ: {"duration_hours": 2.0,"fun_gain": 30.0,
         # Potrebbe anche dare un piccolo guadagno economico
@@ -300,6 +308,7 @@ HAVEFUN_ACTIVITY_CONFIGS = {
     FunActivityType.LINGERIE_SHOPPING: {"fun_gain": 50.0, "duration_hours": 1.5, "skill_to_practice": SkillType.LINGERIE_SELECTION, "skill_xp_gain": 30.0, "cognitive_effort": 0.3},
     FunActivityType.LOVE_POETRY_READING: {"fun_gain": 40.0, "duration_hours": 1.0, "skill_to_practice": SkillType.ROMANTIC_EXPRESSION, "skill_xp_gain": 25.0, "cognitive_effort": 0.4},
     }
+}
 
 # --- SocializeAction ---
 # Default per interazioni non definite specificamente

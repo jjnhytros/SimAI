@@ -29,8 +29,8 @@
     * `[!]` b. **Tempo Continuo e Conseguenze:** Le azioni richiedono tempo e hanno conseguenze realistiche. Il tempo scorre in modo continuo per tutti gli NPC nel mondo simulato.
     * `[!]` c. **Simulazione Profonda vs. Superficialità:** Preferire meccaniche profonde e interconnesse piuttosto che molte meccaniche superficiali e isolate.
     * `[!]` d. **Autonomia e Comportamento Emergente:** Gli NPC dovrebbero agire in modo autonomo basandosi sui loro bisogni, tratti, emozioni e obiettivi, portando a comportamenti emergenti e storie uniche.
-    * `[ ]` e. Conservazione della materia/energia.
-    * `[ ]` f. Causalità degli eventi.
+    * `[!]` e. Conservazione della materia/energia.
+    * `[!]` f. Causalità degli eventi.
 ### `[!]` **3. Realismo Bilanciato con Giocabilità:**
     * `[!]` a. Ricercare un alto livello di realismo nelle meccaniche di base della vita (bisogni, relazioni, lavoro, ecc.).
     * `[!]` b. Bilanciare il realismo con la necessità di un gameplay divertente, accessibile e gestibile. Evitare eccessiva microgestione o complessità frustrante.
@@ -44,11 +44,11 @@
     * `[!]` b. Utilizzare strutture dati flessibili e codice ben organizzato.
 ### `[!]` **6. Approccio Modulare e Scalabile:**
     * `[!]` a. Favorire la creazione di sistemi di gioco modulari con interfacce ben definite.
-    * `[ ]` b. Progettare le meccaniche tenendo conto della futura necessità di gestire una vasta popolazione di NPC (LOD AI). *(Concettualizzazione LOD in corso)*.
-    * `[ ]` c. Separare la logica di gioco dalla sua rappresentazione (UI).
+    * `[!]` b. Progettare le meccaniche tenendo conto della futura necessità di gestire una vasta popolazione di NPC (LOD AI). *(Concettualizzazione LOD in corso)*.
+    * `[!]` c. Separare la logica di gioco dalla sua rappresentazione (UI).
 ### `[!]` **7. Radicamento nel Lore di Anthalys:**
     * `[!]` a. Le meccaniche di gioco, le normative, le festività e gli aspetti culturali devono riflettere e essere coerenti con il lore stabilito per Anthalys, inclusa la sua Costituzione.
-    * `[ ]` b. La "Costituzione della Nazione di Anthal" definisce i principi fondamentali, la struttura dello stato, i diritti dei cittadini e i valori economici/sociali. *(Testo della Costituzione fornito, da usare come riferimento per il design di gioco)*.
+    * `[!]` b. La "Costituzione della Nazione di Anthal" definisce i principi fondamentali, la struttura dello stato, i diritti dei cittadini e i valori economici/sociali. *(Testo della Costituzione fornito, da usare come riferimento per il design di gioco)*.
 ### `[!]` **8. Aspirazione alla Simulazione Profonda e Comportamento Emergente (Obiettivo "Total Realism"):**
     * `[!]` a. Pur bilanciando con la giocabilità (Principio 3), tendere continuamente verso una maggiore profondità e realismo nelle meccaniche di base e avanzate della vita e della società.
     * `[!]` b. **Individualità Estrema:** Mirare a sistemi che permettano agli NPC di sviluppare percorsi di vita, hobby, paure e stranezze uniche non predefinite, basate su una combinazione irripetibile di genetica, esperienze, interpretazioni soggettive e pure casualità, portando a comportamenti che possano genuinamente sorprendere pur rimanendo coerenti. (Estensione di IV.4)
@@ -473,7 +473,10 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` f. Aggiungere bisogni più complessi o secondari (es. `INTIMACY`). `[1.0.0]`
         * `[ ]` i. Valutare e Implementare Bisogno di SPIRITUALITÀ. `[1.2.0]`
         * `[P]` ii. Altri bisogni potenziali (`COMFORT`, `SAFETY`, `CREATIVITY_NEED`, `ACHIEVEMENT_NEED`). `[1.0.0]`
-    * `[ ]` g. Interdipendenze più profonde tra bisogni. `[1.1.0]`
+    * `[P]` g. **Interdipendenze Dinamiche tra Bisogni (basate su Azioni):** `[1.0.1]`
+        * `[P]` i. Utilizzare il dizionario `effects_on_needs` nelle configurazioni delle azioni per definire impatti multipli e interconnessi (es. Caffè -> +Energia, +Sete, -Vescica). `[1.0.1]`
+        * `[ ]` ii. L'azione `on_finish` deve applicare tutti gli effetti definiti. `[1.0.1]`
+        * `[ ]` iii. Il decadimento passivo di un bisogno (es. `ENERGY`) può essere accelerato o rallentato dall'azione in corso (es. un'azione `WORKOUT` consuma energia ad ogni tick, non solo alla fine). `[1.1.0]`
     * `[ ]` h. Sistema di Malattie e Salute Fisica. `[1.2.0]`
         * `[ ]` i. Definire malattie comuni e rare. `[1.2.0]`
         * `[ ]` ii. Sintomi, progressione, impatto e cure. `[1.2.0]`
@@ -591,6 +594,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` i. Whims (Desideri/Ghiribizzi): Piccoli desideri a breve termine che appaiono dinamicamente. `[1.1.0]`
             * `[ ]` 1. **Il Circolo Virtuoso degli Hobby:** Un NPC con un forte `Interest` (es. MUSICA) e tratti pertinenti (`CREATIVE`) genera un `Whim` per compiere un'azione correlata (es. `PLAY_GUITAR`). L'IA darà priorità a questa azione. Completarla fornirà `FUN`, XP per la `Skill`, e un `Memory` positivo, creando un ciclo di feedback che rafforza la personalità. `[1.1.0]`
     * `[P]` k. Pianificazione AI Avanzata, Gestione Interruzioni, Routine. `[1.0.1]`
+        * `[P]` i. L'IA (`AIDecisionMaker`/`Discoverer`) ora può pianificare sequenze di azioni (es. `MoveToAction` + `EatAction`).
         * `[ ]` v. Estensione "Total Realism" - Processi Cognitivi Sfumati. `[FUTURO]`
     * `[ ]` l. Simulazione "Off-Screen" e Gestione Popolazione Vasta (LOD). `[1.1.0]`
     * `[P]` m. Sistema `Moodlet` base. `[1.0.0]`

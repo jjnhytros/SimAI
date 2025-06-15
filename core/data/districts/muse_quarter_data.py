@@ -10,6 +10,8 @@ cafe_layout = [
     [TileType.WALL, TileType.FLOOR_WOOD, TileType.FLOOR_WOOD, TileType.FLOOR_WOOD, TileType.WALL],
     [TileType.WALL, TileType.WALL, TileType.DOORWAY, TileType.WALL, TileType.WALL],
 ]
+cafe_toilet = GameObject(object_id="obj_muse_cafe_toilet_01", name="WC del Caffè", object_type=ObjectType.TOILET, style="interior", logical_x=4, logical_y=1)
+
 muse_cafe = Location(
     location_id="loc_muse_cafe_01",
     name="Caffè delle Muse",
@@ -19,6 +21,10 @@ muse_cafe = Location(
     logical_height=len(cafe_layout),
     tile_map=cafe_layout # <-- Passa la pianta
 )
+muse_cafe.objects = {
+    # ... (gli altri oggetti)
+    cafe_toilet.object_id: cafe_toilet, # <-- Aggiungi il WC agli oggetti del caffè
+}
 
 # --- Pianta e Oggetti per "Museo d'Arte di Anthalys" ---
 museum_layout = [

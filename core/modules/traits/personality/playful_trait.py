@@ -2,11 +2,11 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from ..base_trait import BaseTrait
 from core.enums import TraitType, ActionType, SocialInteractionType
+from core.modules.actions import BaseAction, SocializeAction
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
-    from core.modules.actions import BaseAction, SocializeAction
 
 class PlayfulTrait(BaseTrait):
     def __init__(self, character_owner: 'Character', trait_type: TraitType):

@@ -29,6 +29,7 @@ from .time_of_day import TimeOfDay
 from .trait_types import TraitType
 from .weather_types import WeatherType
 from .tile_types import TileType
+from .service_types import ServiceType
 
 __all__ = [
     'ActionType',
@@ -48,6 +49,7 @@ __all__ = [
     'RelationshipStatus',
     'RelationshipType',
     'SchoolLevel',
+    'ServiceType',
     'SkillType',
     'SocialInteractionType',
     'TileType',

@@ -4,49 +4,56 @@ from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
 from core.world.ATHDateTime.ATHDateTimeZone import ATHDateTimeZone
 from core.config import time_config
 from core.enums import TimeOfDay # Importa l'enum TimeOfDay
-from typing import Dict, Union, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+import time
+import threading
+
+if TYPE_CHECKING:
+    from core.simulation import Simulation
+
 
 class TimeManager:
     """Gestisce il tempo universale della simulazione usando ATHDateTime."""
 
-    def __init__(self):
-        """Inizializza il TimeManager con l'ora di inizio dalla configurazione."""
-        self.total_ticks_sim_run: int = 0 # Un semplice contatore per i tick del loop di simulazione
-        
-        # Inizializzazione basata su ATHDateTime (il tuo codice è già corretto)
-        tz_obj = ATHDateTimeZone(time_config.DEFAULT_TIMEZONE)
-        start_month_index = time_config.SIMULATION_START_MONTH - 1
-        start_month_name = time_config.MONTH_NAMES[start_month_index]
-        self._current_time: ATHDateTime = ATHDateTime.from_components(
-            year=time_config.SIMULATION_START_YEAR, month_name=start_month_name,
-            day=time_config.SIMULATION_START_DAY, hour=time_config.SIMULATION_START_HOUR,
-            minute=time_config.SIMULATION_START_MINUTE, second=time_config.SIMULATION_START_SECOND,
-            ath_timezone_obj=tz_obj,
+    def __init__(self, simulation_context: 'Simulation', start_date: Optional[ATHDateTime] = None):
+        self.simulation_context = simulation_context
+        self._current_time: ATHDateTime = start_date or ATHDateTime.from_components(
+            year=5775, month_name="Arejal", day=1, hour=27
         )
+        self.total_ticks_sim_run: int = 0
+        self._last_hour_checked = self.get_current_hour()
         print(f"TimeManager inizializzato. Ora di inizio: {self.get_formatted_datetime_string()}")
 
-    def advance_time(self, ticks: int = 1):
-        """
-        Avanza il tempo della simulazione di un dato numero di tick.
-        """
-        if ticks <= 0:
-            return
+    def get_current_time(self) -> ATHDateTime:
+        return self._current_time
 
-        # Calcola i secondi totali di tempo di gioco da avanzare
-        # basandosi sulla costante che definisce quanti secondi di gioco vale un tick.
+    def get_current_minute(self) -> int:
+        return self._current_time.minute
+
+    def get_current_hour(self) -> int:
+        return self._current_time.hour
+
+    def get_current_hour_float(self) -> float:
+        return self._current_time.hour + (self._current_time.minute / time_config.IXH)
+
+    def advance_time(self, ticks: int = 1):
+        if ticks <= 0: return
         total_seconds_to_advance = ticks * time_config.SECONDS_PER_SIMULATION_TICK
-        
-        # Crea l'oggetto intervallo che la tua libreria si aspetta
-        total_seconds_to_advance = int(total_seconds_to_advance)
         interval = ATHDateInterval(seconds=total_seconds_to_advance)
-        
-        # Aggiungi l'intervallo al tempo corrente
         self._current_time = self._current_time.add(interval)
         self.total_ticks_sim_run += ticks
 
-    def get_current_time(self) -> ATHDateTime:
-        """Restituisce l'oggetto ATHDateTime corrente."""
-        return self._current_time
+        # --- NUOVA LOGICA DI DEBUG ---
+        # Controlla se l'ora è cambiata dall'ultimo tick
+        new_hour = self.get_current_hour()
+        if new_hour != self._last_hour_checked:
+            print(f"--- [TimeManager DEBUG] È passata un'ora di gioco. Ora attuale: {self.get_formatted_datetime_string()} ---")
+            self._last_hour_checked = new_hour
+        # --- FINE NUOVA LOGICA ---
+
+    def get_formatted_datetime_string(self) -> str:
+        format_string = "l, d F Y - H:i"
+        return self._current_time.format(format_string)
 
     def get_ath_detailed_datetime(self) -> Dict[str, Union[int, str]]:
         """
@@ -64,32 +71,6 @@ class TimeManager:
             'month_name': self._current_time.month_name
         }
 
-    def get_current_minute(self) -> int:
-        return self._current_time.minute
-
-    def get_current_hour(self) -> int:
-        return self._current_time.hour
-
-    def get_current_hour_float(self) -> float:
-        """Restituisce l'ora corrente come float (es. 14.5 per le 14:30)."""
-        # Assumendo che time_config.MXH contenga i minuti in un'ora (es. 60)
-        return self._current_time.hour + (self._current_time.minute / time_config.IXH)
-
-    def get_formatted_datetime_string(self) -> str:
-        """Restituisce una stringa formattata con data e ora correnti."""
-        
-        # l (L minuscola) = Giorno della settimana testuale completo (es. "Nijahr")
-        # d = Giorno del mese a due cifre (es. "01")
-        # F = Mese testuale completo (es. "Arejal")
-        # Y = Anno a quattro cifre (es. "5775")
-        # H = Ora a due cifre (00-27)
-        # i = Minuti a due cifre (00-59)
-        format_string = "l, Y, d F - H:i"
-        
-        # Chiama il metodo .format() del tuo oggetto ATHDateTime
-        return self._current_time.format(format_string)
-        
-        return self._current_time.format(format_string)
 
     def is_night(self) -> bool:
         """Restituisce True se è notte."""
@@ -139,3 +120,4 @@ class TimeManager:
         progress = time_into_phase / phase_duration if phase_duration > 0 else 0
         
         return current_phase, next_phase, max(0.0, min(1.0, progress))
+

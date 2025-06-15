@@ -1,21 +1,25 @@
 # core/AI/solution_discoverers/simple_object_discoverer.py
 from typing import List, Optional, TYPE_CHECKING, Tuple, Union, Type, Any, Dict
 
+from core.world.game_object import GameObject
+
 from .base_discoverer import BaseSolutionDiscoverer
-from core.enums import ObjectType, NeedType, LifeStage
+from core.enums import ObjectType, NeedType
 from core.modules.actions import (
-    BaseAction, TravelToAction, EatAction, DrinkAction, SleepAction, 
+    BaseAction, TravelToAction, MoveToAction, EatAction, DrinkAction, SleepAction, 
     UseBathroomAction, EngageIntimacyAction
 )
 from core.config import actions_config, time_config, npc_config
 from core import settings
+from core.utils.math_utils import calculate_distance
 
 if TYPE_CHECKING:
     from core.modules.memory.memory_definitions import Problem
     from core.character import Character
     from core.simulation import Simulation
     from core.world.location import Location
-
+    from core.world.game_object import GameObject
+    
 class SimpleObjectDiscoverer(BaseSolutionDiscoverer):
     """
     Un discoverer generico per azioni che richiedono un tipo specifico di oggetto.
@@ -96,3 +100,64 @@ class SimpleObjectDiscoverer(BaseSolutionDiscoverer):
         except TypeError as e:
             if settings.DEBUG_MODE: print(f"  [AI Discover] Errore parametri creando {self.action_class.__name__}: {e}")
             return None
+
+    def _find_best_local_object(self, npc: 'Character', simulation_context: 'Simulation') -> Optional['GameObject']:
+        """
+        Cerca tutti gli oggetti adatti nella locazione corrente e restituisce il più vicino.
+        """
+        if not npc.current_location_id:
+            return None
+
+        current_loc = simulation_context.get_location_by_id(npc.current_location_id)
+        if not current_loc:
+            return None
+
+        # 1. Trova tutti gli oggetti validi nella stanza
+        valid_objects = []
+        for obj in current_loc.get_objects():
+            if obj.object_type in self.required_object_types and obj.is_available():
+                valid_objects.append(obj)
+        
+        if not valid_objects:
+            return None
+
+        # 2. Se ce n'è più di uno, trova il più vicino
+        if len(valid_objects) == 1:
+            return valid_objects[0]
+        else:
+            npc_pos = (npc.logical_x, npc.logical_y)
+            closest_obj = min(
+                valid_objects,
+                key=lambda obj: calculate_distance(npc_pos, (obj.logical_x, obj.logical_y))
+            )
+            return closest_obj
+
+    def _find_adjacent_walkable_tile(self, target_object: 'GameObject', npc: 'Character', simulation_context: 'Simulation') -> Optional[Tuple[int, int]]:
+        """
+        Trova una mattonella calpestabile adiacente all'oggetto target.
+        """
+        if not npc.current_location_id:
+            return None
+
+        location = simulation_context.get_location_by_id(npc.current_location_id)
+        if not location or not location.walkable_grid:
+            return None
+
+        target_x, target_y = target_object.logical_x, target_object.logical_y
+        
+        # Lista delle posizioni adiacenti da controllare (Sopra, Sotto, Sinistra, Destra)
+        adjacent_positions = [
+            (target_x, target_y - 1),
+            (target_x, target_y + 1),
+            (target_x - 1, target_y),
+            (target_x + 1, target_y),
+        ]
+        
+        for x, y in adjacent_positions:
+            # Controlla che la posizione sia dentro i limiti della mappa
+            if 0 <= y < location.logical_height and 0 <= x < location.logical_width:
+                # Controlla che la mattonella sia calpestabile
+                if location.walkable_grid[y][x]:
+                    return (x, y) # Trovato un posto valido!
+        
+        return None # Nessun posto libero trovato accanto all'oggetto

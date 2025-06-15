@@ -1,6 +1,7 @@
 # File: simai/core/world/ATHDateInterval.py
 import re
 from .ATHDateTimeInterface import ATHDateTimeInterface # Per le costanti SXD, DXY, ecc.
+from typing import Optional, Tuple
 
 class ATHDateInterval:
     """Rappresenta un intervallo di tempo (durata) nel calendario Anthaleja."""
@@ -9,7 +10,7 @@ class ATHDateInterval:
                 hours: int = 0, minutes: int = 0, seconds: int = 0, 
                 microseconds: int = 0, 
                 invert: bool = False,
-                from_string_info: tuple[bool, str] | None = None): 
+                from_string_info: Optional[Tuple[bool, str]] = None): 
         self.y = int(years)
         self.m = int(months)
         self.d = int(days)

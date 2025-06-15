@@ -48,11 +48,25 @@ DAY_ABBR = ATHDateTimeInterface.DAY_ABBR_ATH
 
 WEEKEND_DAY_NUMBERS = [6, 0] # Indici per Ĝejahr (Sabato) e Nijahr (Domenica/Giorno 0)
 
-# Costanti per la simulazione e i tick
-TXH_SIMULATION = 1000 # Tick per Ora Simulazione
+# --- COSTANTI SIMULAZIONE ---
+TXH_SIMULATION = 1000  # Tick per Ora Simulazione
+SXI_GAME = IXH * SXI * 10 # 36000 decimi/secondo/ora (60*60*10)
+SECONDS_PER_SIMULATION_TICK = SXH / TXH_SIMULATION  # Il risultato sarà 3.6
 
-SXI_GAME = IXH * SXI # Es. 3600
-SECONDS_PER_SIMULATION_TICK = SXI_GAME / TXH_SIMULATION # Es. 3600 / 1000 = 3.6
+# --- CONFIGURAZIONE DEL GAME LOOP DISACCOPPIATO (CALIBRATA) ---
+# Il nostro nuovo obiettivo di tick per secondo, calibrato sull'osservazione.
+TARGET_TPS = 10.0
+
+# La frazione ottimizzata per TARGET_TPS = 10 è semplicemente 10/1
+TICK_RATE_NUMERATOR = 10
+TICK_RATE_DENOMINATOR = 1
+
+# Costante per la conversione da secondi a nanosecondi
+NANOSECONDS_PER_SECOND = 1_000_000_000
+
+# Limite di sicurezza per evitare la "spirale della morte" in caso di lag
+MAX_TICKS_PER_FRAME = 100 
+
 
 # Costanti necessarie per la simulazione
 SIMULATION_START_YEAR = RY

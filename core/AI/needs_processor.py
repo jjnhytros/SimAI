@@ -14,6 +14,42 @@ if TYPE_CHECKING:
     # from core.modules.time_manager import TimeManager
 
 class NeedsProcessor:
+    """
+    Analizza i bisogni di un NPC per identificare i "problemi" più urgenti.
+    """
+    def __init__(self):
+        pass
+
+    def get_most_urgent_problem(self, npc: 'Character') -> Optional[Problem]:
+        """
+        Scansiona i bisogni dell'NPC e restituisce il più urgente come un oggetto Problem.
+        """
+        most_urgent_problem: Optional[Problem] = None
+        
+        highest_urgency: float = 0.0
+
+        for need_type, need_obj in npc.needs.items():
+            current_value = need_obj.get_value()
+
+            if current_value < npc_config.NEED_LOW_THRESHOLD:
+                
+                urgency = (npc_config.NEED_MAX_VALUE - current_value) * npc_config.NEED_WEIGHTS.get(need_type, 1.0)
+
+                if urgency > highest_urgency:
+                    highest_urgency = urgency # Aggiorniamo la variabile corretta
+                    
+                    most_urgent_problem = Problem(
+                        npc_id=npc.npc_id,
+                        problem_type=ProblemType.LOW_NEED,
+                        urgency=highest_urgency, # E la usiamo qui
+                        details={
+                            "need": need_type,
+                            "current_value": current_value
+                        }
+                    )
+        
+        return most_urgent_problem
+
     def update_needs(self, npc, time_delta): # time_delta qui è il numero di tick
         # Calcola il decadimento basato sul tempo
         # La logica attiva di questo metodo è attualmente gestita da AICoordinator

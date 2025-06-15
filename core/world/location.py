@@ -110,14 +110,21 @@ class Location:
 
     def _create_walkability_grid(self):
         """
-        Crea una griglia booleana basata sulla tile_map, indicando le
-        celle calpestabili (True) e quelle solide (False).
+        Crea una griglia booleana che considera sia i muri che gli oggetti solidi.
         """
         self.walkable_grid = []
+        # 1. Crea una mappa di base considerando solo i muri
         for y, row in enumerate(self.tile_map):
             new_row = []
             for x, tile_type in enumerate(row):
-                # Una cella è calpestabile se il suo tipo NON è nella lista dei solidi
                 is_walkable = tile_type not in graphics_config.SOLID_TILE_TYPES
                 new_row.append(is_walkable)
             self.walkable_grid.append(new_row)
+
+        # 2. Ora "sovrascrivi" la mappa con le posizioni degli oggetti solidi
+        for obj in self.objects.values():
+            if obj.object_type in graphics_config.SOLID_OBJECT_TYPES:
+                # Controlla che le coordinate siano valide prima di scrivere
+                if 0 <= obj.logical_y < self.logical_height and 0 <= obj.logical_x < self.logical_width:
+                    # Imposta la mattonella occupata dall'oggetto come non calpestabile
+                    self.walkable_grid[obj.logical_y][obj.logical_x] = False

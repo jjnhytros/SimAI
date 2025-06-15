@@ -12,6 +12,9 @@ from core.world.location import Location
 
 # Aggiunge la directory principale al path per permettere import assoluti
 # come 'from core.simulation import Simulation'
+# path_to_scipy_parent_folder = '/usr/lib/python3/dist-packages' 
+# if path_to_scipy_parent_folder not in sys.path:
+#     sys.path.append(path_to_scipy_parent_folder)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # try:
@@ -150,6 +153,16 @@ def setup_test_simulation() -> Simulation:
         max_v.skill_manager.get_skill(SkillType.WRITING)._level = 4
         max_v.skill_manager.get_skill(SkillType.LOGIC)._level = 3
         max_v.skill_manager.get_skill(SkillType.PROGRAMMING)._level = 2
+        # --- ESPERIMENTO: INNESCO DEI BISOGNI ---
+        print("  [Setup] Innesco bisogni per test IA...")
+        
+        # Imposta la fame di Max a un livello basso ma non critico
+        max_v.change_need_value(NeedType.HUNGER, -60) # Valore finale sarà ~30-40
+
+        if settings.DEBUG_MODE:
+            print(f"    Bisogno HUNGER di Max: {max_v.get_need_value(NeedType.HUNGER):.1f}")
+        # --- FINE ESPERIMENTO ---
+
         sim.add_npc(max_v)
 
         # Imposta la loro relazione speciale
@@ -242,18 +255,23 @@ def main():
     """Punto di ingresso principale dell'applicazione."""
     print(f"--- Avvio SimAI {settings.GAME_VERSION} ---")
     
+    # 1. Crea l'istanza della simulazione
     simulation = setup_test_simulation()
 
-    if settings.DEBUG_MODE:
-        # --- ESECUZIONE IN MODALITÀ TESTUALE (TUI) ---
+    # 2. Controlla la modalità di esecuzione
+    if not settings.GUI_ENABLED:
+        # Esecuzione in Modalità Testuale (TUI)
         print("  Modalità Testuale (TUI/Debug) attivata.")
         max_ticks_tui = 5000
         print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
-        simulation.run(max_ticks=max_ticks_tui)
+        # Assumiamo che ci sia un metodo .run() per la TUI
+        simulation.run(max_ticks=max_ticks_tui) 
     else:
-        # --- ESECUZIONE IN MODALITÀ GRAFICA (GUI) ---
+        # Esecuzione in Modalità Grafica (GUI)
         print("  Modalità GUI Pygame attivata.")
-        renderer = Renderer(width=1280, height=768)
+        # a. Crea il renderer
+        renderer = Renderer() 
+        # b. Avvia il loop di gioco. Sarà lui a gestire tutto da ora in poi.
         renderer.run_game_loop(simulation)
 
     print("--- Fine Simulazione SimAI ---")

@@ -493,6 +493,20 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` 4. Sviluppare un sistema di "Meccanismi di Coping". `[FUTURO]`
         * `[ ]` 5. **La capacità di mentire a sé stesso:** Implementare filtri mentali come negazione, romanticizzazione del passato, e illusioni come meccanismi di difesa emotiva. `[FUTURO]`
     * `[ ]` k. Gestione Scorte Domestiche e Comportamento d'Acquisto NPC. `[1.1.0]`
+    * `[ ]` l. **Bilanciamento Decadimento Bisogni:** `[1.0.1]`
+        * `[ ]` i. Ridurre i tassi di decadimento base del 15-25% per adattarli alla giornata di 28 ore. `[1.0.1]`
+        * `[ ]` ii. Bilanciare proporzionalmente i tassi tra bisogni (es. fame vs energia). `[1.0.1]`
+    * `[ ]` m. **Parametri Fisiologici e Metabolismo:** `[1.0.1]`
+        * `[ ]` i. Introdurre modificatori metabolici per età (infanzia +90%, anzianità -35%). `[1.0.1]`
+        * `[ ]` ii. Introdurre modificatori metabolici per genere (M: +8%, F: -6%). `[1.0.1]`
+    * `[ ]` n. **Integrazione Completa Ritmo Circadiano:** `[1.1.0]`
+        * `[ ]` i. Definire picchi circadiani specifici per ogni bisogno. `[1.1.0]`
+        * `[ ]` ii. Aggiungere modificatori per le stagioni (impatto maggiore in estate/inverno). `[1.2.0]`
+        * `[ ]` iii. Creare parametri circadiani specifici per ogni fase di vita. `[1.1.0]`
+        * `[ ]` iv. Implementare finestre di sonno differenziate (infanti, adolescenti, anziani). `[1.1.0]`
+    * `[ ]` o. **Implementare un'Agenda dei Bisogni (Need Scheduler):** `[1.1.0]`
+        * `[ ]` i. Definire in `npc_config.py` gli "orari di punta" per bisogni specifici (es. `HUNGER`). `[1.1.0]`
+        * `[ ]` ii. `AIDecisionMaker` deve applicare un bonus di punteggio alle azioni pertinenti se l'ora corrente è vicina a un'ora di punta, promuovendo comportamenti proattivi e basati su routine. `[1.1.0]`
 
 ### **2. Ciclo Vita NPC:** `[P]`
     * `[P]` a. Età NPC e Data di Nascita. `[1.0.0]`
@@ -511,8 +525,10 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` iii. Comportamenti e bisogni specifici per `YOUNG_ADULT`. `[1.1.0]`
         * `[ ]` iv. Comportamenti e bisogni specifici per `ADULT`. `[1.1.0]`
         * `[ ]` v. Maturazione Granulare ed Esperienze Specifiche per Età. `[1.2.0]`
+        * `[ ]` vi. **Adattamento Fasi di Vita:** Rivedere e implementare le nuove soglie di età (Adolescenza 12-18, Giovane Adulto 21+, Mezza Età 45+, Anziano 85+). `[1.0.1]`
     * `[ ]` e. Stadio di vita Anziano (`SENIOR`), morte naturale, e impatto psicologico. `[1.1.0]`
         * `[P]` i. Morte naturale per NPC dettagliati e di background. `[1.0.0]`
+            * `[ ]` 1. Implementare la probabilità di morte giornaliera per NPC con età > 90 anni. `[1.0.1]`
         * `[ ]` ii. Concetto di Pensionamento. `[1.1.0]`
         * `[ ]` iii. Impatto Psicologico dell'Invecchiamento (Tratti/Moodlet specifici). `[1.2.0]`
         * `[ ]` iv. Gestione del lutto per gli NPC superstiti. `[1.1.0]`
@@ -535,6 +551,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
  `[FUTURO]`
             * `[ ]` 4. **Anima Digitale e Rielaborazione del Passato:** Dopo un "Reset", l'NPC entra in uno stato di "Confusione". La sua memoria a breve termine è vuota, ma il `MemoryCore` (parte dell'Anima Digitale) è intatto. Il `Claire System` diventa cruciale per aiutarlo a ricollegarsi ai suoi ricordi nucleo attraverso dialoghi e domande introspettive, guidando un arco narrativo di riscoperta. `[FUTURO]`
     * `[P]` h. Sistema Ciclo Mestruale e Fertilità (per NPC Femminili). `[1.2.0]`
+        * `[ ]` vi. **Aggiornamento Dati Demografici:** Implementare le nuove statistiche di fertilità (Menarca 11.5-13.5, Menopausa 48-55, probabilità gravidanza ~18%). `[1.2.0]`
     * `[ ]` i. Impatto a Lungo Terme della Genitorialità sulla Cognizione. `[FUTURO]`
     * `[ ]` j. Sviluppo Sessuale Infantile e Adolescenziale. `[1.2.0]`
 
@@ -554,10 +571,14 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` vi. Espandere numero di tratti e profondità del loro impatto. `[1.0.1]`
             * `[ ]` vii. Elenco Tratti (da implementare o dettagliare): `[1.0.1]`
                 * **Categoria: Lifestyle/Hobby**
-                    * `[ ]` Art Lover (Amante dell'Arte - visita musei, compra opere) `[NUOVA IDEA]` `[1.1.0]`
+                    * `[ ]` Art Lover (Amante dell'Arte - visita musei, compra opere) `[1.1.0]`
         * `[ ]` viii. Tratti Dipendenti da Sistemi Futuri. `[DLC]`
         * `[ ]` ix. Implementare meccaniche di conflitto tra tratti. `[1.0.2]`
         * `[P]` x. Integrare pienamente gli effetti di ogni nuovo tratto definito. `[1.0.0]`
+        * `[ ]` xi. **Bilanciamento Tratti:** `[1.0.2]`
+            * `[ ]` 1. Rendere i modificatori dei tratti più sfumati. `[1.0.2]`
+            * `[ ]` 2. Implementare interazioni complesse tra tratti (es. "Attivo" aumenta energia ma riduce comfort). `[1.0.2]`
+            * `[ ]` 3. Aggiungere conflitti specifici tra tratti opposti. `[1.0.2]`
     * `[ ]` c. Vizi e Dipendenze. `[1.3.0]`
     * `[ ]` d. Manie e Fissazioni. `[1.3.0]`
     * `[ ]` e. Paure e Fobie. `[1.2.0]`
@@ -570,7 +591,11 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` iii. Definire tratti specifici come `ASEXUAL_TRAIT`. `[1.0.1]`
         * `[!]` iv. L'IA DEVE rispettare rigorosamente l'orientamento sessuale/romantico. `[1.0.0]`
         * `[ ]` v. Le interazioni sociali devono considerare l'orientamento di entrambi. `[1.0.1]`
-        * `[ ]` vi. Gestire l'esplorazione dell'orientamento durante l'adolescenza. `[1.2.0]`
+        * `[ ]` vi. **Gestire l'esplorazione dell'orientamento durante l'adolescenza.** `[1.2.0]`
+            * `[P]` 1. Definire in `npc_config.py` le soglie di età e i fattori di influenza per la solidificazione dell'orientamento. `[1.2.0]`
+            * `[ ]` 2. Implementare un attributo `is_exploring_orientation: bool` in `Character` che si attiva tra `AGE_ORIENTATION_SOLIDIFIES_START_DAYS` e `END_DAYS`. `[1.2.0]`
+            * `[ ]` 3. L'IA, quando valuta azioni romantiche, deve considerare lo stato di "esplorazione" e la `CHANCE_ORIENTATION_EXPLORATION_TEEN` per permettere una maggiore fluidità. `[1.3.0]`
+            * `[ ]` 4. (Molto Avanzato) Progettare un sistema che, alla fine del periodo di esplorazione, usi i `SOLIDIFICATION_FACTORS` e le memorie delle esperienze romantiche vissute per "cristallizzare" l'orientamento finale dell'NPC. `[FUTURO]`
     * `[ ]` k. Background e Storia Pregressa degli NPC. `[1.1.0]`
 
 ### **4. Intelligenza Artificiale NPC (Comportamento e Decisioni):**
@@ -590,6 +615,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` g. Sistema di Umore (`MoodState`). `[1.0.0]`
     * `[P]` h. Influenza Umore, Tratti, e Orientamento sulle Decisioni. `[1.0.0]`
     * `[P]` i. Interazioni di cura infanti. `[1.1.0]`
+        * `[ ]` i. **Bilanciamento Cura Infanti:** Adattare le soglie dei bisogni ai ritmi infantili e ridurre i costi energetici per i genitori. `[1.1.0]`
     * `[ ]` j. **Obiettivi a Breve e Lungo Termine/Aspirazioni.**
         * `[ ]` i. Whims (Desideri/Ghiribizzi): Piccoli desideri a breve termine che appaiono dinamicamente. `[1.1.0]`
             * `[ ]` 1. **Il Circolo Virtuoso degli Hobby:** Un NPC con un forte `Interest` (es. MUSICA) e tratti pertinenti (`CREATIVE`) genera un `Whim` per compiere un'azione correlata (es. `PLAY_GUITAR`). L'IA darà priorità a questa azione. Completarla fornirà `FUN`, XP per la `Skill`, e un `Memory` positivo, creando un ciclo di feedback che rafforza la personalità. `[1.1.0]`
@@ -831,6 +857,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[x]` i. Esclusività e Transizione. `[1.0.0]`
         * `[ ]` ii. Proposta di Matrimonio/Convivenza. `[1.0.1]`
         * `[ ]` iii. Fasi dell'Avvicinamento (Attrazione, Corteggiamento, Connessione, Affetto). `[1.1.0]`
+        * `[ ]` iv. **Bilanciamento Matching Relazioni:** Ridurre le differenze d'età massime consentite e aumentare l'età minima per gli appuntamenti (18 anni). `[1.0.1]`
     * `[P]` c. **Mantenimento della Coppia:** `[1.0.0]`
         * `[x]` i. Bisogno di Intimità Reciproca. `[1.0.0]`
         * `[ ]` ii. Comunicazione e Tempo di Qualità. `[1.0.1]`
@@ -873,10 +900,10 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` e. Il successo/fallimento delle interazioni dipende da skill, tratti, umore, relazione. `[1.0.0]`
     * `[ ]` f. Dialoghi dinamici (testo che riflette la conversazione). `[FUTURO]`
     * `[ ]` g. Estensione "Total Realism" - Comunicazione Non Verbale. `[2.0.0]`
-    * `[ ]` h. **Calcolo Logico del Successo Sociale:** `[NUOVA IDEA]` `[1.1.0]`
+    * `[ ]` h. **Calcolo Logico del Successo Sociale:** `[1.1.0]`
         * `[ ]` i. Sostituire la `success_chance` fissa con un calcolo dinamico. `[1.1.0]`
         * `[ ]` ii. Il calcolo considera: Skill dell'iniziatore (Charisma, Comedy), Umore di entrambi, Punteggio relazione, Tratti compatibili/incompatibili. `[1.1.0]`
-    * `[ ]` i. **Sistema di Conversazione Contestuale e Stateful:** `[NUOVA IDEA]` `[1.2.0]`
+    * `[ ]` i. **Sistema di Conversazione Contestuale e Stateful:** `[1.2.0]`
         * `[ ]` i. Creare un oggetto `ConversationState` per tracciare lo stato di una conversazione attiva (partecipanti, argomento attuale, umore della conversazione). `[1.2.0]`
         * `[ ]` ii. Il `SocialManager` gestisce le conversazioni attive, creandole quando due NPC iniziano a parlare e distruggendole quando si allontanano. `[1.2.0]`
         * `[ ]` iii. Espandere `SocialInteractionType` con interazioni contestuali (es. `ASK_ABOUT_HOBBY`, `COMPLAIN_ABOUT_WEATHER`, `CHANGE_TOPIC`, `GIVE_DETAILED_COMPLIMENT`). `[1.2.0]`
@@ -1493,6 +1520,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 * `[x]` **2. Gestione delle Configurazioni e Settings:** `[1.0.0]`
     * `[x]` a. File `settings.py` per costanti globali non modificabili a runtime. `[1.0.0]`
     * `[x]` b. File `settings.json` (o simile) per impostazioni utente modificabili. `[1.0.0]`
+        * `[ ]` i. **Fusione Configurazioni:** Spostare le costanti rilevanti per gli NPC da `settings.py` a `npc_config.py` per una maggiore coerenza. `[1.0.1]`
     * `[x]` c. Architettura di configurazioni modulari in `core/config/` (es. `actions_config.py`, `npc_config.py`). `[1.0.0]`
 * `[ ]` **3. Sistema di Logging Avanzato:** 
     * `[ ]` a. Implementare un sistema di logging robusto (es. `logging` di Python) con diversi livelli (DEBUG, INFO, WARN, ERROR). `[1.1.0]`
@@ -2298,3 +2326,23 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` a. **Decadimento delle Convinzioni:** Le convinzioni non rafforzate da nuove esperienze possono lentamente perdere la loro `strength`. `[FUTURO]`
     * `[ ]` b. **Conflitto Cognitivo:** Cosa succede quando un NPC `OPTIMIST` (tratto innato) sviluppa la convinzione `THE_WORLD_IS_UNFAIR` a causa di continue sventure? Questo può generare moodlet unici di `INTERNAL_CONFLICT`, ansia, o persino portare a un cambiamento di tratti nel lungo periodo. `[FUTURO]`
     * `[ ]` c. **Ristrutturazione della Visione del Mondo:** Eventi di vita catartici (una nuova relazione profonda, un successo inaspettato, terapia) possono portare a una rapida e drastica ristrutturazione del sistema di convinzioni di un NPC. `[FUTURO]`
+
+###  XXXVII. OTTIMIZZAZIONE E COMPORTAMENTI AVANZATI [NUOVA SEZIONE]
+
+#### 1. Gestione Avanzata del Tempo nei Dialoghi: `[1.3.0+]`
+* `[ ]` a. **Analisi preliminare:** Valutare pro e contro delle diverse strategie di gestione del tempo.
+    * `[ ]` i. **Blocco Totale (Hard Freeze):** Semplice ma poco realistico. Il mondo intero si ferma.
+    * `[ ]` ii. **Rallentamento Globale (Soft Freeze):** Il tempo scorre al 5-10%, mantenendo una sensazione di mondo vivo.
+    * `[ ]` iii. **Bolla Temporale Dialogica:** Solo i partecipanti sono in uno "stato di dialogo", il resto del mondo procede normalmente. Richiede un buffer di eventi per i partecipanti.
+    * `[ ]` iv. **Simulazione Asincrona:** Il mondo va avanti, le conseguenze per i partecipanti vengono calcolate "retroattivamente". Complesso da implementare.
+* `[ ]` b. **(Consigliato dall'utente)** Implementare un sistema ibrido **"Soft Freeze" + "Bolla Dialogica"** come soluzione preferita, per unire realismo e performance. `[1.4.0]`
+
+#### 2. Sistema di Livello di Dettaglio (LOD) per NPC: `[1.5.0]`
+* `[ ]` a. **Simulazione "Lightweight" (AI LOD):** Per gli NPC non visibili o lontani dal giocatore, la simulazione deve essere semplificata.
+    * `[ ]` i. Aggiornare solo i bisogni essenziali e il passare del tempo.
+    * `[ ]` ii. Disabilitare il pathfinding complesso, le animazioni e le interazioni con oggetti non critiche.
+* `[ ]` b. **LOD Grafico:** Ridurre il carico sulla GPU per gli NPC lontani (es. usare sprite più semplici o non disegnarli affatto se fuori schermo).
+
+#### 3. (Avanzato/Futuro) IA Emergenti: `[RICERCA]` `[2.0.0+]`
+* `[ ]` a. **Sincronizzazione Circadiana Adattiva:** Studiare la possibilità di usare Reinforcement Learning (RL) per permettere agli NPC di "imparare" e adattare i propri ritmi circadiani e le proprie routine in base all'ambiente e agli eventi della simulazione.
+    * **Riferimento Scientifico:** [Emergence of Adaptive Circadian Rhythms in Groups of Interacting Organisms (arxiv.org)](https://arxiv.org/abs/2307.12143)

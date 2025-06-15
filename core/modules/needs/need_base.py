@@ -5,7 +5,7 @@ import random
 
 from core.enums import NeedType, Gender
 from core import settings
-from core.config import npc_config # Importa npc_config
+from core.config import npc_config
 
 if TYPE_CHECKING:
     from core.character import Character
@@ -18,7 +18,7 @@ class BaseNeed(ABC):
     def __init__(self, character_owner: 'Character', p_need_type: NeedType, initial_value: Optional[float] = None):
         self.character_owner: 'Character' = character_owner
         self.need_type = p_need_type
-        self.decay_rate_per_hour: float = npc_config.NEED_DECAY_RATES.get(self.need_type, 0.0)
+        self.decay_rate_per_hour: float = npc_config.NEED_DECAY_RATES_PER_TICK.get(self.need_type, 0.0) # Usa la nuova costante per tick
         self.min_value: float = npc_config.NEED_MIN_VALUE
         self.max_value: float = npc_config.NEED_MAX_VALUE
         self.display_name: str = "Bisogno Sconosciuto"
@@ -58,17 +58,15 @@ class BaseNeed(ABC):
             if not is_decay_event: # Logga sempre i guadagni o le perdite indotte
                 log_this_change = True
             else: # Per i decadimenti, logga solo se supera soglie o è significativo
-                is_now_low = self.value <= settings.NEED_LOW_THRESHOLD and old_value > settings.NEED_LOW_THRESHOLD
-                is_now_critical = self.value <= settings.NEED_CRITICAL_THRESHOLD and old_value > settings.NEED_CRITICAL_THRESHOLD
+                is_now_low = self.value <= npc_config.NEED_LOW_THRESHOLD and old_value > npc_config.NEED_LOW_THRESHOLD
+                is_now_critical = self.value <= npc_config.NEED_CRITICAL_THRESHOLD and old_value > npc_config.NEED_CRITICAL_THRESHOLD
                 if is_now_low or is_now_critical:
                     log_this_change = True
         
         if log_this_change:
-            decay_tag = " (Decay)" if is_decay_event else ""
             critical_status = ""
-            if self.value <= settings.NEED_CRITICAL_THRESHOLD: critical_status = " [!!! CRITICO !!!]"
-            elif self.value <= settings.NEED_LOW_THRESHOLD: critical_status = " [! Basso !]"
-            
+            if self.value <= npc_config.NEED_CRITICAL_THRESHOLD: critical_status = " [!!! CRITICO !!!]"
+            elif self.value <= npc_config.NEED_LOW_THRESHOLD: critical_status = " [! Basso !]"
             print(f"    [Need Change - {self.character_owner.name}] {self!s} (Δ {amount:.1f})")
 
 

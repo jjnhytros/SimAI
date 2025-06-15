@@ -53,7 +53,6 @@ class AIDecisionMaker:
         self.consecutive_action_type_count: int = 0
         self.needs_processor = NeedsProcessor()
 
-
     def _get_required_object_for_action(self, need: NeedType) -> Optional[Union[ObjectType, Tuple[ObjectType, ...]]]:
         """Restituisce il tipo di oggetto primario richiesto da un'azione per un bisogno."""
         if need == NeedType.HUNGER: return ObjectType.REFRIGERATOR
@@ -103,11 +102,84 @@ class AIDecisionMaker:
 
         return []
 
-    def decide_next_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation') -> Optional[BaseAction]:
-        # QUESTO METODO ORA È PERFETTO E NON CAMBIA
-        # La sua logica di orchestrare le fasi è già corretta.
-        # ... (il codice di decide_next_action che abbiamo finalizzato prima rimane qui) ...
-        pass
+    def decide_next_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation') -> None:
+        """
+        Orchestra l'intero ciclo decisionale: identifica il problema, scopre
+        le soluzioni, le valuta e sceglie la migliore da mettere in coda.
+        """
+        # 1. Identifica il problema più urgente
+        problem = self.needs_processor.get_most_urgent_problem(self.npc)
+        if not problem:
+            return # Nessun problema urgente, non fare nulla
+
+        # 2. Scopri tutte le possibili azioni per risolvere quel problema
+        candidate_actions = self._discover_and_instantiate_solutions(problem, simulation_context)
+        if not candidate_actions:
+            return
+        
+        # 3. Valuta ogni azione candidata per creare una lista di opzioni con punteggio
+        scored_actions: List[ScoredAction] = []
+        for action in candidate_actions:
+            
+            # --- Inizio Logica di Punteggio ---
+            base_score = problem.urgency # Partiamo dalla priorità del problema
+            
+            # Modificatore di personalità (Tratti)
+            personality_modifier = 1.0
+            for trait in self.npc.traits.values():
+                personality_modifier *= trait.get_action_choice_priority_modifier(action, simulation_context)
+
+            # Modificatore di umore
+            mood_modifier = 1.0 + (self.npc.overall_mood / 200.0) # Umore +50 -> bonus del 25%
+
+            # --- Modificatore Ritmo Circadiano (per il sonno) ---
+            time_modifier = 1.0
+            if action.action_type_enum == ActionType.ACTION_SLEEP:
+                current_hour = time_manager.get_current_hour()
+                # ... (logica per is_sleep_time come l'abbiamo definita)
+                is_sleep_time = True # Placeholder
+                if is_sleep_time:
+                    time_modifier = 3.0
+                else:
+                    energy_val = self.npc.get_need_value(NeedType.ENERGY)
+                    if energy_val and energy_val > npc_config.NEED_CRITICAL_THRESHOLD:
+                        time_modifier = 0.1
+
+            # --- Modificatore Agenda dei Bisogni (per fame, socialità, ecc.) ---
+            schedule_bonus = 0.0
+            need_type = problem.details.get("need")
+            if need_type and need_type in npc_config.NEED_SCHEDULE_CONFIG:
+                schedule = npc_config.NEED_SCHEDULE_CONFIG[need_type]
+                current_hour = time_manager.get_current_hour()
+                for peak_hour in schedule["peak_times"]:
+                    if abs(current_hour - peak_hour) <= 1:
+                        schedule_bonus = schedule["peak_influence"]
+                        break
+            
+            # Calcolo dello score finale
+            final_score = (base_score + schedule_bonus) * personality_modifier * mood_modifier * time_modifier
+            scored_actions.append(ScoredAction(action, final_score))
+            # --- Fine Logica di Punteggio ---
+
+        if not scored_actions:
+            return
+
+        # 4. Scegli l'azione con il punteggio più alto
+        scored_actions.sort(key=lambda x: x.score, reverse=True)
+        best_scored_action = scored_actions[0]
+        
+        # 5. Crea un "Pensiero" per il log e il debug
+        thought = Thought(
+            npc_id=self.npc.npc_id,
+            problem=problem,
+            considered_actions=scored_actions,
+            chosen_action=best_scored_action
+        )
+        if settings.DEBUG_MODE:
+            print(thought.get_thought_log())
+
+        # 6. Metti in coda l'azione scelta
+        self.npc.add_action_to_queue(best_scored_action.action)
 
     def reset_decision_state(self):
         """
@@ -118,3 +190,4 @@ class AIDecisionMaker:
         self.ticks_since_last_base_action_check = self.BASE_ACTION_CHECK_INTERVAL_TICKS 
         self.last_selected_action_type = None
         self.consecutive_action_type_count = 0
+

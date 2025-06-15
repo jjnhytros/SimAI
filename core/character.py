@@ -1,7 +1,7 @@
 # core/character.py
 import collections
 from dataclasses import dataclass
-from typing import List, Optional, Set, Dict, Tuple, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Set, Type
 
 # Import Enum
 from core.enums import *
@@ -16,6 +16,7 @@ from core.modules.memory.memory_system import MemorySystem
 from core.modules.moodlets.moodlet_manager import MoodletManager
 from core.modules.skills.skill_system import SkillManager
 from core.world.ATHDateTime.ATHDateTime import ATHDateTime
+from core.utils.anthalys_circadian_model import AnthalysCircadianModel
 
 # --- IMPORT SOLO PER IL TYPE CHECKING (PER ROMPERE I CICLI) ---
 if TYPE_CHECKING:
@@ -149,6 +150,9 @@ class Character:
         self.pending_intimacy_target_accepted: Optional[str] = None
         self.last_intimacy_proposal_tick: int = -99999
 
+        # Ogni personaggio ha il suo modello di ritmo biologico
+        self.circadian_model = AnthalysCircadianModel()
+
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
 
     def _initialize_traits(self, initial_trait_types: Set[TraitType]):
@@ -164,8 +168,14 @@ class Character:
                 print(f"    [Character Traits WARN - {self.name}] Classe non trovata per {trait_type_enum.name}")
 
     def _initialize_needs(self):
+        """Inizializza gli oggetti bisogno dell'NPC."""
+        # Itera sulla mappa delle classi dei bisogni, è più efficiente
         for need_type, need_class in NEED_TYPE_TO_CLASS_MAP.items():
-            self.needs[need_type] = need_class(character_owner=self, p_need_type=need_type)
+            # Ora usiamo 'need_type' e 'need_class' che sono definite nel loop
+            self.needs[need_type] = need_class(
+                character_owner=self,
+                p_need_type=need_type
+            )
 
     def _calculate_and_set_life_stage(self, current_time: 'ATHDateTime'):
         age_days = self.get_age_in_days(current_time)
@@ -272,46 +282,64 @@ class Character:
         return self.moodlet_manager.get_total_emotional_impact() if self.moodlet_manager else 0
 
     def update_needs(self, time_manager: 'TimeManager', elapsed_ticks: int):
-        if settings.DEBUG_MODE and self.is_player_character and time_manager.total_ticks_sim_run % 100 == 0:
-            print(f"    [update_needs per {self.name}] Inizio calcolo decadimento...")
-        # --- FINE DEBUG ---
+        """
+        Aggiorna tutti i bisogni dell'NPC in base ai tassi di decadimento,
+        ai modificatori di età/genere e al ritmo circadiano.
+        """
+        if not self.needs or elapsed_ticks <= 0:
+            return
 
-        if not self.needs or elapsed_ticks <= 0: return
-        ticks_per_hour = time_config.TXH_SIMULATION
-        if ticks_per_hour == 0: return
-        fraction_of_hour = elapsed_ticks / ticks_per_hour
-        modifiers = self.life_stage_obj.get_need_decay_modifiers() if self.life_stage_obj else {}
+        # Otteniamo i dati temporali e i modificatori una sola volta
+        current_hour_float = time_manager.get_current_hour_float()
+        lifestage_modifiers = self.life_stage_obj.get_need_decay_modifiers() if self.life_stage_obj else {}
 
+        # Itera su ogni bisogno che l'NPC possiede
         for need_type, need_obj in self.needs.items():
-            decay_rate = npc_config.NEED_DECAY_RATES.get(need_type, 0)
-            modifier = modifiers.get(need_type.name, 1.0)
-            change_amount = (decay_rate * modifier) * fraction_of_hour
-            if change_amount !=0:
-                # --- DEBUG PRINT ---
-                if settings.DEBUG_MODE and self.is_player_character and time_manager.total_ticks_sim_run % 100 == 0 and need_type == NeedType.HUNGER:
-                    print(f"      -> Calcolato 'change_amount' per HUNGER: {change_amount:.4f}")
-                # --- FINE DEBUG ---
+            
+            # 1. Prende il tasso di decadimento base PER TICK dalla configurazione
+            decay_per_tick = npc_config.NEED_DECAY_RATES_PER_TICK.get(need_type, 0.0)
+            
+            # 2. Applica i modificatori
+            lifestage_modifier = lifestage_modifiers.get(need_type, 1.0)
+            
+            circadian_modifier = 1.0
+            if need_type == NeedType.ENERGY:
+                # Ottieni il valore del ritmo circadiano (-1 a +1) dal nostro adattatore
+                rhythm_value = self.circadian_model.get_rhythm_value(current_hour_float)
+                
+                # Convertiamo il ritmo in un modificatore di decadimento:
+                # Se il ritmo è alto (+1, massima veglia), il modificatore è 1.5 (calo veloce)
+                # Se il ritmo è basso (-1, massima sonnolenza), il modificatore è 0.1 (calo lento/quasi nullo)
+                circadian_modifier = ((rhythm_value + 1) / 2) * 1.4 + 0.1 # Scala il range a [0.1, 1.5]
+            
+            # 3. Il calcolo finale del cambiamento
+            change_amount = (decay_per_tick * circadian_modifier) * elapsed_ticks
+            
+            if change_amount != 0:
                 need_obj.change_value(change_amount, is_decay_event=True)
 
-        needs_to_avg = [n.get_value() for t, n in self.needs.items() if t != NeedType.STRESS]
-        avg_need_level = sum(needs_to_avg) / len(needs_to_avg) if needs_to_avg else 100.0
-        load_thresh = getattr(npc_config, 'COGNITIVE_LOAD_THRESHOLD', 40.0)
-        if avg_need_level < load_thresh:
-             self.cognitive_load += getattr(npc_config, 'COGNITIVE_LOAD_GAIN_RATE', 0.005) * elapsed_ticks
+        # 4. Logica per il carico cognitivo (stress) - invariata
+        needs_to_average = [n.get_value() for t, n in self.needs.items() if t != NeedType.STRESS]
+        avg_need_level = sum(needs_to_average) / len(needs_to_average) if needs_to_average else 100.0
+        
+        if avg_need_level < npc_config.COGNITIVE_LOAD_THRESHOLD:
+             self.cognitive_load += npc_config.COGNITIVE_LOAD_GAIN_RATE * elapsed_ticks
         else:
-             self.cognitive_load -= getattr(npc_config, 'COGNITIVE_LOAD_DECAY_RATE', 0.002) * elapsed_ticks
+             self.cognitive_load -= npc_config.COGNITIVE_LOAD_DECAY_RATE * elapsed_ticks
+        
         self.cognitive_load = max(0.0, min(1.0, self.cognitive_load))
         
         # Logica Moodlet
         # ... (logica moodlet come da tua implementazione) ...
 
     def add_action_to_queue(self, action: 'BaseAction'):
+        from core.modules.actions.action_base import BaseAction
         if not isinstance(action, BaseAction): return
         self.action_queue.append(action)
-        if settings.DEBUG_MODE: print(f"  [Character Action - {self.name}] Azione '{action.action_type_name}' AGGIUNTA. Coda: {len(self.action_queue)}.")
+        if settings.DEBUG_MODE: 
+            print(f"  [Character Action - {self.name}] Azione '{action.action_type_name}' AGGIUNTA. Coda: {len(self.action_queue)}.")
 
     def _start_action(self, action: 'BaseAction', simulation_context: 'Simulation') -> bool:
-        # Anche qui, Pylance ora sa che 'action' ha il metodo .is_valid() e .on_start()
         if action.is_valid():
             self.current_action = action
             self.current_action.on_start()
@@ -320,8 +348,6 @@ class Character:
         return False
 
     def update_action(self, time_manager: 'TimeManager', simulation_context: 'Simulation'):
-        # Ora Pylance può "vedere" che self.current_action è di tipo BaseAction
-        # e quindi ha tutti i metodi come .execute_tick(), .is_finished, ecc.
         if self.current_action:
             if self.current_action.is_started and not self.current_action.is_finished and not self.current_action.is_interrupted:
                 self.current_action.execute_tick()

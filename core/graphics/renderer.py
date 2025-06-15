@@ -4,7 +4,9 @@ Gestisce l'inizializzazione di Pygame, la finestra di gioco e il loop di renderi
 Riferimento TODO: I.1
 """
 import pygame
-from typing import Optional, TYPE_CHECKING, List, Tuple
+import time
+
+from typing import Dict, Optional, TYPE_CHECKING, List, Tuple
 from pygame.surface import Surface
 
 from core import settings
@@ -69,6 +71,7 @@ class Renderer:
         self.camera_offset_x = 0.0
         self.camera_offset_y = 0.0
         self.zoom_level = 1.0
+        self.background_cache: Dict[Tuple[str, float], Surface] = {}
         
         self.location_keys_list: List[str] = []
         self.current_location_index: int = 0
@@ -175,6 +178,7 @@ class Renderer:
             elif event.type == pygame.MOUSEWHEEL:
                 self.zoom_level += event.y * 0.1
                 self.zoom_level = max(self.MIN_ZOOM, min(self.zoom_level, self.MAX_ZOOM))
+                self.background_cache.clear()
                 if settings.DEBUG_MODE:
                     print(f"  [Renderer] Zoom cambiato a: {self.zoom_level:.2f}")
             elif event.type == pygame.VIDEORESIZE:
@@ -704,72 +708,61 @@ class Renderer:
             return text_surface
 
     def _render_gui(self, simulation: Optional['Simulation']):
-        # 1. PULIZIA SCHERMO INIZIALE
-        # Riempiamo l'intero schermo con un colore di base (es. nero o grigio scuro).
-        # Questo previene artefatti grafici tra un frame e l'altro.
+        # --- 1. PREPARAZIONE E CALCOLO COLORI ---
+        # Calcoliamo i colori dinamici una sola volta all'inizio del frame.
         bg_color = ui_config.DEFAULT_DAY_BG_COLOR
-        self.screen.fill(self.BLACK)
-        title_contrast_color = self.WHITE 
-
+        # Impostiamo un colore di contrasto di default
+        self.current_contrast_color = self.WHITE 
+        
         if simulation and simulation.time_manager:
             bg_color = self._get_interpolated_sky_color(simulation.time_manager)
-            # E la aggiorniamo con il valore corretto
-            title_contrast_color = self._get_contrast_color(bg_color)
+            self.current_contrast_color = self._get_contrast_color(bg_color)
         
-        # Salviamo il colore per il metodo _draw_npc
-        self.current_contrast_color = title_contrast_color
-        
-        # 2. PREPARAZIONE DATI
-        # In questa fase non disegniamo nulla, prepariamo solo le variabili.
-        npc_to_display_in_panel: Optional['Character'] = None
-        current_location_instance_for_panel: Optional['Location'] = None
-        current_sim_time = None
+        # Pulizia dello schermo con un colore di fondo generico per l'area di gioco
+        game_area_rect = pygame.Rect(0, 0, self.base_width, self.height)
+        self.screen.fill(bg_color, game_area_rect)
 
+        # --- 2. LOGICA DI SELEZIONE (senza disegnare nulla) ---
+        npc_to_display_in_panel: Optional['Character'] = None
+        current_location_instance: Optional['Location'] = None
+        current_sim_time = None
 
         if simulation and simulation.time_manager:
             current_sim_time = simulation.time_manager.get_current_time()
-            
-            # Determina quale locazione visualizzare
             if self.current_visible_location_id:
-                current_location_instance_for_panel = simulation.get_location_by_id(self.current_visible_location_id)
-
-            # Determina quale NPC mostrare nel pannello
+                current_location_instance = simulation.get_location_by_id(self.current_visible_location_id)
             if self.selected_npc_id:
                 npc_to_display_in_panel = simulation.get_npc_by_id(self.selected_npc_id)
-                # Se l'NPC selezionato non è nella locazione visibile, non mostrarlo nel pannello
-                if npc_to_display_in_panel and npc_to_display_in_panel.current_location_id != self.current_visible_location_id:
-                    npc_to_display_in_panel = None
-            
-            # Se nessun NPC è selezionato, mostra il primo della lista nella locazione corrente
-            if not npc_to_display_in_panel and current_location_instance_for_panel and current_location_instance_for_panel.npcs_present_ids:
-                first_npc_id_in_loc = next(iter(sorted(list(current_location_instance_for_panel.npcs_present_ids))), None)
-                if first_npc_id_in_loc:
-                    npc_to_display_in_panel = simulation.get_npc_by_id(first_npc_id_in_loc)
-            
-        # 3. DISEGNO DEL MONDO DI GIOCO (LIVELLO 1: PAVIMENTO)
-        if current_location_instance_for_panel:
-            self._draw_tilemap(current_location_instance_for_panel)
 
-        # 4. DISEGNO DEGLI ELEMENTI NEL MONDO (LIVELLO 2: OGGETTI E NPC)
-        if simulation and current_location_instance_for_panel:
-            # Disegna gli oggetti SOPRA il pavimento
-            for game_obj in current_location_instance_for_panel.get_objects():
-                self._draw_game_object(game_obj)
-            # Disegna gli NPC SOPRA il pavimento
-            for npc_id_in_loc in current_location_instance_for_panel.npcs_present_ids:
-                npc_in_loc = simulation.get_npc_by_id(npc_id_in_loc)
-                if npc_in_loc:
-                    self._draw_npc(npc_in_loc)
+        # --- 3. DISEGNO DEL MONDO (SFONDO, OGGETTI, NPC) ---
+        if current_location_instance:
+            # 3a. Disegna lo sfondo (pavimento/muri) usando la cache
+            cache_key = (current_location_instance.location_id, self.zoom_level)
+            background_surface = self.background_cache.get(cache_key)
+            if background_surface is None:
+                background_surface = self._create_static_background(current_location_instance, self.zoom_level)
+                self.background_cache[cache_key] = background_surface
             
-        # 5. DISEGNO DELLA GUI (PANNELLO LATERALE)
+            self.screen.blit(background_surface, (-self.camera_offset_x, -self.camera_offset_y))
+
+            # 3b. Disegna gli elementi dinamici (oggetti e NPC) sopra lo sfondo
+            if simulation:
+                for game_obj in current_location_instance.get_objects():
+                    self._draw_game_object(game_obj)
+                for npc_id in current_location_instance.npcs_present_ids:
+                    npc_in_loc = simulation.get_npc_by_id(npc_id)
+                    if npc_in_loc:
+                        self._draw_npc(npc_in_loc)
+        
+        # --- 4. DISEGNO DEL PANNELLO LATERALE ---
         panel_rect = pygame.Rect(self.base_width, 0, self.PANEL_WIDTH, self.height)
         self.screen.fill(self.PANEL_BG_COLOR, panel_rect)
         pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
-
+        
         panel_padding = 10
         current_y = panel_padding
-        
-        # 1. DATA E ORA
+
+        # Blocco Data e Ora
         if simulation and simulation.time_manager:
             current_sim_time = simulation.time_manager.get_current_time()
             date_str = current_sim_time.format("D, Y, d/m (F)")
@@ -778,40 +771,33 @@ class Renderer:
             current_y = self._draw_text_in_panel(time_str, panel_padding, current_y, font=self.font_medium_bold, color=self.WHITE)
         current_y += self.LINE_HEIGHT # Linea vuota
 
-        # 2. INFO LOCAZIONE
-        if current_location_instance_for_panel:
-            loc_name = current_location_instance_for_panel.name
+        # Blocco Info Locazione
+        if current_location_instance:
+            loc_name = current_location_instance.name
             current_y = self._draw_text_in_panel(loc_name, panel_padding, current_y, font=self.font_small, color=self.WHITE)
             
             # Riga opzionale
-            num_npcs = len(current_location_instance_for_panel.npcs_present_ids)
-            num_objs = len(current_location_instance_for_panel.get_objects())
+            num_npcs = len(current_location_instance.npcs_present_ids)
+            num_objs = len(current_location_instance.get_objects())
             cam_off = f"({self.camera_offset_x:.0f},{self.camera_offset_y:.0f})"
             current_y = self._draw_text_in_panel(f"NPCs: {num_npcs}, Oggetti: {num_objs}, Cam: {cam_off}", panel_padding, current_y, font=self.font_small, color=self.WHITE)
         current_y += self.LINE_HEIGHT # Linea vuota
 
-        # 3. DETTAGLI NPC SELEZIONATO
-        if npc_to_display_in_panel:
+        # Blocco Dettagli NPC
+        if npc_to_display_in_panel and current_sim_time:
             npc = npc_to_display_in_panel
-            
-            # NOME E SIMBOLO GENERE
-            # Disegniamo prima il nome per sapere quanto è largo
+
+            # --- Blocco Nome, Età, Azione ---
             name_surface = self.font_large.render(npc.name, True, self.WHITE)
             self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
-            
-            # --- NOME E SIMBOLO GENERE (LOGICA AGGIORNATA) ---
-            # Disegniamo prima il nome per sapere quanto è largo
             name_surface = self.font_large.render(npc.name, True, self.WHITE)
             self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
-            
-            # Recupera il colore corretto dal nuovo dizionario in ui_config
-            # Usa il colore per UNKNOWN come fallback se il genere non è trovato
             gender_color = ui_config.NPC_GENDER_COLORS.get(
                 npc.gender, 
                 ui_config.NPC_GENDER_COLORS[Gender.UNKNOWN]
             )
 
-            # Disegniamo il simbolo del genere accanto al nome
+            # Simbolo del genere accanto al nome
             gender_symbol_rect = pygame.Rect(
                 self.base_width + panel_padding + name_surface.get_width() + 8, 
                 current_y + 8, 
@@ -832,8 +818,8 @@ class Renderer:
             action_str = f"Azione: {npc.current_action.action_type_name}" if npc.current_action else "Azione: Inattivo"
             current_y = self._draw_text_in_panel(action_str, panel_padding, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding * 2)
             current_y += self.LINE_HEIGHT # Linea vuota
-            
-            # --- BLOCCO PERSONALITÀ ---
+
+            # --- Blocco Personalità ---
             current_y = self._draw_text_in_panel("Personalità", panel_padding, current_y, font=self.font_medium_bold)
             trait_str = ", ".join(sorted([t.display_name for t in npc.traits.values()]))
             current_y = self._draw_text_in_panel(f"Tratti: {trait_str}", panel_padding + 10, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding*2-10)
@@ -843,7 +829,7 @@ class Renderer:
             current_y = self._draw_text_in_panel(f"Interessi: {interest_str}", panel_padding + 10, current_y, font=self.font_small, max_width=self.PANEL_WIDTH - panel_padding*2-10)
             current_y += self.LINE_HEIGHT # Linea vuota
 
-            # --- BLOCCO STATO EMOTIVO E BISOGNI ---
+            # --- Blocco Stato Emotivo e Bisogni ---
             emotional_state_str = npc.moodlet_manager.get_dominant_emotion_display_name(npc.gender)
             current_y = self._draw_text_in_panel(f"Stato Emotivo: {emotional_state_str}", panel_padding, current_y, font=self.font_small)
             current_y += self.LINE_HEIGHT # Linea vuota
@@ -858,7 +844,7 @@ class Renderer:
                 for need_type, need_obj in sorted(npc.needs.items(), key=lambda item: item[0].name):
                     value = need_obj.get_value()
                     bar_color = self._get_need_bar_color(value)
-                    bar_current_width = int((value / settings.NEED_MAX_VALUE) * bar_max_width)
+                    bar_current_width = int((value / npc_config.NEED_MAX_VALUE) * bar_max_width)
                     
                     # Disegna lo sfondo della barra
                     bg_rect = pygame.Rect(bar_x, current_y, bar_max_width, bar_height)
@@ -881,6 +867,7 @@ class Renderer:
         else:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
 
+        # --- 5. DISEGNO ELEMENTI SOVRAPPOSTI (TOOLTIP, FPS) ---
         tooltip_text = None
         if self.hovered_npc:
             tooltip_text = self.hovered_npc.name
@@ -901,49 +888,124 @@ class Renderer:
             pygame.draw.rect(self.screen, self.BLACK, tooltip_bg_rect, 1)
             self.screen.blit(text_surface, (tooltip_bg_rect.left + 5, tooltip_bg_rect.top + 3))
         
-        # Disegno degli FPS e flip finale
         if settings.DEBUG_MODE and self.font_debug:
             fps_text = self.font_debug.render(f"FPS: {self.clock.get_fps():.2f}", True, self.BLACK)
             self.screen.blit(fps_text, (10, 10)) 
-            
+
+        # --- 6. AGGIORNAMENTO FINALE DELLO SCHERMO ---
         pygame.display.flip()
 
     def run_game_loop(self, simulation: Optional['Simulation']):
-        if not simulation:
-            print("[Renderer ERROR] Tentativo di avviare il game loop senza una simulazione.")
-            return
+        if not simulation: return
 
-        if settings.DEBUG_MODE:
-            print(f"  [Renderer] Avvio Game Loop Pygame...")
-
-        # Imposta la location iniziale visibile
-        self.location_keys_list = sorted(list(simulation.locations.keys()))
-        if self.location_keys_list:
-            self.current_visible_location_id = self.location_keys_list[0]
+        # --- CONFIGURAZIONE DEL TEMPO ---
+        # Calcoliamo quanti nanosecondi reali dura un singolo tick della simulazione.
+        # Questo valore rimane costante.
+        ns_per_tick = (time_config.TICK_RATE_DENOMINATOR * time_config.NANOSECONDS_PER_SECOND) // time_config.TICK_RATE_NUMERATOR
         
-        # --- CORREZIONE CHIAVE QUI ---
-        # "Accendiamo" sia il loop del renderer sia il motore della simulazione
+        # L'accumulatore parte da zero.
+        lag_accumulator_ns = 0
+        last_frame_ns = time.monotonic_ns()
+
         self.is_running = True
         simulation.is_running = True
-        # --- FINE CORREZIONE ---
         
         while self.is_running:
-            # Limita il framerate
-            self.clock.tick(settings.FPS)
-            
-            # 1. Gestisci Input
+            # 1. GESTIONE INPUT (invariato)
             self._handle_events(simulation)
+
+            # --- 2. LOGICA DI AGGIORNAMENTO TEMPO ---
+            current_ns = time.monotonic_ns()
+            elapsed_ns = current_ns - last_frame_ns
+            last_frame_ns = current_ns
+            lag_accumulator_ns += elapsed_ns
+
+            # 3. CICLO DI SIMULAZIONE
+            # Esegui la logica della simulazione finché non abbiamo "recuperato" il tempo reale trascorso.
+            ticks_processed_this_frame = 0
+            while lag_accumulator_ns >= ns_per_tick:
+                if simulation.is_running:
+                    # Fai avanzare la simulazione di UN tick alla volta
+                    simulation._update_simulation_state(ticks_to_process=1)
+                
+                # Sottrai il tempo di un tick dall'accumulatore
+                lag_accumulator_ns -= ns_per_tick
+                ticks_processed_this_frame += 1
+
+                # Limite di sicurezza per evitare la "spirale della morte"
+                if ticks_processed_this_frame >= time_config.MAX_TICKS_PER_FRAME:
+                    # Se il gioco è troppo indietro, evita di bloccarlo resettando l'accumulatore
+                    lag_accumulator_ns = 0 
+                    break
             
-            # 2. Aggiorna Stato Simulazione
-            # Ora il controllo 'simulation.is_running' funzionerà correttamente
-            if simulation.is_running:
-                simulation._update_simulation_state()
-            
-            # 3. Disegna tutto
+            # 4. DISEGNO GRAFICA
+            # Il disegno avviene sempre, una volta per frame, indipendentemente da quanti tick sono stati processati
             self._render_gui(simulation)
             
-        # Quando il loop finisce, chiudi pygame
+            # Limita l'FPS per non sprecare CPU, ma non influisce sulla velocità del tempo di gioco
+            self.clock.tick(settings.FPS)
+
         self._quit_pygame()
+
+    def _create_static_background(self, location: 'Location', zoom: float) -> Surface:
+        """
+        Crea e restituisce una singola superficie statica con l'intera mappa
+        di mattonelle già disegnata e scalata per il livello di zoom corrente.
+        """
+        print(f"  [Renderer CACHE] Creo nuovo sfondo per '{location.name}' a zoom {zoom:.2f}x")
+        
+        scaled_tile_size = int(self.tile_size * zoom)
+        
+        map_width_px = location.logical_width * scaled_tile_size
+        map_height_px = location.logical_height * scaled_tile_size
+        
+        background_surface = pygame.Surface((map_width_px, map_height_px), pygame.SRCALPHA)
+
+        if scaled_tile_size <= 1: return background_surface
+
+        for y, row in enumerate(location.processed_tile_map):
+            for x, tile_info in enumerate(row):
+                tile_type = tile_info.get("type")
+                variant_index = tile_info.get("variant_index", 0)
+
+                if not tile_type or tile_type == TileType.EMPTY:
+                    continue
+
+                # 1. Determina quale spritesheet usare
+                style_name = SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else SHEET_FLOORS
+                spritesheet = self.asset_manager.get_spritesheet(style_name)
+
+                # 2. Ora cerca la definizione della mattonella
+                tile_def_or_list = graphics_config.TILE_DEFINITIONS.get(style_name, {}).get(tile_type)
+
+                # 3. Solo adesso controlla se abbiamo trovato tutto il necessario
+                if not tile_def_or_list or not spritesheet:
+                    continue
+
+                if isinstance(tile_def_or_list, list):
+                    chosen_def = tile_def_or_list[variant_index]
+                else:
+                    chosen_def = tile_def_or_list
+                
+                try:
+                    tile_rect_to_cut = pygame.Rect(chosen_def['rect'])
+                    tile_image = spritesheet.subsurface(tile_rect_to_cut)
+                    scaled_tile_image = pygame.transform.scale(tile_image, (scaled_tile_size, scaled_tile_size))
+                    
+                    dest_x = x * scaled_tile_size
+                    dest_y = y * scaled_tile_size
+                    
+                    sprite_height_scaled = scaled_tile_image.get_height()
+                    if sprite_height_scaled > scaled_tile_size:
+                        dest_y -= (sprite_height_scaled - scaled_tile_size)
+
+                    background_surface.blit(scaled_tile_image, (dest_x, dest_y))
+                except ValueError as e:
+                    print(f"  [Renderer ERROR] Errore nel processare la tile {tile_type.name}: {e}")
+        
+        return background_surface
+
+
 
     def _quit_pygame(self):
         if settings.DEBUG_MODE:

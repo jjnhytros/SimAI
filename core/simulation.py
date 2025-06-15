@@ -5,6 +5,7 @@ import random
 # Importiamo le classi e le Enum necessarie
 from core.enums import *
 from core import settings
+from core.config import npc_config, time_config
 from core.modules.time_manager import TimeManager
 from core.world.location import Location
 from core.world.game_object import GameObject
@@ -20,10 +21,9 @@ if TYPE_CHECKING:
 class Simulation:
     def __init__(self):
         if settings.DEBUG_MODE: print("  [Simulation INIT] Inizializzazione Simulation...")
-        self.time_manager = TimeManager()
+        self.time_manager = TimeManager(simulation_context=self)
         if settings.DEBUG_MODE: print(f"  [Simulation INIT] TimeManager creato. Ora: {self.time_manager.get_formatted_datetime_string()}")
 
-        self.time_manager = TimeManager()
         self.weather_manager = WeatherManager() # Assumendo che esista
         
         self.current_tick: int = 0
@@ -31,6 +31,8 @@ class Simulation:
         self.npcs: Dict[str, 'Character'] = {}
         self.locations: Dict[str, Location] = {}
         self.world_objects: Dict[str, GameObject] = {}
+        self.npcs: Dict[str, 'Character'] = {}
+
         self.game_speed: float = 1.0
         self.default_starting_location_id: Optional[str] = None
         
@@ -60,9 +62,6 @@ class Simulation:
         
         for loc in all_locations:
             self.locations[loc.location_id] = loc
-            
-            # --- CORREZIONE QUI ---
-            # Accedi a 'loc.objects' invece di 'loc.initial_objects'
             for obj_id, obj in loc.objects.items():
                 self.world_objects[obj_id] = obj
 
@@ -209,8 +208,8 @@ class Simulation:
         # Passa current_time alla chiamata del metodo
         req_npc_age_days = requesting_npc.get_age_in_days(current_time)
         
-        min_cand_age_days = settings.DATING_CANDIDATE_MIN_AGE_DAYS
-        max_age_diff_days = settings.DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS * settings.DXY
+        min_cand_age_days = npc_config.DATING_CANDIDATE_MIN_AGE_DAYS
+        max_age_diff_days = npc_config.DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS * settings.DXY
         
         # Logica per le preferenze di genere (già corretta)
         genders_from_prefs: Optional[Set[Gender]] = None
@@ -279,8 +278,8 @@ class Simulation:
         current_time = self.time_manager.get_current_time()
         req_age_days = requesting_npc.get_age_in_days(current_time)
         
-        min_cand_age_days = settings.FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS
-        max_age_diff_days = settings.FRIEND_MAX_AGE_DIFFERENCE_YEARS * time_config.DXY
+        min_cand_age_days = npc_config.FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS
+        max_age_diff_days = npc_config.FRIEND_MAX_AGE_DIFFERENCE_YEARS * DXY
 
         for cand_npc in self.npcs.values():
             # Escludi il richiedente stesso e persone con cui ha già una relazione forte/negativa
@@ -341,44 +340,29 @@ class Simulation:
             return chosen_target
         return None
 
-    def _update_simulation_state(self):
+    def _update_simulation_state(self, ticks_to_process: int = 1):
         """
-        Metodo privato che avanza la logica della simulazione di un singolo tick.
+        Avanza la logica della simulazione di un numero specifico di tick.
         """
-        if not self.is_running:
+        if not self.is_running or ticks_to_process <= 0:
             return
             
         current_time = self.time_manager.get_current_time()
 
-        # 1. Aggiorna il LOD per tutti gli NPC
-        player_character = self.get_player_character() # La chiamata ora è corretta
-        if player_character:
-            # a. Ottieni la posizione del giocatore
+        # 1. Aggiorna il LOD
+        player_character = self.get_player_character()
+        if player_character and self.lod_manager:
             player_pos = (float(player_character.logical_x), float(player_character.logical_y))
-            # b. Chiama il metodo corretto del tuo LODManager, passando la posizione
             self.lod_manager.update_all_npcs_lod(player_position=player_pos)
 
-        # 2. Aggiorna ogni NPC tramite il coordinatore IA
+        # 2. Aggiorna ogni NPC per il numero di tick richiesto
         if self.ai_coordinator:
-            self.ai_coordinator.update_all_npcs(time_delta=1)
+            # Passiamo ticks_to_process che verrà usato in update_needs
+            self.ai_coordinator.update_all_npcs(time_delta=ticks_to_process)
 
-        # 3. Avanza il tempo globale
-        self.time_manager.advance_time(ticks=1)
-        self.current_tick += 1
-
-        # Ottieni la posizione del giocatore (questo è un esempio, adattalo)
-        player_character = self.get_player_character() # Ipotetico metodo
-        current_player_position = None
-        if player_character:
-            current_player_position = (float(player_character.logical_x), float(player_character.logical_y))
-
-        # Aggiorna i LOD degli NPC
-        if self.lod_manager:
-            self.lod_manager.update_all_npcs_lod(current_player_position)
-
-        # Aggiorna l'IA e le azioni degli NPC (l'IA potrebbe usare il LOD dell'NPC)
-        if self.ai_coordinator:
-            self.ai_coordinator.update_all_npcs(time_delta=1) # o i ticks effettivi
+        # 3. Avanza il tempo globale del numero di tick calcolato
+        self.time_manager.advance_time(ticks=ticks_to_process)
+        self.current_tick += ticks_to_process
 
     def run(self, max_ticks: Optional[int] = None):
         if settings.DEBUG_MODE:
@@ -418,130 +402,3 @@ class Simulation:
         if settings.DEBUG_MODE:
             print("  [Simulation CLEANUP] Esecuzione pulizia finale...")
         print("------------------------------------")
-
-if __name__ == '__main__':
-    print("--- Test diretto di core/simulation.py ---")
-    import sys
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    original_sys_path = list(sys.path)
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    settings_imported_successfully = False
-    try:
-        from core import settings
-        settings_imported_successfully = True
-    except ImportError:
-        print("  [Test Setup - simulation.py] WARN: Impossibile importare 'core.settings'. Uso un mock di emergenza.")
-        class EmergencySettingsMock:
-            DEBUG_MODE: bool = True
-            DXY: int = 432
-            MAX_NPC_ACTIVE_INTERESTS: int = 3
-            LIFE_STAGE_AGE_THRESHOLDS_DAYS: dict = {
-                "INFANCY": 0, "TODDLERHOOD": 1 * DXY, "EARLY_CHILDHOOD": 3 * DXY,
-                "MIDDLE_CHILDHOOD": 6 * DXY, "ADOLESCENCE": 12 * DXY,
-                "EARLY_ADULTHOOD": 20 * DXY, "MIDDLE_ADULTHOOD": 40 * DXY,
-                "LATE_ADULTHOOD": 60 * DXY, "ELDERLY": 80 * DXY
-            }
-            AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_YEARS: int = 18
-            AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS: int = AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_YEARS * DXY
-            AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_YEARS: int = 25
-            AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_DAYS: int = AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_YEARS * DXY
-            DATING_CANDIDATE_MIN_AGE_YEARS: int = 18
-            DATING_CANDIDATE_MIN_AGE_DAYS: int = DATING_CANDIDATE_MIN_AGE_YEARS * DXY
-            DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS: int = 15
-            FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS: int = 14
-            FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS: int = FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS * DXY
-            FRIEND_MAX_AGE_DIFFERENCE_YEARS: int = 10
-            MAX_MATCHMAKING_SUGGESTIONS: int = 3
-            # Aggiungi qui altre costanti minime necessarie per il test di Character e Simulation
-            NEED_MIN_VALUE: float = 0.0
-            NEED_MAX_VALUE: float = 100.0
-            NEED_DEFAULT_START_MIN: float = 50.0
-            NEED_DEFAULT_START_MAX: float = 80.0
-            NEED_CRITICAL_THRESHOLD: float = 10.0
-            NEED_LOW_THRESHOLD: float = 25.0
-            IXH = 60 # Minuti per ora, necessario per `update_needs`
-            NEED_DECAY_RATES: dict = {} # Deve esistere, anche se vuoto per il mock
-
-        settings = EmergencySettingsMock()
-
-    settings.DEBUG_MODE = True
-    if not hasattr(settings, 'DXY') or settings.DXY != 432:
-        if settings.DEBUG_MODE: print(f"  [Test Setup - simulation.py] WARN: settings.DXY non corretto ({getattr(settings, 'DXY', 'Mancante')}). Imposto 432.")
-        settings.DXY = 432
-    if project_root not in original_sys_path and settings.DEBUG_MODE:
-        print(f"  [Test Setup - simulation.py] Aggiunto al sys.path: {project_root}")
-    if settings.DEBUG_MODE: print(f"  [Test Setup - simulation.py] Utilizzo DXY = {settings.DXY}")
-
-    _critical_constants_defaults_for_test = {
-        "MAX_NPC_ACTIVE_INTERESTS": 3,
-        "LIFE_STAGE_AGE_THRESHOLDS_DAYS": {
-            "INFANCY": 0, "TODDLERHOOD": 1*settings.DXY, "EARLY_CHILDHOOD": 3*settings.DXY,
-            "MIDDLE_CHILDHOOD": 6*settings.DXY, "ADOLESCENCE": 12*settings.DXY,
-            "EARLY_ADULTHOOD": 20*settings.DXY, "MIDDLE_ADULTHOOD": 40*settings.DXY,
-            "LATE_ADULTHOOD": 60*settings.DXY, "ELDERLY": 80*settings.DXY
-        },
-        "AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_YEARS": 18,
-        "AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_YEARS": 25,
-        "DATING_CANDIDATE_MIN_AGE_YEARS": 18,
-        "DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS": 15,
-        "FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS": 14,
-        "FRIEND_MAX_AGE_DIFFERENCE_YEARS": 10,
-        "MAX_MATCHMAKING_SUGGESTIONS": 3,
-        "NEED_MIN_VALUE": 0.0, "NEED_MAX_VALUE": 100.0,
-        "NEED_DEFAULT_START_MIN": 50.0, "NEED_DEFAULT_START_MAX": 80.0,
-        "NEED_CRITICAL_THRESHOLD": 10.0, "NEED_LOW_THRESHOLD": 25.0, "IXH": 60,
-        "NEED_DECAY_RATES": {nt.name: -1.0 for nt in NeedType} # Aggiungi default per tutti i bisogni
-    }
-    for const_name, default_value in _critical_constants_defaults_for_test.items():
-        if not hasattr(settings, const_name):
-            if settings.DEBUG_MODE: print(f"  [Test Setup - simulation.py] WARN: settings.{const_name} non trovato. Uso default.")
-            if isinstance(default_value, dict) and "TODDLERHOOD" in default_value:
-                 setattr(settings, const_name, {k: (v if k=="INFANCY" else v * settings.DXY // settings.DXY) for k,v in default_value.items()})
-            else:
-                setattr(settings, const_name, default_value)
-    if hasattr(settings, 'DXY'):
-        _dependent_day_constants_map = {
-            "AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS": "AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_YEARS",
-            "AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_DAYS": "AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_YEARS",
-            "DATING_CANDIDATE_MIN_AGE_DAYS": "DATING_CANDIDATE_MIN_AGE_YEARS",
-            "FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS": "FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS",
-        }
-        for days_const, years_const_name in _dependent_day_constants_map.items():
-            if not hasattr(settings, days_const) and hasattr(settings, years_const_name):
-                setattr(settings, days_const, getattr(settings, years_const_name) * settings.DXY)
-    try:
-        from core.character import Character
-        from core.enums import Interest, Gender, LifeStage, RelationshipStatus, AspirationType, LocationType, NeedType
-        from core.AI import AICoordinator # Assicurati che sia importabile
-        from core.AI.needs_processor import NeedsProcessor # Per testare l'integrazione
-        from core.AI.decision_system import DecisionSystem
-        from core.AI.action_executor import ActionExecutor
-    except Exception as e:
-        print(f"ERRORE CRITICO NELL'IMPORT DELLE CLASSI DI TEST in simulation.py: {e}")
-        sys.exit(1)
-
-    sim_test_instance = Simulation()
-    try:
-        sara_richiedente = Character(
-            npc_id="sara_req01", name="Sara Richiedente (Test Sim)", initial_gender=Gender.FEMALE,
-            initial_age_days=25 * settings.DXY,
-            initial_interests={Interest.READING, Interest.TRAVEL, Interest.PHILOSOPHY_DEBATE},
-            initial_sexually_attracted_to_genders={Gender.MALE, Gender.FEMALE},
-            initial_romantically_attracted_to_genders={Gender.MALE, Gender.FEMALE},
-            initial_relationship_status=RelationshipStatus.SINGLE,
-            initial_aspiration=AspirationType.WORLD_EXPLORER
-        )
-        sim_test_instance.add_npc(sara_richiedente)
-
-        print("\nAvvio simulazione di test per pochi tick...")
-        sim_test_instance.run(max_ticks=10) # Esegui per 10 tick per vedere l'output
-
-    except NameError as e:
-        print(f"ERRORE NEL TEST (NameError in simulation.py test block): {e}. ")
-    except Exception as e:
-        print(f"ERRORE IMPREVISTO NEL TEST (simulation.py test block): {e.__class__.__name__} - {e}")
-
-    print("\n--- Fine test diretto di core/simulation.py (con setup settings corretto) ---")

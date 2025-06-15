@@ -1,4 +1,5 @@
 # core/modules/lifestages/child_life_stage.py
+from core.enums.need_types import NeedType
 from .base_life_stage import BaseLifeStage
 from typing import TYPE_CHECKING, Dict
 
@@ -13,9 +14,9 @@ class ChildLifeStage(BaseLifeStage):
         self.display_name = "Bambino"
         self.description = "Un periodo di apprendimento e gioco."
 
-    def get_need_decay_modifiers(self) -> Dict[str, float]:
+    def get_need_decay_modifiers(self) -> Dict[NeedType, float]: # <-- Usa NeedType come chiave
         # I bambini hanno bisogno di più energia e si annoiano più in fretta
         return {
-            "ENERGY": 1.25, # Il 25% più veloce
-            "FUN": 1.5,     # Il 50% più veloce
+            NeedType.ENERGY: 1.25, # Usa l'Enum, non la stringa "ENERGY"
+            NeedType.FUN: 1.5,
         }

@@ -3,26 +3,322 @@
 Configurazione NPC, tratti, bisogni e ciclo di vita
 """
 
-from core.enums.trait_types import TraitType
-from .time_config import DXY, DXM
-from core.enums import NeedType
+from enum import Enum
 
-# --- Soglie e Valori generali dei Bisogni ---
+from core.enums.service_types import ServiceType
+from .time_config import DXY, DXM, IXH, SECONDS_PER_SIMULATION_TICK, SXH, SXI, TXH_SIMULATION
+from core.enums import LifeStage, NeedType, TimeOfDay, TraitType
+
+
+# --- Soglie e Valori dei Bisogni (Adattati a 28 ore) ---
 NEED_MIN_VALUE: float = 0.0
 NEED_MAX_VALUE: float = 100.0
-NEED_DEFAULT_START_MIN: float = 50.0    # Valore minimo all'inizializzazione dell'NPC
-NEED_DEFAULT_START_MAX: float = 80.0    # Valore massimo all'inizializzazione
-NEED_LOW_THRESHOLD: float = 25.0        # Sotto questa soglia, l'NPC considera di agire
-NEED_HIGH_THRESHOLD = 75.0              # non fare questa azione se il bisogno è già quasi pieno
-NEED_CRITICAL_THRESHOLD: float = 10.0   # Sotto questa soglia, il bisogno è critico
+NEED_DEFAULT_START_MIN: float = 50.0
+NEED_DEFAULT_START_MAX: float = 80.0
+NEED_LOW_THRESHOLD: float = 25.0
+NEED_HIGH_THRESHOLD: float = 75.0
+NEED_CRITICAL_THRESHOLD: float = 10.0
+CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
+AI_URGENT_PROBLEM_THRESHOLD: float = 0.5
 
-# --- Soglie Comportamentali ---
-SHY_NPC_CROWD_THRESHOLD: int = 3 # Un NPC timido si sente a disagio se ci sono più di 3 persone (incluso se stesso)
+# --- Tassi di Decadimento Bisogni (per tick di simulazione) ---
+# Calcolati come: (decadimento orario * SXH) / TXH_SIMULATION
+NEED_DECAY_RATES_PER_TICK: dict[NeedType, float] = {
+    NeedType.ACHIEVEMENT: (-0.15 * SXH) / TXH_SIMULATION,
+    NeedType.AUTONOMY: (-0.22 * SXH) / TXH_SIMULATION,
+    NeedType.BLADDER: (-6.2 * SXH) / TXH_SIMULATION,
+    NeedType.COMFORT: (-0.75 * SXH) / TXH_SIMULATION,
+    NeedType.CREATIVITY: (-0.22 * SXH) / TXH_SIMULATION,
+    NeedType.ENERGY: (-4.0 * SXH) / TXH_SIMULATION,
+    NeedType.ENVIRONMENT: (-0.38 * SXH) / TXH_SIMULATION,
+    NeedType.FUN: (-2.25 * SXH) / TXH_SIMULATION,
+    NeedType.HUNGER: (-3.15 * SXH) / TXH_SIMULATION,
+    NeedType.HYGIENE: (-1.5 * SXH) / TXH_SIMULATION,
+    NeedType.INTIMACY: (-1.12 * SXH) / TXH_SIMULATION,
+    NeedType.LEARNING: (-0.15 * SXH) / TXH_SIMULATION,
+    NeedType.SAFETY: (-0.38 * SXH) / TXH_SIMULATION,
+    NeedType.SOCIAL: (-1.88 * SXH) / TXH_SIMULATION,
+    NeedType.SPIRITUALITY: (-0.3 * SXH) / TXH_SIMULATION,
+    NeedType.THIRST: (-4.12 * SXH) / TXH_SIMULATION,
+}
+
+NEED_SCHEDULE_CONFIG = {
+    NeedType.HUNGER: {
+        # Lista di ore (su 28) in cui l'NPC "dovrebbe" avere fame
+        "peak_times": [8, 15, 22], # Colazione, Pranzo, Cena
+        "peak_influence": 25.0, # Bonus di punteggio da aggiungere se siamo vicini all'ora di punta
+    },
+    NeedType.SOCIAL: {
+        # La socialità è più importante la sera
+        "peak_times": [19, 25], # Dalle 19:00 all'una di notte
+        "peak_influence": 15.0,
+    },
+    # Aggiungi qui altri bisogni se necessario...
+}
+
+# --- Pesi per l'IA (Aggiornati con priorità circadiane) ---
+NEED_WEIGHTS: dict[NeedType, float] = {
+    NeedType.HUNGER: 1.6,
+    NeedType.THIRST: 1.7, 
+    NeedType.ENERGY: 1.5,
+    NeedType.BLADDER: 1.4,
+    NeedType.HYGIENE: 1.1,
+    NeedType.FUN: 0.9,
+    NeedType.SOCIAL: 0.8,
+    NeedType.INTIMACY: 0.7,
+}
+
+# --- STRESS E CARICO COGNITIVO ---
+# La soglia media dei bisogni sotto la quale lo stress inizia ad aumentare.
+COGNITIVE_LOAD_THRESHOLD: float = 40.0
+
+# Tasso di aumento dello stress per tick quando i bisogni sono bassi.
+COGNITIVE_LOAD_GAIN_RATE: float = 0.005
+
+# Tasso di calo (recupero) dello stress per tick quando i bisogni sono soddisfatti.
+COGNITIVE_LOAD_DECAY_RATE: float = 0.002
+
 
 # --- Generazione NPC ---
 MIN_TRAITS_PER_NPC = 3
 MAX_TRAITS_PER_NPC = 5
 MAX_NPC_ACTIVE_INTERESTS = 3
+IMPLEMENTED_TRAITS = [
+    TraitType.ACTIVE, TraitType.BOOKWORM, TraitType.GLUTTON, TraitType.LONER,
+    TraitType.AMBITIOUS, TraitType.LAZY, TraitType.SOCIAL, TraitType.CREATIVE,
+    TraitType.ARTISTIC, TraitType.CHARMER, TraitType.SHY, TraitType.PLAYFUL,
+    TraitType.CHILDISH, TraitType.UNINHIBITED, TraitType.GOOD,
+]
+# --- Conflitti tra Tratti ---
+TRAIT_CONFLICTS = [
+    {TraitType.ACTIVE, TraitType.LAZY},
+    {TraitType.SOCIAL, TraitType.LONER},
+    {TraitType.GLUTTON, TraitType.AMBITIOUS},
+    {TraitType.SHY, TraitType.UNINHIBITED}
+]
+
+# --- Ciclo di Vita ---
+LIFE_STAGE_AGE_THRESHOLDS_DAYS = {
+    # Chiavi come stringhe dei membri dell'Enum LifeStage
+    "NEWBORN": 0,                     # Dalla nascita
+    "INFANT": round(DXM * 2),         # Da circa 2 mesi
+    "TODDLER": DXY * 1,               # Da 1 anno
+    "PRESCHOOLER": DXY * 3,           # Da 3 anni
+    "CHILD": DXY * 6,                 # Da 6 anni
+    "PRE_TEEN": DXY * 9,              # Da 9 anni
+    "EARLY_ADOLESCENCE": DXY * 12,    # Da 12 anni
+    "MID_ADOLESCENCE": DXY * 15,      # Da 15 anni
+    "LATE_ADOLESCENCE": DXY * 18,     # Da 18 anni
+    "YOUNG_ADULT": DXY * 20,          # Da 20 anni
+    "ADULT": DXY * 30,                # Da 30 anni
+    "MIDDLE_AGED": DXY * 40,          # Da 40 anni
+    "MATURE_ADULT": DXY * 60,         # Da 60 anni
+    "SENIOR": DXY * 75,               # Da 75 anni
+    "ELDERLY": DXY * 90,              # Da 90 anni
+}
+
+# --- Riproduzione e Sessualità (Aggiornato con fasi vita) ---
+MIN_AGE_PUBERTY_FERTILITY_YEARS = 13
+MIN_AGE_PUBERTY_FERTILITY_DAYS = MIN_AGE_PUBERTY_FERTILITY_YEARS * DXY
+MIN_AGE_FOR_INTIMACY_YEARS = 14
+MIN_AGE_FOR_INTIMACY_DAYS = MIN_AGE_FOR_INTIMACY_YEARS * DXY
+MAX_AGE_FOR_INTIMACY_YEARS = 75
+MAX_AGE_FOR_INTIMACY_DAYS = MAX_AGE_FOR_INTIMACY_YEARS * DXY
+PREGNANCY_CHANCE_FEMALE = 0.18
+PREGNANCY_DURATION_MONTHS_GAME = 9
+PREGNANCY_DURATION_DAYS_GAME = PREGNANCY_DURATION_MONTHS_GAME * DXM
+MIN_AGE_START_PREGNANCY_FEMALE_YEARS = 16
+MIN_AGE_START_PREGNANCY_FEMALE_DAYS = MIN_AGE_START_PREGNANCY_FEMALE_YEARS * DXY
+MAX_AGE_FERTILE_FEMALE_YEARS = 45
+MAX_AGE_FERTILE_FEMALE_DAYS = MAX_AGE_FERTILE_FEMALE_YEARS * DXY
+AGE_START_MENSTRUAL_CYCLE_YEARS_SET = {11.5, 13.5}
+AGE_START_MENSTRUAL_CYCLE_DAYS_SET = {round(year * DXY) for year in AGE_START_MENSTRUAL_CYCLE_YEARS_SET}
+AGE_MENOPAUSE_YEARS_SET = {48.0, 55.0}
+AGE_MENOPAUSE_DAYS_SET = {round(year * DXY) for year in AGE_MENOPAUSE_YEARS_SET}
+
+# --- SERVIZI SOCIALI E MATCHMAKING (SONET) ---
+# Età minime di accesso ai servizi (in anni e giorni)
+SERVICE_MIN_AGE_YEARS = {
+    ServiceType.AMORI_CURATI_PHASE1: 18,
+    ServiceType.AMORI_CURATI_PHASE2: 25,
+    ServiceType.FRIEND_CONNECT: 14
+}
+
+SERVICE_MIN_AGE_DAYS = {
+    service: years * DXY
+    for service, years in SERVICE_MIN_AGE_YEARS.items()
+}
+
+# Differenze d'età massime per i servizi
+SERVICE_MAX_AGE_DIFF_YEARS = {
+    ServiceType.AMORI_CURATI_PHASE1: 10,
+    ServiceType.AMORI_CURATI_PHASE2: 15,
+    ServiceType.FRIEND_CONNECT: 8
+}
+
+# Fattori di compatibilità basati sui tratti
+SERVICE_TRAIT_COMPATIBILITY_FACTORS = {
+    ServiceType.AMORI_CURATI_PHASE1: {
+        TraitType.CHARMER: 1.4,
+        TraitType.SHY: 0.6,
+        TraitType.UNINHIBITED: 1.3,
+        TraitType.SOCIAL: 1.2
+    },
+    ServiceType.AMORI_CURATI_PHASE2: {
+        TraitType.AMBITIOUS: 1.3,
+        TraitType.CREATIVE: 1.2,
+        TraitType.GOOD: 1.1,
+        TraitType.LONER: 0.7
+    },
+    ServiceType.FRIEND_CONNECT: {
+        TraitType.PLAYFUL: 1.4,
+        TraitType.ARTISTIC: 1.3,
+        TraitType.BOOKWORM: 1.2,
+        TraitType.LONER: 0.5
+    }
+}
+
+FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS = 14 # Come da tua indicazione (14-16)
+FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS = FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS * DXY
+
+# Soglie di necessità per l'utilizzo spontaneo
+SERVICE_NEED_THRESHOLDS = {
+    ServiceType.AMORI_CURATI_PHASE1: {
+        NeedType.INTIMACY: 30.0,
+        NeedType.SOCIAL: 40.0
+    },
+    ServiceType.AMORI_CURATI_PHASE2: {
+        NeedType.INTIMACY: 25.0,
+        NeedType.ACHIEVEMENT: 50.0
+    },
+    ServiceType.FRIEND_CONNECT: {
+        NeedType.SOCIAL: 35.0,
+        NeedType.FUN: 45.0
+    }
+}
+
+# --- Ritmo Circadiano (Ottimizzato per 28 ore) ---
+CIRCADIAN_RHYTHM_CONFIG = {
+    "SLEEP_WINDOW_START_HOUR": TimeOfDay.EVENING.start_hour,
+    "SLEEP_WINDOW_END_HOUR": TimeOfDay.MORNING.start_hour - 2,
+    "AWAKE_ENERGY_DECAY_MODIFIER": 1.0,
+    "ASLEEP_ENERGY_DECAY_MODIFIER": 0.08,
+    "SUMMER_LIGHT_MODIFIER": 1.2,
+    "WINTER_LIGHT_MODIFIER": 0.8
+}
+
+# --- Parametri Circadiani per Fasi di Vita ---
+LIFE_STAGE_CIRCADIAN_MODS = {
+    LifeStage.INFANT: {
+        "SLEEP_WINDOW_START_HOUR": 20,  # 20:00 Anthalys
+        "SLEEP_WINDOW_END_HOUR": 8,     # 8:00 Anthalys (12 ore)
+        "WAKE_CYCLES": 4
+    },
+    LifeStage.CHILD: {
+        "SLEEP_WINDOW_START_HOUR": 21,  # 21:00 Anthalys
+        "SLEEP_WINDOW_END_HOUR": 7,     # 7:00 Anthalys (10 ore)
+        "ENERGY_DECAY_MOD": 0.85
+    },
+    LifeStage.MID_ADOLESCENCE: {
+        "SLEEP_WINDOW_START_HOUR": 24,  # 24:00 Anthalys
+        "SLEEP_WINDOW_END_HOUR": 10,    # 10:00 Anthalys (10 ore)
+        "SOCIAL_MOD": 1.3
+    },
+    LifeStage.SENIOR: {
+        "SLEEP_WINDOW_START_HOUR": 21,  # 21:00 Anthalys
+        "SLEEP_WINDOW_END_HOUR": 5,     # 5:00 Anthalys (8 ore)
+        "ENERGY_DECAY_MOD": 1.2
+    }
+}
+
+# --- Soglie Comportamentali ---
+SHY_NPC_CROWD_THRESHOLD: int = 3 # Un NPC timido si sente a disagio se ci sono più di 3 persone (incluso se stesso)
+
+# Morte naturale (aggiornato con aspettativa di vita realistica)
+AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS = 85.0
+AGE_SENIOR_STARTS_CONSIDER_DEATH_DAYS = round(AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS * DXY)
+DAILY_DEATH_CHANCE_MULTIPLIER_SENIOR = 0.0005
+
+# --- Orientamenti Sessuali ---
+CHANCE_NPC_IS_HETEROSEXUAL = 0.80
+CHANCE_NPC_IS_HOMOSEXUAL = 0.08
+CHANCE_NPC_IS_BISEXUAL = 0.05
+CHANCE_NPC_IS_PANSEXUAL = 0.03
+CHANCE_NPC_IS_ASEXUAL_SPECTRUM = 0.04
+CHANCE_NPC_IS_AROMANTIC_SPECTRUM = 0.03
+CHANCE_ROMANTIC_MATCHES_SEXUAL = 0.92
+
+# --- SVILUPPO SESSUALE E IDENTITÀ ---
+# Età in cui inizia il processo di solidificazione dell'orientamento sessuale
+# (basato su studi di sviluppo adolescenziale)
+AGE_ORIENTATION_SOLIDIFIES_START_YEARS = 14.0
+AGE_ORIENTATION_SOLIDIFIES_START_DAYS = round(AGE_ORIENTATION_SOLIDIFIES_START_YEARS * DXY)
+
+# Età in cui l'orientamento è tipicamente consolidato (range 18-25 anni)
+AGE_ORIENTATION_SOLIDIFIES_END_YEARS = 21.0
+AGE_ORIENTATION_SOLIDIFIES_END_DAYS = round(AGE_ORIENTATION_SOLIDIFIES_END_YEARS * DXY)
+
+# Fattori che influenzano il processo
+ORIENTATION_SOLIDIFICATION_FACTORS = {
+    "GENETIC_HERITABILITY": 0.6,            # Componente genetica
+    "EARLY_EXPERIENCES_IMPACT": 0.25,       # Esperienze infantili
+    "SOCIAL_ENVIRONMENT_IMPACT": 0.15,      # Ambiente sociale
+    "TRAIT_INFLUENCE": {                    # Influenza tratti personalità
+        TraitType.CHILDISH: -0.3,
+        TraitType.AMBITIOUS: 0.2,
+        TraitType.SHY: -0.4,
+        TraitType.UNINHIBITED: 0.3
+    }
+}
+
+# Probabilità di esplorazione durante l'adolescenza
+CHANCE_ORIENTATION_EXPLORATION_TEEN = 0.65
+
+# --- Cura degli Infanti (Aggiornato) ---
+INFANT_CARE_HUNGER_THRESHOLD = 40
+INFANT_CARE_HYGIENE_THRESHOLD = 35
+INFANT_CARE_BLADDER_THRESHOLD = 30
+INFANT_CARE_SOCIAL_THRESHOLD = 45
+PARENT_MIN_ENERGY_FOR_CARE = 40
+PARENT_ENERGY_COST_FEEDING = 7
+
+# --- Matching e Relazioni ---
+DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS = 12 
+DATING_CANDIDATE_MIN_AGE_YEARS = 18
+DATING_CANDIDATE_MIN_AGE_DAYS = DATING_CANDIDATE_MIN_AGE_YEARS * DXY
+FRIEND_MAX_AGE_DIFFERENCE_YEARS = 8
+MAX_MATCHMAKING_SUGGESTIONS = 3
+
+# --- Livelli di Dettaglio ---
+LOD_DISTANCE_HIGH = 50.0
+LOD_DISTANCE_MEDIUM = 150.0
+
+# --- Guadagni da Azioni (Per tick) ---
+ACTION_SATISFACTION_GAINS_PER_TICK = {
+    "EAT": {
+        NeedType.HUNGER: (65 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (15 * SXH) / TXH_SIMULATION
+    },
+    "SLEEP": {
+        NeedType.ENERGY: (85 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (20 * SXH) / TXH_SIMULATION
+    },
+    "SOCIALIZE": {
+        NeedType.SOCIAL: (50 * SXH) / TXH_SIMULATION,
+        NeedType.FUN: (30 * SXH) / TXH_SIMULATION
+    },
+    "INTIMACY": {
+        NeedType.INTIMACY: (75 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (25 * SXH) / TXH_SIMULATION
+    }
+}
+
+# --- Calcolo Durata Azioni in Tick ---
+INFANT_FEEDING_DURATION_TICKS = (30 * IXH * SXI) / SECONDS_PER_SIMULATION_TICK  # 30 minuti
+STANDARD_SLEEP_DURATION_TICKS = (8 * SXH) / SECONDS_PER_SIMULATION_TICK         # 8 ore
+SOCIAL_ACTIVITY_DURATION_TICKS = (2 * SXH) / SECONDS_PER_SIMULATION_TICK       # 2 ore
+
+# --------------------------------
 
 # --- Generazione Nomi Casuali ---
 MALE_NAMES = ["Marco", "Alessandro", "Luca", "Davide", "Matteo", "Francesco", "Lorenzo", "Andrea"]
@@ -151,113 +447,3 @@ LASTNAME_SUFFIXES = [
         "uzzo", "y", "z"
     ]
 
-IMPLEMENTED_TRAITS = [
-    TraitType.ACTIVE, TraitType.BOOKWORM, TraitType.GLUTTON, TraitType.LONER,
-    TraitType.AMBITIOUS, TraitType.LAZY, TraitType.SOCIAL, TraitType.CREATIVE,
-    TraitType.ARTISTIC, TraitType.CHARMER, TraitType.SHY, TraitType.PLAYFUL,
-    TraitType.CHILDISH, TraitType.UNINHIBITED, TraitType.GOOD,
-]
-
-
-
-# --- PESI PER L'IA ---
-# Pesi per i bisogni usati da AIDecisionMaker e NeedsProcessor
-NEED_WEIGHTS: dict[NeedType, float] = {
-    NeedType.HUNGER: 1.5,
-    NeedType.THIRST: 1.6, 
-    NeedType.ENERGY: 1.4,
-    NeedType.BLADDER: 1.3,
-    NeedType.HYGIENE: 1.0,
-    NeedType.FUN: 0.8,
-    NeedType.SOCIAL: 0.7,
-    NeedType.INTIMACY: 0.6,
-    # Aggiungere pesi per altri NeedType quando implementati
-}
-
-# Modificatore di urgenza per bisogni critici
-CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
-
-# --- Ciclo di Vita ---
-LIFE_STAGE_AGE_THRESHOLDS_DAYS = {
-    # Chiavi come stringhe dei membri dell'Enum LifeStage
-    "NEWBORN": 0,                     # Dalla nascita
-    "INFANT": round(DXM * 2),         # Da circa 2 mesi
-    "TODDLER": DXY * 1,               # Da 1 anno
-    "PRESCHOOLER": DXY * 3,           # Da 3 anni
-    "CHILD": DXY * 6,                 # Da 6 anni
-    "PRE_TEEN": DXY * 9,              # Da 9 anni
-    "EARLY_ADOLESCENCE": DXY * 12,    # Da 12 anni
-    "MID_ADOLESCENCE": DXY * 15,      # Da 15 anni
-    "LATE_ADOLESCENCE": DXY * 18,     # Da 18 anni
-    "YOUNG_ADULT": DXY * 20,          # Da 20 anni
-    "ADULT": DXY * 30,                # Da 30 anni
-    "MIDDLE_AGED": DXY * 40,          # Da 40 anni
-    "MATURE_ADULT": DXY * 60,         # Da 60 anni
-    "SENIOR": DXY * 75,               # Da 75 anni
-    "ELDERLY": DXY * 90,              # Da 90 anni
-}
-
-AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS = 75.0
-AGE_SENIOR_STARTS_CONSIDER_DEATH_DAYS = round(AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS * DXY)
-DAILY_DEATH_CHANCE_MULTIPLIER_SENIOR = 0.0005
-
-# --- Riproduzione e Sessualità ---
-MIN_AGE_PUBERTY_FERTILITY_YEARS = 13
-MIN_AGE_PUBERTY_FERTILITY_DAYS = MIN_AGE_PUBERTY_FERTILITY_YEARS * DXY
-
-MIN_AGE_FOR_INTIMACY_YEARS = 14
-MIN_AGE_FOR_INTIMACY_DAYS = MIN_AGE_FOR_INTIMACY_YEARS * DXY
-MAX_AGE_FOR_INTIMACY_YEARS = 70
-MAX_AGE_FOR_INTIMACY_DAYS = MAX_AGE_FOR_INTIMACY_YEARS * DXY
-
-PREGNANCY_CHANCE_FEMALE = 0.20
-PREGNANCY_DURATION_MONTHS_GAME = 9
-PREGNANCY_DURATION_DAYS_GAME = PREGNANCY_DURATION_MONTHS_GAME * DXM
-
-MIN_AGE_START_PREGNANCY_FEMALE_YEARS = 14
-MIN_AGE_START_PREGNANCY_FEMALE_DAYS = MIN_AGE_START_PREGNANCY_FEMALE_YEARS * DXY
-MAX_AGE_FERTILE_FEMALE_YEARS = 48
-MAX_AGE_FERTILE_FEMALE_DAYS = MAX_AGE_FERTILE_FEMALE_YEARS * DXY
-
-AGE_START_MENSTRUAL_CYCLE_YEARS_SET = {11.0, 13.0}
-AGE_START_MENSTRUAL_CYCLE_DAYS_SET = {round(year * DXY) for year in AGE_START_MENSTRUAL_CYCLE_YEARS_SET}
-AGE_MENOPAUSE_YEARS_SET = {50.0, 60.0}
-AGE_MENOPAUSE_DAYS_SET = {round(year * DXY) for year in AGE_MENOPAUSE_YEARS_SET}
-
-CHANCE_NPC_IS_HETEROSEXUAL = 0.85
-CHANCE_NPC_IS_HOMOSEXUAL = 0.07
-CHANCE_NPC_IS_BISEXUAL = 0.05
-CHANCE_NPC_IS_PANSEXUAL = 0.03
-CHANCE_NPC_IS_ASEXUAL_SPECTRUM = 0.02
-CHANCE_NPC_IS_AROMANTIC_SPECTRUM = 0.02
-CHANCE_ROMANTIC_MATCHES_SEXUAL = 0.95
-
-NEED_DECAY_RATES: dict[NeedType, float] = {
-    NeedType.ACHIEVEMENT: -0.2,
-    NeedType.AUTONOMY: -0.3,
-    NeedType.BLADDER: -8.0,
-    NeedType.COMFORT: -1.0,
-    NeedType.CREATIVITY: -0.3,
-    NeedType.ENERGY: -5.0,
-    NeedType.ENVIRONMENT: -0.5,
-    NeedType.FUN: -3.0,
-    NeedType.HUNGER: -4.2,
-    NeedType.HYGIENE: -2.0,
-    NeedType.INTIMACY: -1.5,
-    NeedType.LEARNING: -0.2,
-    NeedType.SAFETY: -0.5,
-    NeedType.SOCIAL: -2.5,
-    NeedType.SPIRITUALITY: -0.4,
-    NeedType.THIRST: -5.5, # Assicurati di avere THIRST qui
-}
-
-# Modificatore di urgenza per bisogni critici
-CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
-
-# Soglia di urgenza sopra la quale l'IA considera un problema per la decisione
-AI_URGENT_PROBLEM_THRESHOLD: float = 0.5 # Esempio: considera problemi con urgenza > 50%
-
-# --- Livelli di Dettaglio (LOD) ---
-LOD_DISTANCE_HIGH = 50.0   # NPC a HIGH detail entro 50 unità di distanza
-LOD_DISTANCE_MEDIUM = 150.0 # NPC a MEDIUM detail entro 150 unità
-# Oltre i 150, l'NPC passa a LOW o CULLED.

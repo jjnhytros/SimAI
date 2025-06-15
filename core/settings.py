@@ -7,6 +7,9 @@ File centrale per le costanti globali e le impostazioni di base del gioco SimAI.
 GAME_NAME = "SimAI"
 GAME_VERSION = "0.5.116-alpha_274"
 DEBUG_MODE = False
+# Imposta su True per avviare l'interfaccia grafica, False per la modalità testuale (TUI)
+GUI_ENABLED = True 
+
 FPS = 60
 
 from .config.time_config import (
@@ -19,62 +22,6 @@ WORK_DAYS_PER_WEEK = DXW - len(WEEKEND_DAY_NUMBERS) # 5
 # WORK_MONTHS_PER_YEAR e BREAK_MONTHS_PER_YEAR sono definiti come PRODUCTIVE_MONTHS_PER_YEAR
 # e BREAK_MONTHS_PER_YEAR nella sezione SISTEMA REGOLAMENTARE GLOBALE più avanti.
 
-# --- Costanti relative agli NPC (Rif. TODO IV) ---
-MIN_TRAITS_PER_NPC = 3
-MAX_TRAITS_PER_NPC = 5
-MAX_NPC_ACTIVE_INTERESTS = 3
-
-LIFE_STAGE_AGE_THRESHOLDS_DAYS = {
-    "INFANCY": 0,
-    "TODDLERHOOD": DXY * 1,
-    "EARLY_CHILDHOOD": DXY * 3,
-    "MIDDLE_CHILDHOOD": DXY * 6,
-    "ADOLESCENCE": DXY * 12,
-    "EARLY_ADULTHOOD": DXY * 20,
-    "MIDDLE_ADULTHOOD": DXY * 45,
-    "LATE_ADULTHOOD": DXY * 65,
-    "ELDERLY": DXY * 90
-}
-
-# Morte Naturale per Anziani (TODO IV.2.e)
-# Convertiamo 75.0 anni in giorni per coerenza con le soglie LifeStage.
-AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS = 85.0
-AGE_SENIOR_STARTS_CONSIDER_DEATH_DAYS = round(AGE_SENIOR_STARTS_CONSIDER_DEATH_YEARS * DXY)
-DAILY_DEATH_CHANCE_MULTIPLIER_SENIOR = 0.0005 # Probabilità giornaliera di morte (da affinare)
-
-# --- Sessualità e Riproduzione (TODO IV.2) ---
-MIN_AGE_PUBERTY_FERTILITY_YEARS = 13
-MIN_AGE_PUBERTY_FERTILITY_DAYS = MIN_AGE_PUBERTY_FERTILITY_YEARS * DXY
-
-MIN_AGE_FOR_INTIMACY_YEARS = 13
-MIN_AGE_FOR_INTIMACY_DAYS = MIN_AGE_FOR_INTIMACY_YEARS * DXY
-MAX_AGE_FOR_INTIMACY_YEARS = 75
-MAX_AGE_FOR_INTIMACY_DAYS = MAX_AGE_FOR_INTIMACY_YEARS * DXY
-
-PREGNANCY_CHANCE_FEMALE = 0.20
-PREGNANCY_DURATION_MONTHS_GAME = 9
-PREGNANCY_DURATION_DAYS_GAME = PREGNANCY_DURATION_MONTHS_GAME * DXM
-PREGNANCY_DURATION_TICKS = PREGNANCY_DURATION_DAYS_GAME * HXD * TXH_SIMULATION
-
-MIN_AGE_START_PREGNANCY_FEMALE_YEARS = 14
-MIN_AGE_START_PREGNANCY_FEMALE_DAYS = MIN_AGE_START_PREGNANCY_FEMALE_YEARS * DXY
-MAX_AGE_FERTILE_FEMALE_YEARS = 55
-MAX_AGE_FERTILE_FEMALE_DAYS = MAX_AGE_FERTILE_FEMALE_YEARS * DXY
-
-AGE_START_MENSTRUAL_CYCLE_YEARS_SET = {11.0, 13.0}
-AGE_START_MENSTRUAL_CYCLE_DAYS_SET = {round(year * DXY) for year in AGE_START_MENSTRUAL_CYCLE_YEARS_SET}
-AGE_MENOPAUSE_YEARS_SET = {55.0, 65.0}
-AGE_MENOPAUSE_DAYS_SET = {round(year * DXY) for year in AGE_MENOPAUSE_YEARS_SET}
-
-# Orientamento Sessuale e Romantico (TODO IV.3.j)
-CHANCE_NPC_IS_HETEROSEXUAL = 0.85
-CHANCE_NPC_IS_HOMOSEXUAL = 0.07
-CHANCE_NPC_IS_BISEXUAL = 0.03
-CHANCE_NPC_IS_PANSEXUAL = 0.01
-CHANCE_NPC_IS_ASEXUAL_SPECTRUM = 0.02
-CHANCE_NPC_IS_AROMANTIC_SPECTRUM = 0.02
-CHANCE_ROMANTIC_MATCHES_SEXUAL = 0.95
-# AGE_ORIENTATION_SOLIDIFIES_START_TEEN_YEARS = 14.0 # Esempio per futuro sviluppo
 
 # --- SISTEMA DEI BISOGNI (TODO IV.1) ---
 # Tassi di Decadimento Base (punti persi per tick di simulazione)
@@ -104,14 +51,6 @@ USE_BATHROOM_GAIN = 100
 INTIMACY_ACTION_GAIN = 70
 CHILD_PLAY_FUN_GAIN = 50
 
-# Cura Infanti (TODO IV.4.e)
-INFANT_CARE_HUNGER_THRESHOLD = 35
-INFANT_CARE_HYGIENE_THRESHOLD = 30
-INFANT_CARE_BLADDER_THRESHOLD = 30
-INFANT_CARE_SOCIAL_THRESHOLD = 40
-INFANT_CARE_MOOD_TRIGGER_NAME = "MISERABLE" # Assumendo che sia una stringa ID per un moodlet
-PARENT_MIN_ENERGY_FOR_CARE = LOW_NEED_THRESHOLD + 5 # Es. 45
-PARENT_ENERGY_COST_FEEDING = 8
 # ... (altre costanti INFANT_CARE e PARENT_COST/GAIN andranno qui)
 DURATION_FEEDING_INFANT_TICKS = TXH_SIMULATION // 2 # Esempio: 30 minuti
 # ... (altre DURATION_INFANT_CARE_..._TICKS andranno qui)
@@ -279,14 +218,6 @@ BG_TRAIT_EFFECT_HATES_HEAT = 0.25
 BG_TRAIT_EFFECT_CANT_STAND_COLD = 0.25
 BG_TRAIT_EFFECT_CHRONIC_HEADACHE = 0.3
 BG_TRAIT_EFFECT_CHRONIC_ILLNESS_MALAISE = 0.15
-# Conflitti tra tratti (TODO IV.3.b.ix, IV.3.b.x.1)
-# Usare stringhe dei nomi Enum dei tratti per evitare import circolari qui.
-# La logica di gestione dei conflitti userà queste stringhe per confrontare.
-TRAIT_CONFLICTS_AS_STRINGS = [
-    {"FERTILE", "INFERTILE"}, # Esempio
-    {"MONOGAMOUS", "POLYAMOROUS"}, # Esempio
-    # ... (elenco completo dei set di tratti incompatibili)
-]
 
 # --- VIII. CONFIGURAZIONE METEO (Planetaria e Climatica) (TODO XXVI, I.3.e) ---
 PLANET_AXIAL_TILT_DEGREES = 28.183239
@@ -308,18 +239,6 @@ AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_DAYS = AMORI_CURATI_PHASE2_ACCESS_MIN_AGE_YEA
 # NUOVA COSTANTE: Età minima per il servizio "Trova Amici"
 FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS = 14 # Come da tua indicazione (14-16)
 FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS = FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS * DXY
-
-MAX_MATCHMAKING_SUGGESTIONS = 3
-
-# Potremmo anche definire una differenza di età per la ricerca di amici,
-# potrebbe essere diversa da quella per il dating.
-FRIEND_MAX_AGE_DIFFERENCE_YEARS = 10 # Esempio, più stretta per coetanei o più larga?
-
-# --- IX. INTERFACCIA UTENTE (TUI) (TODO XI) ---
-# Esempio di costanti per la TUI, da popolare in base al design
-# HEADER_HEIGHT_CURSES = 3
-# LOG_WINDOW_HEIGHT_CURSES = 10
-# ...
 
 # --- X. SALVATAGGIO E REPORT (TODO XV, XIV.a) ---
 AUTOSAVE_ON_DAY_END = True
@@ -360,43 +279,7 @@ class ANSIColors: # Classe per raggruppare i codici colore
 
 print("  [Settings] Modulo settings.py caricato.")
 
-# --- Impostazioni per Matching e Relazioni (Nuova Sezione o esistente) ---
-# Differenza di età massima in anni per considerare un candidato per appuntamenti
-DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS = 15 
-DATING_CANDIDATE_MIN_AGE_YEARS = AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_YEARS # Devono almeno poter usare la fase 1
-                                                                            # o l'età di inizio EARLY_ADULTHOOD
-DATING_CANDIDATE_MIN_AGE_DAYS = DATING_CANDIDATE_MIN_AGE_YEARS * DXY
 
-
-# --- Valori e Dinamiche dei Bisogni (Needs) ---
-# Riferimento TODO: V.a.ii, V.a.iii
-NEED_MIN_VALUE: float = 0.0     # Valore minimo che un bisogno può raggiungere (molto negativo)
-NEED_MAX_VALUE: float = 100.0   # Valore massimo (completamente soddisfatto)
-NEED_DEFAULT_START_MIN: float = 50.0 # Valore iniziale minimo per un nuovo NPC
-NEED_DEFAULT_START_MAX: float = 80.0 # Valore iniziale massimo per un nuovo NPC
-
-# Tassi di decadimento dei bisogni (punti persi PER ORA di gioco).
-# Valori negativi indicano un decadimento.
-# Le chiavi sono i nomi dei membri dell'Enum NeedType.
-# Questi valori andranno bilanciati con il testing!
-NEED_DECAY_RATES: dict[str, float] = {
-    "ACHIEVEMENT": -0.2,   # Esempio, o potrebbe non decadere passivamente
-    "AUTONOMY": -0.3,     # Esempio
-    "BLADDER": -8.0,
-    "COMFORT": -1.0,
-    "CREATIVITY": -0.3,   # Esempio
-    "ENERGY": -5.0,
-    "ENVIRONMENT": -0.5,
-    "FUN": -3.0,
-    "HUNGER": -4.2,
-    "HYGIENE": -2.0,
-    "INTIMACY": -1.5,
-    "LEARNING": -0.2,     # Esempio, potrebbe non decadere o dipendere da attività
-    "SAFETY": -0.5,       # Esempio di tasso, da bilanciare
-    "SOCIAL": -2.5,
-    "SPIRITUALITY": -0.4, # Esempio
-    "THIRST": -3.5
-}
 
 # Soglie di criticità per i bisogni (quando un bisogno diventa un problema serio)
 NEED_CRITICAL_THRESHOLD: float = 10.0  # MODIFICATO: Sotto 10 è critico

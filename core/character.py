@@ -293,9 +293,15 @@ class Character:
         current_hour_float = time_manager.get_current_hour_float()
         lifestage_modifiers = self.life_stage_obj.get_need_decay_modifiers() if self.life_stage_obj else {}
 
+        current_action = self.current_action
+
         # Itera su ogni bisogno che l'NPC possiede
         for need_type, need_obj in self.needs.items():
-            
+            # Se c'è un'azione in corso che sta già gestendo questo bisogno,
+            # SALTA il suo decadimento passivo per questo tick.
+            if current_action and current_action.manages_need == need_type:
+                continue
+
             # 1. Prende il tasso di decadimento base PER TICK dalla configurazione
             decay_per_tick = npc_config.NEED_DECAY_RATES_PER_TICK.get(need_type, 0.0)
             

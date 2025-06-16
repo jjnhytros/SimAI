@@ -7,6 +7,39 @@ Riferimento TODO: I.4, XVIII.1
 """
 
 class ObjectType(Enum):
+    # --- Da categorizzare
+    PAINTBRUSH = auto()
+    DJ_SET = auto()
+    KNITTING_NEEDLES = auto()
+    WOODWORKING_TOOLS = auto()
+    SPRAY_PAINT = auto()
+    LEATHER_TOOLS = auto()
+    GLASS_TOOLS = auto()
+    SMARTPHONE = auto()
+    CHESS_SET = auto()
+    BINOCULARS = auto()
+    FISHING_ROD = auto()
+    CLIMBING_GEAR = auto()
+    BICYCLE = auto()
+    SURFBOARD = auto()
+    KAYAK = auto()
+    BOW = auto()
+    SKATEBOARD = auto()
+    FRISBEE = auto()
+    GPS_DEVICE = auto()
+    SNOWSHOES = auto()
+    CAVING_GEAR = auto()
+    PADDLEBOARD = auto()
+    ICE_SKATES = auto()
+    BREWING_KIT = auto()
+    MODEL_TRAIN_SET = auto()
+    CANDLE_MAKING_KIT = auto()
+    SOAP_MAKING_KIT = auto()
+    TOOLBOX = auto()
+    MUSICAL_INSTRUMENT = auto()
+    CANYONING_GEAR = auto()
+    POTTERY_TOOLS = auto()
+
     """
     Enum per i diversi tipi di oggetti, raggruppati per categoria funzionale.
     """
@@ -383,6 +416,38 @@ class ObjectType(Enum):
 
 def display_name_it(self) -> str:
     names = {
+        # --- Da categorizzare
+        ObjectType.PAINTBRUSH: "Pennello",
+        ObjectType.DJ_SET: "Set da DJ",
+        ObjectType.KNITTING_NEEDLES: "Ferri da maglia",
+        ObjectType.WOODWORKING_TOOLS: "Attrezzi falegnameria",
+        ObjectType.SPRAY_PAINT: "Spray per vernice",
+        ObjectType.LEATHER_TOOLS: "Attrezzi pelletteria",
+        ObjectType.GLASS_TOOLS: "Attrezzi vetro",
+        ObjectType.SMARTPHONE: "Smartphone",
+        ObjectType.CHESS_SET: "Set scacchi",
+        ObjectType.BINOCULARS: "Binocolo",
+        ObjectType.FISHING_ROD: "Canna da pesca",
+        ObjectType.CLIMBING_GEAR: "Attrezzatura arrampicata",
+        ObjectType.BICYCLE: "Bicicletta",
+        ObjectType.SURFBOARD: "Tavola da surf",
+        ObjectType.KAYAK: "Kayak",
+        ObjectType.BOW: "Arco",
+        ObjectType.SKATEBOARD: "Skateboard",
+        ObjectType.FRISBEE: "Frisbee",
+        ObjectType.GPS_DEVICE: "Dispositivo GPS",
+        ObjectType.SNOWSHOES: "Racchette da neve",
+        ObjectType.CAVING_GEAR: "Attrezzatura speleologia",
+        ObjectType.PADDLEBOARD: "Paddleboard",
+        ObjectType.ICE_SKATES: "Pattini da ghiaccio",
+        ObjectType.BREWING_KIT: "Kit fermentazione",
+        ObjectType.MODEL_TRAIN_SET: "Set trenino modello",
+        ObjectType.CANDLE_MAKING_KIT: "Kit candele",
+        ObjectType.SOAP_MAKING_KIT: "Kit saponificazione",
+        ObjectType.TOOLBOX: "Cassetta attrezzi",
+        ObjectType.MUSICAL_INSTRUMENT: "Strumento musicale",
+        ObjectType.CANYONING_GEAR: "Attrezzatura canyoning",
+
         # ================ CATEGORIA 1: ARREDAMENTO ================
         ObjectType.ARMCHAIR: "Poltrona",
         ObjectType.BAR_COUNTER: "Bancone da bar",
@@ -633,6 +698,7 @@ def display_name_it(self) -> str:
         ObjectType.PIANO: "Pianoforte",
         ObjectType.PINBALL: "Flipper",
         ObjectType.POTTERY_WHEEL: "Tornio vasaio",
+        ObjectType.POTTERY_TOOLS: "Attrezzatura da vasaio",
         ObjectType.PUPPET_THEATER: "Teatro dei burattini",
         ObjectType.SEWING_MACHINE: "Macchina da cucire",
         ObjectType.SOLAR_OBSERVATORY: "Osservatorio solare",

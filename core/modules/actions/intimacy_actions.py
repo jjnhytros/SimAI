@@ -1,201 +1,109 @@
-# core/modules/actions/intimacy_actions.py
-from typing import TYPE_CHECKING, Optional, Dict
+import random
+from typing import Dict, Optional, TYPE_CHECKING, Set
 
-from core.modules.memory.memory_definitions import Problem
+from .action_base import BaseAction
+from core.enums import NeedType, RelationshipType, ActionType
+from core.config import actions_config, time_config, npc_config
+from core import settings
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
 
-from core.enums import NeedType, RelationshipType, ActionType 
-from core import settings
-# from core.config import time_config # Se necessario per calcolare durate di default in AIDecisionMaker
-from .action_base import BaseAction
-
-# Rimuoviamo i _MODULE_DEFAULT qui perché i valori verranno iniettati
-# _MODULE_DEFAULT_ENGAGE_INTIMACY_DURATION_TICKS: int = 60
-# _MODULE_DEFAULT_ENGAGE_INTIMACY_INITIATOR_GAIN: float = 50.0
-# ... e così via
-
 class EngageIntimacyAction(BaseAction):
-    def __init__(self, 
-                npc: 'Character', 
-                simulation_context: 'Simulation',
-                target_npc: 'Character', # Parametro target esplicito
-                # --- Parametri di configurazione ora iniettati ---
-                duration_ticks: int,
-                initiator_intimacy_gain: float,
-                target_intimacy_gain: float,
-                relationship_score_gain: int,
-                triggering_problem: Optional['Problem'] = None,
-
-                # Potresti aggiungere altri parametri se necessario, es:
-                # required_relationship_types: Set[RelationshipType] = {RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE}
-                ):
+    """
+    Azione per l'intimità fisica tra due NPC. I bisogni vengono soddisfatti
+    gradualmente durante l'interazione.
+    """
+    def __init__(self, npc: 'Character', simulation_context: 'Simulation', 
+                 target_npc: 'Character', **kwargs):
         
-        action_type_enum_val = ActionType.ACTION_ENGAGE_INTIMACY # Assicurati che esista in ActionType
+        config = actions_config.INTIMACY_ACTION_CONFIG.get(NeedType.INTIMACY, {})
+        duration = int(config.get("duration_hours", 1.5) * time_config.TXH_SIMULATION)
 
         super().__init__(
             npc=npc,
-            action_type_name=action_type_enum_val.name, # Derivato dall'enum
-            action_type_enum=action_type_enum_val,
-            duration_ticks=duration_ticks, # Usa il parametro iniettato
             p_simulation_context=simulation_context,
-            is_interruptible=True,
-            triggering_problem=triggering_problem,
+            duration_ticks=duration,
+            action_type_enum=ActionType.ACTION_ENGAGE_INTIMACY,
+            **kwargs
         )
+        
         self.target_npc = target_npc
         
-        # Salva i parametri specifici dell'azione
-        self.initiator_intimacy_gain: float = initiator_intimacy_gain
-        self.target_intimacy_gain: float = target_intimacy_gain
-        self.relationship_score_gain: int = relationship_score_gain
-        # self.required_relationship_types = required_relationship_types
-
-        # Popola effects_on_needs per l'iniziatore (il target viene gestito in on_finish)
-        self.effects_on_needs: Dict[NeedType, float] = {
-            NeedType.INTIMACY: self.initiator_intimacy_gain
-            # Potrebbe influenzare anche FUN o stress negativamente/positivamente
-        }
+        # Calcola i guadagni per tick
+        initiator_gain = config.get("initiator_intimacy_gain", 0)
+        self.initiator_gain_per_tick = initiator_gain / duration if duration > 0 else 0
         
-        if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata con target {self.target_npc.name}. "
-                f"Durata: {self.duration_ticks}t, InitGain: {self.initiator_intimacy_gain:.1f}, "
-                f"TargetGain: {self.target_intimacy_gain:.1f}, RelGain: {self.relationship_score_gain}")
+        target_gain = config.get("target_intimacy_gain", 0)
+        self.target_gain_per_tick = target_gain / duration if duration > 0 else 0
+        
+        # Salva i parametri per gli effetti finali e la validazione
+        self.relationship_score_gain = config.get("relationship_score_gain", 0)
+        self.validation_config = config
+        
+        # Imposta il bisogno gestito per l'iniziatore
+        self.manages_need = NeedType.INTIMACY
 
     def is_valid(self) -> bool:
-        # La tua logica di validazione esistente è un buon punto di partenza.
-        # Ora dovrebbe usare i parametri iniettati o gli attributi dell'NPC/target,
-        # invece di leggere soglie o tipi di relazione validi da 'settings' qui dentro,
-        # a meno che non siano controlli molto generici.
-        # Il controllo di 'consenso' (TODO VII.1.d.ii originale) sarebbe cruciale qui.
-
-        if not super().is_valid(): return False # Controlli base
-        if not self.npc or not self.target_npc or self.npc == self.target_npc:
-            if settings.DEBUG_MODE and self.npc: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] NPC o Target non validi/uguali.")
+        if not super().is_valid() or not self.target_npc or self.npc == self.target_npc:
             return False
 
-        # Esempio di controllo del bisogno dell'iniziatore (la soglia potrebbe essere iniettata)
+        # Controlla se il bisogno dell'iniziatore è abbastanza basso
         initiator_intimacy = self.npc.get_need_value(NeedType.INTIMACY)
-        intimacy_desire_threshold = getattr(settings, 'INTIMACY_ACTION_INITIATOR_DESIRE_THRESHOLD', 50.0) # Esempio soglia
-        if initiator_intimacy is None or initiator_intimacy >= intimacy_desire_threshold:
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Bisogno INTIMACY ({initiator_intimacy}) non abbastanza basso.")
+        if initiator_intimacy is None or initiator_intimacy >= self.validation_config.get("initiator_desire_threshold", 50):
             return False
             
-        # Controlli sul target (occupato, dormendo)
-        if self.target_npc.is_busy and (not self.target_npc.current_action or not self.target_npc.current_action.is_interruptible):
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Target {self.target_npc.name} è occupato (non interrompibile).")
-            return False
-        if self.target_npc.current_action and self.target_npc.current_action.action_type_enum == ActionType.ACTION_SLEEP:
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Target {self.target_npc.name} sta dormendo.")
-            return False
-            
-        # Controllo del tipo di relazione e punteggio (le soglie/tipi validi potrebbero essere iniettati)
+        if self.target_npc.is_busy: return False
+
+        # Controlla la relazione
         relationship = self.npc.get_relationship_with(self.target_npc.npc_id)
-        if not relationship:
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Nessuna relazione con {self.target_npc.name}.")
-            return False
+        if not relationship: return False
         
-        # I tipi di relazione validi e il punteggio minimo dovrebbero essere passati come config
-        # Esempio: if relationship.type not in self.required_relationship_types: ...
-        # Esempio: if relationship.score < self.min_required_score: ...
-        # Per ora, replico la tua logica con getattr da settings:
-        valid_relationship_types = { RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE }
-        if relationship.type not in valid_relationship_types: # Assumendo che RelationshipInfo abbia .type
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Relazione con {self.target_npc.name} non idonea ({relationship.type.name}).")
-            return False
+        required_types = self.validation_config.get("required_relationship_types", set())
+        min_score = self.validation_config.get("min_rel_score", 30)
         
-        min_score = getattr(settings, "INTIMACY_ACTION_MIN_REL_SCORE", 30)
-        if relationship.score < min_score: # Assumendo RelationshipInfo abbia .score
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Punteggio relazione ({relationship.score}) < {min_score}.")
+        if relationship.type not in required_types or relationship.score < min_score:
             return False
 
-        # TODO: Logica di Consenso (VII.1.d.ii) - cruciale!
-        # Il target deve acconsentire. Questo potrebbe essere un check preliminare
-        # o parte dell'azione (es. un'azione ProposeIntimacy che, se ha successo, accoda EngageIntimacyAction).
-        # Al momento la tua SocializeAction(interaction_type=PROPOSE_INTIMACY) gestisce la proposta.
-        # Questa EngageIntimacyAction dovrebbe essere triggerata solo DOPO un consenso.
-        if hasattr(self.npc, 'pending_intimacy_target_accepted') and \
-           self.npc.pending_intimacy_target_accepted != self.target_npc.npc_id:
-            if settings.DEBUG_MODE: print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Intimità non accettata esplicitamente da {self.target_npc.name}.")
-            return False
-
-
-        if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} VALIDATE - {self.npc.name}] Azione con {self.target_npc.name} considerata valida.")
         return True
 
     def on_start(self):
         super().on_start()
-        # Occupa anche il target
         if self.target_npc:
             self.target_npc.is_busy = True
-            self.target_npc.current_action = self 
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} START - {self.npc.name}] Inizia intimità con {self.target_npc.name}. Target reso occupato.")
-        # Resetta il flag di accettazione una volta che l'azione inizia
-        if hasattr(self.npc, 'pending_intimacy_target_accepted'):
-            self.npc.pending_intimacy_target_accepted = None
+            self.target_npc.current_action = self
 
-
-    # execute_tick da BaseAction
+    def execute_tick(self):
+        """Ad ogni tick, soddisfa una piccola parte del bisogno INTIMACY per entrambi."""
+        super().execute_tick()
+        if self.is_started and not self.is_finished and self.target_npc:
+            self.npc.change_need_value(NeedType.INTIMACY, self.initiator_gain_per_tick)
+            self.target_npc.change_need_value(NeedType.INTIMACY, self.target_gain_per_tick)
 
     def on_finish(self):
-        # Applica effetti ai bisogni dell'iniziatore (già in self.effects_on_needs)
-        # e al target, e aggiorna la relazione.
-        if self.npc and self.target_npc: 
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} FINISH - {self.npc.name}] Intimità con {self.target_npc.name} terminata.")
-            
-            self.npc.change_need_value(NeedType.INTIMACY, self.initiator_intimacy_gain)
-            self.target_npc.change_need_value(NeedType.INTIMACY, self.target_intimacy_gain)
-            
-            effective_rel_gain = self.relationship_score_gain
-            # ... (la tua logica per bonus relazione se partner etc. può rimanere qui, usando self.relationship_score_gain) ...
-            current_relationship_npc_pov = self.npc.get_relationship_with(self.target_npc.npc_id)
-            rel_type_to_set = RelationshipType.ROMANTIC_PARTNER 
-            if current_relationship_npc_pov and current_relationship_npc_pov.type in {RelationshipType.ROMANTIC_PARTNER, RelationshipType.SPOUSE}:
-                rel_type_to_set = current_relationship_npc_pov.type
-                bonus_rel_gain_partner = getattr(settings, "INTIMACY_REL_GAIN_BONUS_PARTNER", 5)
-                effective_rel_gain += bonus_rel_gain_partner
+        """Alla fine, applica solo l'effetto sulla relazione."""
+        super().on_finish()
+        if self.npc and self.target_npc:
+            current_relationship = self.npc.get_relationship_with(self.target_npc.npc_id)
+            if not current_relationship:
+                self._free_both_npcs()
+                return
 
-            self.npc.update_relationship(
-                target_npc_id=self.target_npc.npc_id,
-                new_type=rel_type_to_set, # O un tipo più specifico se determinato
-                score_change=int(effective_rel_gain)
-            )
-            self.target_npc.update_relationship(
-                target_npc_id=self.npc.npc_id,
-                new_type=rel_type_to_set,
-                score_change=int(effective_rel_gain)
-            )
+            # Applica il cambio di punteggio alla relazione esistente
+            self.npc.update_relationship(self.target_npc.npc_id, current_relationship.type, score_change=self.relationship_score_gain)
+            self.target_npc.update_relationship(self.npc.npc_id, current_relationship.type, score_change=self.relationship_score_gain)
         
-        super().on_finish() 
-        
-        # Libera il target NPC
-        if self.target_npc:
-            self.target_npc.is_busy = False
-            self.target_npc.current_action = None 
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} FINISH - Target {self.target_npc.name}] Liberato.")
+        self._free_both_npcs()
 
-
-    def on_interrupt_effects(self):
-        super().on_interrupt_effects()
-        # Applica effetti parziali ai bisogni se interrotta
-        if self.npc and self.target_npc and self.duration_ticks > 0:
-            proportion_completed = self.elapsed_ticks / self.duration_ticks
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} CANCEL - {self.npc.name}] Azione intimità interrotta. Applico effetti parziali.")
-            
-            self.npc.change_need_value(NeedType.INTIMACY, self.initiator_intimacy_gain * proportion_completed)
-            self.target_npc.change_need_value(NeedType.INTIMACY, self.target_intimacy_gain * proportion_completed)
-            # Applica cambio relazione parziale? Potrebbe essere complicato o indesiderato.
-            # Per ora, non applichiamo cambio relazione parziale.
-        
-        # Libera il target NPC anche in caso di interruzione
+    def _free_both_npcs(self):
         if self.target_npc:
             self.target_npc.is_busy = False
             self.target_npc.current_action = None
-            if settings.DEBUG_MODE:
-                print(f"    [{self.action_type_name} CANCEL - Target {self.target_npc.name}] Liberato.")
+        if self.npc:
+            self.npc.is_busy = False
+            self.npc.current_action = None
+
+    def on_interrupt_effects(self):
+        """Quando interrotta, libera solo gli NPC. I guadagni parziali sono già stati applicati."""
+        self._free_both_npcs()

@@ -70,6 +70,7 @@ class ActionType(Enum):
     ACTION_SKETCH_IN_NOTEBOOK = auto()
     ACTION_STUDY_SKILL = auto()
     ACTION_TEND_COMMUNITY_GARDEN_PLOT = auto()
+    ACTION_COOK = auto()
     
     # --- Azioni Lavoro e Carriera ---
     ACTION_ATTEND_BUSINESS_MEETING = auto()

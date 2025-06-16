@@ -1,45 +1,32 @@
 # core/AI/ai_decision_maker.py
 import random
-import importlib # FIX: Importa il modulo per l'importazione dinamica
-from typing import Optional, TYPE_CHECKING, List, Dict, Any, Type, Union, Tuple # FIX: Aggiunto Tuple
+import importlib
+from typing import Optional, TYPE_CHECKING, List, Dict, Any, Tuple, Union
 
 # Import Enum
-from core.enums import (
-    NeedType, ActionType, ProblemType, ObjectType, FunActivityType, 
-    SocialInteractionType, LifeStage
-)
-# Import Classi Azione
-from core.modules.actions import (
-    BaseAction, EatAction, DrinkAction, SleepAction, HaveFunAction,
-    UseBathroomAction, SocializeAction, EngageIntimacyAction, MoveToAction, TravelToAction
-)
-# Import Sistemi IA
+from core.enums import NeedType, ActionType, ProblemType
+# Import Classi Azione, Sistemi IA, Definizioni, Config, etc.
+from core.enums.object_types import ObjectType
+from core.modules.actions import BaseAction
 from .needs_processor import NeedsProcessor
-from .solution_discoverers.base_discoverer import BaseSolutionDiscoverer
 from .thought import Thought, ScoredAction
-
-# Import per le definizioni
 from core.modules.memory.memory_definitions import Problem 
-
-# Import Configurazioni e Utility
 from core.config import npc_config, time_config, actions_config 
-from core import settings # FIX: Importa settings
-from core.utils import calculate_distance
+from core import settings
 
 if TYPE_CHECKING:
     from core.character import Character
     from ..simulation import Simulation 
     from ..modules.time_manager import TimeManager
-    from ..world.location import Location
 
 class AIDecisionMaker:
     """
     Orchestra il ciclo cognitivo dell'NPC per scegliere l'azione migliore.
     """
-    BASE_ACTION_CHECK_INTERVAL_TICKS = 10 
-    MAX_CONSECUTIVE_SAME_ACTION = 3
+    BASE_ACTION_CHECK_INTERVAL_TICKS: int = 10 
+    MAX_CONSECUTIVE_SAME_ACTION: int = 3
 
-    # --- REGISTRO DEGLI ESPERTI (con Percorsi Stringa per Import Dinamico) ---
+    # Mappa un NeedType complesso al percorso del suo discoverer specializzato.
     SOLUTION_DISCOVERER_PATHS: Dict[NeedType, str] = {
         NeedType.FUN: "core.AI.solution_discoverers.fun_discoverer.FunSolutionDiscoverer",
         NeedType.SOCIAL: "core.AI.solution_discoverers.social_discoverer.SocialSolutionDiscoverer",
@@ -48,10 +35,10 @@ class AIDecisionMaker:
 
     def __init__(self, npc: 'Character'):
         self.npc: 'Character' = npc
+        self.needs_processor = NeedsProcessor()
         self.ticks_since_last_base_action_check: int = 0
         self.last_selected_action_type: Optional[ActionType] = None
         self.consecutive_action_type_count: int = 0
-        self.needs_processor = NeedsProcessor()
 
     def _get_required_object_for_action(self, need: NeedType) -> Optional[Union[ObjectType, Tuple[ObjectType, ...]]]:
         """Restituisce il tipo di oggetto primario richiesto da un'azione per un bisogno."""
@@ -62,43 +49,40 @@ class AIDecisionMaker:
         if need == NeedType.HYGIENE: return (ObjectType.SHOWER, ObjectType.BATHTUB)
         return None
 
-    def _discover_and_instantiate_solutions(self, problem: Problem, simulation_context: 'Simulation') -> List[BaseAction]:
-        """Usa l'importazione dinamica e il pattern Strategy per delegare la scoperta delle soluzioni."""
+    def _discover_and_instantiate_solutions(self, problem: Problem, simulation_context: 'Simulation') -> List['BaseAction']:
+        """Usa la configurazione per trovare il discoverer e i parametri corretti."""
         if problem.problem_type != ProblemType.LOW_NEED: return []
 
         need_to_address = problem.details.get("need")
         if not isinstance(need_to_address, NeedType): return []
 
+        # Cerca prima nella rubrica degli esperti per bisogni complessi
         discoverer_path_str = self.SOLUTION_DISCOVERER_PATHS.get(need_to_address)
         
+        # Stampa di debug per vedere quale percorso viene scelto
+        if settings.DEBUG_MODE:
+            print(f"  [AIDecisionMaker] Bisogno: {need_to_address.name}. Percorso discoverer trovato: {discoverer_path_str}")
+
         if discoverer_path_str:
+            # Se trova un esperto, usa quello e ferma la ricerca.
             try:
                 module_path, class_name = discoverer_path_str.rsplit('.', 1)
-                module = importlib.import_module(module_path) # FIX: `importlib` è ora definito
+                module = importlib.import_module(module_path)
                 discoverer_class = getattr(module, class_name)
                 discoverer_instance = discoverer_class()
-                return discoverer_instance.discover(problem, self.npc, simulation_context) # FIX: `self.npc` è ora visibile
+                return discoverer_instance.discover(problem, self.npc, simulation_context)
             except (ImportError, AttributeError) as e:
-                if settings.DEBUG_MODE: # FIX: `settings` è ora definito
+                if settings.DEBUG_MODE:
                     print(f"  [AI Discover] Errore nell'import dinamico del discoverer: {e}")
                 return []
         
-        else: # Logica per azioni semplici
-            required_objects = self._get_required_object_for_action(need_to_address)
-            # FIX: Dobbiamo importare la classe SimpleObjectDiscoverer per usarla
-            from .solution_discoverers.simple_object_discoverer import SimpleObjectDiscoverer
-            
-            # FIX: Rimuoviamo il riferimento al vecchio dizionario
-            # La classe azione viene determinata dalla logica interna del discoverer
-            action_class_map = {
-                NeedType.HUNGER: EatAction, NeedType.THIRST: DrinkAction, NeedType.ENERGY: SleepAction,
-                NeedType.BLADDER: UseBathroomAction, NeedType.HYGIENE: UseBathroomAction,
-            }
-            action_class = action_class_map.get(need_to_address)
-            
-            if action_class and required_objects:
-                discoverer_instance = SimpleObjectDiscoverer(action_class, required_objects)
-                return discoverer_instance.discover(problem, self.npc, simulation_context) # FIX: `self.npc` è ora visibile
+        else: 
+            # Se NON è stato trovato un esperto, allora gestisci come azione semplice.
+            action_config = actions_config.SIMPLE_NEED_ACTION_CONFIGS.get(need_to_address)
+            if action_config:
+                from .solution_discoverers.simple_object_discoverer import SimpleObjectDiscoverer
+                discoverer_instance = SimpleObjectDiscoverer(action_config)
+                return discoverer_instance.discover(problem, self.npc, simulation_context)
 
         return []
 
@@ -110,27 +94,24 @@ class AIDecisionMaker:
         # 1. Identifica il problema più urgente
         problem = self.needs_processor.get_most_urgent_problem(self.npc)
         if not problem:
-            return # Nessun problema urgente, non fare nulla
+            return
 
-        # 2. Scopri tutte le possibili azioni per risolvere quel problema
+        # 2. Scopri tutte le possibili azioni
         candidate_actions = self._discover_and_instantiate_solutions(problem, simulation_context)
         if not candidate_actions:
+            if settings.DEBUG_MODE:
+                print(f"    [AI Decision - {self.npc.name}] Nessuna azione valida trovata per il problema: {problem.problem_type.name}")
             return
         
-        # 3. Valuta ogni azione candidata per creare una lista di opzioni con punteggio
+        # 3. Valuta e assegna un punteggio a ogni azione
         scored_actions: List[ScoredAction] = []
         for action in candidate_actions:
-            
-            # --- Inizio Logica di Punteggio ---
-            base_score = problem.urgency # Partiamo dalla priorità del problema
-            
-            # Modificatore di personalità (Tratti)
+            base_score = problem.urgency
             personality_modifier = 1.0
             for trait in self.npc.traits.values():
                 personality_modifier *= trait.get_action_choice_priority_modifier(action, simulation_context)
 
-            # Modificatore di umore
-            mood_modifier = 1.0 + (self.npc.overall_mood / 200.0) # Umore +50 -> bonus del 25%
+            mood_modifier = 1.0 + (self.npc.overall_mood / 200.0)
 
             # --- Modificatore Ritmo Circadiano (per il sonno) ---
             time_modifier = 1.0
@@ -157,28 +138,24 @@ class AIDecisionMaker:
                         break
             
             # Calcolo dello score finale
-            final_score = (base_score + schedule_bonus) * personality_modifier * mood_modifier * time_modifier
+            final_score = (base_score) * personality_modifier * mood_modifier
             scored_actions.append(ScoredAction(action, final_score))
             # --- Fine Logica di Punteggio ---
 
         if not scored_actions:
             return
 
-        # 4. Scegli l'azione con il punteggio più alto
+        # 4. Scegli l'azione migliore e mettila in coda
         scored_actions.sort(key=lambda x: x.score, reverse=True)
         best_scored_action = scored_actions[0]
         
-        # 5. Crea un "Pensiero" per il log e il debug
         thought = Thought(
-            npc_id=self.npc.npc_id,
-            problem=problem,
-            considered_actions=scored_actions,
-            chosen_action=best_scored_action
+            npc_id=self.npc.npc_id, problem=problem,
+            considered_actions=scored_actions, chosen_action=best_scored_action
         )
         if settings.DEBUG_MODE:
             print(thought.get_thought_log())
 
-        # 6. Metti in coda l'azione scelta
         self.npc.add_action_to_queue(best_scored_action.action)
 
     def reset_decision_state(self):

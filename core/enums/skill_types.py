@@ -6,6 +6,37 @@ che gli NPC possono sviluppare in SimAI.
 """
 
 class SkillType(Enum):
+    # --- Da Categorizzare
+    AI_DEVELOPMENT = auto()
+    ART_KNOWLEDGE = auto()
+    CANDLE_CRAFT = auto()
+    CULINARY_KNOWLEDGE = auto()
+    DESIGN = auto()
+    DISC_SPORTS = auto()
+    DJING = auto()
+    DRAWING = auto()
+    GAMING = auto()
+    HIKING = auto()
+    IMPROV = auto()
+    LEATHERWORK = auto()
+    MASSAGE = auto()
+    MEDITATION = auto()
+    MODELING = auto()
+    MUSICIANSHIP = auto()
+    PERFORMING = auto()
+    PERFUMERY = auto()
+    READING = auto()
+    RESTORATION = auto()
+    RHETORIC = auto()
+    ROLEPLAYING = auto()
+    SEWING = auto()
+    SKATING = auto()
+    SOAP_CRAFT = auto()
+    SPELUNKING = auto()
+    SPORTS = auto()
+    TEA_CEREMONY = auto()
+    WINE_KNOWLEDGE = auto()
+
     """Enum per i diversi tipi di abilità (skills)."""
 
     BOTANICAL_ART = auto()
@@ -454,6 +485,52 @@ class SkillType(Enum):
     def display_name_it(self) -> str:
         """Restituisce un nome leggibile in italiano per la skill."""
         mapping = {
+        # --- Da categorizzare
+            SkillType.DJING: "DJing",
+            SkillType.DRAWING: "Disegno",
+            SkillType.SEWING: "Cucito",
+            SkillType.LEATHERWORK: "Lavoro cuoio",
+            SkillType.MODELING: "Modellismo",
+            SkillType.DESIGN: "Progettazione",
+            SkillType.RESTORATION: "Restauro",
+            SkillType.READING: "Lettura",
+            SkillType.RHETORIC: "Retorica",
+            SkillType.ART_KNOWLEDGE: "Conoscenza arte",
+            SkillType.MEDITATION: "Meditazione",
+            SkillType.ORNITHOLOGY: "Ornitologia",
+            SkillType.AI_DEVELOPMENT: "Sviluppo AI",
+            SkillType.HIKING: "Escursionismo",
+            SkillType.SPORTS: "Sport",
+            SkillType.CLIMBING: "Arrampicata",
+            SkillType.CYCLING: "Ciclismo",
+            SkillType.KAYAKING: "Kayak",
+            SkillType.VOLLEYBALL: "Pallavolo",
+            SkillType.DISC_SPORTS: "Sport con disco",
+            SkillType.NAVIGATION: "Navigazione",
+            SkillType.GEOCACHING: "Geocaching",
+            SkillType.WINTER_SPORTS: "Sport invernali",
+            SkillType.GEOLOGY: "Geologia",
+            SkillType.SPELUNKING: "Speleologia",
+            SkillType.PADDLEBOARDING: "Paddleboarding",
+            SkillType.SKATING: "Pattinaggio",
+            SkillType.BREWING: "Fermentazione",
+            SkillType.PATIENCE: "Pazienza",
+            SkillType.CANDLE_CRAFT: "Creazione candele",
+            SkillType.SOAP_CRAFT: "Saponificazione",
+            SkillType.WINE_KNOWLEDGE: "Conoscenza vini",
+            SkillType.GENEALOGY: "Genealogia",
+            SkillType.CULINARY_KNOWLEDGE: "Conoscenza culinaria",
+            SkillType.TEA_CEREMONY: "Cerimonia del tè",
+            SkillType.BALLOON_TWISTING: "Modellazione palloncini",
+            SkillType.GAMING: "Gaming",
+            SkillType.TRIVIA: "Curiosità",
+            SkillType.IMPROV: "Improvvisazione",
+            SkillType.ROLEPLAYING: "Interpretazione ruoli",
+            SkillType.MUSICIANSHIP: "Musica",
+            SkillType.PERFORMING: "Performance",
+            SkillType.MASSAGE: "Massaggio",
+            SkillType.PERFUMERY: "Profumeria",
+
             # ================= ABILITÀ MENTALI =================
             SkillType.ACADEMIC_WRITING: "Scrittura Accademica",
             SkillType.ACTUARIAL_SCIENCE: "Attuariale",

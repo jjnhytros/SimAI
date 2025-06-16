@@ -8,6 +8,11 @@ Riferimento TODO: II.2.b, IV.3.b
 """
 
 class Interest(Enum):
+    ## --- Da categorizzare
+    JOURNALING = auto()
+    AUDIOBOOK_LISTENING = auto()
+
+
     """Enum per i diversi interessi e passioni degli NPC."""
 
     # --- Interessi Accademici / Conoscenza (30) ---
@@ -220,6 +225,10 @@ class Interest(Enum):
     def display_name_it(self, gender: 'Gender') -> str:
         """Restituisce un nome leggibile in italiano per l'interesse."""
         mapping = {
+            # Da categorizzare
+            Interest.JOURNALING: "Scrittura del diario",
+            Interest.AUDIOBOOK_LISTENING: "Ascolto audiolibri",
+
             # Accademici (30)
             Interest.HISTORY: "Storia",
             Interest.MEDICINE: "Medicina",

@@ -1,96 +1,84 @@
 # core/modules/actions/movement_actions.py
-from typing import Optional, TYPE_CHECKING, List, Tuple
-import math
-
-# Import necessari
-from core.enums import ActionType
-from core import settings
+from typing import Optional, List, Tuple, TYPE_CHECKING
 from .action_base import BaseAction
+from core.enums import ActionType
+from core.utils.pathfinding import astar_pathfind
+from core import settings
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
 
-# TODO: La durata del tick per muoversi di una "cella" dovrebbe essere in actions_config.py
-# Esempio: TICKS_PER_TILE_MOVE = 5 
-# Se un NPC deve muoversi di 10 celle, l'azione durerà 50 tick.
-DEFAULT_TICKS_PER_TILE = 5 
-
 class MoveToAction(BaseAction):
-    """
-    Azione per spostare un NPC a una specifica coordinata logica (x, y)
-    all'interno della sua locazione corrente.
-    """
-    def __init__(self, 
-                npc: 'Character', 
-                simulation_context: 'Simulation',
-                destination: Tuple[int, int],
-                follow_up_action: Optional[BaseAction] = None,
-                ):
+    """Azione che muove un NPC verso una coordinata specifica seguendo un percorso."""
+
+    def __init__(self, npc: 'Character', simulation_context: 'Simulation', 
+                target_x: int, target_y: int, 
+                follow_up_action: Optional['BaseAction'] = None,
+                triggering_problem=None):
         
-        self.destination: Tuple[int, int] = destination
-        self.follow_up_action: Optional[BaseAction] = follow_up_action
-        self.path: List[Tuple[int, int]] = []
-        
-        distance = math.sqrt((self.destination[0] - npc.logical_x)**2 + (self.destination[1] - npc.logical_y)**2)
-        duration_ticks = int(distance * getattr(settings, 'TICKS_PER_TILE_MOVE', 5))
-        
-        action_type_enum_val = ActionType.ACTION_MOVE_TO
-        
-        # --- CHIAMATA CORRETTA A super().__init__() ---
         super().__init__(
             npc=npc,
-            action_type_name=action_type_enum_val.name, # <-- ARGOMENTO AGGIUNTO
-            action_type_enum=action_type_enum_val,
-            duration_ticks=max(1, duration_ticks),
             p_simulation_context=simulation_context,
-            is_interruptible=True
+            duration_ticks=-1,
+            action_type_enum=ActionType.ACTION_MOVE_TO,
+            triggering_problem=triggering_problem
         )
+        self.target_pos = (target_x, target_y)
+        self.path: Optional[List[Tuple[int, int]]] = None
+        self.follow_up_action = follow_up_action
         
         if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata. Destinazione: {self.destination}, Durata Stimata: {self.duration_ticks}t")
+            # FIX: Usa self.target_pos invece di self.destination
+            print(f"    [{self.action_type_name} INIT - {self.npc.name}] Creata. Destinazione: {self.target_pos}")
 
     def is_valid(self) -> bool:
-        return True # Per ora, assumiamo che ogni movimento sia valido
+        """Ora calcola il percorso qui per validare l'azione PRIMA che venga scelta."""
+        if not super().is_valid(): return False
+        
+        if not self.npc.current_location_id: return False
+        location = self.sim_context.get_location_by_id(self.npc.current_location_id)
+        if not location or not location.walkable_grid: return False
+
+        start_pos = (self.npc.logical_y, self.npc.logical_x)
+        end_pos = (self.target_pos[1], self.target_pos[0])
+
+        # Se siamo già a destinazione, l'azione non è "necessaria" ma è valida se c'è un follow-up.
+        if start_pos == end_pos:
+            self.is_finished = True
+            return True
+
+        self.path = astar_pathfind(location.walkable_grid, start_pos, end_pos)
+
+        # L'azione è valida solo se un percorso esiste.
+        return self.path is not None and len(self.path) > 1
 
     def on_start(self):
+        """Ora si occupa solo di preparare il percorso già calcolato."""
         super().on_start()
-        # Pathfinding Semplificato (linea retta)
-        start_x, start_y = self.npc.logical_x, self.npc.logical_y
-        dest_x, dest_y = self.destination
-        
-        num_steps = self.duration_ticks
-        if num_steps <= 0:
-            self.path = [self.destination]
+        # Il percorso è già stato calcolato e validato in is_valid().
+        # Dobbiamo solo rimuovere il primo passo (la posizione attuale).
+        if self.path:
+            self.path.pop(0)
+            self.duration_ticks = len(self.path) # Aggiorna la durata per la UI
         else:
-            for i in range(1, num_steps + 1):
-                t = i / num_steps
-                next_x = int(start_x * (1 - t) + dest_x * t)
-                next_y = int(start_y * (1 - t) + dest_y * t)
-                if not self.path or (next_x, next_y) != self.path[-1]:
-                    self.path.append((next_x, next_y))
-        
-        if not self.path: self.path.append(self.destination)
-        
-        if settings.DEBUG_MODE:
-            print(f"    [{self.action_type_name} START - {self.npc.name}] Inizio movimento verso {self.destination}. Percorso: {len(self.path)} passi.")
+            # Se per qualche strano motivo il path non c'è, finisci subito.
+            self.is_finished = True
 
     def execute_tick(self):
         super().execute_tick()
-        if self.is_started and self.path:
-            progress_ratio = self.get_progress_percentage()
-            path_index = min(len(self.path) - 1, int(progress_ratio * len(self.path)))
-            next_pos = self.path[path_index]
-            self.npc.logical_x = next_pos[0]
-            self.npc.logical_y = next_pos[1]
+        if self.is_finished or self.is_interrupted: return
+
+        if self.path:
+            next_pos_y, next_pos_x = self.path.pop(0)
+            self.npc.logical_x = next_pos_x
+            self.npc.logical_y = next_pos_y
+            if not self.path:
+                self.is_finished = True
+        else:
+            self.is_finished = True
 
     def on_finish(self):
-        self.npc.logical_x = self.destination[0]
-        self.npc.logical_y = self.destination[1]
-        
         if self.follow_up_action:
-            if settings.DEBUG_MODE:
-                print(f"    -> [{self.action_type_name} FINISH] Accodamento azione successiva: {self.follow_up_action.action_type_name}")
             self.npc.add_action_to_queue(self.follow_up_action)
-            
         super().on_finish()

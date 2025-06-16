@@ -1,95 +1,76 @@
-# core/modules/actions/energy_actions.py
-from typing import Dict, Optional, TYPE_CHECKING, cast
-
-from core.modules.memory.memory_definitions import Problem
+from typing import Optional, TYPE_CHECKING
+from core.enums import NeedType, ActionType, ObjectType
+from core.config import npc_config, time_config, actions_config
+from .action_base import BaseAction
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
-    from core.world.game_object import GameObject
-    from core.world.location import Location
-
-from core.enums import NeedType, ActionType, ObjectType
-from core.config import time_config, npc_config
-from core import settings
-from .action_base import BaseAction
 
 class SleepAction(BaseAction):
-    def __init__(self, npc: 'Character', 
-                simulation_context: 'Simulation',
-                duration_hours: float, energy_gain_per_hour: float,
-                validation_threshold: float,
-                on_finish_energy_target: float,
-                on_finish_needs_adjust: Dict[NeedType, float],
-                triggering_problem: Optional['Problem'] = None
-                ):
-        actual_duration_ticks = int(duration_hours * time_config.IXH)
-
+    """
+    Azione per dormire. L'energia viene recuperata gradualmente ad ogni tick.
+    """
+    def __init__(self, npc: 'Character', simulation_context: 'Simulation', **kwargs):
+        # 1. Recupera la configurazione completa per l'azione di dormire
+        config = actions_config.SIMPLE_NEED_ACTION_CONFIGS.get(NeedType.ENERGY, {})
         
+        duration = int(config.get("duration_hours", 8.0) * time_config.TXH_SIMULATION)
+
         super().__init__(
             npc=npc,
-            action_type_name="ACTION_SLEEP",
-            action_type_enum=ActionType.ACTION_SLEEP,
-            duration_ticks=actual_duration_ticks,
             p_simulation_context=simulation_context,
-            is_interruptible=False, # Dormire è un'azione difficile da interrompere
-            triggering_problem=triggering_problem
+            duration_ticks=duration,
+            action_type_enum=ActionType.ACTION_SLEEP,
+            is_interruptible=False,
+            **kwargs
         )
-        self.energy_gain_per_hour = energy_gain_per_hour
-        self.validation_threshold = validation_threshold
-        self.on_finish_energy_target = on_finish_energy_target
-        self.on_finish_needs_adjust = on_finish_needs_adjust
+        
+        # 2. Salva i parametri specifici e calcola il guadagno per tick
+        self.validation_threshold = config.get("validation_threshold", 60.0)
+        energy_gain_per_hour = config.get("energy_gain_per_hour", 12.5)
+        self.gain_per_tick = (energy_gain_per_hour / time_config.TXH_SIMULATION) * (duration / self.duration_ticks) if self.duration_ticks > 0 else 0
+        
+        # 3. Imposta il bisogno gestito da questa azione
+        self.manages_need = NeedType.ENERGY
 
     def is_valid(self) -> bool:
-        if not super().is_valid(): return False
+        """
+        Controlla se l'azione di dormire è valida.
+        """
+        # 1. Chiama il controllo della classe base (controlla se c'è un NPC, etc.)
+        if not super().is_valid(): 
+            return False
         
-        current_energy = self.npc.get_need_value(NeedType.ENERGY)
-        if current_energy is None or current_energy >= self.validation_threshold:
+        # 2. Controlla se il bisogno non è già troppo alto
+        energy_need = self.npc.needs.get(NeedType.ENERGY)
+        if energy_need and energy_need.get_value() >= (npc_config.NEED_MAX_VALUE - 5.0):
             return False
 
-        if not self.target_object:
-            if not self.sim_context or not self.npc.current_location_id: return False
-            current_loc: Optional['Location'] = self.sim_context.get_location_by_id(self.npc.current_location_id)
-            if not current_loc: return False
-
-            bed = None
-            for obj in current_loc.get_objects():
-                if obj.object_type == ObjectType.BED and obj.is_available():
-                    bed = obj
-                    break
+        # 3. Controlla se l'oggetto target esiste ed è disponibile
+        #    (il discoverer ce lo ha già assegnato)
+        if not self.target_object or not self.target_object.is_available():
+            return False
             
-            if bed:
-                self.target_object = bed
-            else:
-                return False
-        
-        return self.target_object.is_available()
+        return True # Se tutti i controlli passano, l'azione è valida
+
+    def execute_tick(self):
+        super().execute_tick()
+        if self.is_started and not self.is_finished:
+            # Applica il guadagno di energia incrementale
+            self.npc.change_need_value(NeedType.ENERGY, self.gain_per_tick)
 
     def on_start(self):
         super().on_start()
         if self.target_object:
             self.target_object.set_in_use(self.npc.npc_id)
 
-    def _calculate_energy_gain(self) -> float:
-        hours_slept = self.elapsed_ticks / time_config.IXH
-        return hours_slept * cast(float, self.energy_gain_per_hour)
-
     def on_finish(self):
-        if self.npc:
-            current_energy = self.npc.get_need_value(NeedType.ENERGY) or 0
-            self.npc.change_need_value(NeedType.ENERGY, self.on_finish_energy_target - current_energy)
-            for need_type, target_value in self.on_finish_needs_adjust.items():
-                current_value = self.npc.get_need_value(need_type) or 0
-                self.npc.change_need_value(need_type, target_value - current_value)
+        super().on_finish()
         if self.target_object:
             self.target_object.set_free()
-        super().on_finish()
 
     def on_interrupt_effects(self):
-        super().on_interrupt_effects()
-        if self.npc:
-            energy_gained = self._calculate_energy_gain()
-            if energy_gained > 0:
-                self.npc.change_need_value(NeedType.ENERGY, energy_gained)
+        """Quando l'azione viene interrotta, dobbiamo solo liberare l'oggetto."""
         if self.target_object:
             self.target_object.set_free()

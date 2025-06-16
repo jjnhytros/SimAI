@@ -157,7 +157,7 @@ def setup_test_simulation() -> Simulation:
         print("  [Setup] Innesco bisogni per test IA...")
         
         # Imposta la fame di Max a un livello basso ma non critico
-        max_v.change_need_value(NeedType.HUNGER, -60) # Valore finale sarà ~30-40
+        # max_v.change_need_value(NeedType.HUNGER, -60) # Valore finale sarà ~30-40
 
         if settings.DEBUG_MODE:
             print(f"    Bisogno HUNGER di Max: {max_v.get_need_value(NeedType.HUNGER):.1f}")
@@ -173,10 +173,10 @@ def setup_test_simulation() -> Simulation:
         print("  [Setup] Innesco bisogni per test IA...")
         
         # Rendiamo Erika molto annoiata
-        erika.change_need_value(NeedType.FUN, -75) # Imposta il divertimento a 25
+        erika.change_need_value(NeedType.FUN, -95) # Imposta il divertimento a 25
         
         # Rendiamo Max molto solo
-        max_v.change_need_value(NeedType.SOCIAL, -80) # Imposta la socialità a 20
+        # max_v.change_need_value(NeedType.SOCIAL, -80) # Imposta la socialità a 20
 
         if settings.DEBUG_MODE:
             print(f"    Bisogno FUN di Erika: {erika.get_need_value(NeedType.FUN):.1f}")
@@ -262,10 +262,11 @@ def main():
     if not settings.GUI_ENABLED:
         # Esecuzione in Modalità Testuale (TUI)
         print("  Modalità Testuale (TUI/Debug) attivata.")
-        max_ticks_tui = 5000
-        print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
-        # Assumiamo che ci sia un metodo .run() per la TUI
-        simulation.run(max_ticks=max_ticks_tui) 
+        # max_ticks_tui = 500000000
+        # print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
+        # # Assumiamo che ci sia un metodo .run() per la TUI
+        # simulation.run(max_ticks=max_ticks_tui) 
+        simulation.run()
     else:
         # Esecuzione in Modalità Grafica (GUI)
         print("  Modalità GUI Pygame attivata.")

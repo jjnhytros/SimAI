@@ -3,15 +3,16 @@
 Definisce la classe ConsequenceAnalyzer, responsabile di analizzare le azioni
 compiute e di generare ricordi significativi per gli NPC.
 """
-from typing import TYPE_CHECKING, Optional, Dict, Any
+from typing import TYPE_CHECKING, Optional, Dict, Any, cast
 
+from core.enums.fun_activity_types import FunActivityType
 from core.modules.memory.memory_definitions import Memory
 from core.enums import ActionType, SocialInteractionType, NeedType, ProblemType
 from core.modules.actions import (
     BaseAction, SocializeAction, EatAction, DrinkAction, MoveToAction, 
     HaveFunAction, UseBathroomAction, SleepAction, EngageIntimacyAction
 )
-from core.config import npc_config
+from core.config import actions_config, npc_config
 from core import settings
 
 if TYPE_CHECKING:
@@ -52,7 +53,10 @@ class ConsequenceAnalyzer:
             if not target_npc: return
 
             interaction_type = finished_action.interaction_type
-            rel_change = finished_action.relationship_score_change
+            config = actions_config.SOCIALIZE_INTERACTION_CONFIGS.get(interaction_type, {})
+            rel_change = config.get("rel_change_success", 0) # Usiamo il guadagno potenziale come base
+            
+            emotional_impact = rel_change / 40.0
             related_entities.update({"interaction_type": interaction_type, "target_npc_id": target_npc.npc_id})
             
             emotional_impact = rel_change / 40.0
@@ -64,22 +68,32 @@ class ConsequenceAnalyzer:
         elif isinstance(finished_action, EngageIntimacyAction):
             target_npc = finished_action.target_npc
             if not target_npc: return
-
+            # Leggiamo i valori dalla configurazione, non dall'oggetto azione
+            config = actions_config.INTIMACY_ACTION_CONFIG.get(NeedType.INTIMACY, {})
+            initiator_gain = config.get("initiator_intimacy_gain", 0)
+            rel_gain = config.get("relationship_score_gain", 0)
+            
             salience = 0.9
-            emotional_impact = (finished_action.initiator_intimacy_gain / 100.0) + (finished_action.relationship_score_gain / 50.0)
+            emotional_impact = (initiator_gain / 100.0) + (rel_gain / 50.0)
             description = f"Ho avuto un momento speciale con {target_npc.name}."
             related_entities["target_npc_id"] = target_npc.npc_id
         
         elif isinstance(finished_action, HaveFunAction):
-            salience = (finished_action.fun_gain / 100.0) * 0.6
-            emotional_impact = salience * 0.9
             activity = finished_action.activity_type
-            if activity:
-                # Usiamo il nome dell'enum o una mappatura semplice se necessario
-                # In questo modo, ConsequenceAnalyzer non ha bisogno di conoscere il genere.
-                description = f"Mi sono divertito/a facendo: {activity.name}"
-            else:
-                description = "Mi sono divertito/a."
+            if not activity: return # Sicurezza
+
+            # 1. Leggi la configurazione per questa specifica attività
+            activity_safe = cast(FunActivityType, activity)
+            config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_safe, {})
+            
+            # 2. Ottieni il guadagno totale di FUN dalla configurazione
+            total_potential_fun_gain = config.get("fun_gain", 0.0)
+            
+            # 3. Calcola la salienza basandoti su questo valore
+            salience = (total_potential_fun_gain / 100.0) * 0.6
+            emotional_impact = salience * 0.9
+            
+            description = f"Mi sono divertito/a facendo: {activity.name}"
             related_entities["activity_type"] = finished_action.activity_type
 
         elif isinstance(finished_action, (EatAction, DrinkAction, UseBathroomAction, SleepAction)):

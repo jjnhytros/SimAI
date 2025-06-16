@@ -1,139 +1,122 @@
 # core/AI/solution_discoverers/fun_discoverer.py
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Tuple
 
-from core.enums.action_types import ActionType
-from core.enums.skill_types import SkillType
+from core.modules.actions.action_base import BaseAction
 
 from .base_discoverer import BaseSolutionDiscoverer
-from core.enums import FunActivityType, LocationType, TraitType, Interest
-from core.modules.actions import HaveFunAction, TravelToAction
+from core.enums import LocationType, NeedType, FunActivityType, ObjectType
 from core.config import actions_config, time_config
+from core.modules.actions import HaveFunAction, TravelToAction
+from core.modules.actions.movement_actions import MoveToAction
+from core.utils.math_utils import calculate_distance
 from core import settings
 
 if TYPE_CHECKING:
     from core.modules.memory.memory_definitions import Problem
     from core.character import Character
     from core.simulation import Simulation
-    from core.modules.actions.action_base import BaseAction
-    from core.world.location import Location
+    from core.world.game_object import GameObject
 
 class FunSolutionDiscoverer(BaseSolutionDiscoverer):
-    """Scopre tutte le possibili attività di divertimento, sia locali che remote."""
+    """
+    Scopre attività di divertimento disponibili, sia locali (con o senza oggetti)
+    che remote (richiedono di viaggiare).
+    """
 
     def discover(self, problem: 'Problem', npc: 'Character', simulation_context: 'Simulation') -> List['BaseAction']:
         valid_actions: List['BaseAction'] = []
-
-        # --- 1. SCOPERTA NELLA LOCAZIONE ATTUALE ---
-        # L'IA controlla tutte le attività di divertimento possibili nella stanza in cui si trova.
-        for activity_type in FunActivityType:
-            action_instance = self._create_fun_action(npc, simulation_context, problem, activity_type)
-            if action_instance.is_valid():
-                valid_actions.append(action_instance)
-
-        # --- 2. SCOPERTA IN ALTRE LOCAZIONI (VIAGGIO) ---
-        # Se il bisogno di FUN è ancora il problema principale e l'NPC ha interessi specifici,
-        # l'IA "pensa" a luoghi interessanti da visitare per divertirsi.
+        if settings.DEBUG_MODE: print(f"\n--- [FunDiscoverer] Inizio ricerca per {npc.name} (FUN: {npc.get_need_value(NeedType.FUN):.1f}) ---")
         
-        # Esempio: Un NPC con interesse per l'arte e la cultura considera di andare al museo.
-        if npc.has_trait(TraitType.ART_LOVER) or Interest.VISUAL_ARTS in npc.get_interests():
-            self._discover_remote_location(
-                npc, simulation_context, problem, valid_actions,
-                LocationType.MUSEUM, FunActivityType.VISIT_MUSEUM
-            )
-
-        # Esempio: Un NPC con il tratto (ipotetico) CAFE_LOVER considera di andare al bar.
-        if npc.has_trait(TraitType.CAFE_LOVER):
-            self._discover_remote_location(
-                npc, simulation_context, problem, valid_actions,
-                LocationType.CAFE, FunActivityType.DRINK_COFFEE
-            )
-            
-        if npc.has_trait(TraitType.MUSIC_LOVER) or npc.skill_manager.get_skill_level(SkillType.PIANO) > 0:
-            # Se è un musicista, potrebbe voler esibirsi. Altrimenti, ascoltare.
-            if npc.skill_manager.get_skill_level(SkillType.PIANO) > 4: # Soglia per esibirsi
-                activity_to_perform = FunActivityType.PERFORM_JAZZ
-            else:
-                activity_to_perform = FunActivityType.LISTEN_TO_LIVE_JAZZ
-            
-            self._discover_remote_location(
-                npc, simulation_context, problem, valid_actions,
-                LocationType.JAZZ_CLUB, activity_to_perform
-            )
-
-        skill_level = npc.skill_manager.get_skill_level(SkillType.GUITAR)
-        if skill_level > 2: # Deve avere un minimo di abilità per esibirsi
-            
-            # Cerca un luogo adatto, come un parco o una piazza
-            for loc_id, location in simulation_context.locations.items():
-                if location.location_type in {LocationType.PARK, LocationType.PUBLIC_PLAZA}: # Aggiungi PUBLIC_PLAZA all'enum
-                    
-                    activity_to_perform = FunActivityType.PERFORM_ON_STREET
-                    
-                    # Passiamo la skill giusta all'azione da creare
-                    fun_action_config = {"skill_to_practice": SkillType.GUITAR}
-                    
-                    follow_up_action = self._create_fun_action(
-                        npc, simulation_context, problem, 
-                        activity_to_perform,
-                        # Passa una configurazione parziale per sovrascrivere il default
-                        partial_config=fun_action_config 
-                    )
-
-                    travel_action = TravelToAction(
-                        npc=npc, simulation_context=simulation_context,
-                        destination_location_id=loc_id,
-                        follow_up_action=follow_up_action
-                    )
-                    if travel_action.is_valid():
-                        valid_actions.append(travel_action)
-                    return valid_actions # Trovata una soluzione, esci
-
+        local_obj_actions = self._discover_local_object_activities(problem, npc, simulation_context)
+        if local_obj_actions: valid_actions.extend(local_obj_actions)
+        
+        objectless_actions = self._discover_objectless_activities(problem, npc, simulation_context)
+        if objectless_actions: valid_actions.extend(objectless_actions)
+        
+        if problem.urgency > 100:
+            remote_actions = self._discover_remote_activities(problem, npc, simulation_context)
+            if remote_actions: valid_actions.extend(remote_actions)
+        
+        if settings.DEBUG_MODE: print(f"--- [FunDiscoverer] Fine ricerca. Trovate {len(valid_actions)} opzioni valide. ---")
         return valid_actions
 
-    def _create_fun_action(self, npc: 'Character', sim: 'Simulation', problem: 'Problem', 
-                           activity: FunActivityType, 
-                             partial_config: Optional[Dict[str, Any]] = None) -> 'HaveFunAction':
-        """Metodo helper per creare un'istanza di HaveFunAction con la configurazione corretta."""
-        # 1. Prendi la configurazione base per l'attività
-        config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity, {}).copy()
+    def _discover_local_object_activities(self, problem: 'Problem', npc: 'Character', sim: 'Simulation') -> List['BaseAction']:
+        actions = []
+        if not npc.current_location_id: return actions
+        current_loc = sim.get_location_by_id(npc.current_location_id)
+        if not current_loc: return actions
 
-        # 2. Se viene passata una configurazione parziale, usala per sovrascrivere i valori base
-        if partial_config:
-            config.update(partial_config)
-
-        # 3. Ora crea l'azione usando la configurazione finale
-        duration = config.get("duration_hours", actions_config.HAVEFUN_DEFAULT_DURATION_HOURS)
+        if settings.DEBUG_MODE: print("  [FunDiscoverer] Cerco attività locali CON OGGETTI...")
+        available_objects = [obj for obj in current_loc.get_objects() if obj.is_available()]
         
-        return HaveFunAction(
-            npc=npc,
-            simulation_context=sim,
-            activity_type=activity,
-            duration_ticks=int(duration * time_config.IXH),
-            fun_gain=config.get("fun_gain", actions_config.HAVEFUN_DEFAULT_FUN_GAIN),
-            required_object_types=config.get("required_object_types"),
-            skill_to_practice=config.get("skill_to_practice"),
-            skill_xp_gain=config.get("skill_xp_gain", 0.0),
-            cognitive_effort=config.get("cognitive_effort", actions_config.HAVEFUN_DEFAULT_COGNITIVE_EFFORT),
-            triggering_problem=problem
-        )
-    
-    def _discover_remote_location(self, npc, sim, problem, valid_actions, loc_type, activity_type):
-        """Metodo helper per cercare una locazione e creare l'azione di viaggio."""
-        # Controlla se abbiamo già un piano per andare in un luogo di questo tipo
-        for action in valid_actions:
-            if isinstance(action, TravelToAction) and \
-            isinstance(action.follow_up_action, HaveFunAction) and \
-            action.follow_up_action.activity_type == activity_type:
-                return # Abbiamo già un piano per questa attività, non ne creiamo un altro
+        for activity_type, config in actions_config.HAVEFUN_ACTIVITY_CONFIGS.items():
+            required_types = config.get("required_object_types")
+            if not required_types: continue
 
-        for loc_id, location in sim.locations.items():
-            if location.location_type == loc_type:
-                follow_up_action = self._create_fun_action(npc, sim, problem, activity_type)
-                travel_action = TravelToAction(
-                    npc=npc, simulation_context=sim,
-                    destination_location_id=loc_id,
-                    follow_up_action=follow_up_action
-                )
-                if travel_action.is_valid():
-                    valid_actions.append(travel_action)
-                return # Trovato un luogo, non ne cerchiamo altri per ora
+            for obj in available_objects:
+                if obj.object_type in required_types:
+                    if settings.DEBUG_MODE: print(f"    -> Trovato oggetto '{obj.name}' per attività '{activity_type.name}'")
+                    action_instance = HaveFunAction(npc, sim, activity_type, triggering_problem=problem)
+                    plan = self._create_movement_plan_if_needed(npc, obj, action_instance, sim)
+                    if plan:
+                        if settings.DEBUG_MODE: print(f"      -> Creato piano valido: {plan.action_type_name}")
+                        actions.append(plan)
+                    else:
+                        if settings.DEBUG_MODE: print(f"      -> Piano per '{obj.name}' non valido o non necessario.")
+                    break
+        return actions
+
+    def _discover_objectless_activities(self, problem: 'Problem', npc: 'Character', sim: 'Simulation') -> List['BaseAction']:
+        actions = []
+        if settings.DEBUG_MODE: print("  [FunDiscoverer] Cerco attività locali SENZA OGGETTI...")
+        for activity_type in actions_config.ACTIVITIES_WITHOUT_OBJECTS:
+            if settings.DEBUG_MODE: print(f"    -> Considero '{activity_type.name}'")
+            action = HaveFunAction(npc, sim, activity_type, triggering_problem=problem)
+            if action.is_valid():
+                if settings.DEBUG_MODE: print(f"      -> Creato azione valida: {action.action_type_name}")
+                actions.append(action)
+            else:
+                if settings.DEBUG_MODE: print(f"      -> Azione '{activity_type.name}' non è valida.")
+        return actions
+
+    def _discover_remote_activities(self, problem, npc, sim) -> List['BaseAction']:
+        # """Cerca luoghi divertenti in cui recarsi."""
+        # actions = []
+        # if settings.DEBUG_MODE: print("  [FunDiscoverer] Cerco attività REMOTE (viaggio)...")
+        # for loc in sim.locations.values():
+        #     if loc.location_type in {LocationType.CAFE, LocationType.JAZZ_CLUB, LocationType.MUSEUM}:
+        #         # La logica qui può essere migliorata, per ora usiamo un'attività generica
+        #         follow_up = HaveFunAction(npc, sim, FunActivityType.PEOPLE_WATCH, triggering_problem=problem)
+        #         travel_action = TravelToAction(npc, sim, destination_location_id=loc.location_id, follow_up_action=follow_up)
+        #         if travel_action.is_valid():
+        #             actions.append(travel_action)
+        # return actions
+        return []
+        
+    # --- Metodi Helper per il Movimento (simili a SimpleObjectDiscoverer) ---
+
+    def _create_movement_plan_if_needed(self, npc, target_object, follow_up_action, sim) -> Optional['BaseAction']:
+        follow_up_action.target_object = target_object
+        distance = calculate_distance((npc.logical_x, npc.logical_y), (target_object.logical_x, target_object.logical_y))
+        
+        if distance <= 1.5:
+            if follow_up_action.is_valid():
+                return follow_up_action
+        else:
+            target_tile = self._find_adjacent_walkable_tile(target_object, npc, sim)
+            if target_tile:
+                move_action = MoveToAction(npc, sim, target_tile[0], target_tile[1], follow_up_action=follow_up_action)
+                if move_action.is_valid():
+                    return move_action
+        return None
+
+    def _find_adjacent_walkable_tile(self, target_object, npc, sim) -> Optional[Tuple[int, int]]:
+        if not npc.current_location_id: return None
+        location = sim.get_location_by_id(npc.current_location_id)
+        if not location or not location.walkable_grid: return None
+        
+        target_x, target_y = target_object.logical_x, target_object.logical_y
+        for x, y in [(target_x, target_y - 1), (target_x, target_y + 1), (target_x - 1, target_y), (target_x + 1, target_y)]:
+            if 0 <= y < location.logical_height and 0 <= x < location.logical_width and location.walkable_grid[y][x]:
+                return (x, y)
+        return None

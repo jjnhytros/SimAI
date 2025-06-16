@@ -1,6 +1,5 @@
 # SimAI
-📌 *Ultimo aggiornamento: Claire & Marco – 9 giugno 2025*
-
+📌 *Ultimo aggiornamento: Claire & Marco – 16 giugno 2025*
 
 **Legenda:**
 `[ ]`    Non ancorra implementato
@@ -11,9 +10,6 @@
 `[ ]`   Implementazione futura
 `[-]`   Implementazione non applicabile
 `[0-9]`   Implementazione con priorità (0=Prioritaria, 1=Alta, 5=Media, 9=Bassa)
-
----
-
 
 ---
 
@@ -599,30 +595,31 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` k. Background e Storia Pregressa degli NPC. `[1.1.0]`
 
 ### **4. Intelligenza Artificiale NPC (Comportamento e Decisioni):**
-    * `[P]` a. **Implementazione Ciclo Cognitivo-Decisionale:** `[1.0.0]`
+    * `[x]` a. **Implementazione Ciclo Cognitivo-Decisionale:** `[1.0.0]`
         * `[x]` i. **Fase 1: Identificazione del "Problema"** (tramite `NeedsProcessor`). `[1.0.0]`
         * `[x]` ii. **Fase 2: Ragionamento e Valutazione Opzioni** (tramite `AIDecisionMaker` e `SolutionDiscoverers`). `[1.0.0]`
-            * `[x]` 1. Sviluppata una funzione di "punteggio" che considera: Efficienza, Personalità, Contesto, Memoria, Stato Mentale e Bias Cognitivi. `[1.0.0]`
-            * `[x]` 2. Implementata la gestione dei conflitti decisionali. `[1.0.0]`
-        * `[P]` iii. **Fase 3: Creazione del "Pensiero"** (con la classe `Thought`). `[1.0.1]`
+            * `[P]` 1. Sviluppata una funzione di "punteggio" che considera: Efficienza, Personalità, Contesto, Memoria, Stato Mentale. `[1.0.0]`
+            * `[ ]` 2. (Futuro) **Implementare Bias Cognitivi:** Introdurre nel sistema decisionale bias psicologici come il "Bias di Conferma" o la "Fallacia dei Costi Sommersi" per rendere il comportamento degli NPC meno razionale e più umano. `[2.0.0+]`
+            * `[x]` 3. Implementata la gestione dei conflitti decisionali. `[1.0.0]`
+        * `[x]` iii. **Fase 3: Creazione del "Pensiero"** (con la classe `Thought`). `[1.0.1]`
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"** (tramite la coda di azioni del `Character`). `[1.0.0]`
         * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (tramite `ConsequenceAnalyzer`). `[1.0.0]`
     * `[x]` b. Sistema base di azioni e coda di esecuzione. `[1.0.0]`
     * `[x]` c. Logica decisionale e scelta azioni. `[1.0.0]`
     * `[P]` d. Espansione degli Input Decisionali (Bisogni, Tratti, Aspirazioni). `[1.0.1]`
-    * `[ ]` e. Logica di Bilanciamento e Pesi. `[1.1.0]`
-    * `[P]` f. Implementazione Azioni per Soddisfare i Bisogni. `[1.0.0]`
+    * `[P]` e. Logica di Bilanciamento e Pesi. `[1.1.0]`
+    * `[x]` f. Implementazione Azioni per Soddisfare i Bisogni (con soddisfazione graduale). `[1.0.0]`
     * `[P]` g. Sistema di Umore (`MoodState`). `[1.0.0]`
     * `[P]` h. Influenza Umore, Tratti, e Orientamento sulle Decisioni. `[1.0.0]`
-    * `[P]` i. Interazioni di cura infanti. `[1.1.0]`
+    * `[ ]` i. Interazioni di cura infanti. `[1.1.0]`
         * `[ ]` i. **Bilanciamento Cura Infanti:** Adattare le soglie dei bisogni ai ritmi infantili e ridurre i costi energetici per i genitori. `[1.1.0]`
-    * `[ ]` j. **Obiettivi a Breve e Lungo Termine/Aspirazioni.**
+    * `[ ]` j. **Obiettivi a Breve e Lungo Termine/Aspirazioni.** `[1.1.0]`
         * `[ ]` i. Whims (Desideri/Ghiribizzi): Piccoli desideri a breve termine che appaiono dinamicamente. `[1.1.0]`
             * `[ ]` 1. **Il Circolo Virtuoso degli Hobby:** Un NPC con un forte `Interest` (es. MUSICA) e tratti pertinenti (`CREATIVE`) genera un `Whim` per compiere un'azione correlata (es. `PLAY_GUITAR`). L'IA darà priorità a questa azione. Completarla fornirà `FUN`, XP per la `Skill`, e un `Memory` positivo, creando un ciclo di feedback che rafforza la personalità. `[1.1.0]`
-    * `[P]` k. Pianificazione AI Avanzata, Gestione Interruzioni, Routine. `[1.0.1]`
-        * `[P]` i. L'IA (`AIDecisionMaker`/`Discoverer`) ora può pianificare sequenze di azioni (es. `MoveToAction` + `EatAction`).
+    * `[x]` k. Pianificazione AI Avanzata, Gestione Interruzioni, Routine. `[1.0.1]`
+        * `[x]` i. L'IA (`AIDecisionMaker`/`Discoverer`) ora può pianificare sequenze di azioni (es. `MoveToAction` + `EatAction`). `[1.0.1]`
         * `[ ]` v. Estensione "Total Realism" - Processi Cognitivi Sfumati. `[FUTURO]`
-    * `[ ]` l. Simulazione "Off-Screen" e Gestione Popolazione Vasta (LOD). `[1.1.0]`
+    * `[P]` l. Simulazione "Off-Screen" e Gestione Popolazione Vasta (LOD). `[1.1.0]`
     * `[P]` m. Sistema `Moodlet` base. `[1.0.0]`
     * `[ ]` n. Espressioni facciali e animazioni che riflettono l'umore. `[1.1.0]`
     * `[ ]` o. Bussola Morale. `[1.2.0]`

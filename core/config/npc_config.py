@@ -20,26 +20,35 @@ NEED_HIGH_THRESHOLD: float = 75.0
 NEED_CRITICAL_THRESHOLD: float = 10.0
 CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
 AI_URGENT_PROBLEM_THRESHOLD: float = 0.5
+STRESS_HIGH_THRESHOLD = 75.0
 
-# --- Tassi di Decadimento Bisogni (per tick di simulazione) ---
-# Calcolati come: (decadimento orario * SXH) / TXH_SIMULATION
+# --- Tassi di Decadimento Bisogni (Punti all'ora di gioco) ---
+# Questi sono i valori di bilanciamento che possiamo modificare facilmente.
+# Un valore negativo indica un calo.
+NEED_HOURLY_DECAY_RATES: dict[NeedType, float] = {
+    NeedType.ENERGY: -4.0,
+    NeedType.HUNGER: -3.15,
+    NeedType.THIRST: -4.12,
+    NeedType.SOCIAL: -1.88,
+    NeedType.FUN: -2.25,
+    NeedType.HYGIENE: -1.5,
+    NeedType.BLADDER: -6.2,
+    NeedType.INTIMACY: -1.12,
+    NeedType.COMFORT: -0.75,
+    NeedType.ENVIRONMENT: -0.38,
+    NeedType.SAFETY: -0.38,
+    NeedType.CREATIVITY: -0.22,
+    NeedType.LEARNING: -0.15,
+    NeedType.AUTONOMY: -0.22,
+    NeedType.ACHIEVEMENT: -0.15,
+    NeedType.SPIRITUALITY: -0.3,
+}
+
+# --- Tassi di Decadimento calcolati per Tick di Simulazione ---
+# NON TOCCARE QUESTA PARTE. Calcola automaticamente i valori corretti.
 NEED_DECAY_RATES_PER_TICK: dict[NeedType, float] = {
-    NeedType.ACHIEVEMENT: (-0.15 * SXH) / TXH_SIMULATION,
-    NeedType.AUTONOMY: (-0.22 * SXH) / TXH_SIMULATION,
-    NeedType.BLADDER: (-6.2 * SXH) / TXH_SIMULATION,
-    NeedType.COMFORT: (-0.75 * SXH) / TXH_SIMULATION,
-    NeedType.CREATIVITY: (-0.22 * SXH) / TXH_SIMULATION,
-    NeedType.ENERGY: (-4.0 * SXH) / TXH_SIMULATION,
-    NeedType.ENVIRONMENT: (-0.38 * SXH) / TXH_SIMULATION,
-    NeedType.FUN: (-2.25 * SXH) / TXH_SIMULATION,
-    NeedType.HUNGER: (-3.15 * SXH) / TXH_SIMULATION,
-    NeedType.HYGIENE: (-1.5 * SXH) / TXH_SIMULATION,
-    NeedType.INTIMACY: (-1.12 * SXH) / TXH_SIMULATION,
-    NeedType.LEARNING: (-0.15 * SXH) / TXH_SIMULATION,
-    NeedType.SAFETY: (-0.38 * SXH) / TXH_SIMULATION,
-    NeedType.SOCIAL: (-1.88 * SXH) / TXH_SIMULATION,
-    NeedType.SPIRITUALITY: (-0.3 * SXH) / TXH_SIMULATION,
-    NeedType.THIRST: (-4.12 * SXH) / TXH_SIMULATION,
+    need: rate / TXH_SIMULATION
+    for need, rate in NEED_HOURLY_DECAY_RATES.items()
 }
 
 NEED_SCHEDULE_CONFIG = {

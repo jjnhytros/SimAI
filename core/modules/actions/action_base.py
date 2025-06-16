@@ -1,7 +1,7 @@
 # core/modules/actions/action_base.py
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Dict, Any, Union
-
+from core import settings
 from core.enums import NeedType, ActionType, FunActivityType, SocialInteractionType
 
 if TYPE_CHECKING:
@@ -44,6 +44,7 @@ class BaseAction(ABC):
         self.target_object: Optional['GameObject'] = None
         self.target_npc: Optional['Character'] = None
         self.activity_type: Optional[Union[FunActivityType, SocialInteractionType]] = None
+        self.manages_need: Optional[NeedType] = None
 
     @abstractmethod
     def is_valid(self) -> bool:
@@ -66,8 +67,13 @@ class BaseAction(ABC):
 
     @abstractmethod
     def on_finish(self):
-        from core import settings
-        if settings.DEBUG_MODE: print(f"    [Action FINISH - {self.npc.name}] Fine azione: {self.action_type_name}")
+        if settings.DEBUG_MODE:
+            print(f"    [Action FINISH - {self.npc.name}] Fine azione: {self.action_type_name}")
+        # Applica tutti gli effetti sui bisogni definiti nell'azione
+        if self.npc and self.effects_on_needs:
+            for need_type, change_amount in self.effects_on_needs.items():
+                self.npc.change_need_value(need_type, change_amount)
+
         self.is_finished = True
         self.is_started = False
 

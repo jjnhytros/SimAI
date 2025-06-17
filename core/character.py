@@ -13,6 +13,7 @@ from core import settings
 # --- IMPORT PER L'ESECUZIONE (FUORI DA TYPE_CHECKING) ---
 from core.modules.lifestages.child_life_stage import ChildLifeStage
 from core.modules.memory.memory_system import MemorySystem
+from core.modules.moodlets.moodlet_definitions import Moodlet
 from core.modules.moodlets.moodlet_manager import MoodletManager
 from core.modules.skills.skill_system import SkillManager
 from core.world.ATHDateTime.ATHDateTime import ATHDateTime
@@ -283,46 +284,36 @@ class Character:
 
     def update_needs(self, time_manager: 'TimeManager', elapsed_ticks: int):
         """
-        Aggiorna tutti i bisogni dell'NPC in base ai tassi di decadimento,
-        ai modificatori di età/genere e al ritmo circadiano.
+        Aggiorna tutti i bisogni dell'NPC in base a tassi di decadimento,
+        modificatori e ritmo circadiano.
         """
-        if not self.needs or elapsed_ticks <= 0:
-            return
+        if not self.needs or elapsed_ticks <= 0: return
 
-        # Otteniamo i dati temporali e i modificatori una sola volta
         current_hour_float = time_manager.get_current_hour_float()
         lifestage_modifiers = self.life_stage_obj.get_need_decay_modifiers() if self.life_stage_obj else {}
-
         current_action = self.current_action
 
-        # Itera su ogni bisogno che l'NPC possiede
         for need_type, need_obj in self.needs.items():
-            # Se c'è un'azione in corso che sta già gestendo questo bisogno,
-            # SALTA il suo decadimento passivo per questo tick.
             if current_action and current_action.manages_need == need_type:
                 continue
 
-            # 1. Prende il tasso di decadimento base PER TICK dalla configurazione
+            # 1. Recupera i valori base
             decay_per_tick = npc_config.NEED_DECAY_RATES_PER_TICK.get(need_type, 0.0)
             
-            # 2. Applica i modificatori
+            # 2. Recupera i modificatori (usando sempre l'enum 'need_type' come chiave)
             lifestage_modifier = lifestage_modifiers.get(need_type, 1.0)
-            
             circadian_modifier = 1.0
-            if need_type == NeedType.ENERGY:
-                # Ottieni il valore del ritmo circadiano (-1 a +1) dal nostro adattatore
-                rhythm_value = self.circadian_model.get_rhythm_value(current_hour_float)
-                
-                # Convertiamo il ritmo in un modificatore di decadimento:
-                # Se il ritmo è alto (+1, massima veglia), il modificatore è 1.5 (calo veloce)
-                # Se il ritmo è basso (-1, massima sonnolenza), il modificatore è 0.1 (calo lento/quasi nullo)
-                circadian_modifier = ((rhythm_value + 1) / 2) * 1.4 + 0.1 # Scala il range a [0.1, 1.5]
             
-            # 3. Il calcolo finale del cambiamento
-            change_amount = (decay_per_tick * circadian_modifier) * elapsed_ticks
+            if need_type == NeedType.ENERGY:
+                rhythm_value = self.circadian_model.get_rhythm_value(current_hour_float)
+                circadian_modifier = ((rhythm_value + 1) / 2) * 1.4 + 0.1
+
+            # 3. Calcolo finale che include TUTTI i fattori
+            change_amount = (decay_per_tick * lifestage_modifier * circadian_modifier) * elapsed_ticks
             
             if change_amount != 0:
                 need_obj.change_value(change_amount, is_decay_event=True)
+
 
         # 4. Logica per il carico cognitivo (stress) - invariata
         needs_to_average = [n.get_value() for t, n in self.needs.items() if t != NeedType.STRESS]
@@ -336,7 +327,33 @@ class Character:
         self.cognitive_load = max(0.0, min(1.0, self.cognitive_load))
         
         # Logica Moodlet
-        # ... (logica moodlet come da tua implementazione) ...
+        for need_type, need_obj in self.needs.items():
+            moodlet_to_check = npc_config.NEED_TO_MOODLET_MAP.get(need_type)
+            if not moodlet_to_check:
+                continue
+
+            is_critical = need_obj.get_value() <= npc_config.NEED_CRITICAL_THRESHOLD
+            has_moodlet = self.moodlet_manager.has_moodlet(moodlet_to_check)
+
+            if is_critical and not has_moodlet:
+                # 1. Recupera la configurazione per questo moodlet
+                config = npc_config.MOODLET_CONFIGS.get(moodlet_to_check)
+                if not config: continue
+                
+                # 2. Crea l'oggetto Moodlet completo
+                new_moodlet = Moodlet(
+                    moodlet_type=moodlet_to_check,
+                    display_name=config["display_name"],
+                    emotional_impact=config["emotional_impact"],
+                    duration_ticks=config["duration_ticks"],
+                    source_description=f"Bisogno di {need_type.name} troppo basso"
+                )
+
+                # 3. Passa l'oggetto completo al manager
+                self.moodlet_manager.add_moodlet(new_moodlet)
+            elif not is_critical and has_moodlet:
+                # Il bisogno non è più critico ma l'NPC ha ancora il moodlet -> Rimuovilo
+                self.moodlet_manager.remove_moodlet(moodlet_to_check)
 
     def add_action_to_queue(self, action: 'BaseAction'):
         from core.modules.actions.action_base import BaseAction

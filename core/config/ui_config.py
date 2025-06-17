@@ -13,6 +13,7 @@ FONT_SIZE_LARGE = 22
 FONT_SIZE_MEDIUM_BOLD = 18
 FONT_SIZE_SMALL = 16
 FONT_SIZE_DEBUG = 14
+FONT_SIZE_CLAIRE = 19
 
 # Larghezza in pixel del pannello informativo laterale
 PANEL_WIDTH = 320 

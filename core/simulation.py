@@ -14,6 +14,7 @@ from core.AI.lod_manager import LODManager
 from core.AI.social_manager import SocialManager
 from core.world.weather_manager import WeatherManager
 from core.AI.consequence_analyzer import ConsequenceAnalyzer
+from core.AI.claire.claire_system import ClaireSystem
 
 if TYPE_CHECKING:
     from character import Character
@@ -38,6 +39,7 @@ class Simulation:
         
         # Inizializza l'attributo per l'ID del personaggio del giocatore a None.
         self.player_character_id: Optional[str] = None
+        self.claire_system = ClaireSystem(self)
 
         self._initialize_world_data()
 
@@ -359,6 +361,10 @@ class Simulation:
         if self.ai_coordinator:
             # Passiamo ticks_to_process che verrà usato in update_needs
             self.ai_coordinator.update_all_npcs(time_delta=ticks_to_process)
+
+        # Aggiorna il sistema Claire
+        if self.claire_system:
+            self.claire_system.update()
 
         # 3. Avanza il tempo globale del numero di tick calcolato
         self.time_manager.advance_time(ticks=ticks_to_process)

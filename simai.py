@@ -262,11 +262,11 @@ def main():
     if not settings.GUI_ENABLED:
         # Esecuzione in Modalità Testuale (TUI)
         print("  Modalità Testuale (TUI/Debug) attivata.")
-        # max_ticks_tui = 500000000
-        # print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
-        # # Assumiamo che ci sia un metodo .run() per la TUI
-        # simulation.run(max_ticks=max_ticks_tui) 
-        simulation.run()
+        max_ticks_tui = 2
+        print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
+        # Assumiamo che ci sia un metodo .run() per la TUI
+        simulation.run(max_ticks=max_ticks_tui) 
+        # simulation.run()
     else:
         # Esecuzione in Modalità Grafica (GUI)
         print("  Modalità GUI Pygame attivata.")

@@ -1,58 +1,47 @@
 from typing import Optional, TYPE_CHECKING
-from core.enums import NeedType, ActionType, ObjectType
-from core.config import npc_config, time_config, actions_config
 from .action_base import BaseAction
+from core.enums import ActionType, NeedType
+from core.config import npc_config
 
 if TYPE_CHECKING:
     from core.character import Character
     from core.simulation import Simulation
+    from core.world.game_object import GameObject
 
 class SleepAction(BaseAction):
-    """
-    Azione per dormire. L'energia viene recuperata gradualmente ad ogni tick.
-    """
-    def __init__(self, npc: 'Character', simulation_context: 'Simulation', **kwargs):
-        # 1. Recupera la configurazione completa per l'azione di dormire
-        config = actions_config.SIMPLE_NEED_ACTION_CONFIGS.get(NeedType.ENERGY, {})
-        
-        duration = int(config.get("duration_hours", 8.0) * time_config.TXH_SIMULATION)
+    """Azione per dormire. L'energia viene recuperata gradualmente ad ogni tick."""
 
+    def __init__(self, npc: 'Character', simulation_context: 'Simulation', 
+                 target_object: 'GameObject', duration_ticks: int, energy_gain: float,
+                 validation_threshold: float, **kwargs):
+        
         super().__init__(
             npc=npc,
             p_simulation_context=simulation_context,
-            duration_ticks=duration,
+            duration_ticks=duration_ticks,
             action_type_enum=ActionType.ACTION_SLEEP,
-            is_interruptible=False,
+            is_interruptible=False, # Dormire è difficile da interrompere
             **kwargs
         )
         
-        # 2. Salva i parametri specifici e calcola il guadagno per tick
-        self.validation_threshold = config.get("validation_threshold", 60.0)
-        energy_gain_per_hour = config.get("energy_gain_per_hour", 12.5)
-        self.gain_per_tick = (energy_gain_per_hour / time_config.TXH_SIMULATION) * (duration / self.duration_ticks) if self.duration_ticks > 0 else 0
-        
-        # 3. Imposta il bisogno gestito da questa azione
+        self.target_object = target_object
+        self.gain_per_tick = energy_gain / duration_ticks if duration_ticks > 0 else 0
         self.manages_need = NeedType.ENERGY
+        self.validation_threshold = validation_threshold
 
     def is_valid(self) -> bool:
-        """
-        Controlla se l'azione di dormire è valida.
-        """
-        # 1. Chiama il controllo della classe base (controlla se c'è un NPC, etc.)
-        if not super().is_valid(): 
-            return False
+        if not super().is_valid(): return False
         
-        # 2. Controlla se il bisogno non è già troppo alto
-        energy_need = self.npc.needs.get(NeedType.ENERGY)
-        if energy_need and energy_need.get_value() >= (npc_config.NEED_MAX_VALUE - 5.0):
+        # Controlla se l'azione è necessaria
+        current_energy = self.npc.get_need_value(NeedType.ENERGY)
+        if current_energy is None or current_energy >= self.validation_threshold:
             return False
 
-        # 3. Controlla se l'oggetto target esiste ed è disponibile
-        #    (il discoverer ce lo ha già assegnato)
+        # Il discoverer ha già trovato e assegnato il letto
         if not self.target_object or not self.target_object.is_available():
             return False
             
-        return True # Se tutti i controlli passano, l'azione è valida
+        return True
 
     def execute_tick(self):
         super().execute_tick()
@@ -71,6 +60,7 @@ class SleepAction(BaseAction):
             self.target_object.set_free()
 
     def on_interrupt_effects(self):
-        """Quando l'azione viene interrotta, dobbiamo solo liberare l'oggetto."""
+        # Essendo non interrompibile, questo metodo potrebbe non essere mai chiamato,
+        # ma è buona pratica liberare l'oggetto per sicurezza.
         if self.target_object:
             self.target_object.set_free()

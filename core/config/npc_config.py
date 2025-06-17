@@ -5,9 +5,12 @@ Configurazione NPC, tratti, bisogni e ciclo di vita
 
 from enum import Enum
 
+from core.enums.moodlet_types import MoodletType
 from core.enums.service_types import ServiceType
 from .time_config import DXY, DXM, IXH, SECONDS_PER_SIMULATION_TICK, SXH, SXI, TXH_SIMULATION
 from core.enums import LifeStage, NeedType, TimeOfDay, TraitType
+
+from core.config import time_config
 
 
 # --- Soglie e Valori dei Bisogni (Adattati a 28 ore) ---
@@ -50,6 +53,50 @@ NEED_DECAY_RATES_PER_TICK: dict[NeedType, float] = {
     need: rate / TXH_SIMULATION
     for need, rate in NEED_HOURLY_DECAY_RATES.items()
 }
+
+# --- CONFIGURAZIONE DEI MOODLET ---
+MOODLET_CONFIGS = {
+    MoodletType.BORED: {
+        "display_name": "Annoiato",
+        "emotional_impact": -10,
+        "duration_hours": 3,
+    },
+    MoodletType.LONELY: {
+        "display_name": "Solo",
+        "emotional_impact": -15,
+        "duration_hours": 4,
+    },
+    MoodletType.STRESSED: {
+        "display_name": "Stressato",
+        "emotional_impact": -20,
+        "duration_hours": 5,
+    },
+    # Aggiungi qui gli altri moodlet...
+}
+
+# Convertiamo le durate in tick una sola volta
+for moodlet_config in MOODLET_CONFIGS.values():
+    moodlet_config["duration_ticks"] = int(moodlet_config["duration_hours"] * time_config.TXH_SIMULATION)
+
+# --- MAPPA BISOGNI CRITICI -> MOODLET ---
+# Mappa un bisogno critico al moodlet corrispondente
+NEED_TO_MOODLET_MAP = {
+    NeedType.HUNGER: MoodletType.STARVING,
+    NeedType.ENERGY: MoodletType.EXHAUSTED,
+    NeedType.FUN: MoodletType.BORED,
+    NeedType.SOCIAL: MoodletType.LONELY,
+    NeedType.STRESS: MoodletType.STRESSED,
+    # ... e così via per gli altri bisogni critici
+}
+
+
+
+
+
+
+
+
+
 
 NEED_SCHEDULE_CONFIG = {
     NeedType.HUNGER: {

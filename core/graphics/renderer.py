@@ -105,6 +105,8 @@ class Renderer:
             self.font_medium_bold = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_MEDIUM_BOLD)
             self.font_small = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_SMALL)
             self.font_debug = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_DEBUG)
+            self.font_claire = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_CLAIRE)
+
             print("    -> Font personalizzato caricato con successo.")
         except pygame.error:
             print(f"  [Renderer WARN] Font '{ui_config.FONT_PATH}' non trovato o illeggibile.")
@@ -123,9 +125,14 @@ class Renderer:
                 self.font_medium_bold = pygame.font.Font(None, ui_config.FONT_SIZE_MEDIUM_BOLD)
                 self.font_small = pygame.font.Font(None, ui_config.FONT_SIZE_SMALL)
                 self.font_debug = pygame.font.Font(None, ui_config.FONT_SIZE_DEBUG)
-        
+                self.font_claire = pygame.font.Font(None, ui_config.FONT_SIZE_CLAIRE)
+
         # Imposta il grassetto dove serve
         self.font_medium_bold.set_bold(True)
+
+        # Imposta il corsivo dove serve
+        if self.font_claire:
+            self.font_claire.set_italic(True)
 
     def _center_camera_on_npc(self, npc: 'Character', current_location: Optional['Location']):
         if not current_location: return
@@ -248,6 +255,13 @@ class Renderer:
                         self.selected_npc_id = None 
                         if settings.DEBUG_MODE:
                             print(f"  [Renderer] Cambiata locazione visualizzata a: ID '{self.current_visible_location_id}'")
+                elif event.key == pygame.K_c:
+                    if simulation and simulation.claire_system:
+                        # Inverte lo stato di Claire: se è attiva la disattiva, e viceversa
+                        if simulation.claire_system.is_active:
+                            simulation.claire_system.deactivate()
+                        else:
+                            simulation.claire_system.activate()
                 elif event.key == pygame.K_SPACE:
                     if simulation and simulation.npcs:
                         
@@ -357,22 +371,11 @@ class Renderer:
     def _draw_tilemap(self, location: 'Location'):
         """
         Disegna la mappa a mattonelle leggendo la mappa processata e scalando le tile.
-        Include stampe di debug per trovare l'errore dello schermo nero.
         """
-        # print("\n[Debug Tilemap] Avvio _draw_tilemap...")
-        
-        if not location.processed_tile_map:
-            print("[Debug Tilemap] ERRORE: La 'processed_tile_map' della location è vuota! La logica in Location.__post_init__ potrebbe essere fallita.")
-            return
-        
-        # print(f"[Debug Tilemap] Mappa processata trovata. Dimensioni: {len(location.processed_tile_map[0])}x{len(location.processed_tile_map)}")
-        
-        scaled_tile_size = int(self.tile_size * self.zoom_level)
-        # print(f"[Debug Tilemap] Livello di zoom: {self.zoom_level:.2f}, Dimensione tile scalata: {scaled_tile_size}px")
+        if not location.processed_tile_map: return
 
-        if scaled_tile_size <= 1:
-            print("[Debug Tilemap] Uscita: tile troppo piccole per essere disegnate a questo livello di zoom.")
-            return
+        scaled_tile_size = int(self.tile_size * self.zoom_level)
+        if scaled_tile_size <= 1: return
 
         # Itera sulla mappa della location
         for y, row in enumerate(location.processed_tile_map):
@@ -383,31 +386,26 @@ class Renderer:
                 if not tile_type or tile_type == TileType.EMPTY:
                     continue
 
-                # Stampa di debug per ogni singola mattonella
-                # print(f"  [Debug Tile] Cella ({x},{y}): Tipo={tile_type.name}, Variante={variant_index}")
-
                 style_name = SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else SHEET_FLOORS
                 spritesheet = self.asset_manager.get_spritesheet(style_name)
                 
-                if not spritesheet:
-                    print(f"    -> ERRORE: Spritesheet '{style_name}' non trovato nell'AssetManager!")
-                    continue
+                if not spritesheet: continue
 
                 tile_def_or_list = graphics_config.TILE_DEFINITIONS.get(style_name, {}).get(tile_type)
-                
-                if not tile_def_or_list:
-                    print(f"    -> ERRORE: Nessuna definizione trovata per {tile_type.name} in graphics_config.py!")
-                    continue
+                if not tile_def_or_list: continue
                 
                 if isinstance(tile_def_or_list, list):
-                    if variant_index >= len(tile_def_or_list):
-                        print(f"    -> ERRORE: Indice variante {variant_index} fuori dai limiti per {tile_type.name}")
-                        continue
                     chosen_def = tile_def_or_list[variant_index]
                 else:
                     chosen_def = tile_def_or_list
+
+                # --- CORREZIONE QUI ---
+                # Usiamo .get('rect') invece di ['rect'] per essere più sicuri
+                # e per accontentare Pylance.
+                rect_tuple = chosen_def.get('rect')
+                if not rect_tuple: continue # Salta se 'rect' non è definito
                 
-                tile_rect_to_cut = pygame.Rect(chosen_def['rect'])
+                tile_rect_to_cut = pygame.Rect(rect_tuple)
                 # print(f"    -> OK! Uso lo spritesheet '{style_name}' e ritaglio il rettangolo: {tile_rect_to_cut}")
 
                 try:
@@ -792,9 +790,7 @@ class Renderer:
             self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
             name_surface = self.font_large.render(npc.name, True, self.WHITE)
             self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
-            gender_color = ui_config.NPC_GENDER_COLORS.get(
-                npc.gender, 
-                ui_config.NPC_GENDER_COLORS[Gender.UNKNOWN]
+            gender_color = ui_config.NPC_GENDER_COLORS.get(npc.gender, ui_config.DEFAULT_NPC_COLOR
             )
 
             # Simbolo del genere accanto al nome
@@ -867,7 +863,29 @@ class Renderer:
         else:
             current_y = self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y)
 
-        # --- 5. DISEGNO ELEMENTI SOVRAPPOSTI (TOOLTIP, FPS) ---
+        # --- 5. DISEGNO DELLA CASELLA DI TESTO DI CLAIRE ---
+        if simulation and simulation.claire_system.message_to_display:
+            claire_text = simulation.claire_system.message_to_display
+            
+            # Crea la superficie del testo
+            text_surface = self.font_claire.render(claire_text, True, self.WHITE)
+            text_rect = text_surface.get_rect()
+            
+            # Crea il rettangolo di sfondo
+            bg_rect_height = text_rect.height + 10
+            bg_rect = pygame.Rect(0, self.height - bg_rect_height, self.base_width, bg_rect_height)
+            
+            # Disegna uno sfondo semitrasparente
+            s = pygame.Surface((self.base_width, bg_rect_height))
+            s.set_alpha(200) # 0 = trasparente, 255 = opaco
+            s.fill(self.BLACK)
+            self.screen.blit(s, (0, self.height - bg_rect_height))
+            
+            # Centra il testo nel rettangolo di sfondo
+            text_rect.center = bg_rect.center
+            self.screen.blit(text_surface, text_rect)
+
+        # --- 6. DISEGNO ELEMENTI SOVRAPPOSTI (TOOLTIP, FPS) ---
         tooltip_text = None
         if self.hovered_npc:
             tooltip_text = self.hovered_npc.name
@@ -892,7 +910,7 @@ class Renderer:
             fps_text = self.font_debug.render(f"FPS: {self.clock.get_fps():.2f}", True, self.BLACK)
             self.screen.blit(fps_text, (10, 10)) 
 
-        # --- 6. AGGIORNAMENTO FINALE DELLO SCHERMO ---
+        # --- 7. AGGIORNAMENTO FINALE DELLO SCHERMO ---
         pygame.display.flip()
 
     def run_game_loop(self, simulation: Optional['Simulation']):
@@ -988,7 +1006,7 @@ class Renderer:
                     chosen_def = tile_def_or_list
                 
                 try:
-                    tile_rect_to_cut = pygame.Rect(chosen_def['rect'])
+                    tile_rect_to_cut = pygame.Rect(chosen_def.get('rect', (0,0,32,32)))
                     tile_image = spritesheet.subsurface(tile_rect_to_cut)
                     scaled_tile_image = pygame.transform.scale(tile_image, (scaled_tile_size, scaled_tile_size))
                     

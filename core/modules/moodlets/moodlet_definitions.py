@@ -1,20 +1,33 @@
 # core/modules/moodlets/moodlet_definitions.py
 from dataclasses import dataclass, field
-import time
+from typing import TYPE_CHECKING
 from core.enums import MoodletType
+import time
+
+if TYPE_CHECKING:
+    from core.character import Character
 
 @dataclass
 class Moodlet:
-    """Rappresenta un singolo modificatore di umore attivo su un NPC."""
-    moodlet_type: MoodletType # Il tipo di moodlet (es. HUNGRY)
-    display_name: str       # Il nome visualizzato (es. "Affamato")
-    emotional_impact: int   # L'impatto sull'umore (es. -10 per negativo, +5 per positivo)
-    duration_ticks: int # Durata del moodlet in tick di simulazione
-    source_description: str = "" # Da cosa è stato causato (es. "Il bisogno di Fame è basso")
+    """
+    Rappresenta un modificatore di umore temporaneo per un NPC.
+    """
+    owner_npc: 'Character'
+    moodlet_type: MoodletType
+    emotional_impact: int
+    duration_ticks: int
     
-    # Questi attributi vengono gestiti dal MoodletManager
+    source_description: str = ""
+    
+    # Questo attributo viene gestito dal MoodletManager
     creation_tick: float = field(default_factory=time.time, init=False)
     
+    @property
+    def display_name(self) -> str:
+        """Proprietà dinamica che restituisce il nome corretto per genere."""
+        # Ora questa chiamata funziona perché abbiamo accesso a self.owner_npc
+        return self.moodlet_type.display_name_it(self.owner_npc.gender)
+
     @property
     def is_positive(self) -> bool:
         return self.emotional_impact > 0

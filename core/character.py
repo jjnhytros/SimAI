@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, Set, Type
 from core.enums import *
 
 # Import Config e Settings
-from core.config import time_config, npc_config
+from core.config import skills_config, time_config, npc_config
 from core import settings
 
 # --- IMPORT PER L'ESECUZIONE (FUORI DA TYPE_CHECKING) ---
@@ -101,6 +101,15 @@ class Character:
         self.gender: Gender = initial_gender; 
         self.birth_date: 'ATHDateTime' = initial_birth_date
         self.is_player_character: bool = is_player_character
+        self.lifestyle: LifeStyle = LifeStyle.SEDENTARY # Esempio di default
+        self.health_conditions: Set[str] = set() # Es: {"DIABETES"}
+
+        # Attributi calcolati dal sistema
+        self.metabolic_rate: float = 1.0
+        self.social_need_modifier: float = 1.0
+        self.energy_decay_modifier: float = 1.0
+        self.sleep_requirement: float = 7.0
+        self.learning_efficiency: float = 1.0
 
         # --- CORREZIONE ARCHITETTURALE ---
         # Contenitori e Sistemi Interni
@@ -116,7 +125,7 @@ class Character:
         self.ai_decision_maker: Optional['AIDecisionMaker'] = None
         self.memory_system: MemorySystem = MemorySystem(self)
         self.moodlet_manager: MoodletManager = MoodletManager(self)
-        self.skill_manager: 'SkillManager' = SkillManager(self)
+        self.skill_manager: SkillManager = SkillManager(self)
 
         # Esecuzione dei Metodi di Inizializzazione
         self._initialize_traits(initial_traits or set())
@@ -153,8 +162,26 @@ class Character:
 
         # Ogni personaggio ha il suo modello di ritmo biologico
         self.circadian_model = AnthalysCircadianModel()
+        self._apply_initial_skill_bonuses()
 
         if settings.DEBUG_MODE: print(f"  [Character CREATED] {self!s}")
+
+    def _apply_initial_skill_bonuses(self):
+        """Scorre i tratti e applica eventuali bonus iniziali alle skill."""
+        for trait_type in self.get_trait_types():
+            bonuses = skills_config.SKILL_INITIAL_LEVEL_BONUS.get(trait_type)
+            if not bonuses:
+                continue
+
+            for skill_type, bonus_data in bonuses.items():
+                skill = self.skill_manager.get_skill(skill_type)
+                # Imposta il livello e l'XP direttamente, poi ricalcola il livello
+                # per coerenza se l'XP è maggiore del necessario per quel livello.
+                initial_level = bonus_data.get("level", 1)
+                initial_xp = bonus_data.get("xp", 0)
+                
+                skill.level = initial_level
+                self.skill_manager.add_experience(skill_type, initial_xp)
 
     def _initialize_traits(self, initial_trait_types: Set[TraitType]):
         for trait_type_enum in initial_trait_types:
@@ -265,9 +292,9 @@ class Character:
         rel_info = self.relationships[target_npc_id]
         rel_info.type = new_type
         if new_score is not None:
-            rel_info.score = max(-100, min(100, new_score))
+            rel_info.score = max(-144, min(144, new_score))
         else:
-            rel_info.score = max(-100, min(100, rel_info.score + score_change))
+            rel_info.score = max(-144, min(144, rel_info.score + score_change))
             
     def get_need_value(self, need_type: NeedType) -> Optional[float]:
         need_object = self.needs.get(need_type)
@@ -302,14 +329,18 @@ class Character:
             
             # 2. Recupera i modificatori (usando sempre l'enum 'need_type' come chiave)
             lifestage_modifier = lifestage_modifiers.get(need_type, 1.0)
-            circadian_modifier = 1.0
-            
+            final_modifier = 1.0
             if need_type == NeedType.ENERGY:
+                final_modifier *= self.energy_decay_modifier # Modificatore specifico per l'energia
                 rhythm_value = self.circadian_model.get_rhythm_value(current_hour_float)
-                circadian_modifier = ((rhythm_value + 1) / 2) * 1.4 + 0.1
+                final_modifier *= ((rhythm_value + 1) / 2) * 1.4 + 0.1
+            elif need_type == NeedType.SOCIAL:
+                final_modifier *= self.social_need_modifier
+            else: # Per tutti gli altri bisogni (Fame, Sete...), usiamo il metabolismo generale
+                final_modifier *= self.metabolic_rate
 
             # 3. Calcolo finale che include TUTTI i fattori
-            change_amount = (decay_per_tick * lifestage_modifier * circadian_modifier) * elapsed_ticks
+            change_amount = (decay_per_tick * final_modifier) * elapsed_ticks
             
             if change_amount != 0:
                 need_obj.change_value(change_amount, is_decay_event=True)
@@ -342,8 +373,8 @@ class Character:
                 
                 # 2. Crea l'oggetto Moodlet completo
                 new_moodlet = Moodlet(
+                    owner_npc=self, # Passa l'istanza dell'NPC (self)
                     moodlet_type=moodlet_to_check,
-                    display_name=config["display_name"],
                     emotional_impact=config["emotional_impact"],
                     duration_ticks=config["duration_ticks"],
                     source_description=f"Bisogno di {need_type.name} troppo basso"

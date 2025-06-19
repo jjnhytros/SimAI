@@ -7,6 +7,7 @@ from core.enums import (
     FunActivityType, ObjectType, SkillType, SocialInteractionType,
     RelationshipType, NeedType, Interest
 )
+from core.enums.trait_types import TraitType
 
 TRAVEL_ACTION_DEFAULT_DURATION_TICKS = 60
 
@@ -332,9 +333,25 @@ HAVEFUN_ACTIVITY_CONFIGS = {
     },
     FunActivityType.DANCE: {
         "duration_hours": 2.0,
-        "fun_gain": 80.0, # <-- AUMENTA QUESTO VALORE per un guadagno base più veloce
+        "fun_gain": 80.0,
         "skill_to_practice": SkillType.DANCING,
         "skill_xp_gain": 40.0,
+        "personality_modifiers": {
+            TraitType.PARTY_ANIMAL: 2.5, # Un animale da festa ama ballare (+150% score)
+            TraitType.SOCIAL: 1.5,
+            TraitType.LONER: 0.3,       # Un solitario odia ballare (-70% score)
+            TraitType.SHY: 0.5,
+        }
+    },
+    FunActivityType.READ_BOOK_FOR_FUN: {
+        "duration_hours": 1.5,
+        "fun_gain": 60.0,
+        "required_object_types": (ObjectType.BOOKSHELF,),
+        "personality_modifiers": {
+            TraitType.BOOKWORM: 2.0,
+            TraitType.ACTIVE: 0.8,
+            TraitType.PARTY_ANIMAL: 0.5,
+        }
     },
 }
     

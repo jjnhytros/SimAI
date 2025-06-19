@@ -1,4 +1,4 @@
-vscode./
+.vscode/
 __pycache__/
 
 .gitignore
@@ -20,4 +20,6 @@ TODO_Roadmap_v1.0.md
 anthalys_01.jpg
 anthalys_2.jpg
 SimAI_cover.jpg
-TODO_Generale_Giugno.md
+TODO_*
+tools/*
+VERSION.txt

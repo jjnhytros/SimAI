@@ -1,6 +1,8 @@
+# simai/core/config/life_stage_modifiers.py
 from enum import Enum
 from typing import Dict, List, Callable, Any
 from core.enums.life_stages import LifeStage
+from core.enums.lifestyles import LifeStyle
 from core.enums.moodlet_types import MoodletType
 from core.enums.trait_types import TraitType
 
@@ -14,34 +16,30 @@ class LifeStageEffectType(Enum):
 class LifeStageEffectSystem:
     # Modificatori base per ogni stadio di vita
     BASE_EFFECTS = {
-        LifeStage.INFANT: {
-            LifeStageEffectType.METABOLIC_RATE: 1.9,
-            LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.8,
-            LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.7,
-            LifeStageEffectType.SLEEP_REQUIREMENT: 14,
-            LifeStageEffectType.LEARNING_EFFICIENCY: 0.2
-        },
-        LifeStage.ADOLESCENCE: {
-            LifeStageEffectType.METABOLIC_RATE: 1.6,
-            LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.5,
-            LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1,
-            LifeStageEffectType.SLEEP_REQUIREMENT: 9,
-            LifeStageEffectType.LEARNING_EFFICIENCY: 1.4
-        },
-        LifeStage.ADULT: {
-            LifeStageEffectType.METABOLIC_RATE: 1.0,
-            LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.0,
-            LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0,
-            LifeStageEffectType.SLEEP_REQUIREMENT: 7,
-            LifeStageEffectType.LEARNING_EFFICIENCY: 1.0
-        },
-        LifeStage.ELDERLY: {
-            LifeStageEffectType.METABOLIC_RATE: 0.7,
-            LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.8,
-            LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.3,
-            LifeStageEffectType.SLEEP_REQUIREMENT: 6,
-            LifeStageEffectType.LEARNING_EFFICIENCY: 0.6
-        }
+        # Fase Infantile
+        LifeStage.NEWBORN:    { LifeStageEffectType.METABOLIC_RATE: 2.0, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.5, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.5, LifeStageEffectType.SLEEP_REQUIREMENT: 16, LifeStageEffectType.LEARNING_EFFICIENCY: 0.1 },
+        LifeStage.INFANT:     { LifeStageEffectType.METABOLIC_RATE: 1.9, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.7, LifeStageEffectType.SLEEP_REQUIREMENT: 14, LifeStageEffectType.LEARNING_EFFICIENCY: 0.2 },
+        LifeStage.TODDLER:    { LifeStageEffectType.METABOLIC_RATE: 1.8, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 2.0, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.8, LifeStageEffectType.SLEEP_REQUIREMENT: 12, LifeStageEffectType.LEARNING_EFFICIENCY: 0.5 },
+        
+        # Fase Fanciullezza
+        LifeStage.PRESCHOOLER:{ LifeStageEffectType.METABOLIC_RATE: 1.7, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.9, LifeStageEffectType.SLEEP_REQUIREMENT: 11, LifeStageEffectType.LEARNING_EFFICIENCY: 1.0 },
+        LifeStage.CHILD:      { LifeStageEffectType.METABOLIC_RATE: 1.6, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.6, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 10, LifeStageEffectType.LEARNING_EFFICIENCY: 1.2 },
+        LifeStage.PRE_TEEN:   { LifeStageEffectType.METABOLIC_RATE: 1.5, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.7, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 9,  LifeStageEffectType.LEARNING_EFFICIENCY: 1.3 },
+
+        # Fase Adolescenza
+        LifeStage.EARLY_ADOLESCENCE: { LifeStageEffectType.METABOLIC_RATE: 1.6, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1, LifeStageEffectType.SLEEP_REQUIREMENT: 9, LifeStageEffectType.LEARNING_EFFICIENCY: 1.4 },
+        LifeStage.MID_ADOLESCENCE:   { LifeStageEffectType.METABOLIC_RATE: 1.4, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 2.0, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 1.3 },
+        LifeStage.LATE_ADOLESCENCE:  { LifeStageEffectType.METABOLIC_RATE: 1.2, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.5, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 1.2 },
+
+        # Fase Adulta
+        LifeStage.YOUNG_ADULT:  { LifeStageEffectType.METABOLIC_RATE: 1.1, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.2, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 1.1 },
+        LifeStage.ADULT:        { LifeStageEffectType.METABOLIC_RATE: 1.0, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.0, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 1.0 },
+        LifeStage.MIDDLE_AGED:  { LifeStageEffectType.METABOLIC_RATE: 0.9, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.9, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 0.9 },
+
+        # Fase Anziana
+        LifeStage.MATURE_ADULT: { LifeStageEffectType.METABOLIC_RATE: 0.8, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.2, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.8 },
+        LifeStage.SENIOR:       { LifeStageEffectType.METABOLIC_RATE: 0.7, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.7, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.3, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.7 },
+        LifeStage.ELDERLY:      { LifeStageEffectType.METABOLIC_RATE: 0.6, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.6, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.4, LifeStageEffectType.SLEEP_REQUIREMENT: 9, LifeStageEffectType.LEARNING_EFFICIENCY: 0.5 },
     }
 
     # Mappa dei modificatori dinamici
@@ -70,7 +68,7 @@ class LifeStageEffectSystem:
             LifeStageEffectType.METABOLIC_RATE: 0.85,
             LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.2
         },
-        MoodletType.ENERGIZED: {
+        MoodletType.ENERGETIC: {
             LifeStageEffectType.METABOLIC_RATE: 1.1,
             LifeStageEffectType.ENERGY_DECAY_MODIFIER: 0.9
         },
@@ -122,12 +120,14 @@ class LifeStageEffectSystem:
                 total_modifier *= cls.DYNAMIC_MODIFIERS[trait][effect_type]
         
         # 2. Modificatori dall'umore
-        if npc.mood in cls.DYNAMIC_MODIFIERS and effect_type in cls.DYNAMIC_MODIFIERS[npc.mood]:
-            total_modifier *= cls.DYNAMIC_MODIFIERS[npc.mood][effect_type]
+        if npc.moodlet_manager:
+            for moodlet_type in npc.moodlet_manager.active_moodlets.keys():
+                if moodlet_type in cls.DYNAMIC_MODIFIERS and effect_type in cls.DYNAMIC_MODIFIERS[moodlet_type]:
+                    total_modifier *= cls.DYNAMIC_MODIFIERS[moodlet_type][effect_type]
         
         # 3. Modificatori dallo stile di vita
-        if npc.life_style in cls.DYNAMIC_MODIFIERS and effect_type in cls.DYNAMIC_MODIFIERS[npc.life_style]:
-            total_modifier *= cls.DYNAMIC_MODIFIERS[npc.life_style][effect_type]
+        if npc.lifestyle in cls.DYNAMIC_MODIFIERS and effect_type in cls.DYNAMIC_MODIFIERS[npc.lifestyle]:
+            total_modifier *= cls.DYNAMIC_MODIFIERS[npc.lifestyle][effect_type]
         
         # 4. Modificatori dalla salute
         for condition in npc.health_conditions:

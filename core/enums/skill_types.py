@@ -1,5 +1,7 @@
 # core/enums/skill_types.py
 from enum import Enum, auto
+
+from core.enums.genders import Gender
 """
 Definizione dell'Enum 'SkillType' per rappresentare i tipi di abilità
 che gli NPC possono sviluppare in SimAI.
@@ -482,8 +484,12 @@ class SkillType(Enum):
     TIME_PERCEPTION = auto()
     WATER_SAFETY = auto()
 
-    def display_name_it(self) -> str:
-        """Restituisce un nome leggibile in italiano per la skill."""
+    def display_name_it(self, gender: 'Gender') -> str:
+        """
+        Restituisce un nome leggibile per l'abilità.
+        La firma accetta 'gender' per coerenza.
+        """
+        # La maggior parte dei nomi delle abilità sono sostantivi e invariabili
         mapping = {
         # --- Da categorizzare
             SkillType.DJING: "DJing",

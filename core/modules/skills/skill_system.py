@@ -3,6 +3,7 @@
 Definisce la classe SkillManager, il gestore di tutte le abilità di un NPC.
 """
 from typing import Dict, TYPE_CHECKING
+from core.config import skills_config
 from core.enums import SkillType
 from core import settings
 
@@ -20,35 +21,45 @@ class SkillManager:
         self.skills: Dict[SkillType, BaseSkill] = {}
 
     def get_skill(self, skill_type: SkillType) -> BaseSkill:
-        """
-        Restituisce l'oggetto Skill per un dato tipo.
-        Se l'NPC non ha ancora quella skill, la crea usando il costruttore corretto.
-        """
+        """Restituisce un'abilità, creandola se non esiste."""
         if skill_type not in self.skills:
+            # Crea una nuova abilità al livello 1 con 0 XP
+            self.skills[skill_type] = BaseSkill(self.owner_npc, skill_type)
             if settings.DEBUG_MODE:
                 print(f"    [SkillManager - {self.owner_npc.name}] Apprende una nuova abilità: {skill_type.name}")
-            
-            # Crea un'istanza di BaseSkill (o una sua sottoclasse)
-            # passando i parametri richiesti dal tuo __init__: character_owner e skill_type.
-            # In futuro, qui potrai decidere di creare istanze di classi specifiche
-            # (es. CharismaSkill, ProgrammingSkill) invece di BaseSkill generica.
-            self.skills[skill_type] = BaseSkill(
-                character_owner=self.owner_npc,
-                skill_type=skill_type
-            )
         return self.skills[skill_type]
 
-    def add_experience(self, skill_type: SkillType, xp_amount: float):
-        """Aggiunge esperienza a una specifica abilità."""
-        if xp_amount <= 0:
-            return
-        # Ottiene (o crea) la skill e poi chiama il suo metodo .add_experience
-        skill_obj = self.get_skill(skill_type)
-        skill_obj.add_experience(xp_amount)
-
     def get_skill_level(self, skill_type: SkillType) -> int:
-        """Restituisce il livello di una skill, o 0 se non ancora appresa."""
+        """Restituisce il livello di un'abilità, o 0 se non conosciuta."""
         if skill_type in self.skills:
             return self.skills[skill_type].level
-        # La tua BaseSkill inizia a livello 0, quindi potremmo voler restituire quello
         return 0
+
+    def add_experience(self, skill_type: SkillType, xp_amount: float):
+        if xp_amount <= 0: return
+        
+        skill = self.get_skill(skill_type)
+        if skill.level >= skill.max_level: return # Non si guadagna più XP al livello massimo
+
+        skill.xp += xp_amount
+        self._check_for_level_up(skill)
+
+    def _check_for_level_up(self, skill: BaseSkill):
+        current_level = skill.level
+        if current_level >= skill.max_level: return
+
+        # Controlla il prossimo livello
+        next_level = current_level + 1
+        xp_needed = skills_config.XP_PER_LEVEL.get(next_level)
+
+        # Continua a salire di livello finché l'XP è sufficiente
+        while xp_needed is not None and skill.xp >= xp_needed:
+            skill.level = next_level
+            if settings.DEBUG_MODE:
+                print(f"    [SkillManager - {self.owner_npc.name}] LEVEL UP! {skill.skill_type.name} è ora a livello {skill.level}!")
+            
+            current_level = skill.level
+            if current_level >= skill.max_level: break
+            
+            next_level = current_level + 1
+            xp_needed = skills_config.XP_PER_LEVEL.get(next_level)

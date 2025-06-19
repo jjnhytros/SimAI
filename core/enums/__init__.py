@@ -14,6 +14,7 @@ from .genders import Gender
 from .interests import Interest
 from .item_quality import ItemQuality
 from .life_stages import LifeStage
+from .lifestyles import LifeStyle
 from .location_types import LocationType
 from .lod_level import LODLevel
 from .moodlet_types import MoodletType
@@ -23,13 +24,13 @@ from .problem_types import ProblemType
 from .relationship_statuses import RelationshipStatus 
 from .relationship_types import RelationshipType
 from .school_levels import SchoolLevel
+from .service_types import ServiceType
 from .skill_types import SkillType
 from .social_interaction_types import SocialInteractionType
+from .tile_types import TileType
 from .time_of_day import TimeOfDay
 from .trait_types import TraitType
 from .weather_types import WeatherType
-from .tile_types import TileType
-from .service_types import ServiceType
 
 __all__ = [
     'ActionType',
@@ -41,6 +42,7 @@ __all__ = [
     'ItemQuality',
     'LODLevel',
     'LifeStage',
+    'LifeStyle',
     'LocationType',
     'MoodletType',
     'NeedType',

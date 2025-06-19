@@ -1,7 +1,7 @@
 # core/AI/ai_decision_maker.py
 import random
 import importlib
-from typing import Optional, TYPE_CHECKING, List, Dict, Any, Tuple, Union
+from typing import Optional, TYPE_CHECKING, List, Dict, Any, Tuple, Union, cast
 
 # Import Enum
 from core.enums import NeedType, ActionType, ProblemType
@@ -110,31 +110,26 @@ class AIDecisionMaker:
         scored_actions: List[ScoredAction] = []
         for action in candidate_actions:
             base_score = problem.urgency
-            # --- NUOVA LOGICA DI SCORING SPECIFICO ---
-            action_specific_modifier = 1.0
             
-            # Controlliamo se l'azione è di tipo HaveFunAction
-            if isinstance(action, HaveFunAction):
-                activity_type = action.activity_type
-                
-                # Erika (PARTY_ANIMAL, SOCIAL) darà un punteggio più alto ad azioni sociali/attive
-                if self.npc.has_trait(TraitType.PARTY_ANIMAL):
-                    if activity_type == FunActivityType.DANCE: action_specific_modifier *= 2.0
-                    if activity_type == FunActivityType.LISTEN_TO_LIVE_JAZZ: action_specific_modifier *= 1.5
-                
-                if self.npc.has_trait(TraitType.SOCIAL):
-                    if activity_type == FunActivityType.GO_TO_BAR: action_specific_modifier *= 1.8
-                
-                # E darà un punteggio più basso ad azioni solitarie/tranquille
-                if self.npc.has_trait(TraitType.LONER) or self.npc.has_trait(TraitType.SHY):
-                    if activity_type == FunActivityType.DANCE: action_specific_modifier *= 0.5
-                
-                if activity_type == FunActivityType.MEDITATE:
-                    action_specific_modifier *= 0.2 # Erika odierebbe meditare
-            
-            # In futuro, qui aggiungeremo la logica per gli interessi, le skill, etc.
-            # --- FINE NUOVA LOGICA ---
+            # Inizializza i modificatori
             personality_modifier = 1.0
+            
+            # Recupera i modificatori specifici dell'azione dalla sua configurazione
+            if isinstance(action, HaveFunAction):
+                # Usiamo 'cast' per rassicurare Pylance sul tipo
+                activity_type_safe = cast(FunActivityType, action.activity_type)
+                
+                # Ora usiamo la variabile sicura per accedere alla configurazione
+                config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type_safe, {})
+                action_modifiers = config.get("personality_modifiers", {})
+                
+                for trait, modifier in action_modifiers.items():
+                    if self.npc.has_trait(trait):
+                        personality_modifier *= modifier
+            
+            # Aggiungiamo anche il modificatore generico che avevamo prima
+            for trait in self.npc.traits.values():
+                personality_modifier *= trait.get_action_choice_priority_modifier(action, simulation_context)
             for trait in self.npc.traits.values():
                 personality_modifier *= trait.get_action_choice_priority_modifier(action, simulation_context)
 

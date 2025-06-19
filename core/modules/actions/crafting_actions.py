@@ -21,10 +21,29 @@ class CookAction(BaseAction):
     Azione per cucinare un pasto. L'esito è un oggetto 'cibo' e l'accodamento
     di una EatAction per consumarlo.
     """
-    def __init__(self, npc, simulation_context, **kwargs):
+    def __init__(self, npc: 'Character', simulation_context: 'Simulation', **kwargs):
+        # Recupera la configurazione per il bisogno HUNGER una sola volta
         config = actions_config.SIMPLE_NEED_ACTION_CONFIGS.get(NeedType.HUNGER, {})
         duration = int(config.get("duration_hours", 0.75) * time_config.TXH_SIMULATION)
-        super().__init__(npc, simulation_context, duration_ticks=duration, action_type_enum=ActionType.ACTION_COOK, **kwargs)
+        
+        super().__init__(
+            npc=npc,
+            p_simulation_context=simulation_context,
+            duration_ticks=duration,
+            action_type_enum=ActionType.ACTION_COOK,
+            **kwargs
+        )
+
+        self.skill_to_practice = SkillType.COOKING
+        skill_xp_gain = config.get("skill_xp_gain", 24)        
+        self.skill_xp_per_tick = skill_xp_gain / self.duration_ticks if self.duration_ticks > 0 else 0
+
+    def execute_tick(self):
+        super().execute_tick()
+        # Non ci sono effetti graduali sui bisogni, ma solo sulla skill
+        if self.is_started and not self.is_finished:
+            if self.skill_to_practice and self.skill_xp_per_tick > 0:
+                self.npc.skill_manager.add_experience(self.skill_to_practice, self.skill_xp_per_tick)
 
     def on_finish(self):
         super().on_finish()

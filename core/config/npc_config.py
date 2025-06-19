@@ -15,40 +15,40 @@ from core.config import time_config
 
 # --- Soglie e Valori dei Bisogni (Adattati a 28 ore) ---
 NEED_MIN_VALUE: float = 0.0
-NEED_MAX_VALUE: float = 100.0
-NEED_DEFAULT_START_MIN: float = 50.0
-NEED_DEFAULT_START_MAX: float = 80.0
-NEED_LOW_THRESHOLD: float = 25.0
-NEED_HIGH_THRESHOLD: float = 75.0
-NEED_CRITICAL_THRESHOLD: float = 10.0
+NEED_MAX_VALUE: float = 144.0
+NEED_DEFAULT_START_MIN: float = 72.0
+NEED_DEFAULT_START_MAX: float = 115.0
+NEED_LOW_THRESHOLD: float = 36.0
+NEED_HIGH_THRESHOLD: float = 108.0
+NEED_CRITICAL_THRESHOLD: float = 18.0
 CRITICAL_NEED_THRESHOLD_MODIFIER: float = 1.5
 AI_URGENT_PROBLEM_THRESHOLD: float = 0.5
-STRESS_HIGH_THRESHOLD = 75.0
+STRESS_HIGH_THRESHOLD = 108.0
 
 # --- Tassi di Decadimento Bisogni (Punti all'ora di gioco) ---
 # Questi sono i valori di bilanciamento che possiamo modificare facilmente.
 # Un valore negativo indica un calo.
 NEED_HOURLY_DECAY_RATES: dict[NeedType, float] = {
-    NeedType.ENERGY: -4.0,
-    NeedType.HUNGER: -3.15,
-    NeedType.THIRST: -4.12,
-    NeedType.SOCIAL: -1.88,
-    NeedType.FUN: -2.25,
-    NeedType.HYGIENE: -1.5,
-    NeedType.BLADDER: -6.2,
-    NeedType.INTIMACY: -1.12,
-    NeedType.COMFORT: -0.75,
-    NeedType.ENVIRONMENT: -0.38,
-    NeedType.SAFETY: -0.38,
-    NeedType.CREATIVITY: -0.22,
-    NeedType.LEARNING: -0.15,
-    NeedType.AUTONOMY: -0.22,
-    NeedType.ACHIEVEMENT: -0.15,
-    NeedType.SPIRITUALITY: -0.3,
+    NeedType.ENERGY: -5.76,
+    NeedType.HUNGER: -4.536,
+    NeedType.THIRST: -5.9328,
+    NeedType.SOCIAL: -2.7072,
+    NeedType.FUN: -3.24,
+    NeedType.HYGIENE: -2.16,
+    NeedType.BLADDER: -8.928,
+    NeedType.INTIMACY: -1.6128,
+    NeedType.COMFORT: -1.08,
+    NeedType.ENVIRONMENT: -0.5472,
+    NeedType.SAFETY: -0.5472,
+    NeedType.CREATIVITY: -0.3168,
+    NeedType.LEARNING: -0.216,
+    NeedType.AUTONOMY: -0.3168,
+    NeedType.ACHIEVEMENT: -0.216,
+    NeedType.SPIRITUALITY: -0.432,
 }
 
 # --- Tassi di Decadimento calcolati per Tick di Simulazione ---
-# NON TOCCARE QUESTA PARTE. Calcola automaticamente i valori corretti.
+# NON TOCCARE QUESTA PARTE. Calcolarf                   automaticamente i valori corretti.
 NEED_DECAY_RATES_PER_TICK: dict[NeedType, float] = {
     need: rate / TXH_SIMULATION
     for need, rate in NEED_HOURLY_DECAY_RATES.items()
@@ -57,19 +57,24 @@ NEED_DECAY_RATES_PER_TICK: dict[NeedType, float] = {
 # --- CONFIGURAZIONE DEI MOODLET ---
 MOODLET_CONFIGS = {
     MoodletType.BORED: {
-        "display_name": "Annoiato",
-        "emotional_impact": -10,
+        "emotional_impact": -14.4,
         "duration_hours": 3,
     },
     MoodletType.LONELY: {
-        "display_name": "Solo",
-        "emotional_impact": -15,
+        "emotional_impact": -21.6,
         "duration_hours": 4,
     },
     MoodletType.STRESSED: {
-        "display_name": "Stressato",
-        "emotional_impact": -20,
+        "emotional_impact": -28.8,
         "duration_hours": 5,
+    },
+    MoodletType.ENERGETIC: {
+        "emotional_impact": 14.4, # +10 * 1.44
+        "duration_hours": 3,
+    },
+    MoodletType.DEPRESSED: {
+        "emotional_impact": -28.8, # -20 * 1.44
+        "duration_hours": 8,
     },
     # Aggiungi qui gli altri moodlet...
 }
@@ -89,25 +94,16 @@ NEED_TO_MOODLET_MAP = {
     # ... e così via per gli altri bisogni critici
 }
 
-
-
-
-
-
-
-
-
-
 NEED_SCHEDULE_CONFIG = {
     NeedType.HUNGER: {
         # Lista di ore (su 28) in cui l'NPC "dovrebbe" avere fame
         "peak_times": [8, 15, 22], # Colazione, Pranzo, Cena
-        "peak_influence": 25.0, # Bonus di punteggio da aggiungere se siamo vicini all'ora di punta
+        "peak_influence": 36.0, # 36 Bonus di punteggio da aggiungere se siamo vicini all'ora di punta
     },
     NeedType.SOCIAL: {
         # La socialità è più importante la sera
         "peak_times": [19, 25], # Dalle 19:00 all'una di notte
-        "peak_influence": 15.0,
+        "peak_influence": 21.6, # 21.6 o 18?
     },
     # Aggiungi qui altri bisogni se necessario...
 }
@@ -126,7 +122,7 @@ NEED_WEIGHTS: dict[NeedType, float] = {
 
 # --- STRESS E CARICO COGNITIVO ---
 # La soglia media dei bisogni sotto la quale lo stress inizia ad aumentare.
-COGNITIVE_LOAD_THRESHOLD: float = 40.0
+COGNITIVE_LOAD_THRESHOLD: float = 57.6
 
 # Tasso di aumento dello stress per tick quando i bisogni sono bassi.
 COGNITIVE_LOAD_GAIN_RATE: float = 0.005
@@ -240,16 +236,16 @@ FRIEND_CONNECT_MIN_ACCESS_AGE_DAYS = FRIEND_CONNECT_MIN_ACCESS_AGE_YEARS * DXY
 # Soglie di necessità per l'utilizzo spontaneo
 SERVICE_NEED_THRESHOLDS = {
     ServiceType.AMORI_CURATI_PHASE1: {
-        NeedType.INTIMACY: 30.0,
-        NeedType.SOCIAL: 40.0
+        NeedType.INTIMACY: 43.2,
+        NeedType.SOCIAL: 57.6
     },
     ServiceType.AMORI_CURATI_PHASE2: {
-        NeedType.INTIMACY: 25.0,
-        NeedType.ACHIEVEMENT: 50.0
+        NeedType.INTIMACY: 36.0,
+        NeedType.ACHIEVEMENT: 72.0
     },
     ServiceType.FRIEND_CONNECT: {
-        NeedType.SOCIAL: 35.0,
-        NeedType.FUN: 45.0
+        NeedType.SOCIAL: 50.4,
+        NeedType.FUN: 64.8
     }
 }
 
@@ -331,12 +327,12 @@ ORIENTATION_SOLIDIFICATION_FACTORS = {
 CHANCE_ORIENTATION_EXPLORATION_TEEN = 0.65
 
 # --- Cura degli Infanti (Aggiornato) ---
-INFANT_CARE_HUNGER_THRESHOLD = 40
-INFANT_CARE_HYGIENE_THRESHOLD = 35
-INFANT_CARE_BLADDER_THRESHOLD = 30
-INFANT_CARE_SOCIAL_THRESHOLD = 45
-PARENT_MIN_ENERGY_FOR_CARE = 40
-PARENT_ENERGY_COST_FEEDING = 7
+INFANT_CARE_HUNGER_THRESHOLD = 57.6
+INFANT_CARE_HYGIENE_THRESHOLD = 50.4
+INFANT_CARE_BLADDER_THRESHOLD = 43.2
+INFANT_CARE_SOCIAL_THRESHOLD = 64.8
+PARENT_MIN_ENERGY_FOR_CARE = 57.6
+PARENT_ENERGY_COST_FEEDING = 10.08
 
 # --- Matching e Relazioni ---
 DATING_CANDIDATE_MAX_AGE_DIFFERENCE_YEARS = 12 
@@ -352,20 +348,20 @@ LOD_DISTANCE_MEDIUM = 150.0
 # --- Guadagni da Azioni (Per tick) ---
 ACTION_SATISFACTION_GAINS_PER_TICK = {
     "EAT": {
-        NeedType.HUNGER: (65 * SXH) / TXH_SIMULATION,
-        NeedType.COMFORT: (15 * SXH) / TXH_SIMULATION
+        NeedType.HUNGER: (93.6 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (21.6 * SXH) / TXH_SIMULATION
     },
     "SLEEP": {
-        NeedType.ENERGY: (85 * SXH) / TXH_SIMULATION,
-        NeedType.COMFORT: (20 * SXH) / TXH_SIMULATION
+        NeedType.ENERGY: (122.4 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (28.8 * SXH) / TXH_SIMULATION
     },
     "SOCIALIZE": {
-        NeedType.SOCIAL: (50 * SXH) / TXH_SIMULATION,
-        NeedType.FUN: (30 * SXH) / TXH_SIMULATION
+        NeedType.SOCIAL: (72 * SXH) / TXH_SIMULATION,
+        NeedType.FUN: (43.2 * SXH) / TXH_SIMULATION
     },
     "INTIMACY": {
-        NeedType.INTIMACY: (75 * SXH) / TXH_SIMULATION,
-        NeedType.COMFORT: (25 * SXH) / TXH_SIMULATION
+        NeedType.INTIMACY: (108 * SXH) / TXH_SIMULATION,
+        NeedType.COMFORT: (36 * SXH) / TXH_SIMULATION
     }
 }
 

@@ -8,9 +8,7 @@ import sys
 from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
 
-from .time_config import MXY, DXM, DXW
-from .social_config import AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS
-from npc_config import MAX_TRAITS_PER_NPC
+from . import npc_config, time_config, social_config, actions_config, graphics_config, ui_config 
 
 # Struttura per memorizzare i risultati della validazione
 @dataclass
@@ -31,19 +29,19 @@ class ConfigValidator:
                 ('HXD', self._check_positive_int, "Ore per giorno deve essere intero positivo"),
                 ('DXM', self._check_positive_int, "Giorni per mese deve essere intero positivo"),
                 ('MXY', self._check_positive_int, "Mesi per anno deve essere intero positivo"),
-                ('DXY', lambda v: v == MXY * DXM, "DXY deve essere MXY * DXM"),
-                ('MONTH_NAMES', lambda v: len(v) == MXY, f"Deve esserci {MXY} nomi di mesi"),
-                ('DAY_NAMES', lambda v: len(v) == DXW, f"Deve esserci {DXW} nomi di giorni"),
+                ('DXY', lambda v: v == time_config.MXY * time_config.DXM, "DXY deve essere MXY * DXM"),
+                ('MONTH_NAMES', lambda v: len(v) == time_config.MXY, f"Deve esserci {time_config.MXY} nomi di mesi"),
+                ('DAY_NAMES', lambda v: len(v) == time_config.DXW, f"Deve esserci {time_config.DXW} nomi di giorni"),
             ],
             'npc_config': [
-                ('MIN_TRAITS_PER_NPC', lambda v: 1 <= v <= MAX_TRAITS_PER_NPC, 
+                ('MIN_TRAITS_PER_NPC', lambda v: 1 <= v <= npc_config.MAX_TRAITS_PER_NPC, 
                     "MIN_TRAITS_PER_NPC deve essere <= MAX_TRAITS_PER_NPC"),
                 ('LIFE_STAGE_AGE_THRESHOLDS_DAYS', self._check_ascending_thresholds,
                     "Soglie età devono essere in ordine crescente"),
                 ('NEED_DECAY_RATES', self._check_negative_values,
                     "Tassi decadimento bisogni devono essere negativi"),
-                ('NEED_CRITICAL_THRESHOLD', lambda v: 0 <= v <= 100,
-                    "Soglia critica bisogni deve essere tra 0 e 100"),
+                ('NEED_CRITICAL_THRESHOLD', lambda v: 0 <= v <= npc_config.NEED_MAX_VALUE,
+                    "Soglia critica bisogni deve essere tra 0 e {npc_config.NEED_MAX_VALUE}"),
             ],
             'school_config': [
                 ('SCHOOL_LEVELS', self._check_school_levels,
@@ -59,7 +57,7 @@ class ConfigValidator:
             ],
             'social_config': [
                 ('DATING_CANDIDATE_MIN_AGE_DAYS', 
-                    lambda v: v >= AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS,
+                    lambda v: v >= social_config.AMORI_CURATI_PHASE1_ACCESS_MIN_AGE_DAYS,
                     "Età minima appuntamenti deve essere >= età minima servizio Amori Curati"),
             ],
             'environment_config': [
@@ -160,6 +158,7 @@ class ConfigValidator:
                 return False
             prev_end = start + duration
         return True
+
 
     # --- Funzioni di reporting ---
     def generate_report(self) -> str:

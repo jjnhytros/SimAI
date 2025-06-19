@@ -1,6 +1,7 @@
 # core/AI/ai_coordinator.py
 from typing import TYPE_CHECKING, Dict, Optional
-from core import settings 
+from core import settings
+from core.config.life_stage_modifiers import LifeStageEffectSystem 
 from .ai_decision_maker import AIDecisionMaker # Questo dovrebbe rimanere così se AIDecisionMaker è in core/AI/
 from .decision_system import DecisionSystem
 from .needs_processor import NeedsProcessor
@@ -89,9 +90,12 @@ class AICoordinator:
             # Resetta lo stato anti-ripetizione dell'IA per dargli una "nuova possibilità"
             npc.ai_decision_maker.reset_decision_state()
 
+        LifeStageEffectSystem.apply_dynamic_effects(npc)
+
         # 1. Aggiorna i bisogni dell'NPC in base al tempo trascorso.
         # Questo fa decadere i bisogni e aggiorna il carico cognitivo.
-        npc.update_needs(time_manager, time_delta)
+        if self.simulation_context:
+            npc.update_needs(self.simulation_context.time_manager, time_delta)
 
         # 2. Aggiorna lo stato dell'azione corrente dell'NPC.
         # Questo metodo è molto importante perché al suo interno:

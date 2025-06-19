@@ -1,34 +1,47 @@
 # core/modules/skills/base_skill.py
-from typing import TYPE_CHECKING, List, Dict, Any
-
-from core.enums import SkillType
-# --- CORREZIONE: Importa dal nuovo file di configurazione ---
-from core.config import skills_config
+from typing import TYPE_CHECKING, Dict, List
 from core import settings
+from core.enums import SkillType, Gender
+from core.config import skills_config
 
 if TYPE_CHECKING:
     from core.character import Character
 
 class BaseSkill:
-    def __init__(self, character_owner: 'Character', skill_type: SkillType, initial_level: int = 1, initial_xp: float = 0.0):
-        self.character_owner = character_owner
-        self.skill_type = skill_type
+    def __init__(self, character_owner: 'Character', skill_type: SkillType,
+                initial_level: int = 1, initial_xp: float = 0.0):
+        self.character_owner: 'Character' = character_owner
+        self.skill_type: SkillType = skill_type
         
         self.max_level = skills_config.SKILL_SPECIFIC_MAX_LEVELS.get(self.skill_type, skills_config.DEFAULT_SKILL_MAX_LEVEL)
         self.xp_per_level_map = skills_config.XP_PER_LEVEL
         
-        self._level = initial_level
-        self._xp = initial_xp
+        self._level: int = initial_level
+        self._xp: float = initial_xp
         
-        # ... (la tua logica per i bonus iniziali, se vuoi mantenerla, andrebbe qui)
+        self.max_level: int = skills_config.SKILL_SPECIFIC_MAX_LEVELS.get(
+            skill_type, skills_config.DEFAULT_SKILL_MAX_LEVEL
+        )
 
     @property
     def level(self) -> int:
         return self._level
 
+    @level.setter
+    def level(self, value: int):
+        """Setter: Imposta un nuovo livello, con controlli."""
+        self._level = max(1, min(self.max_level, value))
+
     @property
     def xp(self) -> float:
+        """Getter: Restituisce l'XP corrente."""
         return self._xp
+
+    @xp.setter
+    def xp(self, value: float):
+        """Setter: Imposta un nuovo valore di XP."""
+        # L'XP non può essere negativo
+        self._xp = max(0, value)
 
     def add_experience(self, amount: float):
         if self._level >= self.max_level:
@@ -90,7 +103,10 @@ class BaseSkill:
         """Restituisce benefici per livello. Da sovrascrivere nelle sottoclassi."""
         return {}
 
-    def __str__(self):
-        # Passa il genere del proprietario al metodo
-        display_name = self.skill_type.display_name_it(self.character_owner.gender)
+    def get_display_name(self, gender: Gender) -> str:
+        """Restituisce il nome leggibile dell'abilità."""
+        return self.skill_type.display_name_it(gender)
+
+    def __str__(self) -> str:
+        display_name = self.get_display_name(self.character_owner.gender)
         return f"{display_name}: Liv {self.level}/{self.max_level} (XP: {self.xp:.0f})"

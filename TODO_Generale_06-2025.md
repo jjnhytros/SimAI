@@ -1,16 +1,6 @@
-# SimAI
-📌 *Ultimo aggiornamento: Claire & Marco – 16 giugno 2025*
-
-**Legenda:**
-`[ ]`    Non ancorra implementato
-`[!]`   Principi Guida da prendere in considerazione con priorità assoluta
-`[P]`   Parzialmente implementato
-`[@]`   Implementato, ma necessita di revisione
-`[x]`   Implementazione terminata
-`[ ]`   Implementazione futura
-`[-]`   Implementazione non applicabile
-`[0-9]`   Implementazione con priorità (0=Prioritaria, 1=Alta, 5=Media, 9=Bassa)
-
+# SimAI v0.21.0
+# TODO List Generale (Aggiornato al 19 June 2025 21:33:54)
+_**Ultimo aggiornamento: Claire & Marco – 19 June 2025**_
 ---
 
 ## 0. PRINCIPI GUIDA E FILOSOFIA DEL PROGETTO
@@ -456,8 +446,8 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 
 ### **1. Sistema dei Bisogni:** `[P]`
     * `[x]` a. Implementati Bisogni modulari con decadimento/soddisfazione. `[1.0.0]`
-    * `[P]` b. Logica di decadimento influenzata da azioni, tratti, stadio vita, gravidanza. `[1.0.1]`
-        * `[ ]` i. Integrazione Cicli Biologici per influenzare dinamicamente i tassi di decadimento. `[1.2.0]`
+    * `[x]` b. Logica di decadimento influenzata da azioni, tratti, stadio vita, gravidanza. `[1.0.1]`
+        * `[P]` i. Integrazione Cicli Biologici per influenzare dinamicamente i tassi di decadimento. `[1.2.0]`
     * `[P]` c. Transizioni tra stadi di vita con eventi/cambiamenti associati. `[1.0.0]`
     * `[ ]` e. Interazione dei bisogni con azioni:
         * `[ ]` i. Azioni Sociali Complesse e Intimità Fisica (Abbracciare, Baciare). `[1.0.1]`
@@ -469,10 +459,10 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` f. Aggiungere bisogni più complessi o secondari (es. `INTIMACY`). `[1.0.0]`
         * `[ ]` i. Valutare e Implementare Bisogno di SPIRITUALITÀ. `[1.2.0]`
         * `[P]` ii. Altri bisogni potenziali (`COMFORT`, `SAFETY`, `CREATIVITY_NEED`, `ACHIEVEMENT_NEED`). `[1.0.0]`
-    * `[P]` g. **Interdipendenze Dinamiche tra Bisogni (basate su Azioni):** `[1.0.1]`
-        * `[P]` i. Utilizzare il dizionario `effects_on_needs` nelle configurazioni delle azioni per definire impatti multipli e interconnessi (es. Caffè -> +Energia, +Sete, -Vescica). `[1.0.1]`
-        * `[ ]` ii. L'azione `on_finish` deve applicare tutti gli effetti definiti. `[1.0.1]`
-        * `[ ]` iii. Il decadimento passivo di un bisogno (es. `ENERGY`) può essere accelerato o rallentato dall'azione in corso (es. un'azione `WORKOUT` consuma energia ad ogni tick, non solo alla fine). `[1.1.0]`
+    * `[x]` g. **Interdipendenze Dinamiche tra Bisogni (basate su Azioni):** `[1.0.1]`
+        * `[x]` i. Utilizzare il dizionario `effects_on_needs` nelle configurazioni delle azioni per definire impatti multipli e interconnessi. `[1.0.1]`
+        * `[x]` ii. L'azione `on_finish` deve applicare tutti gli effetti definiti. `[1.0.1]`
+        * `[x]` iii. Il decadimento passivo di un bisogno è ora gestito e bloccato dall'azione in corso. `[1.1.0]`
     * `[ ]` h. Sistema di Malattie e Salute Fisica. `[1.2.0]`
         * `[ ]` i. Definire malattie comuni e rare. `[1.2.0]`
         * `[ ]` ii. Sintomi, progressione, impatto e cure. `[1.2.0]`
@@ -489,18 +479,18 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[ ]` 4. Sviluppare un sistema di "Meccanismi di Coping". `[FUTURO]`
         * `[ ]` 5. **La capacità di mentire a sé stesso:** Implementare filtri mentali come negazione, romanticizzazione del passato, e illusioni come meccanismi di difesa emotiva. `[FUTURO]`
     * `[ ]` k. Gestione Scorte Domestiche e Comportamento d'Acquisto NPC. `[1.1.0]`
-    * `[ ]` l. **Bilanciamento Decadimento Bisogni:** `[1.0.1]`
-        * `[ ]` i. Ridurre i tassi di decadimento base del 15-25% per adattarli alla giornata di 28 ore. `[1.0.1]`
-        * `[ ]` ii. Bilanciare proporzionalmente i tassi tra bisogni (es. fame vs energia). `[1.0.1]`
-    * `[ ]` m. **Parametri Fisiologici e Metabolismo:** `[1.0.1]`
-        * `[ ]` i. Introdurre modificatori metabolici per età (infanzia +90%, anzianità -35%). `[1.0.1]`
-        * `[ ]` ii. Introdurre modificatori metabolici per genere (M: +8%, F: -6%). `[1.0.1]`
-    * `[ ]` n. **Integrazione Completa Ritmo Circadiano:** `[1.1.0]`
+    * `[x]` l. **Bilanciamento Decadimento Bisogni:** `[1.0.1]`
+        * `[x]` i. Ridotti/Modificati i tassi di decadimento base. `[1.0.1]`
+        * `[x]` ii. Bilanciati proporzionalmente i tassi tra bisogni. `[1.0.1]`
+    * `[x]` m. **Parametri Fisiologici e Metabolismo:** `[1.0.1]`
+        * `[x]` i. Introdotti modificatori metabolici per età. `[1.0.1]`
+        * `[x]` ii. Introdotti modificatori metabolici per genere. `[1.0.1]`
+    * `[P]` n. **Integrazione Completa Ritmo Circadiano:** `[1.1.0]`
         * `[ ]` i. Definire picchi circadiani specifici per ogni bisogno. `[1.1.0]`
         * `[ ]` ii. Aggiungere modificatori per le stagioni (impatto maggiore in estate/inverno). `[1.2.0]`
         * `[ ]` iii. Creare parametri circadiani specifici per ogni fase di vita. `[1.1.0]`
         * `[ ]` iv. Implementare finestre di sonno differenziate (infanti, adolescenti, anziani). `[1.1.0]`
-    * `[ ]` o. **Implementare un'Agenda dei Bisogni (Need Scheduler):** `[1.1.0]`
+    * `[P]` o. **Implementare un'Agenda dei Bisogni (Need Scheduler):** `[1.1.0]`
         * `[ ]` i. Definire in `npc_config.py` gli "orari di punta" per bisogni specifici (es. `HUNGER`). `[1.1.0]`
         * `[ ]` ii. `AIDecisionMaker` deve applicare un bonus di punteggio alle azioni pertinenti se l'ora corrente è vicina a un'ora di punta, promuovendo comportamenti proattivi e basati su routine. `[1.1.0]`
 
@@ -601,7 +591,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
             * `[P]` 1. Sviluppata una funzione di "punteggio" che considera: Efficienza, Personalità, Contesto, Memoria, Stato Mentale. `[1.0.0]`
             * `[ ]` 2. (Futuro) **Implementare Bias Cognitivi:** Introdurre nel sistema decisionale bias psicologici come il "Bias di Conferma" o la "Fallacia dei Costi Sommersi" per rendere il comportamento degli NPC meno razionale e più umano. `[2.0.0+]`
             * `[x]` 3. Implementata la gestione dei conflitti decisionali. `[1.0.0]`
-        * `[x]` iii. **Fase 3: Creazione del "Pensiero"** (con la classe `Thought`). `[1.0.1]`
+        * `[P]` iii. **Fase 3: Creazione del "Pensiero"** (con la classe `Thought`). `[1.0.1]`
         * `[x]` iv. **Fase 4: Esecuzione della "Soluzione"** (tramite la coda di azioni del `Character`). `[1.0.0]`
         * `[P]` v. **Fase 5: Analisi Conseguenze e Apprendimento** (tramite `ConsequenceAnalyzer`). `[1.0.0]`
     * `[x]` b. Sistema base di azioni e coda di esecuzione. `[1.0.0]`
@@ -1075,10 +1065,9 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 ---
 
 ## 🛠️ IX. ABILITÀ (SKILLS) `[ ]`
-
 * `[P]` a. **Struttura Base per le Abilità:**
     * `[x]` i. `SkillType` Enum definita e mantenuta in categorie. `[1.0.0]`
-    * `[P]` ii. Creare una classe `BaseSkill` in `modules/skills/base_skill.py`. `[1.0.0]`
+    * `[x]` ii. Creata classe `BaseSkill` con gestione livelli e XP. `[1.0.0]`
         * `[P]` 1. Gestire livelli di abilità. `[1.0.0]`
         * `[P]` 2. Gestire Punti Esperienza (XP). `[1.0.0]`
         * `[P]` 3. Logica di progressione ai livelli successivi. `[1.0.0]`
@@ -1086,7 +1075,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` iii. Creare classi specifiche per ogni `SkillType`. `[1.0.0]`
         * `[P]` 1. Ogni classe Skill specifica può sovrascrivere la curva XP o aggiungere benefici unici. `[1.0.0]`
     * `[ ]` iv. Modificare `Character.skills` per contenere istanze delle classi Skill. `[1.0.0]`
-    * `[ ]` v. Modificare la logica di guadagno skill per usare il metodo `add_experience()`. `[1.0.1]`
+    * `[P]` v. Modificata la logica di guadagno skill per usare il metodo `add_experience()`. `[1.0.1]`
     * `[ ]` vi. Libri per apprendere abilità più velocemente. `[1.1.0]`
     * `[ ]` vii. Possibilità di "Mentoring" da NPC con abilità più alta. `[1.1.0]`
 * `[ ]` b. **IA per Scelta Sviluppo Abilità:** `[1.1.0]`
@@ -1095,7 +1084,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` i. Espandere il set di abilità e il loro impatto. `[1.0.1]`
     * `[ ]` ii. Definire azioni specifiche per l'apprendimento attivo. `[1.0.1]`
     * `[ ]` iii. Le skill sbloccano interazioni sociali o azioni uniche. `[1.0.2]`
-    * `[ ]` iv. Il livello di una skill influenza la probabilità di successo e la qualità dell'esito. `[1.1.0]`
+    * `[P]` iv. Il livello di una skill influenza la probabilità di successo e la qualità dell'esito. `[1.1.0]`
     * `[ ]` v. (Avanzato) Sistema di "decadimento skill". `[FUTURO]`
 * `[P]` d. **Gestione Skill per NPC di Background (LOD3):** `[1.1.0]`
     * `[P]` i. Gli NPC di background tracciano solo un numero limitato di `key_skills`. `[1.1.0]`
@@ -1190,18 +1179,18 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` b. Gli NPC usano queste skill per azioni di routine. `[1.0.0]`
     * `[P]` c. Il livello di queste skill influenza l'efficacia e la qualità dell'esito. `[1.0.0]`
 
-### **4. Sistema di Creazione Oggetti/Opere (Crafting/Produzione):** `[ ]`
-    * `[P]` a. NPC con tratti/skill appropriate possono creare oggetti o opere. `[1.0.1]`
+* `[P]` **4. Sistema di Creazione Oggetti/Opere (Crafting/Produzione):**
+    * `[x]` a. NPC con tratti/skill appropriate possono creare oggetti o opere. `[1.0.1]`
     * `[ ]` b. Implementare un sistema di "ricette" o "schemi" per il crafting. `[1.0.1]`
-    * `[P]` c. Gli oggetti/opere prodotti hanno livelli di qualità. `[1.0.1]`
+    * `[x]` c. Gli oggetti/opere prodotti hanno livelli di qualità. `[1.0.1]`
     * `[ ]` d. Gli oggetti/opere possono essere usati, esposti, regalati o venduti. `[1.1.0]`
     * `[ ]` e. Completare un'opera significativa dà un forte moodlet positivo. `[1.1.0]`
 
-### **5. Sistema di Cucina e Cibo:** `[P]`
+* `[P]` **5. Sistema di Cucina e Cibo:**
     * `[ ]` a. Definire ricette e tipi di cibo. `[1.0.1]`
-    * `[P]` b. Implementare livelli di qualità per il cibo prodotto. `[1.0.0]`
-    * `[P]` c. Azioni di cucina producono cibo con qualità influenzata da skill e tratti. `[1.0.0]`
-    * `[P]` d. Mangiare cibo di alta qualità ha un impatto maggiore su `HUNGER` e umore. `[1.0.0]`
+    * `[x]` b. Implementati livelli di qualità per il cibo prodotto. `[1.0.0]`
+    * `[x]` c. Azioni di cucina producono cibo con qualità influenzata da skill. `[1.0.0]`
+    * `[x]` d. Mangiare cibo di alta qualità ha un impatto maggiore su `HUNGER` e umore. `[1.0.0]`
     * `[ ]` e. (Futuro) Ingredienti e loro impatto sulla qualità/tipo di piatto. `[1.2.0]`
 
 ### **6. Sistema di Giardinaggio:** `[P]`
@@ -1517,7 +1506,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 * `[x]` **2. Gestione delle Configurazioni e Settings:** `[1.0.0]`
     * `[x]` a. File `settings.py` per costanti globali non modificabili a runtime. `[1.0.0]`
     * `[x]` b. File `settings.json` (o simile) per impostazioni utente modificabili. `[1.0.0]`
-        * `[ ]` i. **Fusione Configurazioni:** Spostare le costanti rilevanti per gli NPC da `settings.py` a `npc_config.py` per una maggiore coerenza. `[1.0.1]`
+    * `[x]` i. **Fusione Configurazioni:** Spostate le costanti NPC da `settings.py` a `npc_config.py`. `[1.0.1]`
     * `[x]` c. Architettura di configurazioni modulari in `core/config/` (es. `actions_config.py`, `npc_config.py`). `[1.0.0]`
 * `[ ]` **3. Sistema di Logging Avanzato:** 
     * `[ ]` a. Implementare un sistema di logging robusto (es. `logging` di Python) con diversi livelli (DEBUG, INFO, WARN, ERROR). `[1.1.0]`
@@ -1755,9 +1744,9 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` d. **Comandi di Visualizzazione/Debug:** `[1.1.0]`
     * `[!]` e. Assicurarsi che i comandi cheat siano accessibili solo in modalità sviluppo. `[1.0.0]`
 
-### **4. Utility Scripts per la Gestione del Progetto:** `[ ]`
+* `[P]` **4. Utility Scripts per la Gestione del Progetto:**
     * `[ ]` a. Script per generare automaticamente le classi tratto base. `[1.2.0]`
-    * `[ ]` b. Script per validare la coerenza dei file di configurazione. `[1.2.0]`
+    * `[x]` b. Script per validare la coerenza dei file di configurazione. `[1.2.0]`
     * `[ ]` c. Script per aiutare nel refactoring (es. trovare stringhe hardcoded). `[1.2.0]`
 
 ---

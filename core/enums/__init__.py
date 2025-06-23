@@ -20,6 +20,7 @@ from .lod_level import LODLevel
 from .moodlet_types import MoodletType
 from .need_types import NeedType
 from .object_types import ObjectType
+from .panel_tab_types import PanelTabType
 from .problem_types import ProblemType
 from .relationship_statuses import RelationshipStatus 
 from .relationship_types import RelationshipType
@@ -47,6 +48,7 @@ __all__ = [
     'MoodletType',
     'NeedType',
     'ObjectType',
+    'PanelTabType',
     'ProblemType',
     'RelationshipStatus',
     'RelationshipType',
@@ -59,4 +61,3 @@ __all__ = [
     'TraitType',
     'WeatherType',
 ]
-

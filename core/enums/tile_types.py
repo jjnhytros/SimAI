@@ -15,3 +15,5 @@ class TileType(IntEnum):
     DOOR_MAIN_ENTRANCE = auto()
     WALL = auto()
     FLOOR_WOOD = auto()
+    FLOOR_CAFE = auto() # Pavimento per il caffè
+    FLOOR_GRASS = auto() # Erba per l'esterno

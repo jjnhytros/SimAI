@@ -11,6 +11,7 @@ from core.enums.object_types import ObjectType
 from core.enums.trait_types import TraitType
 from core.modules.actions import BaseAction
 from core.modules.actions.fun_actions import HaveFunAction
+from core.modules.actions.travel_actions import TravelToAction
 from .needs_processor import NeedsProcessor
 from .thought import Thought, ScoredAction
 from core.modules.memory.memory_definitions import Problem 
@@ -158,6 +159,13 @@ class AIDecisionMaker:
                     if abs(current_hour - peak_hour) <= 1:
                         schedule_bonus = schedule["peak_influence"]
                         break
+            elif isinstance(action, TravelToAction):
+                # Un NPC socievole è più propenso a viaggiare
+                if self.npc.has_trait(TraitType.SOCIAL) or self.npc.has_trait(TraitType.PARTY_ANIMAL):
+                    personality_modifier *= 1.5 # Bonus del 50%
+                # Un solitario è meno propenso
+                elif self.npc.has_trait(TraitType.LONER):
+                    personality_modifier *= 0.6
             
             # Calcolo dello score finale
             final_score = (base_score + schedule_bonus) * personality_modifier * mood_modifier * time_modifier

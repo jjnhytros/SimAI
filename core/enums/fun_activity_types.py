@@ -17,6 +17,7 @@ class FunActivityType(Enum):
     BROWSE_SOCIAL_MEDIA = auto()
     VISIT_MUSEUM = auto()
     DRINK_COFFEE = auto()
+    USE_JUKEBOX = auto()
 
     # --- Attività Creative e Artigianali (Specifiche) ---
     PAINT = auto()

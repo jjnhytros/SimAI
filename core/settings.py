@@ -8,8 +8,8 @@ GAME_NAME = "SimAI"
 GAME_VERSION = "0.5.116-alpha_274"
 DEBUG_MODE = True
 # Imposta su True per avviare l'interfaccia grafica, False per la modalità testuale (TUI)
-GUI_ENABLED = True
-MAX_TICKS = 5000
+GUI_ENABLED = False
+MAX_TICKS = 2
 
 FPS = 60
 

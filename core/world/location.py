@@ -21,22 +21,20 @@ class Location:
     location_type: LocationType
     logical_width: int
     logical_height: int
-    tile_map: List[List[TileType]]
-
+    floor_map: List[List[TileType]]
+    wall_map: List[List[TileType]]
     style: str = "default"
     description: str = ""
     
     # --- CAMPI CON GESTIONE SPECIALE ---
-    processed_tile_map: List[List[Dict[str, Any]]] = field(init=False, default_factory=list)
     objects: Dict[str, GameObject] = field(default_factory=dict)
     npcs_present_ids: Set[str] = field(default_factory=set)
     walkable_grid: List[List[bool]] = field(init=False, default_factory=list)
 
     def __post_init__(self):
-        """Metodo speciale chiamato dalle dataclass dopo l'__init__."""
-        if self.tile_map:
-            self._process_tile_map()
-            self._create_walkability_grid()
+        """Metodo chiamato dopo l'__init__."""
+        # Creiamo la griglia di calpestabilità basandoci solo sui muri
+        self._create_walkability_grid()
 
     def add_object(self, obj: GameObject):
         """Aggiunge un oggetto alla locazione."""
@@ -110,21 +108,21 @@ class Location:
 
     def _create_walkability_grid(self):
         """
-        Crea una griglia booleana che considera sia i muri che gli oggetti solidi.
+        Crea una griglia booleana. Una mattonella è calpestabile se NON c'è un muro
+        e NON c'è un oggetto solido.
         """
         self.walkable_grid = []
-        # 1. Crea una mappa di base considerando solo i muri
-        for y, row in enumerate(self.tile_map):
+        # 1. Crea una mappa di base considerando solo la mappa dei muri
+        for y, row in enumerate(self.wall_map):
             new_row = []
             for x, tile_type in enumerate(row):
+                # Una mattonella è calpestabile se NON è un tipo di muro solido
                 is_walkable = tile_type not in graphics_config.SOLID_TILE_TYPES
                 new_row.append(is_walkable)
             self.walkable_grid.append(new_row)
 
-        # 2. Ora "sovrascrivi" la mappa con le posizioni degli oggetti solidi
+        # 2. Ora "sovrascrivi" con le posizioni degli oggetti solidi
         for obj in self.objects.values():
             if obj.object_type in graphics_config.SOLID_OBJECT_TYPES:
-                # Controlla che le coordinate siano valide prima di scrivere
                 if 0 <= obj.logical_y < self.logical_height and 0 <= obj.logical_x < self.logical_width:
-                    # Imposta la mattonella occupata dall'oggetto come non calpestabile
                     self.walkable_grid[obj.logical_y][obj.logical_x] = False

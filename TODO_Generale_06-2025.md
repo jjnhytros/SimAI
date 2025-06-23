@@ -316,8 +316,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[x]` a. Classe `Location` per rappresentare aree del mondo. `[1.0.0]`
     * `[x]` b. Capacità delle locazioni di contenere oggetti e NPC. `[1.0.0]`
     * `[ ]` c. Attributi della locazione (es. pulizia, livello di rumore). `[1.1.0]`
-    * `[ ]` d. Navigazione NPC tra locazioni (Pathfinding). `[1.1.0]`
-
+    * `[x]` d. Navigazione NPC tra locazioni (Pathfinding). `[1.1.0]`
 ---
 
 ## 👤 II. ### 👤 II. CREAZIONE PERSONAGGIO E NUCLEO FAMILIARE INIZIALE  
@@ -1925,7 +1924,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
 ### **1. Struttura Urbana e Distretti di Anthalys:** `[P]`
     * `[x]` a. Organizzazione Generale della Città. `[1.0.0]`
     * `[x]` b. Tipologie di Distretti Funzionali. `[1.0.0]`
-    * `[P]` c. Interazione e Flussi tra Distretti. `[1.0.0]`
+    * `[x]` c. Interazione e Flussi tra Distretti. `[1.0.0]`
 
 ### **2. Architettura e Design Urbano di Anthalys:** `[ ]`
     * `[x]` a. Filosofia Architettonica (Medievale/Moderno sostenibile). `[1.0.0]`

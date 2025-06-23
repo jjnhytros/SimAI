@@ -11,7 +11,10 @@ SPRITE_DEFINITIONS = {
         ObjectType.BED: {'rect': (0, 320, 64, 96)},     # ESEMPIO
         ObjectType.TABLE: {'rect': (192, 224, 64, 64)}, # ESEMPIO
         ObjectType.BOOKSHELF: {'rect': (512, 128, 64, 96)}, # ESEMPIO
-        # ... Aggiungi qui gli altri oggetti da dark-wood.png
+        ObjectType.SOFA: {'rect': (160, 96, 96, 64)},    # Divano a 3 posti
+        ObjectType.COFFEE_TABLE: {'rect': (160, 160, 64, 32)}, # Tavolino basso
+        ObjectType.DINING_TABLE: {'rect': (224, 96, 64, 64)},  # Tavolo da pranzo rotondo
+        ObjectType.DINING_CHAIR: {'rect': (224, 160, 32, 32)}, # Sedia da pranzo
     }
 }
 
@@ -20,10 +23,17 @@ TILE_DEFINITIONS = {
         TileType.FLOOR_LIVING_ROOM: {'rect': (352, 1376, 32, 32)},
         TileType.FLOOR_BEDROOM: {'rect': (192, 1632, 32, 32)},
         TileType.FLOOR_BATHROOM: {'rect': (128, 1696, 32, 32)},
-
-        # --- AGGIUNTE MANCANTI (COORDINATE DA TROVARE) ---
+        TileType.FLOOR_CAFE: {'rect': (32, 32, 32, 32)}, # Mattonella a scacchi blu        # --- AGGIUNTE MANCANTI (COORDINATE DA TROVARE) ---
         TileType.WALL: {'rect': (0, 0, 32, 32)},       # <-- ESEMPIO DA CAMBIARE!
-        TileType.DOORWAY: {'rect': (32, 0, 32, 32)},   # <-- ESEMPIO DA CAMBIARE!
+        # TileType.DOORWAY: {'rect': (32, 0, 32, 32)},   # <-- ESEMPIO DA CAMBIARE!
+
+        TileType.WALL_EXTERNAL: [ # Lista per avere muri esterni variati
+            {'rect': (128, 0, 32, 32)},
+            {'rect': (160, 0, 32, 32)},
+        ],
+        TileType.WALL_INTERNAL: {'rect': (192, 0, 32, 32)}, # Esempio per muro interno
+        TileType.DOORWAY: {'rect': (0, 96, 32, 32)}, # Esempio per apertura porta
+
     },
     SHEET_DOORS: {
         TileType.DOOR_MAIN_ENTRANCE: {'rect': (32, 288, 32, 48)},
@@ -45,8 +55,14 @@ SOLID_OBJECT_TYPES = {
     ObjectType.BOOKSHELF,
     ObjectType.REFRIGERATOR,
     ObjectType.FIREPLACE,
+    # --- NUOVE AGGIUNTE ---
+    ObjectType.SOFA,
+    ObjectType.COFFEE_TABLE,
+    ObjectType.DINING_TABLE,
+    ObjectType.COUNTER, # Se aggiungi banconi
+    ObjectType.SINK,
+    ObjectType.TOILET,
 }
-
 
 # Questa parte rimane, ma punta solo allo stile dei pavimenti
 DEFAULT_TILES_BY_LOCATION = {

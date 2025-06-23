@@ -119,13 +119,15 @@ class Simulation:
         Carica tutte le locazioni e gli oggetti del mondo dai file di dati dei distretti.
         """
         from core.data.districts.muse_quarter_data import district_locations as muse_locations
-        
-        all_locations = muse_locations # + ...
+        from core.data.residential.dosinvelos_data import district_locations as dosinvelos_locations        
+
+        all_locations = muse_locations + dosinvelos_locations # + ...
         
         for loc in all_locations:
-            self.locations[loc.location_id] = loc
-            for obj_id, obj in loc.objects.items():
-                self.world_objects[obj_id] = obj
+            if loc:
+                self.locations[loc.location_id] = loc
+                for obj_id, obj in loc.objects.items():
+                    self.world_objects[obj_id] = obj
 
         if settings.DEBUG_MODE:
             print(f"  [Simulation INIT] Caricate {len(self.locations)} locazioni e {len(self.world_objects)} oggetti dai file di dati.")

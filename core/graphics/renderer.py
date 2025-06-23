@@ -6,12 +6,13 @@ Riferimento TODO: I.1
 import pygame
 import time
 import random
-from typing import Dict, Optional, TYPE_CHECKING, List, Tuple, cast
+from typing import Dict, Optional, TYPE_CHECKING, List, Tuple
 
 from pygame.surface import Surface
 from core import settings
 from core.config import npc_config, ui_config, time_config, graphics_config
-from core.enums import Gender, TileType
+from core.enums import PanelTabType, TileType
+
 from core.graphics.asset_manager import AssetManager
 from core.modules.time_manager import TimeManager
 
@@ -44,6 +45,7 @@ class Renderer:
         self.selected_npc_id: Optional[str] = None
         self.hovered_npc: Optional['Character'] = None
         self.hovered_object: Optional['GameObject'] = None
+        self.active_panel_tab: PanelTabType = PanelTabType.BIO
         self.tile_size = ui_config.TILE_SIZE
         if settings.DEBUG_MODE: print(f"[Renderer] Inizializzato.")
 
@@ -69,10 +71,14 @@ class Renderer:
             self.font_small = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_SMALL)
             self.font_debug = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_DEBUG)
             self.font_claire = pygame.font.Font(ui_config.FONT_PATH, ui_config.FONT_SIZE_CLAIRE)
-
-            print("    -> Font personalizzato caricato con successo.")
-        except pygame.error:
-            print(f"  [Renderer WARN] Font '{ui_config.FONT_PATH}' non trovato o illeggibile.")
+            self.font_icons = pygame.font.Font("assets/fonts/NotoColorEmoji-Regular.ttf", 16)
+        except pygame.error as e:
+            # --- AGGIUNTA DI DEBUG QUI ---
+            print(f"\n[Renderer FATAL_WARN] Impossibile caricare il font per le icone 'NotoColorEmoji-Regular.ttf'.")
+            print(f"    -> Errore Pygame: {e}")
+            print(f"    -> Assicurati che il file esista in 'assets/fonts/' e non sia corrotto.")
+            print(f"    -> Le icone non verranno visualizzate correttamente.\n")
+            print("    -> Font personalizzati caricato con successo.")
             try:
                 # 2. Se fallisce, prova a caricare un font di sistema comune
                 print(f"    - Tento di caricare font di sistema: '{ui_config.FONT_FALLBACK_SYSTEM}'")
@@ -315,6 +321,43 @@ class Renderer:
                 return y + ui_config.LINE_HEIGHT
             return y # Nessun testo disegnato (stringa vuota in input)
 
+    def _draw_relationships_panel(self, npc: 'Character', x: int, y: int) -> int:
+        """Disegna la lista delle relazioni dell'NPC nel pannello UI."""
+        if not self.font_small or not self.simulation:
+            return y
+
+        current_y = self._draw_text_in_panel("Relazioni", x, y, font=self.font_medium_bold)
+        
+        # Prendi e ordina le relazioni per punteggio, dal più alto al più basso
+        if not npc.relationships:
+            return current_y
+            
+        relationships = sorted(list(npc.relationships.values()), key=lambda r: r.score, reverse=True)
+
+        # Mostra solo le prime 5 relazioni più importanti per non affollare la UI
+        for rel in relationships[:5]:
+            target_npc = self.simulation.get_npc_by_id(rel.target_npc_id)
+            if not target_npc:
+                continue
+
+            # 1. Recupera colore e nome direttamente dall'enum
+            rel_color = rel.type.get_color(target_npc.gender)
+            rel_display_name = rel.type.display_name_it(target_npc.gender)
+            
+            # 2. Disegna il quadratino colorato come segnaposto per l'icona
+            icon_rect = pygame.Rect(self.base_width + x, current_y, 16, 16)
+            pygame.draw.rect(self.screen, rel_color, icon_rect, border_radius=3)
+
+            # 3. Disegna il testo accanto all'icona
+            rel_text = f"{target_npc.name} ({rel_display_name} | {rel.score:.0f})"
+            # Usiamo x + 22 per lasciare spazio all'icona (16px + 6px di padding)
+            self._draw_text_in_panel(rel_text, x + 22, current_y, font=self.font_small)
+            
+            # Avanza alla riga successiva
+            current_y += ui_config.LINE_HEIGHT
+
+        return current_y
+
     def _render_wrapped_text_in_panel(self, text_to_wrap: str, x: int, y: int, max_width: int, font: pygame.font.Font, color: Tuple[int, int, int]) -> int:
         """
         Renderizza il testo nel pannello, andando a capo automaticamente.
@@ -473,63 +516,83 @@ class Renderer:
             self.screen.blit(text_surface, (x, y))
             return text_surface
 
+    def _draw_tile_on_surface(self, surface: Surface, tile_type: TileType, x: int, y: int, zoom: float):
+        """
+        Disegna una singola mattonella su una data superficie.
+        Questa è una funzione helper per _create_static_background.
+        """
+        if not tile_type or tile_type == TileType.EMPTY:
+            return
+
+        scaled_tile_size = int(ui_config.TILE_SIZE * zoom)
+        
+        # Determina quale spritesheet e stile usare
+        style_name = graphics_config.SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else graphics_config.SHEET_FLOORS
+        spritesheet = self.asset_manager.get_spritesheet(style_name)
+        
+        # Trova la definizione della mattonella
+        tile_def_or_list = graphics_config.TILE_DEFINITIONS.get(style_name, {}).get(tile_type)
+
+        if not tile_def_or_list or not spritesheet:
+            return
+
+        chosen_def = None
+        # Gestisce le mattonelle con varianti casuali (come i muri esterni)
+        if isinstance(tile_def_or_list, list):
+            # Usiamo un approccio deterministico basato sulle coordinate per la variante,
+            # così il muro non "sfarfalla" ad ogni ricaricamento.
+            variant_index = (x + y) % len(tile_def_or_list)
+            chosen_def = tile_def_or_list[variant_index]
+        elif isinstance(tile_def_or_list, dict):
+            chosen_def = tile_def_or_list
+
+        # Controllo di sicurezza per Pylance e per robustezza
+        if not isinstance(chosen_def, dict):
+            return
+
+        rect_tuple = chosen_def.get('rect')
+        if not rect_tuple: return
+
+        try:
+            tile_rect_to_cut = pygame.Rect(rect_tuple)
+            tile_image = spritesheet.subsurface(tile_rect_to_cut)
+            
+            # Scala l'immagine alla dimensione corretta per lo zoom attuale
+            final_tile_image = pygame.transform.scale(tile_image, (scaled_tile_size, scaled_tile_size))
+            
+            dest_x = x * scaled_tile_size
+            dest_y = y * scaled_tile_size
+            
+            surface.blit(final_tile_image, (dest_x, dest_y))
+        except ValueError as e:
+            if settings.DEBUG_MODE:
+                print(f"  [Renderer ERROR] Errore nel processare la tile {tile_type.name}: {e}")
+
     def _create_static_background(self, location: 'Location', zoom: float) -> Surface:
         """
         Crea e restituisce una singola superficie statica con l'intera mappa
-        di mattonelle già disegnata e scalata per il livello di zoom corrente.
+        di mattonelle disegnata a strati (prima pavimenti, poi muri).
         """
-        print(f"  [Renderer CACHE] Creo nuovo sfondo per '{location.name}' a zoom {zoom:.2f}x")
+        if settings.DEBUG_MODE:
+            print(f"  [Renderer CACHE] Creo nuovo sfondo per '{location.name}' a zoom {zoom:.2f}x")
         
-        scaled_tile_size = int(self.tile_size * zoom)
-        
+        scaled_tile_size = int(ui_config.TILE_SIZE * zoom)
         map_width_px = location.logical_width * scaled_tile_size
         map_height_px = location.logical_height * scaled_tile_size
         
         background_surface = pygame.Surface((map_width_px, map_height_px), pygame.SRCALPHA)
+        if scaled_tile_size <= 0: return background_surface
 
-        if scaled_tile_size <= 1: return background_surface
+        # --- PASS 1: Disegna tutti i pavimenti ---
+        for y, row in enumerate(location.floor_map):
+            for x, tile_type in enumerate(row):
+                self._draw_tile_on_surface(background_surface, tile_type, x, y, zoom)
 
-        for y, row in enumerate(location.processed_tile_map):
-            for x, tile_info in enumerate(row):
-                tile_type = tile_info.get("type")
-                variant_index = tile_info.get("variant_index", 0)
+        # --- PASS 2: Disegna tutti i muri (e le porte) sopra i pavimenti ---
+        for y, row in enumerate(location.wall_map):
+            for x, tile_type in enumerate(row):
+                self._draw_tile_on_surface(background_surface, tile_type, x, y, zoom)
 
-                if not tile_type or tile_type == TileType.EMPTY:
-                    continue
-
-                # 1. Determina quale spritesheet usare
-                style_name = graphics_config.SHEET_DOORS if tile_type in (TileType.DOORWAY, TileType.DOOR_MAIN_ENTRANCE) else graphics_config.SHEET_FLOORS
-                spritesheet = self.asset_manager.get_spritesheet(style_name)
-
-                # 2. Ora cerca la definizione della mattonella
-                tile_def_or_list = graphics_config.TILE_DEFINITIONS.get(style_name, {}).get(tile_type)
-
-                # 3. Solo adesso controlla se abbiamo trovato tutto il necessario
-                if not tile_def_or_list or not spritesheet:
-                    continue
-
-                if isinstance(tile_def_or_list, list):
-                    chosen_def = tile_def_or_list[variant_index]
-                else:
-                    chosen_def = tile_def_or_list
-                
-                try:
-                    if not isinstance(chosen_def, dict): continue # Se non è un dizionario, salta
-                    tile_rect_to_cut = pygame.Rect(chosen_def.get('rect', (0,0,32,32)))
-                    tile_image = spritesheet.subsurface(tile_rect_to_cut)
-                    scaled_tile_image = pygame.transform.scale(tile_image, (scaled_tile_size, scaled_tile_size))
-                    
-                    dest_x = x * scaled_tile_size
-                    dest_y = y * scaled_tile_size
-                    
-                    sprite_height_scaled = scaled_tile_image.get_height()
-                    if sprite_height_scaled > scaled_tile_size:
-                        dest_y -= (sprite_height_scaled - scaled_tile_size)
-
-                    background_surface.blit(scaled_tile_image, (dest_x, dest_y))
-                except ValueError as e:
-                    print(f"  [Renderer ERROR] Errore nel processare la tile {tile_type.name}: {e}")
-        
         return background_surface
 
     # ---------------------------------------------------------------------
@@ -651,6 +714,18 @@ class Renderer:
                         self.selected_npc_id = None 
                         if settings.DEBUG_MODE:
                             print(f"  [Renderer] Cambiata locazione visualizzata a: ID '{self.current_visible_location_id}'")
+                elif event.key == pygame.K_b:
+                    self.active_panel_tab = PanelTabType.NEEDS
+                elif event.key == pygame.K_r:
+                    self.active_panel_tab = PanelTabType.RELATIONSHIPS
+                elif event.key == pygame.K_s: # Per Skills
+                    self.active_panel_tab = PanelTabType.SKILLS
+                # Aggiungi qui altri tasti per le altre schede
+                
+                # Un tasto per tornare alla scheda principale (es. ESC o 'i' per Info)
+                elif event.key == pygame.K_i:
+                    self.active_panel_tab = PanelTabType.BIO
+
                 elif event.key == pygame.K_c:
                     if self.simulation and self.simulation.claire_system:
                         # Inverte lo stato di Claire: se è attiva la disattiva, e viceversa
@@ -753,6 +828,28 @@ class Renderer:
     # --- METODI HELPER DI DISEGNO ---
     # ---------------------------------------------------------------------
 
+    def _draw_panel_tabs(self, x: int, y: int) -> int:
+        """Disegna i pulsanti testuali per i tab e evidenzia quello attivo."""
+        tab_y = y
+        tab_x = self.base_width + x
+        
+        for tab_type in PanelTabType:
+            is_active = self.active_panel_tab == tab_type
+            color = self.WHITE if is_active else (150, 150, 150)
+            
+            # Per ora usiamo le iniziali come testo dei tab
+            text_surface = self.font_medium_bold.render(f"[{tab_type.name[0]}]", True, color)
+            
+            # Se il tab è attivo, disegna un piccolo sottolineato
+            if is_active:
+                underline_rect = pygame.Rect(tab_x, tab_y + text_surface.get_height() - 2, text_surface.get_width(), 2)
+                pygame.draw.rect(self.screen, self.WHITE, underline_rect)
+
+            self.screen.blit(text_surface, (tab_x, tab_y))
+            tab_x += text_surface.get_width() + 15 # Spazio tra i tab
+            
+        return y + self.font_medium_bold.get_height() + 10
+
     def _draw_pause_overlay(self):
         """Disegna l'overlay semitrasparente quando il gioco è in pausa."""
         overlay = pygame.Surface((self.base_width, self.height), pygame.SRCALPHA)
@@ -818,85 +915,84 @@ class Renderer:
 # All'interno della classe Renderer
 
     def _draw_ui_panel(self):
-        """Disegna l'intero pannello informativo laterale con tutti i suoi componenti."""
+        """
+        Nuovo metodo "router". Disegna lo sfondo e la barra dei tab,
+        poi chiama il metodo di disegno corretto per la scheda attiva.
+        """
         if not self.simulation: return
 
-        # --- 1. DISEGNO DELLO SFONDO DEL PANNELLO ---
+        # 1. Disegna lo sfondo del pannello
         panel_rect = pygame.Rect(self.base_width, 0, ui_config.PANEL_WIDTH, self.height)
         self.screen.fill(ui_config.PANEL_BG_COLOR, panel_rect)
         pygame.draw.line(self.screen, self.BLACK, (self.base_width, 0), (self.base_width, self.height), 2)
-
-        # --- 2. PREPARAZIONE VARIABILI ---
+        
         panel_padding = 10
         current_y = panel_padding
+
+        # 2. Disegna la barra dei tab e aggiorna la posizione y
+        current_y = self._draw_panel_tabs(panel_padding, current_y)
         
-        current_sim_time = self.simulation.time_manager.get_current_time()
-        current_location = self.simulation.get_location_by_id(self.current_visible_location_id)
+        # 3. Chiama il metodo di disegno specifico per la scheda attiva
         npc_to_display = self.simulation.get_npc_by_id(self.selected_npc_id)
-
-        # --- 3. DISEGNO BLOCCHI INFORMAZIONI ---
-
-        # Blocco Data e Ora
-        date_str = current_sim_time.format("l, Y, d F")
-        time_str = current_sim_time.format("H:i")
-        current_y = self._draw_text_in_panel(date_str, panel_padding, current_y, font=self.font_small, color=self.WHITE)
-        current_y = self._draw_text_in_panel(time_str, panel_padding, current_y, font=self.font_medium_bold, color=self.WHITE)
-        current_y += ui_config.LINE_HEIGHT
-
-        # Blocco Info Locazione
-        if current_location:
-            current_y = self._draw_text_in_panel(current_location.name, panel_padding, current_y, font=self.font_small)
-            cam_info = f"NPCs: {len(current_location.npcs_present_ids)}, Oggetti: {len(current_location.get_objects())}"
-            current_y = self._draw_text_in_panel(cam_info, panel_padding, current_y, font=self.font_debug)
-        current_y += ui_config.LINE_HEIGHT
-
-        # Blocco Dettagli NPC
         if npc_to_display:
-            npc = npc_to_display
-            
-            # Nome e Simbolo Genere
-            name_surface = self.font_large.render(npc.name, True, self.WHITE)
-            self.screen.blit(name_surface, (self.base_width + panel_padding, current_y))
-            gender_color = ui_config.NPC_GENDER_COLORS.get(npc.gender, ui_config.DEFAULT_NPC_COLOR)
-            gender_symbol_rect = pygame.Rect(self.base_width + panel_padding + name_surface.get_width() + 8, current_y + 8, 10, 10)
-            pygame.draw.rect(self.screen, gender_color, gender_symbol_rect)
-            current_y += ui_config.LINE_HEIGHT * 1.5 # Più spazio dopo il nome
-
-            # Data di nascita e Età
-            birth_date_str = npc.birth_date.format("Y, d F")
-            lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
-            age_str = f"{npc.get_age_in_years_float(current_sim_time):.1f} anni"
-            current_y = self._draw_text_in_panel(f"Nato/a il {birth_date_str}", panel_padding, current_y, font=self.font_small)
-            current_y = self._draw_text_in_panel(f"Età: {age_str} ({lifestage_str})", panel_padding, current_y, font=self.font_small)
-            current_y += ui_config.LINE_HEIGHT
-
-            # Azione
-            action_str = f"Azione: {npc.current_action.action_type_name}" if npc.current_action else "Azione: Inattivo"
-            current_y = self._draw_text_in_panel(action_str, panel_padding, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - panel_padding * 2)
-            current_y += ui_config.LINE_HEIGHT
-
-            # Personalità
-            current_y = self._draw_text_in_panel("Personalità", panel_padding, current_y, font=self.font_medium_bold)
-            trait_str = ", ".join(sorted([t.trait_type.display_name_it(npc.gender) for t in npc.traits.values()]))
-            current_y = self._draw_text_in_panel(f"Tratti: {trait_str}", panel_padding + 10, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - panel_padding*2 - 10)
-            asp_str = npc.aspiration.display_name_it(npc.gender) if npc.aspiration else "Nessuna"
-            current_y = self._draw_text_in_panel(f"Aspirazione: {asp_str}", panel_padding + 10, current_y, font=self.font_small)
-            interest_str = ", ".join(sorted([i.display_name_it(npc.gender) for i in npc.get_interests()]))
-            current_y = self._draw_text_in_panel(f"Interessi: {interest_str}", panel_padding + 10, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - panel_padding*2-10)
-            current_y += ui_config.LINE_HEIGHT
-
-            # Stato Emotivo e Bisogni
-            emotional_state_str = npc.moodlet_manager.get_dominant_emotion_display_name(npc.gender)
-            current_y = self._draw_text_in_panel(f"Stato Emotivo: {emotional_state_str}", panel_padding, current_y, font=self.font_small)
-            current_y += ui_config.LINE_HEIGHT
-            current_y = self._draw_text_in_panel("Bisogni", panel_padding, current_y, font=self.font_medium_bold)
-            
-            if npc.needs:
-                self._draw_needs_bars(npc, panel_padding, current_y)
+            sim_time = self.simulation.time_manager.get_current_time()
+            if self.active_panel_tab == PanelTabType.BIO:
+                self._draw_bio_panel(npc_to_display, panel_padding, current_y, sim_time)
+            elif self.active_panel_tab == PanelTabType.NEEDS:
+                self._draw_needs_panel(npc_to_display, panel_padding, current_y)
+            elif self.active_panel_tab == PanelTabType.RELATIONSHIPS:
+                self._draw_relationships_panel(npc_to_display, panel_padding, current_y)
+            # Aggiungi qui gli elif per le altre schede
         else:
             self._draw_text_in_panel("Nessun NPC selezionato.", panel_padding, current_y, font=self.font_small)
 
-    def _draw_needs_bars(self, npc: 'Character', x: int, y: int) -> int:
+    def _draw_bio_panel(self, npc: 'Character', x: int, y: int, sim_time: 'ATHDateTime') -> int:
+        """Disegna la scheda Biografia e Personalità per l'NPC selezionato."""
+        if not self.font_large or not self.font_small or not self.font_medium_bold: return y
+
+        current_y = y
+
+        # --- Blocco Nome, Età, Azione ---
+        # Nome e Simbolo Genere
+        name_surface = self.font_large.render(npc.name, True, self.WHITE)
+        self.screen.blit(name_surface, (self.base_width + x, current_y))
+        gender_color = ui_config.NPC_GENDER_COLORS.get(npc.gender, ui_config.DEFAULT_NPC_COLOR)
+        gender_symbol_rect = pygame.Rect(self.base_width + x + name_surface.get_width() + 8, current_y + 8, 10, 10)
+        pygame.draw.rect(self.screen, gender_color, gender_symbol_rect)
+        current_y += int(ui_config.LINE_HEIGHT * 1.5) # Più spazio dopo il nome
+
+        # Data di nascita e Età
+        birth_date_str = npc.birth_date.format("d F Y")
+        lifestage_str = npc.life_stage.display_name_it(npc.gender) if npc.life_stage else "N/D"
+        age_str = f"{npc.get_age_in_years_float(sim_time):.1f} anni"
+        current_y = self._draw_text_in_panel(f"Nato/a il {birth_date_str}", x, current_y, font=self.font_small)
+        current_y = self._draw_text_in_panel(f"Età: {age_str} ({lifestage_str})", x, current_y, font=self.font_small)
+        current_y += ui_config.LINE_HEIGHT
+
+        # Azione
+        action_str = f"Azione: {npc.current_action.action_type_name}" if npc.current_action else "Azione: Inattivo"
+        current_y = self._draw_text_in_panel(action_str, x, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - x * 2)
+        current_y += ui_config.LINE_HEIGHT
+
+        # --- Blocco Personalità ---
+        current_y = self._draw_text_in_panel("Personalità", x, current_y, font=self.font_medium_bold)
+        trait_str = ", ".join(sorted([t.trait_type.display_name_it(npc.gender) for t in npc.traits.values()]))
+        current_y = self._draw_text_in_panel(f"Tratti: {trait_str}", x + 10, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - x*2 - 10)
+        
+        asp_str = npc.aspiration.display_name_it(npc.gender) if npc.aspiration else "Nessuna"
+        current_y = self._draw_text_in_panel(f"Aspirazione: {asp_str}", x + 10, current_y, font=self.font_small)
+        
+        interest_str = ", ".join(sorted([i.display_name_it(npc.gender) for i in npc.get_interests()]))
+        current_y = self._draw_text_in_panel(f"Interessi: {interest_str}", x + 10, current_y, font=self.font_small, max_width=ui_config.PANEL_WIDTH - x*2-10)
+        current_y += ui_config.LINE_HEIGHT
+
+        # --- Blocco Stato Emotivo ---
+        emotional_state_str = npc.moodlet_manager.get_dominant_emotion_display_name(npc.gender)
+        current_y = self._draw_text_in_panel(f"Stato Emotivo: {emotional_state_str}", x, current_y, font=self.font_small)
+        
+        return current_y
+
+    def _draw_needs_panel(self, npc: 'Character', x: int, y: int) -> int:
         """Disegna tutte le barre dei bisogni per un dato NPC."""
         # Usa le costanti dal file di configurazione
         bar_x = self.base_width + x

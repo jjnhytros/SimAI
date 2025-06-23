@@ -350,6 +350,19 @@ HAVEFUN_ACTIVITY_CONFIGS = {
             TraitType.PARTY_ANIMAL: 0.5,
         }
     },
+    FunActivityType.USE_JUKEBOX: {
+        "duration_hours": 1.5,
+        "fun_gain": 108.0, # Molto divertente (75 * 1.44)
+        "required_object_types": (ObjectType.JUKEBOX,),
+        "skill_to_practice": SkillType.DANCING,
+        "skill_xp_gain": 30.0,
+        "is_noisy": True,
+        "personality_modifiers": {
+            TraitType.PARTY_ANIMAL: 2.0,
+            TraitType.MUSIC_LOVER: 2.0,
+            TraitType.LONER: 0.5,
+        }
+    },
 }
     
 HAVEFUN_ACTIVITY_CONFIGS = {

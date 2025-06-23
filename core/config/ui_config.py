@@ -4,6 +4,7 @@ Configurazioni specifiche per la TUI (Textual User Interface).
 from core.enums import (
     NeedType, Gender, ObjectType, TimeOfDay
 )
+from core.enums.relationship_types import RelationshipType
 
 FONT_PATH = "assets/fonts/EasyReading.otf"
 FONT_FALLBACK_SYSTEM = "arial" # Un font comune che potrebbe essere sul sistema
@@ -174,4 +175,49 @@ DAY_NIGHT_COLOR_KEYFRAMES = {
 
 DEFAULT_DAY_BG_COLOR = (128, 128, 128) # Grigio di fallback
 
+# --- ICONE UNICODE PER RELAZIONI ---
+RELATIONSHIP_ICONS = {
+    # === Relazioni Familiari Dirette ===
+    RelationshipType.PARENT:                   ("👨‍👩‍👧", (205, 170, 51)),    # Famiglia (Oro)
+    RelationshipType.CHILD:                    ("🧒", (255, 255, 102)),   # Bambino (Giallo)
+    RelationshipType.GRANDPARENT:              ("👴", (192, 192, 192)),   # Anziano (Argento)
+    RelationshipType.GRANDCHILD:               ("🧒", (255, 255, 102)),   # Bambino (Giallo)
+    RelationshipType.SIBLING:                  ("🧑‍🤝‍🧑", (0, 206, 209)),     # Fratelli (Ciano)
+    RelationshipType.SPOUSE:                   ("💍", (255, 215, 0)),     # Anello (Oro brillante)
+    
+    # === Relazioni Familiari Estese (usano la stessa icona per semplicità) ===
+    RelationshipType.EXTENDED_FAMILY:          ("🏡", (107, 142, 35)),    # Casa (Verde Oliva)
+    RelationshipType.AUNT_UNCLE:               ("🏡", (107, 142, 35)),
+    RelationshipType.NEPHEW_NIECE:             ("🏡", (107, 142, 35)),
+    RelationshipType.COUSIN:                   ("🏡", (107, 142, 35)),
+    # Aggiungi qui gli altri tipi di parenti estesi con la stessa icona
+    RelationshipType.GREAT_GRANDPARENT:        ("👴", (192, 192, 192)),
+    RelationshipType.GREAT_GRANDCHILD:         ("🧒", (255, 255, 102)),
+    # ... e così via ...
+
+    # === Relazioni Sociali Non Familiari ===
+    RelationshipType.CHILDHOOD_BEST_FRIEND:    ("🌟", (255, 223, 0)),     # Stella (Giallo oro)
+    RelationshipType.FRIEND_CLOSE:             ("😊", (173, 255, 47)),      # Faccina felice (Verde brillante)
+    RelationshipType.FRIEND_REGULAR:           ("🙂", (135, 206, 250)),   # Faccina normale (Celeste)
+    RelationshipType.ACQUAINTANCE:             ("💬", (200, 200, 200)),   # Fumetto (Grigio)
+    
+    # === Relazioni Romantiche ===
+    RelationshipType.ROMANTIC_PARTNER:         ("❤️", (255, 105, 180)),   # Cuore (Rosa)
+    RelationshipType.CRUSH:                    ("🥰", (255, 182, 193)),   # Faccina con cuori (Rosa chiaro)
+    RelationshipType.EX_PARTNER:               ("💔", (138, 121, 153)),   # Cuore spezzato (Viola spento)
+    
+    # === Relazioni Negative ===
+    RelationshipType.ENEMY_RIVAL:              ("⚔️", (255, 140, 0)),       # Spade (Arancione)
+    RelationshipType.ENEMY_DISLIKED:           ("😠", (255, 69, 0)),      # Faccina arrabbiata (Rosso-Arancio)
+    
+    # === Relazioni Professionali / Contestuali ===
+    RelationshipType.COLLEAGUE:                ("💼", (70, 130, 180)),    # Valigetta (Blu acciaio)
+    RelationshipType.NEIGHBOR:                 ("🏠", (139, 69, 19)),     # Casa (Marrone)
+    RelationshipType.MENTOR:                   ("🧑‍🏫", (147, 112, 219)),  # Insegnante (Viola medio)
+    RelationshipType.MENTEE:                   ("🎓", (176, 224, 230)),  # Tocco laurea (Azzurro polvere)
+    RelationshipType.ROOMMATE:                 ("🔑", (184, 134, 11)),    # Chiave (Ocra)
+    
+    # Default per tipi non mappati
+    "default":                                 ("⚫", (150, 150, 150))   # Punto nero (Grigio scuro)
+}
 # TODO: Aggiungere qui altre configurazioni UI come stili, layout, ecc.

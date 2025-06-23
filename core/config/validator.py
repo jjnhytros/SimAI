@@ -38,9 +38,8 @@ class ConfigValidator:
                     "MIN_TRAITS_PER_NPC deve essere <= MAX_TRAITS_PER_NPC"),
                 ('LIFE_STAGE_AGE_THRESHOLDS_DAYS', self._check_ascending_thresholds,
                     "Soglie età devono essere in ordine crescente"),
-                ('NEED_DECAY_RATES', self._check_negative_values,
-                    "Tassi decadimento bisogni devono essere negativi"),
-                ('NEED_CRITICAL_THRESHOLD', lambda v: 0 <= v <= npc_config.NEED_MAX_VALUE,
+                ('NEED_HOURLY_DECAY_RATES', self._check_negative_values,
+                    "Tassi decadimento bisogni devono essere negativi"),                ('NEED_CRITICAL_THRESHOLD', lambda v: 0 <= v <= npc_config.NEED_MAX_VALUE,
                     "Soglia critica bisogni deve essere tra 0 e {npc_config.NEED_MAX_VALUE}"),
             ],
             'school_config': [

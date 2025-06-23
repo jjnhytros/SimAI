@@ -28,6 +28,7 @@ class AIDecisionMaker:
     """
     BASE_ACTION_CHECK_INTERVAL_TICKS: int = 10 
     MAX_CONSECUTIVE_SAME_ACTION: int = 3
+    DECISION_COOLDOWN_TICKS: int = 100 # L'IA rivaluta le opzioni ogni 100 tick (circa 360 sec di gioco)
 
     # Mappa un NeedType complesso al percorso del suo discoverer specializzato.
     SOLUTION_DISCOVERER_PATHS: Dict[NeedType, str] = {
@@ -42,7 +43,8 @@ class AIDecisionMaker:
         self.ticks_since_last_base_action_check: int = 0
         self.last_selected_action_type: Optional[ActionType] = None
         self.consecutive_action_type_count: int = 0
-
+        self.ticks_since_last_decision: int = 0
+    
     def _get_required_object_for_action(self, need: NeedType) -> Optional[Union[ObjectType, Tuple[ObjectType, ...]]]:
         """Restituisce il tipo di oggetto primario richiesto da un'azione per un bisogno."""
         if need == NeedType.HUNGER: return ObjectType.REFRIGERATOR
@@ -116,17 +118,13 @@ class AIDecisionMaker:
             
             # Recupera i modificatori specifici dell'azione dalla sua configurazione
             if isinstance(action, HaveFunAction):
-                # Usiamo 'cast' per rassicurare Pylance sul tipo
-                activity_type_safe = cast(FunActivityType, action.activity_type)
-                
-                # Ora usiamo la variabile sicura per accedere alla configurazione
-                config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type_safe, {})
+                activity_type = cast(FunActivityType, action.activity_type)
+                config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type, {})
                 action_modifiers = config.get("personality_modifiers", {})
                 
                 for trait, modifier in action_modifiers.items():
                     if self.npc.has_trait(trait):
-                        personality_modifier *= modifier
-            
+                        personality_modifier *= modifier            
             # Aggiungiamo anche il modificatore generico che avevamo prima
             for trait in self.npc.traits.values():
                 personality_modifier *= trait.get_action_choice_priority_modifier(action, simulation_context)
@@ -147,7 +145,9 @@ class AIDecisionMaker:
                     energy_val = self.npc.get_need_value(NeedType.ENERGY)
                     if energy_val and energy_val > npc_config.NEED_CRITICAL_THRESHOLD:
                         time_modifier = 0.1
-
+            elif action.action_type_enum == ActionType.ACTION_ENGAGE_INTIMACY:
+                # Applica il modificatore del desiderio basato sull'età
+                time_modifier = self.npc.intimacy_drive_modifier 
             # --- Modificatore Agenda dei Bisogni (per fame, socialità, ecc.) ---
             schedule_bonus = 0.0
             need_type = problem.details.get("need")
@@ -160,7 +160,7 @@ class AIDecisionMaker:
                         break
             
             # Calcolo dello score finale
-            final_score = (base_score) * personality_modifier * mood_modifier
+            final_score = (base_score + schedule_bonus) * personality_modifier * mood_modifier * time_modifier
             scored_actions.append(ScoredAction(action, final_score))
             # --- Fine Logica di Punteggio ---
 

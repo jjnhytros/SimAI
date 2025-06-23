@@ -104,6 +104,18 @@ class AICoordinator:
         #  - Avvia la prossima azione dalla coda se l'NPC è libero.
         #  - Chiama l'AIDecisionMaker se l'NPC è libero e la coda è vuota.
         npc.update_action(time_manager, self.simulation_context)
+        # L'IA prende una nuova decisione solo se non sta già facendo qualcosa
+        # e solo ogni tot di tick, per evitare calcoli inutili.
+        if not npc.is_busy:
+            # Usiamo un attributo di AIDecisionMaker per il cooldown
+            decision_maker = npc.ai_decision_maker
+            if decision_maker:
+                decision_maker.ticks_since_last_decision += time_delta
+                
+                # Pensa a una nuova azione solo se il cooldown è scaduto
+                if decision_maker.ticks_since_last_decision >= decision_maker.DECISION_COOLDOWN_TICKS:
+                    decision_maker.decide_next_action(self.simulation_context.time_manager, self.simulation_context)
+                    decision_maker.ticks_since_last_decision = 0 # Resetta il cooldown
 
     def update_npc_background(self, npc, time_delta):
         # Versione semplificata per NPC non visibili (Futuro)

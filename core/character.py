@@ -87,6 +87,7 @@ class Character:
                 initial_school_level: SchoolLevel = SchoolLevel.NONE,
                 initial_sexually_attracted_to_genders: Optional[Set[Gender]] = None,
                 initial_traits: Optional[Set[TraitType]] = None,
+                intimacy_drive_modifier: float = 1.0
             ):
 
         # Validazioni

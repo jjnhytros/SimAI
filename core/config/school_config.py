@@ -14,6 +14,29 @@ SCHOOL_AGE_START_HIGH_SCHOOL_YEARS = 15.0
 SCHOOL_AGE_START_PRE_UNIVERSITY_YEARS = 18.0
 SCHOOL_AGE_START_UNIVERSITY_YEARS = 21.0
 
+# Definisce i livelli scolastici, la loro età di inizio e durata in anni di gioco
+SCHOOL_LEVELS = {
+    "INFANZIA": {"start_age": 1, "duration": 2},
+    "ELEMENTARI_INFERIORI": {"start_age": 3, "duration": 3},
+    "ELEMENTARI_SUPERIORI": {"start_age": 6, "duration": 3},
+    "MEDIE_INFERIORI": {"start_age": 9, "duration": 3},
+    "MEDIE_SUPERIORI": {"start_age": 12, "duration": 3},
+    "SUPERIORI_OBBLIGATORIE": {"start_age": 15, "duration": 3},
+    "SUPERIORI_FACOLTATIVE": {"start_age": 18, "duration": 3},
+    "UNIVERSITA": {"start_age": 21, "duration": 3}, # Per una laurea triennale
+}
+
+# Definisce le soglie di performance per i giudizi (A, B, C, D, F)
+# I valori sono su scala 144
+PERFORMANCE_THRESHOLDS = {
+    'A': 130.0, # (era 85 * 1.44, arrotondato)
+    'B': 108.0, # (era 75 * 1.44)
+    'K': 72.0,  # (era 50 * 1.44, K come sufficienza piena)
+    'D': 36.0,  # (era 25 * 1.44)
+    'E': 18.0,  # (era 12.5 * 1.44, allineato a soglia critica)
+    # Sotto 18.0 viene considerato 'F' (Insufficiente)
+}
+
 SCHOOL_AGE_START_INFANCY_EDUCATION_DAYS = round(SCHOOL_AGE_START_INFANCY_EDUCATION_YEARS * DXY)
 SCHOOL_AGE_START_LOWER_ELEMENTARY_DAYS = round(SCHOOL_AGE_START_LOWER_ELEMENTARY_YEARS * DXY)
 SCHOOL_AGE_START_UPPER_ELEMENTARY_DAYS = round(SCHOOL_AGE_START_UPPER_ELEMENTARY_YEARS * DXY)

@@ -337,10 +337,8 @@ HAVEFUN_ACTIVITY_CONFIGS = {
         "skill_to_practice": SkillType.DANCING,
         "skill_xp_gain": 40.0,
         "personality_modifiers": {
-            TraitType.PARTY_ANIMAL: 2.5, # Un animale da festa ama ballare (+150% score)
-            TraitType.SOCIAL: 1.5,
-            TraitType.LONER: 0.3,       # Un solitario odia ballare (-70% score)
-            TraitType.SHY: 0.5,
+            TraitType.PARTY_ANIMAL: 2.5, # Un animale da festa ama ballare
+            TraitType.LONER: 0.3,        # Un solitario lo odia
         }
     },
     FunActivityType.READ_BOOK_FOR_FUN: {
@@ -349,7 +347,6 @@ HAVEFUN_ACTIVITY_CONFIGS = {
         "required_object_types": (ObjectType.BOOKSHELF,),
         "personality_modifiers": {
             TraitType.BOOKWORM: 2.0,
-            TraitType.ACTIVE: 0.8,
             TraitType.PARTY_ANIMAL: 0.5,
         }
     },

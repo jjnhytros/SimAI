@@ -14,7 +14,14 @@ class HaveFunAction(BaseAction):
                  activity_type: FunActivityType, **kwargs):
         config = actions_config.HAVEFUN_ACTIVITY_CONFIGS.get(activity_type, {})
         duration = int(config.get("duration_hours", 1.0) * time_config.TXH_SIMULATION)
-        super().__init__(npc, simulation_context, duration_ticks=duration, **kwargs)
+        super().__init__(
+            npc=npc,
+            p_simulation_context=simulation_context,
+            duration_ticks=duration,
+            action_type_enum=ActionType.ACTION_HAVE_FUN, # Passa il tipo generico
+            action_type_name=f"ACTION_HAVE_FUN_{activity_type.name}", # E il nome specifico
+            **kwargs
+        )
         
         self.activity_type = activity_type
         self.base_fun_gain_total = config.get("fun_gain", 0.0)

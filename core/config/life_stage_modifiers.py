@@ -12,6 +12,7 @@ class LifeStageEffectType(Enum):
     ENERGY_DECAY_MODIFIER = "energy_decay_modifier"
     SLEEP_REQUIREMENT = "sleep_requirement"
     LEARNING_EFFICIENCY = "learning_efficiency"
+    INTIMACY_DRIVE_MODIFIER = "intimacy_drive_modifier"
 
 class LifeStageEffectSystem:
     # Modificatori base per ogni stadio di vita
@@ -33,13 +34,13 @@ class LifeStageEffectSystem:
 
         # Fase Adulta
         LifeStage.YOUNG_ADULT:  { LifeStageEffectType.METABOLIC_RATE: 1.1, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.2, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 1.1 },
-        LifeStage.ADULT:        { LifeStageEffectType.METABOLIC_RATE: 1.0, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.0, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 1.0 },
-        LifeStage.MIDDLE_AGED:  { LifeStageEffectType.METABOLIC_RATE: 0.9, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.9, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 0.9 },
+        LifeStage.ADULT:        { LifeStageEffectType.METABOLIC_RATE: 1.0, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 1.0, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.0, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 1.0, LifeStageEffectType.INTIMACY_DRIVE_MODIFIER: 1.0, },
+        LifeStage.MIDDLE_AGED:  { LifeStageEffectType.METABOLIC_RATE: 0.9, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.9, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.1, LifeStageEffectType.SLEEP_REQUIREMENT: 7, LifeStageEffectType.LEARNING_EFFICIENCY: 0.9, LifeStageEffectType.INTIMACY_DRIVE_MODIFIER: 0.8, },
 
         # Fase Anziana
-        LifeStage.MATURE_ADULT: { LifeStageEffectType.METABOLIC_RATE: 0.8, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.2, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.8 },
-        LifeStage.SENIOR:       { LifeStageEffectType.METABOLIC_RATE: 0.7, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.7, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.3, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.7 },
-        LifeStage.ELDERLY:      { LifeStageEffectType.METABOLIC_RATE: 0.6, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.6, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.4, LifeStageEffectType.SLEEP_REQUIREMENT: 9, LifeStageEffectType.LEARNING_EFFICIENCY: 0.5 },
+        LifeStage.MATURE_ADULT: { LifeStageEffectType.METABOLIC_RATE: 0.8, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.8, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.2, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.8, LifeStageEffectType.INTIMACY_DRIVE_MODIFIER: 0.6, },
+        LifeStage.SENIOR:       { LifeStageEffectType.METABOLIC_RATE: 0.7, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.7, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.3, LifeStageEffectType.SLEEP_REQUIREMENT: 8, LifeStageEffectType.LEARNING_EFFICIENCY: 0.7, LifeStageEffectType.INTIMACY_DRIVE_MODIFIER: 0.3,  },
+        LifeStage.ELDERLY:      { LifeStageEffectType.METABOLIC_RATE: 0.6, LifeStageEffectType.SOCIAL_NEED_MODIFIER: 0.6, LifeStageEffectType.ENERGY_DECAY_MODIFIER: 1.4, LifeStageEffectType.SLEEP_REQUIREMENT: 9, LifeStageEffectType.LEARNING_EFFICIENCY: 0.5, LifeStageEffectType.INTIMACY_DRIVE_MODIFIER: 0.1,  },
     }
 
     # Mappa dei modificatori dinamici

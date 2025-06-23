@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "."
-    ]
+    ],
+    "svg.preview.background": "editor"
 }

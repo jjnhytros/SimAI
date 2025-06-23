@@ -1,5 +1,7 @@
 .vscode/
 __pycache__/
+tools/*
+temp/*
 
 .gitignore
 .editorconfig
@@ -21,5 +23,4 @@ anthalys_01.jpg
 anthalys_2.jpg
 SimAI_cover.jpg
 TODO_*
-tools/*
 VERSION.txt

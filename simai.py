@@ -6,6 +6,7 @@ Gestisce l'inizializzazione e l'avvio della simulazione in modalità GUI o TUI.
 import sys
 import os
 import random
+import types
 from typing import TYPE_CHECKING, List, Optional
 
 from core.world.location import Location
@@ -41,7 +42,18 @@ from core import settings
 from core.simulation import Simulation
 from core.character import Character
 from core.enums import * # O gli import specifici
-from core.config import time_config
+from core.config import (
+    actions_config,
+    graphics_config,
+    life_stage_modifiers,
+    npc_config,
+    school_config,
+    social_config,
+    time_config,
+    ui_config,
+)
+from core.config.validator import validate_config_system
+
 from core.factories.npc_factory import NPCFactory
 from core.AI.ai_decision_maker import AIDecisionMaker
 from core.world.ATHDateTime.ATHDateInterval import ATHDateInterval
@@ -125,8 +137,9 @@ def setup_test_simulation() -> Simulation:
         erika = Character(
             npc_id="erika_lamborghetti", name="Erika Lamborghetti", initial_gender=Gender.FEMALE,
             initial_birth_date=birth_date,
-            initial_traits={TraitType.SOCIAL, TraitType.ACTIVE, TraitType.PARTY_ANIMAL, TraitType.UNINHIBITED},
+            initial_traits={TraitType.PARTY_ANIMAL, TraitType.ACTIVE, TraitType.CHILDISH, TraitType.SOCIAL},
             initial_aspiration=AspirationType.SOCIAL_BUTTERFLY,
+            initial_interests={Interest.DANCE, Interest.MUSIC_PLAYING},
             initial_location_id=dosinvelos_loc_id,
             initial_logical_x=pos_erika[0], # Usa la coordinata x sicura
             initial_logical_y=pos_erika[1], # Usa la coordinata y sicura
@@ -253,27 +266,33 @@ def setup_test_simulation() -> Simulation:
 
 def main():
     """Punto di ingresso principale dell'applicazione."""
-    print(f"--- Avvio SimAI {settings.GAME_VERSION} ---")
     
-    # 1. Crea l'istanza della simulazione
+    # 1. Crea un semplice oggetto che farà da "proxy"
+    config_proxy = types.SimpleNamespace()
+    
+    # 2. Crea un dizionario con tutti i moduli di configurazione
+    config_proxy._ConfigProxy__config_modules__ = {
+        'actions_config': actions_config,
+        'graphics_config': graphics_config,
+        'life_stage_modifiers': life_stage_modifiers,
+        'npc_config': npc_config,
+        'school_config': school_config,
+        'social_config': social_config,
+        'time_config': time_config,
+        'ui_config': ui_config,
+    }
+
+    # 3. Chiama la tua funzione di validazione passandole il proxy
+    validate_config_system(config_proxy)
     simulation = setup_test_simulation()
 
-    # 2. Controlla la modalità di esecuzione
-    if not settings.GUI_ENABLED:
-        # Esecuzione in Modalità Testuale (TUI)
-        print("  Modalità Testuale (TUI/Debug) attivata.")
-        max_ticks_tui = 2
-        print(f"  Simulazione testuale verrà eseguita per un massimo di {max_ticks_tui} tick.")
-        # Assumiamo che ci sia un metodo .run() per la TUI
-        simulation.run(max_ticks=max_ticks_tui) 
-        # simulation.run()
-    else:
-        # Esecuzione in Modalità Grafica (GUI)
+    if settings.GUI_ENABLED:
         print("  Modalità GUI Pygame attivata.")
-        # a. Crea il renderer
-        renderer = Renderer() 
-        # b. Avvia il loop di gioco. Sarà lui a gestire tutto da ora in poi.
-        renderer.run_game_loop(simulation)
+        renderer = Renderer()
+        renderer.run_game_loop(simulation) # Chiamata diretta e bloccante
+    else:
+        print("  Modalità Testuale (TUI/Debug) attivata.")
+        simulation.run(max_ticks=settings.MAX_TICKS)
 
     print("--- Fine Simulazione SimAI ---")
 

@@ -15,8 +15,15 @@ FONT_SIZE_SMALL = 16
 FONT_SIZE_DEBUG = 14
 FONT_SIZE_CLAIRE = 19
 
-# Larghezza in pixel del pannello informativo laterale
-PANEL_WIDTH = 320 
+# --- LAYOUT ---
+PANEL_WIDTH = 320
+TILE_SIZE = 32 # Dimensione base in pixel di una mattonella
+NPC_RADIUS_OFFSET = 3 # Raggio dell'NPC = TILE_SIZE / 2 - OFFSET
+LINE_HEIGHT = 20 # Altezza di una linea di testo nel pannello
+
+# --- ZOOM ---
+MIN_ZOOM = 0.5
+MAX_ZOOM = 3.0
 
 # Mappa che associa ogni NeedType a un dizionario di configurazione per la UI
 NEED_UI_CONFIG = {
@@ -123,6 +130,18 @@ class ANSIColors:
     EVENT_NEUTRAL_COLOR = "\033[94m"
     REPORT_TITLE_COLOR = "\033[1m\033[93m"
     DEBUG_COLOR = "\033[1m\033[93m"
+
+# --- COLORI INTERFACCIA ---
+# Colori base
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+TEXT_COLOR = (230, 230, 230) # Colore di default per il testo del pannello
+
+# Pannello UI
+PANEL_BG_COLOR = (40, 40, 60) # Sfondo del pannello laterale
+
+# Elementi di Gioco
+SELECTION_COLOR = (255, 255, 0) # Giallo per l'anello di selezione
 
 # --- COLORI PER BARRE DI STATO CON GRADIENTE ---
 NEED_BAR_GREEN = (20, 200, 120)

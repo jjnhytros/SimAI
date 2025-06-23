@@ -289,8 +289,9 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[P]` b. Aggiornamento di tutti gli NPC (bisogni, azioni, IA). `[1.0.0]`
     * `[ ]` c. Aggiornamento dello stato del mondo (oggetti, ambiente). `[1.0.1]`
     * `[ ]` d. Gestione eventi globali (non legati a singoli NPC). `[1.0.2]`
-    * `[ ]` e. Meccanismo di pausa/play della simulazione. `[1.0.0]`
+    * `[x]` e. Meccanismo di pausa/play della simulazione. `[1.0.0]`
     * `[ ]` f. Ottimizzazione del loop per performance (es. LOD). `[1.1.0]`
+    * `[ ]` g. Controlli di Velocità del Tempo (0=Pausa, 1, 2, 3). `[1.1.0]`
 
 ### **2. Architettura IA e Decisionale:** `[P]`
     * `[P]` a. `AICoordinator`: Classe per orchestrare i vari moduli dell'IA. `[1.0.0]`
@@ -614,6 +615,8 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
     * `[ ]` n. Espressioni facciali e animazioni che riflettono l'umore. `[1.1.0]`
     * `[ ]` o. Bussola Morale. `[1.2.0]`
     * `[ ]` p. Lealtà. `[1.2.0]`
+    * `[ ]` q. **(DATA-ENTRY)** Arricchire `actions_config.py` con `associated_traits` e `associated_interests` per tutte le attività. (Assegnato a: Utente) `[1.0.1]`
+    * `[ ]` r. **(LOGICA)** Implementare Scoring Intelligente basato su `associated_traits` e `associated_interests`. (Task in pausa) `[1.0.1]`
 
 ### **5. Sistema di Memorie NPC:** `[P]`
     * `[x]` a. Definire struttura dati per `MemoryObject`. `[1.0.0]`
@@ -1259,6 +1262,7 @@ Nonostante l'alto livello di organizzazione, la vita in Anthalys non è priva di
         * `[x]` iii. Funzione per disegnare un oggetto (da spritesheet). `[1.0.0]`
         * `[x]` iv. Implementare un sistema di "telecamera" (offset, zoom). `[1.0.0]`
         * `[x]` v. **Disegnare il mondo con una mappa a mattonelle (Tilemap).** `[1.0.0]`
+        * `[ ]` vi. Implementare un sistema di movimento fluido (pixel-based) per gli NPC, invece che a scatti (tile-based), per migliorare il realismo visivo. `[1.1.0]`
             * `[ ]` 1. Disegnare un indicatore visivo (es. un rombo o un cristallo stilizzato fluttuante) sopra la testa dell'NPC attualmente selezionato dal giocatore. `[1.0.1]`
             * `[ ]` 2. Il colore del Focus Astrale cambia in base all'umore generale dell'NPC selezionato (es. verde per felice, blu per triste, rosso per arrabbiato). `[1.0.2]`
         * `[P]` iii. Funzione per disegnare un oggetto. `[1.0.0]`

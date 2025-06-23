@@ -1,6 +1,8 @@
 # core/simulation.py
 from typing import TYPE_CHECKING, List, Dict, Any, Set, Optional # Aggiungi Optional e gli altri tipi generici
 import random
+import threading
+import time
 
 # Importiamo le classi e le Enum necessarie
 from core.enums import *
@@ -45,20 +47,78 @@ class Simulation:
 
         # Istanzia i manager che richiedono il contesto della simulazione (self)
         self.lod_manager = LODManager(self)
-        self.ai_coordinator = AICoordinator(self) 
+        self.ai_coordinator = AICoordinator(self)
+        self.is_paused: bool = False
+        self.time_scale: float = 1.0
         self.social_manager = SocialManager(self)
         self.consequence_analyzer = ConsequenceAnalyzer()
         self.social_hubs: List[Dict] = []
-        
+        # self._simulation_thread: Optional[threading.Thread] = None
+        # self._stop_event = threading.Event()
+        # Il lock serve per evitare che il thread di rendering legga i dati
+        # mentre il thread di simulazione li sta modificando.
+        # self.state_lock = threading.Lock()
         if settings.DEBUG_MODE: print("  [Simulation INIT] AICoordinator creato.")
         if settings.DEBUG_MODE: print("  [Simulation INIT] Simulation inizializzata.")
+
+    def _simulation_loop(self):
+        """Il loop che gira in background e fa avanzare il mondo."""
+        ns_per_tick = (time_config.TICK_RATE_DENOMINATOR * time_config.NANOSECONDS_PER_SECOND) // time_config.TICK_RATE_NUMERATOR
+        last_update_ns = time.monotonic_ns()
+        lag_accumulator_ns = 0
+
+        while not self._stop_event.is_set():
+            current_ns = time.monotonic_ns()
+            elapsed_ns = current_ns - last_update_ns
+            last_update_ns = current_ns
+            lag_accumulator_ns += elapsed_ns * self.time_scale
+
+            if not self.is_paused:
+                while lag_accumulator_ns >= ns_per_tick:
+                    with self.state_lock:
+                        self._update_simulation_state(ticks_to_process=1)
+                    
+                    lag_accumulator_ns -= ns_per_tick
+            else:
+                # Se è in pausa, resetta l'accumulatore per evitare scatti alla ripresa
+                lag_accumulator_ns = 0
+            
+            time.sleep(0.001)
+
+    def start_simulation_thread(self):
+        """Avvia il thread della simulazione."""
+        if self._simulation_thread is None:
+            self._stop_event.clear()
+            self._simulation_thread = threading.Thread(target=self._simulation_loop, daemon=True)
+            self._simulation_thread.start()
+            if settings.DEBUG_MODE: print("  [Simulation] Thread di simulazione avviato.")
+
+    def stop_simulation(self):
+        """Ferma il thread della simulazione in modo pulito."""
+        if self._simulation_thread and self._simulation_thread.is_alive():
+            self._stop_event.set()
+            self._simulation_thread.join() # Attende la fine del thread
+            if settings.DEBUG_MODE: print("  [Simulation] Thread di simulazione fermato.")
+
+    def set_time_scale(self, scale: float):
+        """Imposta la velocità di scorrimento del tempo."""
+        # Impostiamo dei limiti ragionevoli per evitare problemi
+        # In questo modo, se premiamo un tasto di velocità, ci assicuriamo anche che il gioco non sia in pausa.
+        self.is_paused = False
+        self.time_scale = max(0.25, min(scale, 8.0))
+        if settings.DEBUG_MODE:
+            print(f"  [Simulation] Time scale impostato a: {self.time_scale}x")
+
+    def toggle_pause(self):
+        """Inverte lo stato di pausa della simulazione."""
+        self.is_paused = not self.is_paused
+        print(f"  [Simulation] Pausa {'ATTIVATA' if self.is_paused else 'DISATTIVATA'}.")
 
     def _initialize_world_data(self):
         """
         Carica tutte le locazioni e gli oggetti del mondo dai file di dati dei distretti.
         """
         from core.data.districts.muse_quarter_data import district_locations as muse_locations
-        # ... (import da altri distretti)
         
         all_locations = muse_locations # + ...
         
@@ -69,9 +129,6 @@ class Simulation:
 
         if settings.DEBUG_MODE:
             print(f"  [Simulation INIT] Caricate {len(self.locations)} locazioni e {len(self.world_objects)} oggetti dai file di dati.")
-
-        # Non abbiamo più bisogno di _create_test_locations_and_objects() se usiamo questo sistema
-        # self._create_test_locations_and_objects() 
 
     def _create_test_locations_and_objects(self):
         """Crea alcune locazioni e oggetti di esempio per il test."""
@@ -346,6 +403,11 @@ class Simulation:
         """
         Avanza la logica della simulazione di un numero specifico di tick.
         """
+        if self.is_paused:
+            return
+            
+        ticks_to_process = 1
+
         if not self.is_running or ticks_to_process <= 0:
             return
             
@@ -371,32 +433,21 @@ class Simulation:
         self.current_tick += ticks_to_process
 
     def run(self, max_ticks: Optional[int] = None):
-        if settings.DEBUG_MODE:
-            print("  [Simulation RUN] Avvio del loop di simulazione...")
-            if max_ticks:
-                print(f"  [Simulation RUN] La simulazione girerà per un massimo di {max_ticks} tick.")
-            else:
-                print("  [Simulation RUN] La simulazione girerà indefinitamente (o fino a interruzione manuale Ctrl+C).")
+        """Esegue la simulazione in modalità testuale (TUI) per un numero definito di tick."""
+        if settings.DEBUG_MODE: print("  [Simulation TUI] Avvio del loop testuale...")
 
         self.is_running = True
-
         try:
             while self.is_running:
-                self._update_simulation_state()
-                self._render_output()
-
+                # In TUI, l'update è sincrono, non in un thread
+                self._update_simulation_state(ticks_to_process=1)
+                
+                # Potremmo stampare un output testuale qui, se volessimo
+                # self._render_tui_output() 
+                
                 if max_ticks is not None and self.current_tick >= max_ticks:
-                    if settings.DEBUG_MODE:
-                        print(f"  [Simulation RUN] Raggiunto limite di {max_ticks} tick. Uscita elegante...")
                     self.is_running = False
-
-                if settings.DEBUG_MODE and max_ticks:
-                    import time
-                    time.sleep(0.01)
-
         except KeyboardInterrupt:
-            if settings.DEBUG_MODE:
-                print("\n  [Simulation RUN] Loop interrotto da KeyboardInterrupt (Ctrl+C).")
             self.is_running = False
         finally:
             self._perform_cleanup()

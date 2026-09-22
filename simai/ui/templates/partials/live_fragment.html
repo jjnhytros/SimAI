@@ -1,0 +1,43 @@
+<div class="card bg-black border-info mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between">
+            <div>
+                <div class="text-secondary small">Data corrente</div>
+                <div class="fs-5 text-info">{{ current_dt }}</div>
+            </div>
+            <div class="text-end">
+                <div class="text-secondary small">Tick</div>
+                <div class="fs-5">{{ current_tick }}</div>
+            </div>
+            <div class="text-end">
+                <div class="text-secondary small">Vivi</div>
+                <div class="fs-5 text-success">{{ alive }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <h6>Riflessioni recenti</h6>
+        <ul class="list-group list-group-flush bg-transparent">
+            {% for r in reflections %}
+            <li class="list-group-item bg-transparent border-secondary small">
+                <span class="badge bg-info">{{ r.kind }}</span> {{ r.text }}
+            </li>
+            {% else %}<li class="list-group-item bg-transparent text-secondary small">—</li>{% endfor %}
+        </ul>
+    </div>
+    <div class="col-md-6">
+        <h6>Journal entries recenti</h6>
+        <ul class="list-group list-group-flush bg-transparent">
+            {% for e in transactions %}
+            <li class="list-group-item bg-transparent border-secondary small">
+                <span class="badge bg-secondary">{{ e.kind }}</span>
+                {{ e.description }}
+                <span class="text-secondary">#{{ e.id }}</span>
+            </li>
+            {% else %}<li class="list-group-item bg-transparent text-secondary small">—</li>{% endfor %}
+        </ul>
+    </div>
+</div>

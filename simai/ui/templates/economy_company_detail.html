@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }} — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-building"></i> {{ company.name }}
+        <span class="badge bg-secondary ms-2">{{ company.kind }}</span>
+        {% if company.status == "ACTIVE" %}
+            <span class="badge bg-success ms-1">attiva</span>
+        {% elif company.status == "BANKRUPT" %}
+            <span class="badge bg-danger ms-1">fallita</span>
+        {% elif company.status == "DISSOLVED" %}
+            <span class="badge bg-secondary ms-1">sciolta</span>
+        {% endif %}
+    </h1>
+    <a href="/economy/companies" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Aziende
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-black border-info">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Saldo (ledger)</div>
+                <div class="fs-4
+                    {% if reconcile.ledger_balance <= 0 %}text-danger
+                    {% else %}text-info{% endif %}">
+                    {{ reconcile.ledger_balance }}
+                </div>
+                <div class="text-secondary small">
+                    cache: {{ reconcile.cache_balance }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-success">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Ricavo/giorno</div>
+                <div class="fs-4 text-success">+{{ company.base_daily_revenue }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-danger">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Costi/giorno</div>
+                <div class="fs-4 text-danger">-{{ company.base_daily_cost }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Reconcile</div>
+                <div class="fs-4">
+                    {% if reconcile.ok %}
+                        <span class="text-success">OK</span>
+                    {% else %}
+                        <span class="text-danger">MISMATCH</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card bg-black border-secondary">
+            <div class="card-header">Informazioni</div>
+            <div class="card-body small">
+                <div>
+                    Owner:
+                    {% if owner %}
+                        <a href="/npcs/{{ owner.id }}" class="text-info">
+                            {{ owner.full_name }}
+                        </a>
+                    {% else %}
+                        <span class="text-secondary">?</span>
+                    {% endif %}
+                </div>
+                <div>Location ID: {{ company.location_id or "—" }}</div>
+                <div>
+                    Fondata:
+                    <span class="text-secondary">{{ company.founded_at_total_seconds }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-black border-secondary">
+            <div class="card-header">Ciclo economico</div>
+            <div class="card-body small">
+                <div>
+                    Netto stimato/giorno:
+                    <strong class="
+                        {% if company.base_daily_revenue - company.base_daily_cost > 0 %}
+                            text-success
+                        {% else %}
+                            text-danger
+                        {% endif %}">
+                        {{ "%+d"|format(company.base_daily_revenue - company.base_daily_cost) }}
+                    </strong>
+                </div>
+                <div class="text-secondary">
+                    (esclude stipendi dipendenti)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5><i class="bi bi-people-fill"></i> Dipendenti ({{ employees|length }})</h5>
+<table class="table table-dark table-sm table-hover">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Character</th>
+            <th>Ruolo</th>
+            <th class="text-end">Wage/g</th>
+            <th class="text-end">Assunto dal tick</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for e in employees %}
+        <tr>
+            <td>{{ e.id }}</td>
+            <td>
+                <a href="/npcs/{{ e.character_id }}" class="text-info">
+                    {{ e.character_name }}
+                </a>
+            </td>
+            <td>
+                {% if e.role == "OWNER" %}
+                    <span class="badge bg-warning text-dark">owner</span>
+                {% elif e.role == "MANAGER" %}
+                    <span class="badge bg-info text-dark">manager</span>
+                {% elif e.role == "APPRENTICE" %}
+                    <span class="badge bg-secondary">apprendista</span>
+                {% else %}
+                    <span class="badge bg-secondary">worker</span>
+                {% endif %}
+            </td>
+            <td class="text-end">{{ e.daily_wage }}</td>
+            <td class="text-end text-secondary small">
+                {{ e.hired_at_total_seconds }}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="5" class="text-secondary">Nessun dipendente.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-4">
+    <i class="bi bi-journal-text"></i> Movimenti recenti ({{ transactions|length }})
+</h5>
+<table class="table table-dark table-sm">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Kind</th>
+            <th class="text-end">Amount</th>
+            <th>Descrizione</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for t in transactions %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>
+                {% if t.kind == "CAPITAL" %}
+                    <span class="badge bg-info text-dark">capital</span>
+                {% elif t.kind == "REVENUE" %}
+                    <span class="badge bg-success">revenue</span>
+                {% elif t.kind == "EXPENSE" %}
+                    <span class="badge bg-danger">expense</span>
+                {% elif t.kind == "SALARY" %}
+                    <span class="badge bg-warning text-dark">salary</span>
+                {% elif t.kind == "DIVIDEND" %}
+                    <span class="badge bg-primary">dividend</span>
+                {% elif t.kind == "DISSOLUTION" %}
+                    <span class="badge bg-secondary">dissolution</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ t.kind }}</span>
+                {% endif %}
+            </td>
+            <td class="text-end
+                {% if t.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ "%+d"|format(t.amount) }}
+            </td>
+            <td class="small">{{ t.description }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="4" class="text-secondary">Nessun movimento.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

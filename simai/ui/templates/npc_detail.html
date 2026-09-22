@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+{% block title %}{{ c.full_name }} — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">
+        <i class="bi bi-person-circle"></i> {{ c.full_name }}
+        {% if c.is_alive %}
+            <span class="badge bg-success">vivo</span>
+        {% else %}
+            <span class="badge bg-danger">morto</span>
+        {% endif %}
+    </h1>
+    <div class="text-end text-secondary small">
+        id={{ c.id }} · {{ c.sex }} · nato {{ c.birth_iso }}
+        {% if c.death_iso %} · morto {{ c.death_iso }}{% endif %}
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="npcTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-overview">Overview</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-skills">Skill</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-personality">Personalità</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-relationships">Relazioni</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history">Storia</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-inventory">
+            <i class="bi bi-bag"></i> Inventario
+            <span id="inventory-count-badge"
+                  class="badge bg-secondary ms-1">0</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    {# --- OVERVIEW --- #}
+    <div class="tab-pane fade show active" id="tab-overview">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card bg-black border-secondary">
+                    <div class="card-header"><i class="bi bi-heart-pulse"></i> Bisogni</div>
+                    <div class="card-body">
+                        {% for need, value in needs.values.items() %}
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>{{ need.value }}</span>
+                            <span class="text-info">{{ "%.0f"|format(value) }}</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar {% if value < 30 %}bg-danger{% elif value < 70 %}bg-warning{% else %}bg-success{% endif %}"
+                                 style="width: {{ value }}%"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-black border-secondary mb-3">
+                    <div class="card-header"><i class="bi bi-emoji-smile"></i> Mood</div>
+                    <div class="card-body">
+                        <div>Happiness: <strong>{{ "%.3f"|format(mood.happiness) }}</strong></div>
+                        {% for m in mood.moodlets %}
+                        <div class="small text-secondary">
+                            {{ m.name }} ({{ "%+.2f"|format(m.happiness_delta) }}, {{ m.remaining_ticks }}t)
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card bg-black border-secondary">
+                    <div class="card-header"><i class="bi bi-droplet-half"></i> Desire / Crisis</div>
+                    <div class="card-body small">
+                        <div>Desire baseline: {{ "%.3f"|format(desire.baseline) }}</div>
+                        <div>Desire current: <strong>{{ "%.3f"|format(desire.current) }}</strong></div>
+                        <div>Crisis: <span class="badge {% if crisis.active %}bg-danger{% else %}bg-secondary{% endif %}">{{ crisis.phase.value }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if addictions %}
+        <div class="card bg-black border-warning mt-3">
+            <div class="card-header"><i class="bi bi-exclamation-triangle"></i> Dipendenze</div>
+            <div class="card-body">
+                {% for a in addictions %}
+                <div>{{ a.kind }} — dep {{ "%.1f"|format(a.dependence_level) }}, tol {{ "%.1f"|format(a.tolerance) }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# --- SKILLS --- #}
+    <div class="tab-pane fade" id="tab-skills">
+        <table class="table table-dark table-sm">
+            <thead><tr><th>Skill</th><th class="text-end">Livello</th><th class="text-end">Progress</th><th class="text-end">Talent</th></tr></thead>
+            <tbody>
+                {% for s in skills %}
+                <tr>
+                    <td>{{ s.skill_type }}</td>
+                    <td class="text-end">{{ s.level }}</td>
+                    <td class="text-end">{{ "%.1f"|format(s.progress * 100) }}%</td>
+                    <td class="text-end">{{ "%.2f"|format(s.talent) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-secondary">Nessuna skill.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# --- PERSONALITY --- #}
+    <div class="tab-pane fade" id="tab-personality">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card bg-black border-secondary">
+                    <div class="card-header">Tratti (strength)</div>
+                    <div class="card-body">
+                        {% for trait, strength in personality.strength.items() %}
+                        <div class="d-flex justify-content-between small">
+                            <span>{{ trait }}</span>
+                            <span class="{% if strength >= 0.7 %}text-success{% elif strength >= 0.3 %}text-warning{% else %}text-secondary{% endif %}">
+                                {{ "%.3f"|format(strength) }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-black border-secondary">
+                    <div class="card-header">Valori</div>
+                    <div class="card-body">
+                        {% for axis, value in personality['values'].items() %}
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>{{ axis }}</span>
+                            <span>{{ "%.3f"|format(value) }}</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 4px;">
+                            <div class="progress-bar bg-info" style="width: {{ value * 100 }}%"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# --- RELATIONSHIPS --- #}
+    <div class="tab-pane fade" id="tab-relationships">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <h6>Genitori</h6>
+                <ul class="list-unstyled">
+                {% for p in parents %}
+                    <li><a href="/npcs/{{ p.id }}" class="text-info">{{ p.full_name }}</a></li>
+                {% else %}<li class="text-secondary small">—</li>{% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6>Figli</h6>
+                <ul class="list-unstyled">
+                {% for ch in children %}
+                    <li><a href="/npcs/{{ ch.id }}" class="text-info">{{ ch.full_name }}</a></li>
+                {% else %}<li class="text-secondary small">—</li>{% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6>Fratelli/sorelle</h6>
+                <ul class="list-unstyled">
+                {% for s in siblings %}
+                    <li><a href="/npcs/{{ s.id }}" class="text-info">{{ s.full_name }}</a></li>
+                {% else %}<li class="text-secondary small">—</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <h6 class="mt-4">Altre relazioni ({{ relationships|length }})</h6>
+        <table class="table table-dark table-sm">
+            <thead><tr><th>Tipo</th><th>Con</th><th class="text-end">Strength</th></tr></thead>
+            <tbody>
+            {% for r in relationships %}
+                <tr>
+                    <td>{{ r.kind }}</td>
+                    <td><a href="/npcs/{{ r.other_id }}" class="text-info">{{ r.other_name }}</a></td>
+                    <td class="text-end">{{ "%.2f"|format(r.strength) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="/npcs/{{ c.id }}/tree" class="btn btn-outline-info btn-sm mt-3">
+            <i class="bi bi-diagram-3"></i> Vedi albero genealogico
+        </a>
+    </div>
+
+    {# --- HISTORY --- #}
+    <div class="tab-pane fade" id="tab-history">
+        <h6>Background formativo</h6>
+        <ul class="list-group list-group-flush bg-transparent mb-3">
+            {% for ev in background %}
+            <li class="list-group-item bg-transparent border-secondary">
+                <span class="badge bg-secondary">{{ ev.occurred_at_age }} anni</span>
+                {{ ev.kind }} — {{ ev.text }}
+            </li>
+            {% else %}<li class="list-group-item bg-transparent text-secondary">—</li>{% endfor %}
+        </ul>
+
+        <h6>Riflessioni recenti</h6>
+        <ul class="list-group list-group-flush bg-transparent mb-3">
+            {% for r in reflections %}
+            <li class="list-group-item bg-transparent border-secondary">
+                <span class="badge bg-info">{{ r.kind }}</span>
+                <small class="text-secondary">{{ "%+.2f"|format(r.sentiment) }}</small>
+                {{ r.text }}
+            </li>
+            {% else %}<li class="list-group-item bg-transparent text-secondary">—</li>{% endfor %}
+        </ul>
+
+        <h6>Memorie recenti</h6>
+        <ul class="list-group list-group-flush bg-transparent">
+            {% for m in memories %}
+            <li class="list-group-item bg-transparent border-secondary">
+                <span class="badge bg-{% if m.memory.valence > 0 %}success{% else %}danger{% endif %}">
+                    {{ "%+.2f"|format(m.memory.valence) }}
+                </span>
+                {{ m.memory.text }}
+            </li>
+            {% else %}<li class="list-group-item bg-transparent text-secondary">—</li>{% endfor %}
+        </ul>
+    </div>
+
+    {# --- INVENTORY (Chunk 4.8c) --- #}
+    <div class="tab-pane fade" id="tab-inventory">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="bi bi-bag"></i> Inventario</h5>
+            <button class="btn btn-outline-info btn-sm"
+                    id="refresh-inventory-btn">
+                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+            </button>
+        </div>
+        <div id="inventory-content">
+            <div class="text-secondary small">Caricamento…</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sellModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-warning">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-coin text-warning"></i> Vendi oggetto
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <span class="text-secondary small">Oggetto:</span>
+                    <strong id="sell-item-name">—</strong>
+                </div>
+                <div class="mb-3">
+                    <span class="text-secondary small">Qualità:</span>
+                    <strong id="sell-item-quality">—</strong>
+                </div>
+                <div class="mb-2 text-secondary small">Scegli un negozio:</div>
+                <div id="sell-shops-list">
+                    <div class="text-secondary small">Caricamento…</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Annulla</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const NPC_ID = {{ c.id }};
+let inventoryItems = [];
+let sellModal = null;
+let sellCurrentObjectId = null;
+
+// ---------- Load inventory ----------
+
+async function loadInventory() {
+    const r = await fetch(`/api/npcs/${NPC_ID}/inventory.json`);
+    if (!r.ok) {
+        document.getElementById("inventory-content").innerHTML =
+            '<div class="text-danger">Errore caricamento inventario.</div>';
+        return;
+    }
+    const data = await r.json();
+    inventoryItems = data.items || [];
+    document.getElementById("inventory-count-badge").textContent =
+        String(inventoryItems.length);
+    renderInventory();
+}
+
+function renderInventory() {
+    const container = document.getElementById("inventory-content");
+    if (!inventoryItems.length) {
+        container.innerHTML =
+            '<div class="text-secondary">Nessun oggetto nell\'inventario.</div>';
+        return;
+    }
+    let html = '<table class="table table-dark table-sm table-hover">';
+    html += '<thead><tr>';
+    html += '<th>ID</th><th>Nome</th><th>Tipo</th>';
+    html += '<th>Stato</th><th>Qualità</th>';
+    html += '<th class="text-end">Azioni</th>';
+    html += '</tr></thead><tbody>';
+    for (const it of inventoryItems) {
+        let qualityBadge = '<span class="text-secondary">—</span>';
+        if (it.crafted) {
+            const colors = {
+                POOR: "bg-danger",
+                COMMON: "bg-secondary",
+                GOOD: "bg-info text-dark",
+                EXCELLENT: "bg-success",
+            };
+            const cls = colors[it.quality_label] || "bg-secondary";
+            qualityBadge =
+                `<span class="badge ${cls}">${it.quality_label}</span>`;
+        }
+        const condColor = it.condition >= 0.7 ? "text-success"
+            : (it.condition >= 0.4 ? "text-warning" : "text-danger");
+        html += `<tr>
+            <td>${it.id}</td>
+            <td>${it.name}</td>
+            <td class="small text-secondary">${it.type}</td>
+            <td>${it.state}
+                <span class="${condColor} small">
+                    (${it.condition.toFixed(2)})
+                </span>
+            </td>
+            <td>${qualityBadge}</td>
+            <td class="text-end">
+                <button class="btn btn-outline-warning btn-sm"
+                        onclick="openSellModal(${it.id})">
+                    <i class="bi bi-coin"></i> Vendi
+                </button>
+            </td>
+        </tr>`;
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// ---------- Sell modal ----------
+
+async function openSellModal(objectId) {
+    sellCurrentObjectId = objectId;
+    const item = inventoryItems.find(x => x.id === objectId);
+    if (!item) return;
+
+    document.getElementById("sell-item-name").textContent = item.name;
+    document.getElementById("sell-item-quality").textContent =
+        item.crafted
+            ? `${item.quality_label} (${item.quality_value.toFixed(2)})`
+            : "—";
+
+    const shopsList = document.getElementById("sell-shops-list");
+    shopsList.innerHTML =
+        '<div class="text-secondary small">Caricamento…</div>';
+
+    if (sellModal) sellModal.show();
+
+    const r = await fetch(`/api/items/${encodeURIComponent(item.type)}/buyers.json`);
+    if (!r.ok) {
+        shopsList.innerHTML =
+            '<div class="text-danger">Errore ricerca negozi.</div>';
+        return;
+    }
+    const data = await r.json();
+    const shops = data.shops || [];
+    if (!shops.length) {
+        shopsList.innerHTML =
+            '<div class="text-warning">Nessun negozio compra questo oggetto.</div>';
+        return;
+    }
+    let html = '<div class="list-group">';
+    for (const sh of shops) {
+        const stockStr = sh.stock < 0 ? "∞" : String(sh.stock);
+        html += `<button class="list-group-item list-group-item-action bg-dark text-light border-secondary"
+                         onclick="confirmSell(${sh.id})">
+                    <div class="d-flex justify-content-between">
+                        <span><i class="bi bi-shop"></i> ${sh.name}</span>
+                        <span class="text-secondary small">
+                            prezzo base ${sh.current_price} · stock ${stockStr}
+                        </span>
+                    </div>
+                 </button>`;
+    }
+    html += '</div>';
+    shopsList.innerHTML = html;
+}
+
+async function confirmSell(shopId) {
+    if (!sellCurrentObjectId) return;
+    const r = await fetch(`/api/npcs/${NPC_ID}/sell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            object_id: sellCurrentObjectId,
+            shop_id: shopId,
+        }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+        alert("Errore: " + (data.detail || r.statusText));
+        return;
+    }
+    if (sellModal) sellModal.hide();
+    sellCurrentObjectId = null;
+    await loadInventory();
+    // Piccolo feedback visivo
+    if (data.price_received) {
+        const q = data.quality_label ? ` (${data.quality_label})` : "";
+        console.log(`Venduto per ${data.price_received} Athel${q}`);
+    }
+}
+
+// ---------- Init ----------
+
+document.addEventListener("DOMContentLoaded", () => {
+    const modalEl = document.getElementById("sellModal");
+    if (modalEl && typeof bootstrap !== "undefined") {
+        sellModal = new bootstrap.Modal(modalEl);
+    }
+    loadInventory();
+    const refreshBtn = document.getElementById("refresh-inventory-btn");
+    if (refreshBtn) refreshBtn.addEventListener("click", loadInventory);
+});
+</script>
+{% endblock %}

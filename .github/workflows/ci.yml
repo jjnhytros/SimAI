@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Ruff check
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+  typecheck:
+    name: Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Mypy strict
+        run: uv run mypy simai/
+
+  migrations:
+    name: Alembic sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Apply migrations on clean SQLite
+        env:
+          SIMAI_DB_URL: sqlite:///./ci.db
+        run: uv run python -m simai db upgrade
+      - name: Check no pending autogenerate diff
+        env:
+          SIMAI_DB_URL: sqlite:///./ci.db
+        run: |
+          uv run alembic revision --autogenerate -m "ci-check" --rev-id 9999_99 || true
+          if [ -f alembic/versions/9999_99_ci_check.py ]; then
+            echo "::error::Autogenerate ha rilevato differenze!"
+            cat alembic/versions/9999_99_ci_check.py
+            exit 1
+          fi

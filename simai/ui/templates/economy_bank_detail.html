@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}{{ bank.name }} — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-bank2"></i> {{ bank.name }}
+        <span class="text-secondary small ms-2">{{ bank.code }}</span>
+        <span class="badge bg-secondary ms-2">{{ bank.kind }}</span>
+    </h1>
+    <a href="/economy/banks" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Banche
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-black border-info">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Riserva (ledger)</div>
+                <div class="fs-4 text-info">{{ reconcile.reserve_ledger }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-success">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Depositi (ledger)</div>
+                <div class="fs-4 text-success">{{ reconcile.deposits_ledger }}</div>
+                <div class="text-secondary small">
+                    cache: {{ reconcile.accounts_cache_sum }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-warning">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Prestiti (ledger)</div>
+                <div class="fs-4 text-warning">{{ reconcile.loans_ledger }}</div>
+                <div class="text-secondary small">
+                    cache: {{ reconcile.loans_cache_sum }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small text-uppercase">Reconcile</div>
+                <div class="fs-4">
+                    {% if reconcile.ok %}
+                        <span class="text-success">OK</span>
+                    {% else %}
+                        <span class="text-danger">MISMATCH</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small">Tasso depositi</div>
+                <div>{{ "%.2f"|format(bank.deposit_interest_rate * 100) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small">Tasso prestiti</div>
+                <div>{{ "%.2f"|format(bank.loan_interest_rate * 100) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small">Reserve ratio</div>
+                <div>{{ "%.1f"|format(bank.reserve_ratio * 100) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-black border-secondary">
+            <div class="card-body">
+                <div class="text-secondary small">Stato</div>
+                <div>
+                    {% if bank.is_active %}
+                        <span class="badge bg-success">attiva</span>
+                    {% else %}
+                        <span class="badge bg-danger">inattiva</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5><i class="bi bi-wallet2"></i> Conti dei clienti ({{ accounts|length }})</h5>
+<table class="table table-dark table-sm table-hover">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Kind</th>
+            <th class="text-end">Saldo</th>
+            <th class="text-end">Tasso</th>
+            <th class="text-center">Stato</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in accounts %}
+        <tr>
+            <td>{{ a.id }}</td>
+            <td>
+                <a href="/npcs/{{ a.character_id }}" class="text-info">
+                    {{ a.character_name }}
+                </a>
+            </td>
+            <td>{{ a.kind }}</td>
+            <td class="text-end text-success">{{ a.balance }}</td>
+            <td class="text-end">{{ "%.2f"|format(a.interest_rate * 100) }}%</td>
+            <td class="text-center">
+                {% if a.is_frozen %}
+                    <span class="badge bg-warning">congelato</span>
+                {% elif a.is_active %}
+                    <span class="badge bg-success">attivo</span>
+                {% else %}
+                    <span class="badge bg-secondary">chiuso</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="6" class="text-secondary">Nessun conto.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-4"><i class="bi bi-cash-stack"></i> Prestiti ({{ loans|length }})</h5>
+<table class="table table-dark table-sm table-hover">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th class="text-end">Principal</th>
+            <th class="text-end">Residuo</th>
+            <th class="text-end">Rate</th>
+            <th class="text-end">Rata</th>
+            <th class="text-end">Mancate</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for l in loans %}
+        <tr>
+            <td>{{ l.id }}</td>
+            <td>
+                <a href="/npcs/{{ l.character_id }}" class="text-info">
+                    {{ l.character_name }}
+                </a>
+            </td>
+            <td class="text-end">{{ l.principal }}</td>
+            <td class="text-end">{{ "%.0f"|format(l.remaining_principal) }}</td>
+            <td class="text-end">
+                {{ l.payments_made }}/{{ l.term_months }}
+            </td>
+            <td class="text-end">{{ l.monthly_payment }}</td>
+            <td class="text-end {% if l.payments_missed > 0 %}text-danger{% endif %}">
+                {{ l.payments_missed }}
+            </td>
+            <td>
+                {% if l.status == "ACTIVE" %}
+                    <span class="badge bg-success">attivo</span>
+                {% elif l.status == "PAID_OFF" %}
+                    <span class="badge bg-info">saldato</span>
+                {% elif l.status == "DEFAULTED" %}
+                    <span class="badge bg-danger">default</span>
+                {% elif l.status == "WRITTEN_OFF" %}
+                    <span class="badge bg-secondary">stralciato</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ l.status }}</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="8" class="text-secondary">Nessun prestito.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5 class="mt-4">
+    <i class="bi bi-journal-text"></i> Movimenti riserva (ultimi 20)
+</h5>
+<table class="table table-dark table-sm">
+    <thead>
+        <tr>
+            <th>Entry</th>
+            <th>Kind</th>
+            <th>Descrizione</th>
+            <th class="text-end">Δ</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in ledger_rows %}
+        <tr>
+            <td>{{ r.entry_id }}</td>
+            <td><span class="badge bg-secondary">{{ r.kind }}</span></td>
+            <td class="small">{{ r.description }}</td>
+            <td class="text-end {% if r.signed_delta >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ "%+d"|format(r.signed_delta) }}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="4" class="text-secondary">Nessun movimento.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

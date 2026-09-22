@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}NPC — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3"><i class="bi bi-people-fill"></i> NPC ({{ npcs|length }})</h1>
+    <form method="get" class="d-flex gap-2">
+        <select name="alive_only" class="form-select form-select-sm"
+                onchange="this.form.submit()">
+            <option value="false" {% if not alive_only %}selected{% endif %}>Tutti</option>
+            <option value="true" {% if alive_only %}selected{% endif %}>Solo vivi</option>
+        </select>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-dark table-hover table-sm">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Sesso</th>
+                <th>Nato</th>
+                <th>Best skill</th>
+                <th class="text-end">Lvl</th>
+                <th class="text-end">Athel</th>
+                <th>Stato</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for npc in npcs %}
+            <tr>
+                <td>{{ npc.id }}</td>
+                <td><a href="/npcs/{{ npc.id }}" class="text-info text-decoration-none">
+                    {{ npc.name }}
+                </a></td>
+                <td>{{ npc.sex }}</td>
+                <td class="small text-secondary">{{ npc.birth_iso }}</td>
+                <td>{{ npc.best_skill }}</td>
+                <td class="text-end">{{ npc.best_level }}</td>
+                <td class="text-end">{{ npc.balance }}</td>
+                <td>
+                    {% if npc.alive %}<span class="badge bg-success">vivo</span>
+                    {% else %}<span class="badge bg-danger">morto</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

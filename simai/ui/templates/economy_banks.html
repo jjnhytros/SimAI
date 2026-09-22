@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Banche — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-bank"></i> Banche ({{ banks|length }})
+    </h1>
+    <a href="/economy" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Economia
+    </a>
+</div>
+
+{% for b in banks %}
+<div class="card bg-black border-secondary mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-bank2 text-info"></i>
+            <a href="/economy/banks/{{ b.code }}" class="text-info text-decoration-none fw-bold">
+                {{ b.name }}
+            </a>
+            <span class="text-secondary small ms-2">{{ b.code }}</span>
+            <span class="badge bg-secondary ms-2">{{ b.kind }}</span>
+            {% if not b.is_active %}
+                <span class="badge bg-danger ms-1">inattiva</span>
+            {% endif %}
+        </div>
+        <div>
+            {% if b.reconcile_ok %}
+                <span class="badge bg-success">
+                    <i class="bi bi-check-lg"></i> reconcile OK
+                </span>
+            {% else %}
+                <span class="badge bg-danger">
+                    <i class="bi bi-exclamation-triangle"></i> mismatch
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="text-secondary small text-uppercase">Riserva</div>
+                <div class="fs-4 text-info">{{ b.reserve_ledger }}</div>
+                <div class="text-secondary small">Athel</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-secondary small text-uppercase">Depositi clienti</div>
+                <div class="fs-4 text-success">{{ b.total_deposits }}</div>
+                <div class="text-secondary small">
+                    {{ b.n_accounts }} conti attivi
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-secondary small text-uppercase">Prestiti erogati</div>
+                <div class="fs-4 text-warning">{{ b.total_loans }}</div>
+                <div class="text-secondary small">
+                    {{ b.n_loans }} prestiti attivi
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-secondary small text-uppercase">Tassi</div>
+                <div class="small">
+                    Deposito: <strong>{{ "%.2f"|format(b.deposit_interest_rate * 100) }}%</strong>
+                </div>
+                <div class="small">
+                    Prestito: <strong>{{ "%.2f"|format(b.loan_interest_rate * 100) }}%</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer text-end">
+        <a href="/economy/banks/{{ b.code }}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-eye"></i> Dettaglio
+        </a>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-secondary">
+    Nessuna banca. Esegui <code>simai economy bank list</code> per inizializzare la primaria.
+</div>
+{% endfor %}
+{% endblock %}

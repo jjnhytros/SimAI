@@ -1,0 +1,38 @@
+Character vivi: 6
+Righe skill totali: 12
+
+=== Distribuzione livelli per skill ===
+  FARMING       : nessuna pratica
+  CRAFTING      : nessuna pratica
+  TRADING       : nessuna pratica
+  TEACHING      : nessuna pratica
+  MEDICINE      : nessuna pratica
+  COMBAT        : n= 2 avg=20.00 max=20 at_max=2
+  SERVICE       : nessuna pratica
+  ARTISTRY      : nessuna pratica
+  SCHOLARSHIP   : n= 2 avg=20.00 max=20 at_max=2
+  LABOR         : nessuna pratica
+  COOKING       : n= 2 avg=20.00 max=20 at_max=2
+  SOCIALIZING   : n= 6 avg=20.00 max=20 at_max=6
+
+=== Correlazione talent <-> livello raggiunto ===
+  talent <0.8   : n=0
+  talent 0.8-1.2: n= 4 avg=20.00 max=20
+  talent 1.2-1.6: n= 8 avg=20.00 max=20
+  talent >=1.6  : n=0
+
+=== Top 10 NPC per skill massima ===
+  [  1] Erika Lamborghetti             best=SOCIALIZING    lv=20 (n_skills=2)
+  [  2] Max Volpi                      best=COMBAT         lv=20 (n_skills=2)
+  [  3] Camilla Mancini                best=SOCIALIZING    lv=20 (n_skills=2)
+  [  4] Maria Bianchi                  best=SOCIALIZING    lv=20 (n_skills=2)
+  [  5] Kevin Russo                    best=SCHOLARSHIP    lv=20 (n_skills=2)
+  [  6] Ilyra Tassi                    best=SOCIALIZING    lv=20 (n_skills=2)
+
+=== Promozioni ===
+  Totale: 0 promozioni / 0 job attivi
+
+=== Distribuzione talent medio ===
+  n=6 avg=1.234 min=1.193 max=1.282
+  Atteso: avg ~1.25, range ~[0.5, 2.0]
+

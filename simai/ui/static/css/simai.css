@@ -1,0 +1,55 @@
+/* SimAI UI — stili custom sopra Bootstrap */
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.navbar-brand {
+    letter-spacing: 0.05em;
+}
+
+.card {
+    border-width: 1px;
+}
+
+.card-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+.table-dark {
+    --bs-table-bg: transparent;
+}
+
+.progress {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-tabs .nav-link {
+    color: #adb5bd;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0dcaf0;
+    background: transparent;
+    border-bottom-color: #0dcaf0;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid #495057;
+}
+
+code {
+    color: #0dcaf0;
+    background: rgba(13, 202, 240, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+svg#tree-svg circle {
+    cursor: grab;
+}

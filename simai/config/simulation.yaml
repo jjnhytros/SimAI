@@ -1,0 +1,25 @@
+# =============================================================================
+# SimAI — simulation.yaml
+# Parametri di gameplay della simulazione.
+#
+# Override via variabili d'ambiente (SIMAI_*) o file `.env`.
+# Hot-reload in development: se il file cambia, il loader lo ricarica.
+# =============================================================================
+
+simulation:
+  tick:
+    minutes: 5
+    perf_threshold_ms: 100.0
+    history_max: 1000
+
+  time:
+    starting_year: 5775
+    starting_month: 1
+    starting_day: 1
+
+lod:
+  full_distance: 1
+  reduced_distance: 3
+
+save:
+  compression_level: 10

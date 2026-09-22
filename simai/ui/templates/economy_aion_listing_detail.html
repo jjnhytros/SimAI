@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}AION · Listing {{ listing.id }} — SimAI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-tag text-info"></i>
+        Listing #{{ listing.id }}
+        <span class="badge bg-secondary ms-2">{{ listing.product_type }}</span>
+        {% if listing.status == "ACTIVE" %}
+            <span class="badge bg-success ms-1">{{ listing.status }}</span>
+        {% elif listing.status == "SOLD_OUT" %}
+            <span class="badge bg-warning text-dark ms-1">{{ listing.status }}</span>
+        {% elif listing.status == "CANCELLED" %}
+            <span class="badge bg-danger ms-1">{{ listing.status }}</span>
+        {% endif %}
+    </h1>
+    <div class="d-flex gap-2">
+        <a href="/economy/aion/listings" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Listings
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card bg-black border-secondary">
+            <div class="card-header">Dettagli</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-4 text-secondary">Seller</dt>
+                    <dd class="col-8">
+                        <span class="badge bg-secondary">{{ listing.seller_type }}</span>
+                        {{ seller_name }}
+                    </dd>
+                    <dt class="col-4 text-secondary">Item</dt>
+                    <dd class="col-8">{{ listing.item_name }} ({{ listing.item_type }})</dd>
+                    <dt class="col-4 text-secondary">Prezzo unitario</dt>
+                    <dd class="col-8 text-warning">{{ listing.unit_price }} Athel</dd>
+                    <dt class="col-4 text-secondary">Quantità</dt>
+                    <dd class="col-8">
+                        {{ listing.quantity_sold }}/{{ listing.quantity }}
+                        <span class="text-secondary small">
+                            (rimanenti {{ listing.remaining_quantity }})
+                        </span>
+                    </dd>
+                    <dt class="col-4 text-secondary">Condizione</dt>
+                    <dd class="col-8">{{ "%.2f"|format(listing.condition) }}</dd>
+                    <dt class="col-4 text-secondary">Quality label</dt>
+                    <dd class="col-8">{{ listing.quality_label or "—" }}</dd>
+                    <dt class="col-4 text-secondary">Fulfillment</dt>
+                    <dd class="col-8">{{ listing.fulfillment_mode }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card bg-black border-secondary">
+            <div class="card-header">Riferimenti</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-6 text-secondary">source_object_id</dt>
+                    <dd class="col-6">{{ listing.source_object_id or "—" }}</dd>
+                    <dt class="col-6 text-secondary">lot_id</dt>
+                    <dd class="col-6">{{ listing.lot_id or "—" }}</dd>
+                    <dt class="col-6 text-secondary">vehicle_id</dt>
+                    <dd class="col-6">{{ listing.vehicle_id or "—" }}</dd>
+                    <dt class="col-6 text-secondary">warehouse_id</dt>
+                    <dd class="col-6">{{ listing.warehouse_id or "—" }}</dd>
+                </dl>
+                {% if listing.description %}
+                    <hr class="border-secondary">
+                    <div class="small text-secondary">Descrizione</div>
+                    <div class="small">{{ listing.description }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5><i class="bi bi-receipt text-warning"></i> Ordini ({{ orders|length }})</h5>
+<table class="table table-dark table-sm table-hover">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Buyer</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Totale</th>
+            <th class="text-end">Comm.</th>
+            <th class="text-end">Netto</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for o in orders %}
+        <tr>
+            <td>
+                <a href="/economy/aion/orders/{{ o.id }}" class="text-info">
+                    {{ o.id }}
+                </a>
+            </td>
+            <td>
+                {% if o.buyer_link %}
+                    <a href="/npcs/{{ o.buyer_link }}" class="text-info">{{ o.buyer_name }}</a>
+                {% else %}
+                    {{ o.buyer_name }}
+                {% endif %}
+            </td>
+            <td class="text-end">{{ o.quantity }}</td>
+            <td class="text-end text-warning">{{ o.total }}</td>
+            <td class="text-end text-secondary">{{ o.commission }}</td>
+            <td class="text-end text-success">{{ o.net }}</td>
+            <td>
+                {% if o.status == "DELIVERED" %}
+                    <span class="badge bg-success">{{ o.status }}</span>
+                {% elif o.status == "SHIPPED" %}
+                    <span class="badge bg-info text-dark">{{ o.status }}</span>
+                {% elif o.status == "ESCROWED" %}
+                    <span class="badge bg-warning text-dark">{{ o.status }}</span>
+                {% elif o.status == "REFUNDED" %}
+                    <span class="badge bg-danger">{{ o.status }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ o.status }}</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="7" class="text-secondary text-center">Nessun ordine su questo listing.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

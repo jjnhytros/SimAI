@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from simai.actions.catalog import ActionDef
 from simai.needs.enums import NeedKind
 from simai.needs.models import Need
 
@@ -59,3 +60,22 @@ def ensure_initial_needs(session: Session, character_id: int) -> int:
 def needs_of(session: Session, character_id: int) -> dict[NeedKind, float]:
     needs = session.scalars(select(Need).where(Need.character_id == character_id)).all()
     return {n.kind: n.value for n in needs}
+
+
+def apply_effect(session: Session, character_id: int, action: ActionDef) -> float:
+    """Aumenta il bisogno soddisfatto da `action`, clampato a 100.
+
+    Ritorna il nuovo valore. Se il bisogno non esiste ritorna 0.0:
+    non è un caso atteso in 1.0 ma va gestito senza eccezioni per non
+    bloccare il tick.
+    """
+    need = session.scalar(
+        select(Need).where(
+            Need.character_id == character_id,
+            Need.kind == action.satisfies,
+        )
+    )
+    if need is None:
+        return 0.0
+    need.value = clamp(need.value + action.amount)
+    return need.value

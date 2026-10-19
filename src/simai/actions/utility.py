@@ -7,13 +7,13 @@ JITTER = 5.0
 VALUE_MAX = 100.0
 
 
-def rng_for_decision(master_seed: int, character_id: int) -> random.Random:
+def rng_for_decision(master_seed: int, character_id: int, tick: int = 0) -> random.Random:
     """RNG deterministico per una decisione.
 
-    Seed stringa: hash stabile e documentabile, indipendente dalla
-    PYTHONHASHSEED del processo.
+    `tick` differenzia le decisioni fra tick successivi. Con default 0
+    il comportamento per `actions choose` è invariato.
     """
-    return random.Random(f"simai:{master_seed}:{character_id}")
+    return random.Random(f"simai:{master_seed}:{character_id}:{tick}")
 
 
 def score(action: ActionDef, needs: dict[NeedKind, float]) -> float:

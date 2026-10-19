@@ -28,6 +28,7 @@ def test_seed_creates_expected_counts(tmp_path: Path) -> None:
         "locations_created": 3,
         "characters_created": 5,
         "needs_created": 20,
+        "relationships_created": 2,
     }
 
 
@@ -44,6 +45,7 @@ def test_seed_is_idempotent(tmp_path: Path) -> None:
         "locations_created": 0,
         "characters_created": 0,
         "needs_created": 0,
+        "relationships_created": 0,
     }
 
 

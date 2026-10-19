@@ -4,6 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from simai.needs.service import ensure_initial_needs
+from simai.relationships.enums import RelationshipKind
+from simai.relationships.service import ensure_relationship
 from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 
@@ -78,6 +80,7 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     locations_created = 0
     characters_created = 0
     needs_created = 0
+    relationships_created = 0
 
     by_key: dict[str, Location] = {}
     for spec in LOCATION_SPECS:
@@ -112,10 +115,34 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     for char in characters:
         needs_created += ensure_initial_needs(session, char.id)
 
+    by_char_key = {c.key: c for c in characters}
+    erika = by_char_key.get("erika")
+    max_char = by_char_key.get("max")
+    if erika is not None and max_char is not None:
+        rel1 = ensure_relationship(
+            session,
+            erika.id,
+            max_char.id,
+            kind=RelationshipKind.FRIEND,
+            strength=60.0,
+        )
+        if rel1 is not None:
+            relationships_created += 1
+        rel2 = ensure_relationship(
+            session,
+            max_char.id,
+            erika.id,
+            kind=RelationshipKind.FRIEND,
+            strength=60.0,
+        )
+        if rel2 is not None:
+            relationships_created += 1
+
     session.flush()
 
     return {
         "locations_created": locations_created,
         "characters_created": characters_created,
         "needs_created": needs_created,
+        "relationships_created": relationships_created,
     }

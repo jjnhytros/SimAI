@@ -9,6 +9,7 @@ from simai.actions.enums import ActionKind
 from simai.actions.utility import choose_action, rng_for_decision
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, apply_effect, needs_of
+from simai.relationships.service import boost_social_relationship
 from simai.sim.state import get_state
 from simai.world.models import Character, Location
 
@@ -22,6 +23,7 @@ class TickDecision:
     satisfied: NeedKind | None
     value_before: float | None
     value_after: float | None
+    relationship_strength_after: float | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +95,7 @@ def run_tick(
 
         before = needs[choice.satisfies]
         after = apply_effect(session, char.id, choice)
+        rel_after = boost_social_relationship(session, char.id, choice)
         decisions.append(
             TickDecision(
                 character_id=char.id,
@@ -102,6 +105,7 @@ def run_tick(
                 satisfied=choice.satisfies,
                 value_before=before,
                 value_after=after,
+                relationship_strength_after=rel_after,
             )
         )
 

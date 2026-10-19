@@ -9,14 +9,18 @@ sim_app = typer.Typer(help="Comandi di simulazione.")
 
 
 def _format_decision(d: TickDecision) -> str:
-    if d.action is None or d.satisfied is None or d.value_before is None or d.value_after is None:
+    if d.action is None or d.satisfied is None:
         return f"  {d.character_key:<10} NESSUNA AZIONE (location={d.location_key})"
-    return (
+    assert d.value_before is not None and d.value_after is not None
+    base = (
         f"  {d.character_key:<10} {d.action.value.upper():<10} "
         f"{d.satisfied.value.upper():<8} "
         f"{d.value_before:5.1f} -> {d.value_after:5.1f}  "
         f"({d.location_key})"
     )
+    if d.relationship_strength_after is not None:
+        base += f"  [rel → {d.relationship_strength_after:.1f}]"
+    return base
 
 
 @sim_app.command("tick")

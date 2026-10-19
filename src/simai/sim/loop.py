@@ -29,13 +29,18 @@ class RunReport:
     error_message: str | None
 
 
-def _try_autosave(session: Session, *, base_name: str, tick: int) -> AutosaveRecord:
+def _try_autosave(session: Session, *, base_name: str, executed_ticks: int) -> AutosaveRecord:
+    """Autosave dopo `executed_ticks` tick eseguiti.
+
+    Il numero usato nel nome file è 1-based ("dopo N tick") e coincide
+    con `sim_state.tick_index` al momento della scrittura.
+    """
     try:
-        info = create_save(session, name=f"{base_name}_t{tick}")
-        return AutosaveRecord(tick=tick, path=info.path, error=None)
+        info = create_save(session, name=f"{base_name}_t{executed_ticks}")
+        return AutosaveRecord(tick=executed_ticks, path=info.path, error=None)
     except Exception as exc:  # noqa: BLE001 - l'autosave non deve fermare il loop
-        logger.warning(f"Autosave fallito al tick {tick}: {exc}")
-        return AutosaveRecord(tick=tick, path=None, error=str(exc))
+        logger.warning(f"Autosave fallito dopo {executed_ticks} tick: {exc}")
+        return AutosaveRecord(tick=executed_ticks, path=None, error=str(exc))
 
 
 def run_simulation(
@@ -91,7 +96,7 @@ def run_simulation(
                 _try_autosave(
                     session,
                     base_name=autosave_name,
-                    tick=report.tick_index,
+                    executed_ticks=executed,
                 )
             )
 

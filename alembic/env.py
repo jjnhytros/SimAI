@@ -1,5 +1,4 @@
 import os
-from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
@@ -10,9 +9,6 @@ from simai.db.registry import ensure_all_models_loaded
 from simai.db.session import ensure_sqlite_parent_dir
 
 config = context.config
-
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
 
 ensure_all_models_loaded()
 target_metadata = Base.metadata

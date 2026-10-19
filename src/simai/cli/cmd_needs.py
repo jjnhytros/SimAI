@@ -1,31 +1,22 @@
 import typer
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
+from simai.cli._helpers import require_schema, resolve_character
 from simai.db.session import get_engine, get_session_factory
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, needs_of
-from simai.world.models import Character
 
 needs_app = typer.Typer(help="Comandi sui bisogni.")
-
-
-def _character_id(session: Session, key: str) -> int:
-    char = session.scalar(select(Character).where(Character.key == key))
-    if char is None:
-        typer.echo(f"Personaggio non trovato: {key}", err=True)
-        raise typer.Exit(code=1)
-    return char.id
 
 
 @needs_app.command("show")
 def show(character: str = typer.Option(..., "--character", "-c")) -> None:
     """Mostra i bisogni di un personaggio."""
     engine = get_engine()
+    require_schema(engine)
     factory = get_session_factory(engine)
     with factory() as session:
-        cid = _character_id(session, character)
-        values = needs_of(session, cid)
+        char = resolve_character(session, character)
+        values = needs_of(session, char.id)
     typer.echo(f"Bisogni di '{character}':")
     for kind in NeedKind:
         v = values.get(kind)
@@ -42,10 +33,11 @@ def decay(
 ) -> None:
     """Applica il decadimento dei bisogni per N minuti."""
     engine = get_engine()
+    require_schema(engine)
     factory = get_session_factory(engine)
     with factory() as session:
-        cid = _character_id(session, character)
-        result = apply_decay(session, cid, minutes)
+        char = resolve_character(session, character)
+        result = apply_decay(session, char.id, minutes)
         session.commit()
     typer.echo(f"Bisogni dopo {minutes} minuti:")
     for kind in NeedKind:

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from simai.actions.catalog import actions_for_location
 from simai.actions.enums import ActionKind
 from simai.actions.utility import choose_action, rng_for_decision
+from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, apply_effect, needs_of
 from simai.relationships.service import boost_social_relationship
@@ -62,11 +63,12 @@ def run_tick(
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
-    # Fase 1: decadimento universale e snapshot dei bisogni
+    # Fase 1: decadimento universale, mood e snapshot dei bisogni
     all_characters = session.scalars(select(Character).order_by(Character.id)).all()
     needs_by_char: dict[int, dict[NeedKind, float]] = {}
     for char in all_characters:
         apply_decay(session, char.id, minutes)
+        update_mood(session, char.id)
         needs_by_char[char.id] = needs_of(session, char.id)
 
     # Fase 2: decisioni

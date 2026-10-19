@@ -2,6 +2,7 @@ import typer
 
 from simai.cli._helpers import require_schema, resolve_character
 from simai.db.session import get_engine, get_session_factory
+from simai.mood.service import mood_label
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, needs_of
 
@@ -10,13 +11,14 @@ needs_app = typer.Typer(help="Comandi sui bisogni.")
 
 @needs_app.command("show")
 def show(character: str = typer.Option(..., "--character", "-c")) -> None:
-    """Mostra i bisogni di un personaggio."""
+    """Mostra i bisogni e l'umore di un personaggio."""
     engine = get_engine()
     require_schema(engine)
     factory = get_session_factory(engine)
     with factory() as session:
         char = resolve_character(session, character)
         values = needs_of(session, char.id)
+        mood = char.mood
     typer.echo(f"Bisogni di '{character}':")
     for kind in NeedKind:
         v = values.get(kind)
@@ -24,6 +26,7 @@ def show(character: str = typer.Option(..., "--character", "-c")) -> None:
             typer.echo(f"  {kind}: (mancante)")
         else:
             typer.echo(f"  {kind}: {v:.1f}")
+    typer.echo(f"Umore: {mood:.1f} ({mood_label(mood)})")
 
 
 @needs_app.command("decay")

@@ -4,6 +4,7 @@ from simai.actions.do import do_action
 from simai.actions.enums import ActionKind
 from simai.cli._helpers import require_schema
 from simai.db.session import get_engine, get_session_factory
+from simai.mood.service import mood_label
 from simai.needs.enums import NeedKind
 from simai.player.status import build_player_status
 from simai.world.move import move_character
@@ -25,6 +26,7 @@ def status() -> None:
 
     typer.echo(f"Tick: {s.tick_index} (seed {s.master_seed})")
     typer.echo(f"Player: {s.name} ({s.character_key}), {s.age_years} anni")
+    typer.echo(f"Umore: {s.mood:.1f} ({mood_label(s.mood)})")
     typer.echo(f"Location: {s.location_name} [{s.location_key}] ({s.location_kind})")
     typer.echo("Bisogni:")
     for kind in NeedKind:

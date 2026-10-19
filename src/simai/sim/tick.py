@@ -9,6 +9,7 @@ from simai.actions.enums import ActionKind
 from simai.actions.utility import choose_action, rng_for_decision
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, apply_effect, needs_of
+from simai.sim.state import get_state
 from simai.world.models import Character, Location
 
 
@@ -35,18 +36,26 @@ def run_tick(
     session: Session,
     *,
     minutes: int,
-    tick_index: int,
-    master_seed: int,
+    tick_index: int | None = None,
+    master_seed: int | None = None,
     include_player: bool = False,
 ) -> TickReport:
-    """Avanza la simulazione di `minutes`: decadimento, decisione, effetto.
+    """Avanza la simulazione di `minutes`.
 
-    Il player è escluso per default: il tick simula gli NPC, il player
-    è controllato dall'utente. Include con `include_player=True` per
-    test o modalità osservativa.
+    Se `tick_index` è None, viene letto e incrementato da `SimState`.
+    Se `master_seed` è None, viene letto da `SimState`.
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
+
+    if tick_index is None or master_seed is None:
+        state = get_state(session)
+        if tick_index is None:
+            tick_index = state.tick_index
+            state.tick_index += 1
+        if master_seed is None:
+            master_seed = state.master_seed
+
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 

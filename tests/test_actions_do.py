@@ -49,7 +49,8 @@ def test_do_action_invalid_in_location(tmp_path: Path, monkeypatch: pytest.Monke
     assert not result.success
     assert result.error is not None
     assert "non disponibile" in result.error
-    assert "caffe" in result.error
+    assert "'casa'" in result.error
+    assert "eat, play" in result.error
 
 
 def test_do_action_unknown_character(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

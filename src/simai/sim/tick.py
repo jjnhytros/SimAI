@@ -44,8 +44,9 @@ def run_tick(
 ) -> TickReport:
     """Avanza la simulazione di `minutes`.
 
-    Se `tick_index` è None, viene letto e incrementato da `SimState`.
-    Se `master_seed` è None, viene letto da `SimState`.
+    Il decadimento viene applicato a tutti i personaggi, incluso il
+    player. La decisione di azione viene presa solo per gli NPC, a meno
+    di `include_player=True`.
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
@@ -61,19 +62,26 @@ def run_tick(
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
+    # Fase 1: decadimento universale e snapshot dei bisogni
+    all_characters = session.scalars(select(Character).order_by(Character.id)).all()
+    needs_by_char: dict[int, dict[NeedKind, float]] = {}
+    for char in all_characters:
+        apply_decay(session, char.id, minutes)
+        needs_by_char[char.id] = needs_of(session, char.id)
+
+    # Fase 2: decisioni
     q = select(Character).order_by(Character.id)
     if not include_player:
         q = q.where(Character.is_player.is_(False))
-    characters = session.scalars(q).all()
+    deciders = session.scalars(q).all()
 
     decisions: list[TickDecision] = []
-    for char in characters:
+    for char in deciders:
         loc = session.get(Location, char.location_id)
         if loc is None:
             raise RuntimeError(f"Character {char.key} has invalid location_id={char.location_id}")
 
-        apply_decay(session, char.id, minutes)
-        needs = needs_of(session, char.id)
+        needs = needs_by_char[char.id]
         available = actions_for_location(loc.kind)
         rng = rng_for_decision(master_seed, char.id, tick_index)
         choice = choose_action(needs, available, rng)

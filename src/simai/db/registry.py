@@ -4,4 +4,5 @@ def ensure_all_models_loaded() -> None:
     Va chiamato prima di leggere `Base.metadata`, così Alembic e
     autogenerate vedono l'intero schema.
     """
+    from simai.needs import models as _needs_models  # noqa: F401
     from simai.world import models as _world_models  # noqa: F401

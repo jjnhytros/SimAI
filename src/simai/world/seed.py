@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from simai.needs.service import ensure_initial_needs
 from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 
@@ -76,6 +77,7 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     """
     locations_created = 0
     characters_created = 0
+    needs_created = 0
 
     by_key: dict[str, Location] = {}
     for spec in LOCATION_SPECS:
@@ -90,20 +92,30 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     session.flush()
 
+    characters: list[Character] = []
     for char_spec in CHARACTER_SPECS:
         existing_character = session.scalar(
             select(Character).where(Character.key == char_spec["key"])
         )
         if existing_character is not None:
+            characters.append(existing_character)
             continue
         data = {k: v for k, v in char_spec.items() if k != "location_key"}
         data["location_id"] = by_key[char_spec["location_key"]].id
-        session.add(Character(**data))
+        new_char = Character(**data)
+        session.add(new_char)
+        characters.append(new_char)
         characters_created += 1
+
+    session.flush()
+
+    for char in characters:
+        needs_created += ensure_initial_needs(session, char.id)
 
     session.flush()
 
     return {
         "locations_created": locations_created,
         "characters_created": characters_created,
+        "needs_created": needs_created,
     }

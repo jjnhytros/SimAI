@@ -18,7 +18,8 @@ def seed() -> None:
         session.commit()
     typer.echo(
         f"Seed Muse Core: {report['locations_created']} location, "
-        f"{report['characters_created']} personaggi creati."
+        f"{report['characters_created']} personaggi, "
+        f"{report['needs_created']} bisogni creati."
     )
 
 

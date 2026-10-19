@@ -7,6 +7,7 @@ from simai.actions.enums import ActionKind
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_effect, needs_of
 from simai.relationships.service import boost_social_relationship
+from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 
 
@@ -24,10 +25,7 @@ class ActionResult:
     error: str | None = None
 
 
-def _find_action(
-    loc_kind,
-    action_kind: ActionKind,  # type: ignore[no-untyped-def]
-) -> ActionDef | None:
+def _find_action(loc_kind: LocationKind, action_kind: ActionKind) -> ActionDef | None:
     for action in actions_for_location(loc_kind):
         if action.kind == action_kind:
             return action

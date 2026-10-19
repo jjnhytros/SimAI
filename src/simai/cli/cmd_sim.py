@@ -2,8 +2,9 @@ import typer
 
 from simai.cli._helpers import require_schema
 from simai.db.session import get_engine, get_session_factory
+from simai.sim.loop import run_simulation
 from simai.sim.state import get_state, reset_state
-from simai.sim.tick import TickDecision, run_tick
+from simai.sim.tick import TickDecision, TickReport, run_tick
 
 sim_app = typer.Typer(help="Comandi di simulazione.")
 
@@ -30,7 +31,7 @@ def tick(
     seed: int | None = typer.Option(None, "--seed"),
     include_player: bool = typer.Option(False, "--include-player"),
 ) -> None:
-    """Avanza la simulazione. Senza --tick usa e incrementa lo stato persistito."""
+    """Avanza la simulazione di un tick."""
     engine = get_engine()
     require_schema(engine)
     factory = get_session_factory(engine)
@@ -48,6 +49,65 @@ def tick(
     typer.echo(f"Tick {report.tick_index} — {report.minutes} minuti (seed {report.seed})")
     for d in report.decisions:
         typer.echo(_format_decision(d))
+
+
+@sim_app.command("run")
+def run(
+    ticks: int = typer.Option(10, "--ticks", "-n"),
+    minutes: int = typer.Option(60, "--minutes", "-m"),
+    autosave_every: int = typer.Option(0, "--autosave-every"),
+    autosave_name: str = typer.Option("autosave", "--autosave-name"),
+    include_player: bool = typer.Option(False, "--include-player"),
+    quiet: bool = typer.Option(False, "--quiet", "-q"),
+) -> None:
+    """Esegue N tick consecutivi con autosave opzionale."""
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+
+    def on_tick(report: TickReport) -> None:
+        if quiet:
+            return
+        typer.echo(f"Tick {report.tick_index} — {report.minutes}m ({len(report.decisions)} NPC)")
+
+    with factory() as session:
+        try:
+            report = run_simulation(
+                session,
+                ticks=ticks,
+                minutes_per_tick=minutes,
+                autosave_every=autosave_every,
+                autosave_name=autosave_name,
+                include_player=include_player,
+                on_tick=on_tick,
+            )
+        except ValueError as exc:
+            typer.echo(f"Errore: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    if report.failed_at_tick is not None:
+        typer.echo(
+            f"ERRORE al tick {report.failed_at_tick}: {report.error_message}",
+            err=True,
+        )
+        typer.echo(
+            f"Eseguiti {report.ticks_executed} tick prima del fallimento.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        f"Eseguiti {report.ticks_executed} tick "
+        f"da tick {report.started_at_tick} a {report.ended_at_tick} "
+        f"({report.total_minutes} minuti simulati)"
+    )
+    if report.autosaves:
+        typer.echo(f"Autosave ({len(report.autosaves)}):")
+        for a in report.autosaves:
+            if a.error is not None:
+                typer.echo(f"  tick {a.tick}: ERRORE {a.error}", err=True)
+            elif a.path is not None:
+                typer.echo(f"  tick {a.tick}: {a.path}")
 
 
 @sim_app.command("state")

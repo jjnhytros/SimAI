@@ -1,1 +1,0 @@
-"""Comandi CLI SimAI (Typer)."""

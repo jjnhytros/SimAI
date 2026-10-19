@@ -1,3 +1,0 @@
-# Le migrazioni verranno generate qui a partire da FASE 1.
-# Naming: NNNN_SS_slug.py  (es. 5000_01_core_version.py)
-# Invocazione: alembic revision --rev-id "5000_01" -m "core version table"

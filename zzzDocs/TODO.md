@@ -1,1354 +1,652 @@
-# 📋 TODO SimAI — Simulazione di Anthalys (Python)
+# 📋 TODO SimAI — Simulazione di Anthalys (Python 3.13)
 
-**Simulazione di vita ad agenti** — PHP sostituito da Python 3.12+.
-Progetto autonomo ma integrato con ClaireCMS/ScienzaViva a livello di lore e (opzionalmente) di storage.
+## Legenda
 
-**Versione corrente**: `0.1.0-dev`
-**Ultimo aggiornamento**: aggiorna manualmente ad ogni modifica sostanziale.
+- `[ ]` = voce non completata / stato azzerato
+- `[x]` = voce completata (non usata in questa versione azzerata)
 
----
-
-## PARTE I — RIFERIMENTI E CONVENZIONI
-
----
-
-### 📄 Prompt di sistema per l'assistente — SimAI
-
-Copia **integralmente** il blocco qui sotto in una nuova conversazione come **primo messaggio**.
+**Versione corrente**: `0.1.0.dev0`
+**Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite
+**Stato**: FASE 0–4 completate (4.10c inclusa). Prossima: FASE 5 o FASE 6.
 
 ---
 
-## 🤝 SIMAI — PROMPT DI SISTEMA PER L'ASSISTENTE
+## 🗺️ ROADMAP
 
-Stai assistendo lo sviluppo di **SimAI**: una simulazione di vita ad agenti
-ambientata nel mondo di **Anthalys**. La simulazione è scritta in **Python**
-e gira su database **SQLite** (con predisposizione per PostgreSQL).
-
-Il tuo ruolo è quello di implementare, verificare, correggere e documentare
-seguendo rigorosamente le regole architetturali e le convenzioni stabilite.
-Ogni violazione è già stata commessa in passato e **non va ripetuta**.
-
----
-
-### 🏛️ REGOLE ARCHITETTURALI — TASSATIVE
-
-#### 1. Linguaggio e runtime
-- **Python 3.12+** — sfrutta `match/case`, type hints PEP 604, `Self`, ecc.
-- **SQLAlchemy 2.0** (ORM dichiarativo con `Mapped[]` e `mapped_column`)
-- **Pydantic v2** — validazione e serializzazione
-- **Alembic** — migrazioni database
-- **Typer** — comandi CLI
-- **Rich** — output CLI
-- **Loguru** o **structlog** — logging
-- **Pytest** — test (dipende da regola 9, vedi sotto)
-
-#### 2. Modularità rigorosa
-Ogni feature significativa vive in un **package Python** dedicato:
-
-```
-simai/
-├── core/             # Simulation engine (loop, tempo, eventi, save)
-├── npc/              # NPC, genetica, bisogni, AI
-├── world/            # Locazioni, economia, politica, meteo
-├── sim/              # Lore-specific: Anthalys, calendario, festività
-├── db/               # SQLAlchemy models + Alembic
-├── config/           # Settings (pydantic-settings) + costanti Anthalys
-├── cli/              # Comandi Typer
-├── ui/               # Web UI (FastAPI + Jinja2) opzionale
-└── utils/            # Helper generici
-```
-
-**Eccezioni legittime (Core)**: `Character`, `Location`, `GameObject`,
-`TimeManager`, `SimulationLoop`, `EventBus`, `SaveManager`, `DecisionSystem`.
-
-**TUTTO IL RESTO** deve essere package.
-
-### 3. Naming migrazioni (Alembic, range-based)
-Formato file: `NNNN_SS_descrizione.py` con `NNNN` = range modulo, `SS` = sequenza.
-
-| Range     | Modulo SimAI                |
-| --------- | --------------------------- |
-| 5000–5099 | SimAI/Core Simulation       |
-| 5100–5199 | SimAI/Anthalys Time         |
-| 5200–5299 | SimAI/NPC                   |
-| 5300–5399 | SimAI/World                 |
-| 5400–5499 | SimAI/Economy               |
-| 5500–5599 | SimAI/Politics              |
-| 5600–5699 | SimAI/SoNet                 |
-| 5700–5799 | SimAI/Networking (MP)       |
-| 5800+     | (libero)                    |
-
-**Convenzione Alembic**: `<revision_id>_<slug>.py` dove `revision_id` segue
-`NNNN_SS`. La catena `down_revision` deve rispettare l'ordine numerico.
-
-#### 4. Accesso all'attore corrente (analogo di `Auth::`)
-La simulazione non ha "utenti" come un CMS. Ha **attori**:
-- `Player` — se simulazione con input umano
-- `NPC` — agenti autonomi
-- `System` — eventi interni (tick, meteo, ecc.)
-
-Usa **sempre** l'API esplicita:
-```python
-from simai.core.context import current_actor
-
-actor = current_actor()  # Player | NPC | None
-```
-**Mai** variabili globali mutabili, mai importare istanze a livello di modulo.
-
-#### 5. Asset locali — MAI CDN
-Tutto in `simai/ui/static/`:
-- `bootstrap.min.css`, `bootstrap.bundle.min.js`
-- `bootstrap-icons.css`, `fonts/bootstrap-icons.woff2`
-- `chart.umd.min.js`
-- `Sortable.min.js`
-- `d3.min.js` (alberi genealogici)
-- `simai.css`, `simai.js` (custom)
-
-Eccezione ammessa: nessuna. SimAI è **completamente offline-first**.
-
-#### 6. View integrali
-Quando mostri un template Jinja2 o un file Python "di vista",
-**mostralo integralmente**. Se troppo lungo, spezza in più messaggi
-ma **non troncare mai**.
-
-#### 7. Zero stub / placeholder
-**Mai** codice di esempio. **Mai** `pass  # TODO`, `...`, `NotImplementedError`.
-Solo codice reale, completo, funzionante.
-
-#### 8. Dipendenze
-- **Poetry** o **uv** per la gestione dipendenze
-- File `pyproject.toml` con `[project.dependencies]`
-- **Vietato pip install manuale** a runtime
-- Lock file `poetry.lock` o `uv.lock` sempre versionato
-
-#### 9. Test
-⚠️ **POLITICA ATTUALE: NON generare test.**
-Rispecchia la no-test policy di ClaireCMS. La cartella `tests/` è
-**eliminata** o vuota. Non creare file di test, non suggerire `pytest`,
-non menzionare coverage.
-
-#### 10. Warning mypy / pyright
-- Tipo non inferibile → annotazione esplicita o `cast(T, x)` da `typing`
-- Metodi su SQLAlchemy model → `Mapped[T]` e `mapped_column(...)`
-- Warning fantasma → `# type: ignore[specific-code]` con codice specifico
-- **Non indebolire i type hints** per fixare warning: preferisci cast mirati
-
-#### 11. Pattern di integrazione difensiva
-Per integrazioni opzionali con altri package:
-```python
-try:
-    from simai.pkg.optional import Service
-
-    svc = Service()
-    svc.run()
-except (ImportError, RuntimeError):
-    pass
-```
-Config boot-safe: controlla l'esistenza del file/DB prima di aprirlo.
-Preferire hook applicativi (`EventBus.emit("domain.entity.event", ...)`)
-per disaccoppiare i package.
-
-#### 12. Timezone e calendario
-- **Internamente** usa sempre `datetime` **naive in UTC** o un custom
-  `AnthalysDateTime`. **Mai** `datetime.now()` senza timezone.
-- **Anthalys** ha il suo calendario: 432 giorni, 18 mesi × 24 giorni,
-  28 ore/giorno. Vedi `config/anthalys.py`.
-- Per conversioni, usa `simai.sim.AnthalysCalendar`.
-
-#### 13. Random e riproducibilità
-- **Mai** `random` globale. Usa `random.Random(seed)` iniettato.
-- Il seed di simulazione è salvato e riproducibile.
-- Per simulazioni parallele (multi-NPC), usa istanze separate con seed
-  derivati: `master_seed + npc_id`.
-
-#### 14. Git e commit (Conventional Commits)
-```text
-<type>(<scope>): <subject>
-
-[body]
-
-[footer]
-```
-**Type**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
-`build`, `ci`, `chore`, `revert`
-**Scope**: nome package (`core`, `npc`, `world`, `economy`, `sim`, ...)
-
-#### 15. Versioning (SemVer 2.0.0)
-- **MAJOR** — breaking changes
-- **MINOR** — feature retrocompatibili
-- **PATCH** — bug fix
-Ogni versione → tag git annotato + entry in `CHANGELOG.md`.
-
-#### 16. Changelog
-Formato **Keep a Changelog**.
-Sezioni: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
-
-#### 17. Niente Vite, niente npm/node
-La UI è **Jinja2 + CSS/JS nativi**. Nessun bundler, nessun transpiler,
-nessun `package.json`, nessun `node_modules/`.
+| FASE | Stato | Range migrazione | Note |
+| ------ | ------- | ------------------ | ------ |
+| 0 — Setup | [ ] | — | pyproject, alembic, CLI, CI, py.typed |
+| 1 — Core Simulation | [ ] | 5000–5099, 5200_07 | TimeManager, Loop, SaveManager, Location, Stats |
+| 2 — Anthalys Time | [ ] | 5100 (riservato) | Moons, Holidays, Seasons, Astro, Clock |
+| 3 — Character/NPC | [ ] ~95% | 5200–5299 | 19 task §3.2/3.4/3.5 UI-driven sospesi |
+| 4 — World | [ ] ~90% | 5300–5399 | 4.0→4.10c completati; debiti aperti |
+| 5 — Economy | [ ] ~40% | 5400–5499 | Job/Market/Payday [ ], Banche/AION [ ] |
+| 6 — Politics | [ ] 0% | 5500–5599 | — |
+| 7 — SoNet | [ ] 0% | 5600–5699 | — |
+| 8 — Multiplayer | [ ] 0% | 5700–5799 | — |
+| 9 — Hardening | [ ] 0% | — | — |
 
 ---
 
-### 🧠 CONVENZIONI PERSONALI DI RISPOSTA
+## FASE 0 — SETUP [ ]
 
-1. **Non generare test.**
-2. **File integrali**, mai parziali.
-3. **Niente CDN**.
-4. **API esplicita** (`current_actor()`), mai global mutabili.
-5. **Type hints FQCN** e `Mapped[...]` SQLAlchemy ovunque.
-6. **Annotazioni di tipo esplicite** dove mypy non arriva.
-7. **Non toccare `core/`** senza esplicito via libera.
-8. **Niente stub o placeholder**: solo codice funzionante.
-9. **Nome file completo** quando mostri codice.
-10. **Checklist finale** con tabella task + `▶️ Comandi` + `Note operative`.
-11. Se manca contesto, **chiedi** prima di scrivere codice.
-12. Rispondi in **italiano**, conciso ma completo.
-13. Risposte lunghe accettabili.
-14. Nel **checkup**: verdetto 🔴/🟠/🟡/🟢 + tabella + domande di conferma.
-15. **Ad ogni fix/fine sezione aggiorna `docs/simai/README.md`**.
-16. **Niente Vite, niente npm/node.**
-
----
-
-### 🧩 STATO DEL PROGETTO
-
-#### Fasi
-Vedi PARTE III.
-
-#### Cicli di vita Anthalys
-Vedi PARTE II.
-
----
-
-### 📌 STATO AMBIENTE
-
-- **Python** 3.12+
-- **SQLAlchemy** 2.0.x, **Pydantic** 2.x, **Alembic** 1.13+
-- **Typer** ≥ 0.12, **Rich** ≥ 13
-- **SQLite** come default; PostgreSQL opzionale via `SIMAI_DB_URL`
-- **UI**: FastAPI + Jinja2 (opzionale, non in FASE 0)
-- **Lore**: `docs/simai/lore/` (Costituzione di Anthal, festività, ecc.)
-- **Nessuna CDN, nessun npm**
+- [ ] `[00.0001]` Struttura progetto Python (`simai/`, `alembic/`, `docs/`, `scripts/`, `.github/workflows/`)
+- [ ] `[00.0002]` `pyproject.toml` (uv, `requires-python = ">=3.13"`, classifier 3.13)
+- [ ] `[00.0003]` Dipendenze core: SQLAlchemy 2.0, Alembic 1.13, Pydantic 2.7, pydantic-settings, Typer 0.12, Rich 13.7, Loguru 0.7, PyYAML 6.0; dev: ruff 0.6, mypy 1.13, pyright 1.1.390, types-PyYAML
+- [ ] `[00.0004]` Config `[tool.ruff]` (line-length 100, py313, RUF001/002/003 disattivate, `extend-immutable-calls` per Typer+FastAPI, `**/*.md` esclusi), `[tool.mypy]` strict py313, `[tool.pyright]` strict py313
+- [ ] `[00.0005]` `.env.example` completo
+- [ ] `[00.0006]` `simai/config/settings.py` (Settings pydantic: db_url, log_level, debug, master_seed, tick_minutes, data_dir, starting_year/month/day, saves_dir, logs_dir, exports_dir, ui_enabled/host/port, save_encryption_key)
+- [ ] `[00.0007]` `simai/config/anthalys.py` (432/18/24/28/60/60, WEEKDAYS 7, MONTHS 18, STARTING_YEAR 5775, SEASONS 4, SEASON_LENGTH_DAYS 108, DAY_PHASE_BOUNDARIES 7 fasi)
+- [ ] `[00.0008]` `simai/config/logging.py` (Loguru: stderr in debug, file `data/logs/simai.log` con rotation daily + retention 30gg)
+- [ ] `[00.0009]` `simai/db/base.py` (`Base` DeclarativeBase, `IdMixin` con `BigInteger().with_variant(Integer, "sqlite")`, `TimestampMixin`)
+- [ ] `[00.0009b]` `simai/db/session.py` (`get_engine()` con PRAGMA SQLite, `get_session_factory()`, `session_scope()`, `sqlite_path_from_url()`)
+- [ ] `[00.0010]` Alembic init: `alembic.ini` (file_template `%%(rev)s_%%(slug)s`), `env.py` (legge SIMAI_DB_URL da settings, importa `simai.db.registry.ensure_all_models_loaded()`, `compare_type=True`, `render_as_batch=True`), `script.py.mako` (typing `str | Sequence[str] | None`)
+- [ ] `[00.0011]` `.gitignore` (Python, venv, db, data/, .env, cache, IDE)
+- [ ] `[00.0012]` `.editorconfig` (UTF-8, LF, indent 4, trim trailing whitespace)
+- [ ] `[00.0013]` `simai/__main__.py` (entrypoint Typer)
+- [ ] `[00.0014]` `simai/cli/app.py` (poi splittato in Chunk 1.4)
+- [ ] `[00.0015]` `simai/__version__.py` (`0.1.0.dev0`)
+- [ ] `[00.0016]` Hook commit-msg + `scripts/install-hooks.sh`
+- [ ] `[00.0017]` `docs/simai/README.md`, `docs/simai/lore/README.md`
+- [ ] `[00.0018]` CI GitHub Actions (`lint`, `typecheck`, no test job)
+- [ ] `[00.0019]` `.env.example`
+- [ ] `[00.0020]` `python -m simai version` funziona
+- [ ] `simai/py.typed` (marker PEP 561) + `[tool.hatch.build.targets.wheel.force-include]`
+- [ ] `scripts/check.sh` (ruff --fix + format + check + mypy)
+- [ ] `scripts/download_assets.sh` (bootstrap, htmx, alpine, d3, chart)
+- [ ] `simai/utils/coerce.py` (`coerce_int/float/str/optional_int/optional_str`) + `git.py` (`get_git_sha`)
+- [ ] `simai/db/registry.py` (`ensure_all_models_loaded()` idempotente con `configure_mappers()`)
+- [ ] `simai/ui/routes/__init__.py` con import espliciti dei submodule
 
 ---
 
-### 🎯 COSA FARE ORA
+## FASE 1 — CORE SIMULATION [ ]
 
-1. **Conferma ricezione** del contesto in una riga.
-2. **Chiedi all'utente** da dove partire:
-   - **A)** FASE 0 — Setup progetto Python
-   - **B)** FASE 1 — Core Simulation
-   - **C)** FASE 2 — Anthalys Time
-   - **D)** FASE 3 — Character / NPC
-   - **E)** FASE 4 — World
-   - **F)** Altra fase / debito tecnico
-3. **Aspetta la scelta** prima di scrivere codice.
+### §1.0 — Time Manager (range 5000)
 
-Struttura verdetto: 🔴 critici / 🟠 alti / 🟡 medi / 🟢 bassi + tabella + conferme.
+- [ ] `[01.0001]` `core/anthalys_datetime.py` (`AnthalysDateTime` frozen, order, slots, `to_total_seconds`, `from_total_seconds`, `add_minutes/seconds`, `to_iso_string/from_iso_string`)
+- [ ] `[01.0002]` `core/anthalys_calendar.py` (`AnthalysCalendar`: `to_total_days`, `day_of_year`, `weekday_of`, `month_name`, `season_of` 4×108gg, `phase_of` 7 fasi, `to_gregorian`/`from_gregorian` epoch `1-1-1 Anthalys ↔ 1 gen 1000 d.C.`)
+- [ ] `[01.0003]` `core/time_manager.py` (`TimeManager` iniettato: `current`, `tick_minutes`, `advance_tick/ticks`, `subscribe_to_*_change`, eventi `time.tick/houredit/day/month/year/season/phase.changed`)
+- [ ] `[01.0004]` `core/time_enums.py` (`DayPhase` 7, `Season` 4)
+- [ ] `[01.0005]` Stagioni 4×108gg (inverno inizia doy 424)
+- [ ] `[01.0006]` Cicli lunari (→ FASE 2)
+- [ ] `[01.0007-0008]` Festività (→ FASE 2)
+- [ ] `[01.0009]` CLI `sim time show` / `sim time advance N`
+- [ ] `[01.0010]` Test manuale in `docs/simai/testing-manuale.md`
 
----
+### §1.1 — Loop di Simulazione + EventBus + LOD
 
-### 📖 Legenda
+- [ ] `[01.0020]` `core/simulation_loop.py` (`SimulationLoop` con `TickReport`, pausa/resume/speed, `NPCManagerLike`/`WorldManagerLike` Protocol)
+- [ ] `[01.0021]` `core/lod.py` (`LODLevel` IntEnum BACKGROUND/REDUCED/FULL, `lod_from_distance`, `FULL_DISTANCE_THRESHOLD=1`, `REDUCED_DISTANCE_THRESHOLD=3`)
+- [ ] `[01.0022]` Metrica tick con `perf_threshold_ms` warning
+- [ ] `[01.0023]` CLI `sim start --max-ticks N --perf-threshold-ms X`
 
-| Simbolo | Stato                                    |
-| ------- | ---------------------------------------- |
-| `[ ]`   | Da implementare                          |
-| `[x]`   | Implementato                             |
-| `[P]`   | Parzialmente implementato                |
-| `[?]`   | Indecisione sull'implementazione         |
-| `[@]`   | Implementato, ma necessita revisione     |
-| `[#]`   | Implementato, ma da rifare completamente |
-| `[!]`   | Principio Guida prioritario              |
-| `[F]`   | Implementazione futura                   |
-| `[-]`   | Implementazione non applicabile          |
+### §1.2 — SaveManager (range 5000)
 
-**Priorità**: `[0.001 – 9.999]` (valore basso = maggiore priorità).
+- [ ] `[01.0040]` SQLite come DB primario
+- [ ] `[01.0041]` Formato `.sav` (`magic + uint16 + uint32 + JSON header + payload zstd + Fernet opzionale`). Fix bug offset: `f.seek(12)` per `header_len`, `f.seek(16+header_len)` per payload.
+- [ ] `[01.0042]` `core/save_manager.py` (`SaveManager`, `SaveInfo`, `SimulationState`, `SaveError`/`SaveNotFoundError`/`SaveFormatError`, `create_save`/`load_save`/`list_saves`/`delete_save`)
+- [ ] `[01.0043]` CLI `save list/create/load/delete/gen-key`
+- [ ] `[00.0010b]` Migrazione `5000_01_core_version` (tabella `core_version` + seed versione)
+- [ ] `[01.0044]` CLI `db upgrade/status`
 
-**Convenzione priorità**:
+### §1.3 — Location + GameObject + pathfinding (range 5300)
 
-| Range               | Ambito                            |
-| ------------------- | --------------------------------- |
-| `E0.xxxx`–`E9.xxxx` | SimAI — core simulation           |
-| `F0.xxxx`–`F9.xxxx` | SimAI — NPC & AI                  |
-| `G0.xxxx`–`G9.xxxx` | SimAI — world & infrastructure    |
-| `H0.xxxx`–`H9.xxxx` | SimAI — economy & politics        |
-| `I0.xxxx`–`I9.xxxx` | SimAI — SoNet & networking        |
+- [ ] `[01.0050]` `world/models.py` (`GameObject` con state enum, condition, container, interactions, metadata)
+- [ ] `[01.0051]` Capacità oggetti (`container_capacity`, `container_contents_json`)
+- [ ] `[01.0052]` Usura e rottura (`apply_wear` → BROKEN a 0)
+- [ ] `[01.0053]` `repair()` (ripristina a 0.9)
+- [ ] `[01.0054]` `list_objects_in(location_id)` per percezione
+- [ ] `[01.0055]` Total Realism (fisica, fluidi, polvere) → FASE 9/debito
+- [ ] `[01.0060]` `world/models.py` (`Location` con bounds, capacity, attributi dinamici)
+- [ ] `[01.0061]` Capacità location + relationship oggetti
+- [ ] `[01.0062]` Attributi dinamici (`cleanliness_level`, `noise_level`, `crowd_level`, `safety_rating`, `aesthetic_score`) + `update_dynamic_attribute`
+- [ ] `[01.0063]` `world/pathfinding.py` (`LocationGraph` + A* euristica euclidea)
+- [ ] `[01.0064]` `update_dynamic_attribute` con clamp
+- [ ] `[5300_01]` Migrazione `locations_objects`
+- [ ] `[world/seed.py]` `seed_demo_world` (casa demo 6 location, 5 edge, 11 oggetti)
+- [ ] CLI `world seed/list/show/objects/path`
 
----
+### §1.4 — CLI refactor + YAML config + db reset
 
-### 🧱 Stack Python — riepilogo
+- [ ] `[01.0080]` `config/simulation.yaml`, `config/loader.py` (`SimulationConfig` con hot-reload via mtime)
+- [ ] CLI splittata: `cli/_console.py`, `_helpers.py`, `cmd_sim.py`, `cmd_db.py`, `cmd_save.py`, `cmd_world.py`, `cmd_economy.py`, `cmd_npc.py`, `cmd_stats.py`, `cmd_ui.py`, `cmd_city.py`, `cmd_transport.py`
+- [ ] CLI `db reset [--yes] [--seed]` (cancella file + `alembic upgrade head` + `world_seed` + `seed_npc_data` + `economy_seed`)
 
-| Componente     | Libreria / Tool                              |
-| -------------- | -------------------------------------------- |
-| Runtime        | CPython 3.12+                                |
-| CLI            | Typer 0.12+                                  |
-| Output CLI     | Rich 13+                                     |
-| ORM            | SQLAlchemy 2.0 (async opzionale)             |
-| Migrations     | Alembic 1.13+                                |
-| Validation     | Pydantic v2                                  |
-| Settings       | pydantic-settings                            |
-| Logging        | Loguru                                       |
-| Web UI (opz.)  | FastAPI + Jinja2 + Uvicorn                   |
-| Test (opz.)    | Pytest (no-test policy attuale)              |
-| Type check     | mypy --strict, pyright                       |
-| Lint / format  | Ruff (lint + format), Black compat           |
-| Dep manager    | Poetry (o uv)                                |
-| DB dev         | SQLite                                       |
-| DB prod (opz.) | PostgreSQL                                   |
+### §1.6 — Population Statistics
+
+- [ ] `[01.0070]` `npc/stats/models.py` (`PopulationCensus` unique `(year, month)`)
+- [ ] `[01.0071]` `npc/stats/service.py` (`live_stats`, `snapshot` upsert, `census_history`) + hook in `LifecycleManager`
+- [ ] `[5200_07]` Migrazione `population_census`
+- [ ] CLI `stats population/snapshot/census/year-summary`
 
 ---
 
-### 📚 Sistema di versioning e changelog
+## FASE 2 — ANTHALYS TIME ESTESO [ ]
 
-#### Versioni attese
+Package `simai/sim/anthalys/time/`:
 
-| Versione | Stato | Contenuto                                  |
-| -------- | ----- | ------------------------------------------ |
-| `0.1.0`  | `[ ]` | FASE 0–1 (Setup + Core Simulation)         |
-| `0.2.0`  | `[ ]` | FASE 2 (Anthalys Time)                     |
-| `0.3.0`  | `[ ]` | FASE 3 (Character/NPC, genetica)           |
-| `0.4.0`  | `[ ]` | FASE 4 (World, locazioni, trasporti)       |
-| `0.5.0`  | `[ ]` | FASE 5 (Economia, AION)                    |
-| `0.6.0`  | `[ ]` | FASE 6 (Politica, governance)              |
-| `0.7.0`  | `[ ]` | FASE 7 (SoNet — portale servizi)           |
-| `0.8.0`  | `[ ]` | FASE 8 (Multiplayer MMO)                   |
-| `0.9.0`  | `[ ]` | Debito tecnico, hardening                  |
-| `1.0.0`  | `[ ]` | Prima release stabile pubblica             |
-
-#### File `CHANGELOG.md`
-
-Formato **Keep a Changelog** (sezioni `Added`, `Changed`, `Deprecated`,
-`Removed`, `Fixed`, `Security`).
-
-#### Tracciamento versione runtime
-
-1. `pyproject.toml` → `[project] version = "0.1.0.dev0"` (PEP 440)
-2. `simai/__version__.py` → `__version__ = "0.1.0.dev0"`
-3. Tabella `core_version` (SQLAlchemy model + migration range 5000)
-
-#### Comandi CLI da implementare
-
-- `python -m simai version` — versione corrente + moduli caricati
-- `python -m simai db upgrade` — applica migrazioni Alembic
-- `python -m simai db status` — stato migrazioni
-- `python -m simai sim start` — avvia simulazione
-- `python -m simai sim tick N` — avanza N tick
-- `python -m simai save create/list/load` — gestione salvataggi
-- `python -m simai changelog add <type> <message>` — entry automatica
+- [ ] `[02.0001]` Package `time/`
+- [ ] `[02.0002]` `clock.py` (`AnthalysClock` facade su `TimeManager`)
+- [ ] `[02.0003]` `calendar.py` (`CalendarExt`: `add_days`, `days_between`, `start_of_*`, `end_of_*`)
+- [ ] `[02.0004]` `holidays.py` (`Holiday`, `HolidayRegistry`, 12 fisse + 2 mobili)
+- [ ] `[02.0005]` `moons.py` (`Moon`, `MoonPhase` 8, `MoonCycles` Aelith 27gg/Brumar 41gg/Cindral 89gg, `first_full_moon_of_month`)
+- [ ] `[02.0006]` `seasons.py` (`SeasonInfo`, `season_info`, `days_until_next_season`, `next_season_start`)
+- [ ] `[02.0007]` `DayPhase` (riesportato dal core)
+- [ ] `[02.0008]` `astro.py` (`AstroEvent`, `AstroEventType`, `AstroEventsEngine`: eclissi, comete seed-based, meteore)
+- [ ] `[02.0009]` `AnthalysClock` in `sim/anthalys/__init__.py`
+- [ ] `[02.0010]` CLI `sim time moons/holidays/upcoming-holidays/season/astro`
+- [ ] `[5100_xx]` Migrazioni (riservate, nessuna necessaria per ora)
 
 ---
 
-## PARTE II — CICLI DI VITA DI ANTHALYS
+## FASE 3 — CHARACTER / NPC (range 5200–5299)
 
-**Riferimento**: `docs/simai/lore/cicli-vita.md`
+### §3.0 — Character + NPC seed [ ]
 
-Nel calendario di Anthalys, un anno è composto da **432 giorni**
-(18 mesi da 24 giorni) e un giorno dura **28 ore**. Le fasce d'età
-tradizionalmente usate per gli umani vengono mantenute con gli stessi
-valori numerici, ma interpretate secondo il nuovo calendario.
+- [ ] `[03.0001]` `npc/models.py` (`Character` con campi tipizzati + JSON)
+- [ ] `[03.0002]` `npc/generator.py` (`CharacterGenerator`, `seed_characters`), `npc/name_generator.py` (M/F/cognomi)
+- [ ] `[03.0003]` Seed Erika Lamborghetti (F 14y 24d), Max Volpi (M 14y 32d)
+- [ ] `[03.0004]` Batch 4 NPC random
+- [ ] `[E0.0500-0506]` `LIFESTAGE_*_THRESHOLDS`, `LifeStagePediatric`/`LifeStagePsychosocial`, `LifeStageService`
+- [ ] `[5200_01]` Migrazione `characters` + `lifestage` + `name`
+- [ ] CLI `npc list/show/seed/generate/stages/age`
 
-### 🍼 II.1 Prima scala (pediatrica e adolescenziale)
+### §3.1 — Genetica [ ]
 
-| Fascia                    | Età (anni/mesi/giorni Anthaliani) |
-| ------------------------- | --------------------------------- |
-| **Neonato**               | 0 – 28 giorni                     |
-| **Lattante**              | 28 giorni – 1 anno                |
-| **Prima infanzia**        | 1 – 2 anni (24 mesi)              |
-| **Seconda infanzia**      | 2 – 6 anni                        |
-| **Terza infanzia**        | 6 anni – inizio pubertà (10–13)   |
-| **Pubertà e adolescenza** | pubertà – 18/20 anni              |
+- [ ] `[03.0030]` `npc/genetics/` (`GenomeCategory` 11+5 sub, `LOCI_LAYOUT` 1024 loci = 2048 alleli)
+- [ ] `[03.0031]` Ereditarietà (`generate_from_parents` 1 allele/locus + mutazione 1%)
+- [ ] `[03.0032]` Applicazione a nuovi NPC nati
+- [ ] `[03.0033]` Gemelli (`generate_twins(identical=True/False)`, `roll_twins` 1.5%/30%)
+- [ ] `[03.0034]` `phenotype_from_genome` (altezza, occhi, capelli, pelle, build, faccia)
+- [ ] `[03.0035]` Total Realism genetica avanzata (malattie, talenti) → FASE 9
 
-### 🌱 II.2 Seconda scala (psicosociale)
+### §3.2 — Bisogni + AI [ ]
 
-| Fascia               | Età (anni Anthaliani)      |
-| -------------------- | -------------------------- |
-| **Fase prenatale**   | dal concepimento ai 2 anni |
-| **Infanzia (prima)** | 2 – 3 anni                 |
-| **Infanzia**         | 3 – 5 anni                 |
-| **Mezza infanzia**   | 6 – 12 anni                |
-| **Adolescenza**      | 12 – 18 anni               |
-| **Giovinezza**       | 18 – 25 anni               |
-| **Età adulta**       | 25 – 60 anni               |
-| · giovane adulto     | 25 – 40 anni               |
-| · media adultità     | 40 – 50 anni               |
-| · tarda adultità     | 50 – 60 anni               |
-| **Vecchiaia**        | 60 anni fino alla morte    |
+- [ ] `[03.0200]` 10 bisogni: HUNGER, THIRST, BLADDER, ENERGY, HYGIENE, SOCIAL, FUN, COMFORT, INTIMACY, SOLITUDE
+- [ ] `[03.0201]` Decay + soglie CRITICAL(10)/LOW(30)/OK(70)/HIGH
+- [ ] `[03.0202-0209]` Bisogni avanzati (solitudine, stress, desire, ecc.) → Chunk 3.7a/b, 3.9c
+- [ ] `[03.0500]` `Action` (8 base + 4 training + 3 pratiche job + 4 addiction + BE_ALONE/SELF_CARE)
+- [ ] `[03.0501]` `AIDecisionMaker` utility + tie-break RNG
+- [ ] `[03.0502]` `ActionExecutor`, `BTActionExecutor`
+- [ ] `[03.0503]` `MoodState` (happiness smoothed 2%/tick), `Moodlet` (duration 30-336 tick, delta −0.15..+0.12)
+- [ ] `[03.0508]` `moodlet_for_need` (22 mapping need→state→moodlet)
+- [ ] `[01.0030-0035]` `AICoordinator`, `NeedsProcessor`, `AIDecisionMaker`, `ActionExecutor`, `Moodlet`, `DecisionSystem` (utility pura, BT opzionale)
+- [ ] `[5200_02]` Migrazione `needs/mood/current_action/last_ai_tick`
+- [ ] CLI `npc needs/tick/autoplay`
 
-### ⏳ II.3 Nota sulla durata della vita
+### §3.2b — NPCManager [ ]
 
-- **Maschi**: 144–156 anni Anthaliani
-- **Femmine**: 156–168 anni Anthaliani
+- [ ] `npc/events.py` (`EVENT_NPC_ACTION_STARTED`, `EVENT_NPC_NEED_CRITICAL`, `EVENT_NPC_MOOD_CHANGED`)
+- [ ] `npc/manager.py` (`NPCManager`, `NPCState`, `SkillSnapshot`, `flush` batch)
+- [ ] CLI `sim start --npcs --autosave-every N --npc-lod LEVEL`
 
-### 📋 II.4 TODO — Task di integrazione
+### §3.2c — BT + Memoria + Intimità [ ]
 
-- `[ E0.0500 ]` `[ ]` Costanti `LIFESTAGE_THRESHOLDS` in `config/anthalys.py`
-- `[ E0.0501 ]` `[ ]` Costanti `PSYCHOSOCIAL_THRESHOLDS`
-- `[ E0.0502 ]` `[ ]` Enum `LifeStagePediatric`
-- `[ E0.0503 ]` `[ ]` Enum `LifeStagePsychosocial`
-- `[ E0.0504 ]` `[ ]` `LifeStageService.get_pediatric_stage(character)`
-- `[ E0.0505 ]` `[ ]` `LifeStageService.get_psychosocial_stage(character)`
-- `[ E0.0506 ]` `[ ]` `LifeStageService.get_life_expectancy(character)` (144–156 M, 156–168 F)
-- `[ E0.0507 ]` `[ ]` `AnthalysCalendar.to_gregorian(anth_date)` e inverso
-- `[ E0.0508 ]` `[ ]` Integrazione con `TimeManager`
-- `[ E0.0509 ]` `[ ]` Documentazione `docs/simai/cicli-vita.md`
-- `[ E0.0510 ]` `[ ]` Riferimento incrociato con §4.2 Ciclo Vita NPC
+- [ ] `npc/ai/bt/`: `status.py` (`BTStatus`), `base.py` (`BTNode`, `Blackboard`), `composites.py` (Sequence/Selector/Parallel), `decorators.py` (Inverter/Succeeder/Repeat/Cooldown), `leaves.py` (Condition/ActionLeaf/AlwaysSucceed/AlwaysFail/WaitLeaf), `render.py` (`render_tree`)
+- [ ] `npc/memory/`: `enums.py` (`MemoryKind` SHORT/LONG/EMOTIONAL, `DECAY_RATES`), `models.py` (`Memory`), `saliency.py`, `service.py` (`record`/`recall`/`decay`)
+- [ ] `npc/intimacy/`: `enums.py` (`IntimacyAction` 6, `IntimacyOutcome`), `actions.py` (`INTIMACY_CATALOG` 6 voci con level 0–5), `service.py` (`IntimacyService.perform`)
+- [ ] `[5200_05]` Migrazione `memory`
+- [ ] CLI `npc memory/intimate/bt-demo`
 
----
+### §3.2d — BT in AI [ ]
 
-## PARTE III — FASI DI SVILUPPO SimAI
+- [ ] `ai/bt_templates.py` (`build_bt_for_action`), `ai/executor.py` (`BTActionExecutor`)
+- [ ] CLI `npc bt-tree`, `--bt` su `npc tick/autoplay`
 
-### 🟢 FASE 0 — Setup iniziale progetto Python
+### §3.2e — BT in NPCManager [ ]
 
-- `[ 00.0001 ]` `[ ]` Creare struttura progetto Python:
+- [ ] `NPCManager(use_bt)`, `current_progress` astrae `executor.progress` vs `bt_executor.progress`, skip restore in BT mode
+- [ ] CLI `sim start --bt`
 
-  ```text
-  simai/
-  ├── pyproject.toml
-  ├── README.md
-  ├── .gitignore
-  ├── .editorconfig
-  ├── simai/
-  │   ├── __init__.py
-  │   ├── __main__.py
-  │   ├── __version__.py
-  │   ├── cli/                # Typer commands
-  │   ├── config/             # pydantic-settings + anthalys constants
-  │   ├── core/               # Simulation engine
-  │   ├── db/                 # SQLAlchemy models + Alembic
-  │   ├── npc/                # NPC, genetica, AI
-  │   ├── world/              # Locazioni, economia, meteo
-  │   ├── sim/                # Lore-specific (Anthalys)
-  │   ├── ui/                 # FastAPI + Jinja2 (opzionale)
-  │   └── utils/
-  ├── alembic.ini
-  ├── alembic/
-  │   ├── env.py
-  │   ├── script.py.mako
-  │   └── versions/
-  └── docs/
-  ```
+### §3.3 — Relationships + Famiglia [ ]
 
-- `[ 00.0002 ]` `[ ]` Inizializzare progetto con `poetry init` (o `uv init`)
-  - Python ≥ 3.12
-  - Nome pacchetto: `simai`
-  - Autori, licenza MIT
-- `[ 00.0003 ]` `[ ]` Aggiungere dipendenze core in `pyproject.toml`:
-  - `sqlalchemy >= 2.0`
-  - `alembic >= 1.13`
-  - `pydantic >= 2.7`
-  - `pydantic-settings >= 2.3`
-  - `typer >= 0.12`
-  - `rich >= 13.7`
-  - `loguru >= 0.7`
-  - Dipendenze dev: `ruff`, `mypy`, `pyright`, `pytest` (opzionale)
-- `[ 00.0004 ]` `[ ]` Configurare `pyproject.toml`:
-  - `[tool.ruff]` line-length 100, target-version "py312"
-  - `[tool.mypy]` strict mode, `disallow_untyped_defs = true`
-  - `[tool.pytest.ini_options]` (se test abilitati) `testpaths = []`
-- `[ 00.0005 ]` `[ ]` Configurare `.env.example` completo (vedi sotto)
-- `[ 00.0006 ]` `[ ]` Configurare `simai/config/settings.py` con `pydantic_settings.BaseSettings`:
-  - `db_url: str = "sqlite:///./simai.db"`
-  - `log_level: str = "INFO"`
-  - `debug: bool = False`
-  - `master_seed: int = 0`
-  - `tick_minutes: int = 5` (minuti Anthaliani per tick)
-  - `data_dir: Path = Path("./data")`
-  - Lettura da `.env` + variabili d'ambiente + defaults
-- `[ 00.0007 ]` `[ ]` Configurare `simai/config/anthalys.py` con costanti del calendario:
-  - `DAYS_PER_YEAR = 432`
-  - `MONTHS_PER_YEAR = 18`
-  - `DAYS_PER_MONTH = 24`
-  - `HOURS_PER_DAY = 28`
-  - `MINUTES_PER_HOUR = 60`
-  - `SECONDS_PER_MINUTE = 60`
-  - `WEEKDAYS = ["Nijahr", "Majahr", "Bejahr", "Ĉejahr", "Dyjahr", "Fejahr", "Ĝejahr"]`
-  - `MONTHS = ["Arejal", "Brukom", "Ĉelal", "Kebor", "Duvol", "Elumag", "Fydrin", "Ĝinuril", "Itrekos", "Jebrax", "Letranat", "Mulfus", "Nylumer", "Otlevat", "Prax", "Retlixen", "Sajep", "Xetul"]`
-  - `STARTING_YEAR = 5775`
-  - `SEASONS` (6 stagioni × 3 mesi)
-- `[ 00.0008 ]` `[ ]` Configurare `simai/config/logging.py` con Loguru
-  - Sink su `data/logs/simai.log` (rotazione giornaliera, retention 30 gg)
-  - Sink stderr in debug mode
-- `[ 00.0009 ]` `[ ]` Configurare `simai/db/base.py`:
-  - `DeclarativeBase` SQLAlchemy 2.0
-  - Mixin comuni: `TimestampMixin`, `IdMixin` (bigint PK)
-- `[ 00.0009b ]` `[ ]` Configurare `simai/db/session.py`:
-  - Engine SQLite con `check_same_thread=False` e PRAGMA `foreign_keys=ON`
-  - `SessionLocal` factory
-  - Helper `with session_scope() as session:` context manager
-- `[ 00.0010 ]` `[ ]` Inizializzare Alembic:
-  - `alembic init alembic`
-  - Modificare `alembic/env.py` per leggere `SIMAI_DB_URL` da settings
-  - Importare `simai.db.base.Base.metadata` per autogenerate
-  - Modificare `script.py.mako` per il formato `NNNN_SS_slug.py`
-- `[ 00.0011 ]` `[ ]` Configurare `.gitignore`:
-  - `__pycache__/`, `*.pyc`, `.venv/`, `venv/`
-  - `*.db`, `*.sqlite`, `*.sqlite-journal`
-  - `data/logs/`, `data/saves/`, `data/exports/`
-  - `.env`, `.env.local`, `.env.*.local`
-  - `.mypy_cache/`, `.ruff_cache/`, `.pytest_cache/`
-  - `dist/`, `build/`, `*.egg-info/`
-  - `.DS_Store`, `.idea/`, `.vscode/`
-- `[ 00.0012 ]` `[ ]` Configurare `.editorconfig` (indent 4 spazi, LF, UTF-8)
-- `[ 00.0013 ]` `[ ]` Creare entrypoint CLI `simai/__main__.py`:
+- [ ] `[03.0400]` `npc/relationships/`: `enums.py` (`RelationshipKind` 11), `models.py` (`Relationship` unique `(from, to, kind)`), `service.py` (`create`/`delete`/`relationships_of`), `family_tree.py` (`parents_of`/`children_of`/`siblings_of`/`ancestors_of`/`descendants_of`), `kinship.py` (`relationship_coefficient` path-based, `kinship_coefficient`=r/2, `relationship_name` italiano)
+- [ ] `[5200_03]` Migrazione `relationship` + 3 indici
+- [ ] Seed Erika↔Max `FRIEND_OF`
+- [ ] CLI `npc relate/unrelate/relationships/family/ancestors/descendants/kinship/relationship-kinds`
+- [ ] `[03.0401-0415]` Dinamiche avanzate → Chunk 3.9b/c/d/e
 
-  ```python
-  from simai.cli.app import app
+### §3.4 — Lifecycle [ ]
 
-  if __name__ == "__main__":
-      app()
-  ```
+- [ ] `[03.0300]` Aging (`AgingService.apply_aging`, transizioni)
+- [ ] `[03.0301]` Transizioni con effetti (moodlet da `moodlet_for_need`)
+- [ ] `[03.0302]` Invecchiamento progressivo (in `LifecycleManager`)
+- [ ] `[03.0303]` Morte (`DeathService` mortalità baseline 1e-5, rampa cubica, max 1/30 a `exp_max`, `DeathCause` 6)
+- [ ] `[03.0304]` Eredità e successione (`InheritanceService` 5 tier)
+- [ ] `[03.0301b]` Gravidanza (`Pregnancy` 300gg, `PregnancyService`, gemelli 1.5%/30%)
+- [ ] `[5200_04]` Migrazione `death_cause` + `pregnancy`
+- [ ] CLI `npc conceive/pregnancies/deliver/kill/lifecycle-tick`
 
-- `[ 00.0014 ]` `[ ]` Creare `simai/cli/app.py` con Typer e comandi base:
-  - `version` — mostra versione + python version + db status
-  - `info` — info ambiente (path db, log dir, tick rate)
-- `[ 00.0015 ]` `[ ]` Creare `simai/__version__.py` con `__version__ = "0.1.0.dev0"`
-- `[ 00.0016 ]` `[ ]` Primo commit git con hook commit-msg (Conventional Commits)
-- `[ 00.0017 ]` `[ ]` Creare `docs/simai/README.md` + `docs/simai/lore/README.md` (scheletri)
-- `[ 00.0018 ]` `[ ]` Configurare CI GitHub Actions (`.github/workflows/ci.yml`):
-  - Job lint: `ruff check .`, `ruff format --check .`
-  - Job type: `mypy simai/`
-  - Job test: **rimosso** (no-test policy)
-- `[ 00.0019 ]` `[ ]` Popolare `.env.example` (vedi sotto)
-- `[ 00.0020 ]` `[ ]` Verificare che `python -m simai version` funzioni
+### §3.4b — Famiglia attiva [ ]
 
-#### `.env.example` iniziale
+- [ ] `[03.0401]` `FamilyAI` (età/relazione/aspirazione/tratti/mood/needs/gap tra figli)
+- [ ] `[03.0304]` `SuccessionService` (orfani < 25 con genitori morti + BFS tutore)
+- [ ] CLI `npc couples/try-conceive/family-ai-tick/orphans/guardian`
 
-```dotenv
-# =============================================================================
-# SimAI — .env.example
-# =============================================================================
-# --- Applicazione ---
-SIMAI_ENV=development
-SIMAI_DEBUG=true
-SIMAI_LOG_LEVEL=INFO
-SIMAI_MASTER_SEED=42
+### §3.4c — Eredità materiale [ ]
 
-# --- Database ---
-SIMAI_DB_URL=sqlite:///./simai.db
-# SIMAI_DB_URL=postgresql+psycopg://user:pass@localhost:5432/simai
+- [ ] `[03.0304]` `npc/economy/`: `enums.py` (`InheritanceTier` 5), `models.py` (`CharacterOwnedLocation`), `service.py` (`WealthService`, `InventoryService`, `PropertyService`), `inheritance.py` (`InheritanceService.distribute` 5 tier: SPOUSE/CHILD/PARENT/SIBLING/OTHER, cash 50% spouse, locations primo erede, objects round-robin)
+- [ ] `[5200_06]` Migrazione `athel_balance` + `owner_character_id` + `character_owned_location`
+- [ ] CLI `npc wealth/give/inventory/own/unown/legacy/inherit`
 
-# --- Simulazione ---
-SIMAI_TICK_MINUTES=5
-SIMAI_STARTING_YEAR=5775
-SIMAI_STARTING_DAY=1
-SIMAI_STARTING_MONTH=1
+### §3.5 — Tratti + Aspirazioni [ ]
 
-# --- Data dir ---
-SIMAI_DATA_DIR=./data
-SIMAI_SAVES_DIR=./data/saves
-SIMAI_LOGS_DIR=./data/logs
-SIMAI_EXPORTS_DIR=./data/exports
+- [ ] `[03.0100-0103]` `npc/traits/`: `enums.py` (`Trait` 25+1 `SEXUALLY_EXPLORATIVE`, `TraitCategory` 5, `TraitFamily` 5, `Aspiration` 8), `definitions.py` (`TraitDef`, `TRAIT_DEFS`, `ASPIRATION_WEIGHTS`), `derivation.py` (`derive_traits` con minimo 2 e max 6, `derive_mask_trait` 15%, `derive_aspiration`)
+- [ ] `[03.0034]` Tratti ereditari (derivati da genoma)
+- [ ] Integrato in `AIDecisionMaker` (utility modifiers)
+- [ ] CLI `npc traits/traits-catalog`
 
-# --- UI (opzionale, non in FASE 0) ---
-SIMAI_UI_ENABLED=false
-SIMAI_UI_HOST=127.0.0.1
-SIMAI_UI_PORT=8000
+### §3.6a-c — Skills [ ]
 
-# --- Save encryption (opzionale) ---
-SIMAI_SAVE_ENCRYPTION_KEY=
-```
+- [ ] `[03.0500]` `npc/skills/`: `enums.py` (`SkillType` 12, XP `1000+500L` = 115k totale, `DECAY_GRACE_DAYS=90`, `DECAY_RATE_PER_DAY=0.05`, `DEFAULT_TALENT=1.0`, `SKILL_TALENT_FAMILY`), `models.py` (`Skill`), `service.py` (`get_or_create`, `add_progress`, `compute_xp_application`, `compute_decay`, `apply_daily_decay`, `xp_to_next_level`, `level_penalty`, `xp_per_tick`)
+- [ ] `[03.0502]` Training actions: `PRACTICE_COMBAT`, `STUDY`, `PRACTICE_ART`, `COOK`, `PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE` (FUN+55/60, boost 0.05)
+- [ ] `[5200_08]` Migrazione `skill`
+- [ ] CLI `npc skills/skill-train/skill-decay`
+- [ ] `[03.0034]` `npc/skills/talent.py` (`talent_for_skill` z-score, `talent_map_for_genome`) + `TALENTS_PHYSICAL/MENTAL/SOCIAL/CREATIVE` in `LOCI_LAYOUT`
+- [ ] `Job` esteso (`required_skill_type`, `min_skill_level`, `wage_skill_scale`, `promotion_skill_level`, `promoted_title`), `PaydayService` scala wage, promozioni in lifecycle
+- [ ] `[5400_02]` Migrazione `job skill extensions`
+- [ ] CLI `npc talents`, `economy job-assign --skill`
+
+### §3.6d — Sviluppo dinamico personalità [ ]
+
+- [ ] `[03.0106]` `npc/personality/`: `enums.py` (`ValueAxis` 6 Schwartz, `ACTION_TRAIT_EFFECTS`, `ACTION_VALUE_EFFECTS`, `EVENT_*_EFFECTS`, diminishing returns, `VALUE_MEAN_REVERSION=0.05`, `TRAIT_DECAY_PER_DAY=0.020`), `service.py` (`reinforce_inmemory`, `apply_event_inmemory`, `decay_inmemory`, `sync_from_state`)
+- [ ] Integrazione in `BackgroundService.record_event`, `CrisisService.start/recovery`
+- [ ] `NPCState.trait_strength`/`values` in-memory + `NPCManager._tick_one` decay ogni 336 tick
+- [ ] CLI `npc personality/values/reinforce`
+
+### §3.6e — Values in AI [ ]
+
+- [ ] `utility._values_boost` = `1 + 0.6 × Σ(values-0.5) × alignment(action)`, `alignment = ACTION_VALUE_EFFECTS / ALIGNMENT_SCALE`, clamp `[0.70, 1.40]`
+- [ ] `AICoordinator.tick(..., values=...)`, `NPCManager._tick_one` passa `state.values`
+
+### §3.6f — Identità sessuale + SEP + Cultura [ ]
+
+- [ ] `npc/identity/`: `enums.py` (`TabooReaction` 3, `CulturalTradition` 4, `TRADITION_RANGES`), `models.py` (`Sexuality` 4 dim `[0,1]`, `SEP` knowledge[0,100]/comfort/inhibition/received_at_age, `CulturalProfile` permissiveness/modesty/gender_role_strict/taboo, `IdentityProfile`), `service.py` (`initialize_sexuality` 70% standard/30% continuo, `initialize_sep` per età, `initialize_culture` con eredità genitori, `apply_sexuality_drift` mensile σ=0.03), `gender.py` (`GenderIdentity` 5, `is_cisgender`, `is_heterosexual`), `lgbtq.py` (`LGBTQService.is_lgbtq`, disclosure level, acceptance factor da cultura)
+- [ ] Tratto `SEXUALLY_EXPLORATIVE`
+- [ ] Fattori in `ConsentService`: `sep_factor = 0.5 + comfort×(1-inhibition)`, `cultural_factor` (modesty penalty, permissiveness bonus, taboo)
+- [ ] CLI `npc identity/lgbtq/talents`
+
+### §3.6g — Vizi e dipendenze [ ]
+
+- [ ] `npc/addictions/`: `enums.py` (`AddictionKind` 5, `INITIAL_DEPENDENCE`, `DEPENDENCE_PER_USE`, `INITIATION_PROBABILITY`, `CRAVING_THRESHOLD_*`, `DECAY_GRACE_DAYS=90`, `DECAY_RATE_PER_DAY=0.10`, `MOODLET_*_DELTA`), `models.py` (`Addiction` unique `(char, kind)`), `service.py` (`use` con iniziazione probabilistica, `craving_factor`, `daily_tick` con `MILD`/`STRONG`/`WITHDRAWAL`, `start_addiction`)
+- [ ] `[5200_09]` Migrazione `addiction`
+- [ ] 4 azioni: `CONSUME_ALCOHOL`, `SMOKE`, `GAMBLE`, `DRINK_COFFEE`
+- [ ] `AIDecisionMaker` boost `1 + craving × 0.4`
+- [ ] Hook in `LifecycleManager` daily (craving moodlet + withdrawal + decay)
+- [ ] Seed: **garantita almeno 1** addiction tra gli adulti + 2 uses iniziali
+- [ ] CLI `npc addictions/addiction-start/addiction-use`
+
+### §3.6h — Background narrativo [ ]
+
+- [ ] `npc/background/`: `enums.py` (`FormativeEventKind` 10, `SEVERITY_RANGES`, `EVENT_VALENCE`, `MEMORY_THRESHOLD=0.5`, `BULLY_TIMID_THRESHOLD=0.6`), `models.py` (`FormativeEvent` unique `(char, kind, occurred_at_age)`), `service.py` (`record_event` + effetti identità + forza trait + memoria + personality, `generate_seed_events` per età, `persist_seed_events`)
+- [ ] `[5200_10]` Migrazione `formative_event`
+- [ ] Hook runtime: `PARENT_LOST` quando un character muore (figli < 25)
+- [ ] CLI `npc background/background-add`
+
+### §3.7 — Bisogni avanzati [ ]
+
+- [ ] `[03.0202]` `SOLITUDE` + `BE_ALONE` (action + decay + utility)
+- [ ] `[03.0204]` `DEEP_TALK` (intimità cognitiva)
+- [ ] `[03.0205]` `StressService` (`STRESS_WEIGHTS` critici/mood/inhibition/rejection/poverty/fatigue, fattori da `Needs`/`Mood`/`Identity`/`Relationship.metadata_json["last_rejection_at"]`/`athel_balance`)
+- [ ] `[03.0206]` `DesireService` (`baseline` da sexuality, `recompute` con age_peak/abstinence/stress/mood/refractory, `mark_satisfied`)
+- [ ] `[03.0207]` Azioni sostitutive: `CUDDLE`, `HOLD_HANDS`, `DEEP_TALK`, `SHARE_MEAL`
+- [ ] `[03.0208]` `SELF_CARE`
+- [ ] `[03.0209]` `TEXT_MESSAGE`, `VIRTUAL_CALL`
+- [ ] `ConsentService` integra `stress_factor` (−0.5×stress) e `desire_factor` (level≥3, `0.5+0.5×desire`)
+
+### §3.9 — Famiglia e Relazioni avanzate [ ]
+
+- [ ] `[03.0409]` `npc/reputation/`: `enums.py` (`GossipTopic` 8, `TOPIC_SENTIMENTS`, `CONSANGUINITY_THRESHOLD=0.125`), `models.py` (`Opinion`, `GossipEvent`), `service.py` (`get_opinion`, `update_opinion`, `spread` con credibility/confirmation/culture_mod, `broadcast`, `is_consanguineous`, `consanguinity_severity`, `witnesses_in_same_location`)
+- [ ] `[03.0406]` Consanguineità taboo (in `ConsentService` come `consanguinity_factor` quando severity > 0)
+- [ ] `[5200_11]` Migrazione `opinion + gossip_event`
+- [ ] CLI `npc reputation/opinion/gossip/consanguinity`
+- [ ] `[03.0412]` `BoredomService` (`DAILY_BOREDOM_GROWTH=0.005`, `NOVELTY_REDUCTION=0.05`, `STALE_THRESHOLD=0.90`, `register_action`)
+- [ ] `[03.0407]` `BreakupService` (`DAILY_BREAKUP_PROBABILITY=0.01`, `breakup` rimuove relazione + `EX_PARTNER_OF` + moodlet + memoria + opinion negativa)
+- [ ] `[03.0411]` `InfidelityService` (`should_consider` richiede partner + desire > 0.7 + opinion > 40 + boredom > 0.4, `resolve_discovery` con in-location 70% / witness 30% / rumor 5%)
+- [ ] `[03.0410]` `CompatibilityService` (trait Jaccard 0.4, sexual fit 0.35, cultural 0.25)
+- [ ] `[03.0413]` `ConnectionService` (`INITIAL_CONNECTION=0.10`, `BASE_GAIN=0.010+0.008×level`, `DAILY_DECAY=0.003`, `label`)
+- [ ] `[03.0414]` `LibidoService` (`initialize_baseline`, `effective` per relazione con compat e conn, `asymmetry_factor` penalty fino a 0.4)
+- [ ] `[03.0415]` Tratto `EMOTIONALLY_EXPRESSIVE` + `ConsentService` +0.10
+- [ ] `ConsentService` integra `compatibility`, `connection`, `libido` (solo level ≥ 3)
+- [ ] `[03.0401]` `MentorshipService` (`evaluate`, `register_session` con trait transfer 3%, culture shift, graduation 20 sessioni, boost talent +0.20), `MENTOR_OF`
+- [ ] `[03.0408]` `IntergenerationalService` (`opinion_bonus` da gap età)
+- [ ] `[03.0404]` `PolyamoryService` (`accepts_polyamory`, `current_partners`, `can_add_partner`)
+- [ ] `[03.0405]` `LGBTQService` (già in 3.6f)
+- [ ] `[03.0403]` `TeenDynamicsService` (`willingness_modifier` per teen, `parental_opposition_factor`)
+- [ ] CLI `npc mentorships/mentor-eval/mentor-start/age-gap/polyamory-check/polyamory-add/teen-check/lgbtq/lgbtq`
+
+### §3.11 — Consenso attivo intimità [ ]
+
+- [ ] `intimacy/consent.py`: `ConsentService`, `ConsentResult`, `BASE_WILLINGNESS=0.50`, `ACTION_LEVEL_PENALTY=0.15`, `REJECTION_COOLDOWN_TICKS=100`, `NOVELTY_WINDOW_TICKS=30`, `REJECTION_PENALTY=0.30`, `NOVELTY_PENALTY=0.70`, `TRAIT_WILLINGNESS_MODIFIERS`
+- [ ] Fattori: base × action × relationship × mood × needs × traits × SEP × culture × consanguinity × lgbtq × teen × parental × stress × desire × recency
+- [ ] Rejection: moodlet "Rifiutato" −0.15/100t, bond −0.02, strength −0.01, memory −0.6, cooldown
+- [ ] `IntimacyService.perform(force=False)` integra consenso
+- [ ] CLI `npc consent`, `intimate --force`
+
+### §3.12 — Consapevolezza sociale [ ]
+
+- [ ] `npc/social_awareness/`: `enums.py` (`TraitVisibility` VISIBLE/MODERATE/HIDDEN, `DISCOVERY_PROBABILITY`, `CONFIDENCE_INCREMENT=0.20`, `INTENSITY_BY_LEVEL`, `FAMILY_INITIAL_CONFIDENCE=0.50`, `PARTIAL_THRESHOLD=0.30`, `OWN_CULTURE_AWARENESS=1.0`, `OTHER_CULTURE_AWARENESS=0.10`), `service.py` (`known_traits`, `partial_known_traits`, `cultural_awareness`, `initialize_for`, `initialize_family_knowledge`, `record_interaction` con `_maybe_learn_culture`)
+- [ ] Hook in `IntimacyService._apply_success` (record_interaction dopo azione)
+- [ ] Hook in `LifecycleManager` daily (passive discovery 15%/coppia/location)
+- [ ] CLI `npc knows/discover/cultural-knowledge`
+
+### §3.13-3.15 — Riflessione + Narrazione + Crisi [ ]
+
+- [ ] `npc/reflection/`: `enums.py` (`ReflectionKind` 6, `CrisisPhase` 3, `REFLECTION_INTERVAL_DAYS=7`, `NEGATIVE_STREAK_FOR_CRISIS=3`, `STRESS_CRISIS_THRESHOLD=0.85`, `STRESS_DAYS_FOR_CRISIS=3`, `MIN_CRISIS_DURATION_DAYS=5`, `RECOVERY_*`), `models.py` (`ReflectionEntry`), `templates.py` (`compose_reflection` template-based: apertura+corpo+sentiment), `service.py` (`reflect` con auto-detect kind [CRISIS/REGRET/GRATITUDE/RESOLVE/OBSERVATION], mood effect, memory), `crisis.py` (`CrisisService.get_status/check_trigger/start_crisis/recovery_tick`), `narrative.py` (`LifeNarrativeService.compose` con capitoli da background/famiglia/skill/riflessioni/stato)
+- [ ] `[5200_12]` Migrazione `reflection_entry`
+- [ ] Hook settimanale + crisi in `LifecycleManager` daily
+- [ ] CLI `npc reflections/reflect/narrative/crisis/crisis-start`
+
+### §3.1 (architettura coscienza NPC) — SOSPESO
+
+- [ ] `[03.0014]` Architettura `Anima Digitale` ↔ `Personalità Agente` → rimandato a LLM integration (FASE 8+)
+
+### §3.2 / 3.4 / 3.5 — SOSPESI (UI-driven)
+
+- [ ] `[03.0020-0029]` Editor creazione personaggio (UI)
+- [ ] `[03.0040-0043]` Fase finale creazione (quartiere/lotto/fondi) — parziale: `Athel_balance` già generato
+- [ ] `[03.0050]` Scenari predefiniti (UI)
 
 ---
 
-### 🎯 FASE 1 — Core Simulation (range 5000–5099)
+## FASE 4 — WORLD (range 5300–5399)
 
-#### 1.0 — Time Manager e calendario Anthalys `[0.200]`
+### §4.0 — UI MVP [ ]
 
-Vedi **§1.0 del TODO originale** per l'elenco completo dei task
-(gestione calendario 432/18/24, festività, stagioni, fasi giorno/notte,
-motore astronomico, API helper). Tutti riportati di seguito.
+- [ ] `simai/ui/` (FastAPI + Jinja2 + static bootstrap/htmx/alpine/d3/chart)
+- [ ] `ui/app.py` (`create_app`, `templates` globale con `simai_version`)
+- [ ] `ui/routes/`: `dashboard.py`, `npcs.py`, `world_routes.py` (rinominato da `world.py`), `economy_routes.py` (rinominato da `economy.py`), `live.py`, `api.py`, `build_routes.py`, `city_routes.py`, `transport_routes.py`
+- [ ] Template: `base.html`, `dashboard.html`, `npcs_list.html`, `npc_detail.html`, `npc_tree.html` (D3), `world_list.html`, `world_detail.html`, `districts_list.html`, `district_detail.html`, `lots_list.html`, `economy.html`, `economy_lots.html`, `live.html`, `partials/live_fragment.html`, `build_editor.html`, `city.html`, `infrastructure.html`, `transport.html`, `transits.html`
+- [ ] `ui/static/css/simai.css`, `ui/static/js/simai.js`
+- [ ] CLI `ui serve --host/--port/--reload/--open`
 
-- `[ 01.0001 ]` `[ ]` Classe `AnthalysDateTime` (immutabile, naive)
-  - Campi: `year`, `month`, `day`, `hour`, `minute`, `second`
-  - Validazione range (0–431 giorni, 0–17 mesi, 0–23 giorni del mese,
-    0–27 ore, 0–59 minuti, 0–59 secondi)
-  - Metodi: `add_timedelta`, `compare`, `to_iso_string`, `from_iso_string`
-- `[ 01.0002 ]` `[ ]` Classe `AnthalysCalendar`
-  - Conversioni Anthalys ↔ giorni totali (analogo "epoch days")
-  - Conversioni Anthalys ↔ Gregoriano (approssimazione documentata)
-  - Costanti importate da `config/anthalys.py`
-- `[ 01.0003 ]` `[ ]` Classe `TimeManager` (singleton per simulazione)
-  - `current: AnthalysDateTime`
-  - `tick_minutes: int` (default 5 min Anthaliani per tick)
-  - `advance_tick()` — avanza di `tick_minutes`
-  - `register_listener(event_type, callback, priority)` — pattern observer
-  - `subscribe_to_hour_change`, `subscribe_to_day_change`, `subscribe_to_month_change`
-- `[ 01.0004 ]` `[ ]` Fasi della giornata
-  - Enum `DayPhase`: `DAWN`, `MORNING`, `NOON`, `AFTERNOON`, `EVENING`, `NIGHT`, `DEEP_NIGHT`
-  - `TimeManager.current_phase` derivato dall'ora
-- `[ 01.0005 ]` `[ ]` Gestione stagioni (6 stagioni × 3 mesi)
-  - Enum `Season`: nomi da lore (es. `VERDANT`, `BRIGHT`, `HARVEST`, ...)
-  - `TimeManager.current_season`
-- `[ 01.0006 ]` `[ ]` Ciclo lunare
-  - Classe `MoonPhase` (enum + nome)
-  - Lista lune con periodo orbitale (in giorni Anthaliani)
-  - `TimeManager.current_moon_phase(moon_id)`
-- `[ 01.0007 ]` `[ ]` Festività fisse
-  - Registry `HolidayRegistry` con decoratore `@fixed_holiday(month, day)`
-  - Almeno 6 festività nel seeding iniziale
-- `[ 01.0008 ]` `[ ]` Festività mobili
-  - Regole basate su luna o su offset da festività fisse
-  - Es. `Eclipse Festival = primo giorno della luna piena del mese X`
-- `[ 01.0009 ]` `[ ]` Comandi CLI:
-  - `python -m simai sim time` — mostra data/ora corrente
-  - `python -m simai sim time advance N` — avanza N tick
-- `[ 01.0010 ]` `[ ]` Test manuale documentato (no-test automatico):
-  - Avanza di 100 tick, verifica cambio giorno
-  - Avanza di 10_000 tick, verifica cambio mese
-  - Avanza di 100_000 tick, verifica cambio anno
+### §4.1 — District + Lot [ ]
 
-#### 1.1 — Loop di Simulazione Principale `[0.001]`
+- [ ] `[04.0001]` `world/district.py` (`District` con bounds, tax_rate, safety_rating, aesthetic_score, `DistrictType` 5), `world/lot.py` (`Lot` con bounds, usage, base_price, location_id, current_value, `LotUsage` 6)
+- [ ] `world/lot_service.py` (`create_district`, `create_lot`, `district_summaries`, `lot_summaries`, `attach_location`, `update_lot_usage`)
+- [ ] `[5300_02]` Migrazione `districts, lots`
+- [ ] CLI `world districts/district-create/lots/lot-create`
+- [ ] UI `/world/districts`, `/world/lots`
 
-- `[ 01.0020 ]` `[ ]` Classe `SimulationLoop`
-  - Attributi: `time_manager`, `npc_manager`, `world_manager`, `event_bus`
-  - Metodo `tick()` che esegue la sequenza:
-    1. `time_manager.advance_tick()`
-    2. `world_manager.update_environment()`
-    3. `npc_manager.update_all_npcs()`
-    4. `event_bus.process_queue()`
-    5. `world_manager.update_state()`
-  - Metodo `run_for(num_ticks: int)` — esegue N tick in sequenza
-  - Supporto pausa / ripresa / velocità di gioco
-  - Reset simulazione (ricarica stato iniziale)
-- `[ 01.0021 ]` `[ ]` Sistema di "LOD AI" per performance
-  - Enum `LODLevel`: `FULL`, `REDUCED`, `BACKGROUND`
-  - Ogni NPC ha un LOD, cambia dinamicamente in base a distanza
-    dall'azione "calda" del giocatore / eventi rilevanti
-  - `npc_manager.update_all_npcs()` salta NPC con LOD `BACKGROUND`
-- `[ 01.0022 ]` `[ ]` Metrica tick
-  - Misura durata di ogni fase in `data/logs/tick_perf.log`
-  - Allarme se `tick > threshold_ms` (default 100)
-- `[ 01.0023 ]` `[ ]` Comando CLI:
-  - `python -m simai sim start [--headless] [--max-ticks=N]`
+### §4.2 — Property + Mortgage [ ]
 
-#### 1.2 — Architettura AI e Decisionale `[0.002]`
+- [ ] `economy/property.py`: `LotOwnership` unique `(char, lot)`, `Mortgage` (principal, remaining, rate, term, monthly, next_payment, status), `LotOwnershipService`, `MortgageService` (`compute_monthly_payment` formula francese, `pay_installment`, `foreclose`), `PropertyTaxService.monthly_tax_for` + `collect_all`, `LotPurchaseService.buy_cash/buy_with_mortgage/sell`
+- [ ] `[5300_03]` Migrazione `lot_ownership, mortgage`
+- [ ] CLI `economy lots-owned/lot-buy/lot-sell/mortgages/mortgage-pay/property-tax`
+- [ ] UI `/economy/lots` + link da `/economy`
 
-- `[ 01.0030 ]` `[ ]` Classe `AICoordinator` (per-NPC)
-  - Orchestra i sotto-sistemi AI
-  - Chiamato da `SimulationLoop` per ogni NPC FULL
-- `[ 01.0031 ]` `[ ]` Classe `NeedsProcessor`
-  - Decadimento dei bisogni per tick
-  - Emette eventi quando un bisogno supera soglie critiche
-- `[ 01.0032 ]` `[ ]` Classe `AIDecisionMaker`
-  - Utility AI: ogni azione candidata ha `utility(npc, context) -> float`
-  - Scegli l'azione con utility massima (con tie-break casuale seed)
-  - Priorità modificabili da tratti, moodlets, obiettivi
-- `[ 01.0033 ]` `[ ]` Classe `ActionExecutor`
-  - Esegue l'azione scelta, gestisce stato "in corso"
-  - Chiama `is_valid()` prima di iniziare
-  - Emette eventi di inizio/fine azione
-- `[ 01.0034 ]` `[ ]` Classe `DecisionSystem` (utility + behaviour tree)
-  - Supporta due modalità: utility pura, behaviour tree
-  - Modalità scelta per azione complessa (es. "cucinare cena")
-- `[ 01.0035 ]` `[ ]` Sistema moodlets
-  - Classe `Moodlet` (nome, durata, effetto su utility, effetto su umore)
-  - Rimozione automatica alla scadenza
-  - Effetti cumulativi su `mood_happiness`
+### §4.2b — Housing AI [ ]
 
-#### 1.3 — Sistema di Salvataggio e Persistenza `[0.003]`
+- [ ] `npc/housing/`: `enums.py` (`HousingAction` 6, `MIN_AGE_BUY=18`, `MIN_AGE_BUY_SHOP=22`, `MIN_SKILL_FOR_SHOP=5`, `MIN_RESERVE=200`, `BROKE_THRESHOLD=100`, `SENIOR_AGE=65`, `BUY_HOME_PROBABILITY=0.03`, `BUY_SHOP_PROBABILITY=0.01`, `SELL_PROBABILITY=0.10`, `MAX_PURCHASES_PER_DAY=2`), `ai.py` (`RealEstateAI.daily_tick`, `_maybe_buy_home/shop`, `_maybe_sell` broke/senior, `_execute_purchase` cash/mutuo, `_move_into_lot`)
+- [ ] Hook in `LifecycleManager` daily
+- [ ] CLI `economy real-estate-tick`
 
-- `[ 01.0040 ]` `[ ]` Salvataggio SQLite come DB primario
-- `[ 01.0041 ]` `[ ]` Formato `.sav` criptato + compresso
-  - Serializzazione completa dello stato su SQLite
-  - Compressione `zstandard`
-  - Cifratura opzionale `cryptography.fernet` se `SIMAI_SAVE_ENCRYPTION_KEY` presente
-- `[ 01.0042 ]` `[ ]` Classe `SaveManager`
-  - `create_save(name: str) -> SaveInfo`
-  - `load_save(save_id: int) -> SimulationState`
-  - `list_saves() -> list[SaveInfo]`
-  - `delete_save(save_id: int)`
-  - Slot infiniti
-- `[ 01.0043 ]` `[ ]` UI CLI per save/load
-  - `python -m simai save list`
-  - `python -m simai save create <name>`
-  - `python -m simai save load <id>`
-  - `python -m simai save delete <id>`
+### §4.3 — Build mode [ ]
 
-#### 1.4 — Gestione Oggetti di Gioco (GameObject) `[0.004]`
+- [ ] `world/build/`: `enums.py` (`WallOrientation` H/V, `OpeningKind` DOOR/WINDOW, `WallMaterial` 4, `MAX_GRID_SIZE=50`, `MIN_ROOM_SIDE=1`, `MIN_ROOM_AREA=2`), `models.py` (`Wall` unique `(lot, x, y, orientation)`, `Opening` unique `wall_id`), `room_detector.py` (`DetectedRoom`, `detect_rooms` con flood fill e edge blocking), `service.py` (`BuildService.add_wall/remove_wall/clear_walls/set_opening/remove_opening/recompute_rooms`)
+- [ ] `[5300_04]` Migrazione `wall, opening`
+- [ ] CLI `world build-show/build-wall/build-clear`
+- [ ] UI `/world/lots/{id}/build` (canvas 2D con tool wall/door/window/delete, auto-rooms on/off, ricalcola stanze)
 
-- `[ 01.0050 ]` `[ ]` Classe `GameObject` (SQLAlchemy model)
-  - Campi: `id`, `type`, `location_id`, `state`, `condition`, `metadata`
-  - `state` enum: `CLEAN`, `DIRTY`, `BROKEN`, `IN_USE`, `NEW`, ...
-- `[ 01.0051 ]` `[ ]` Capacità degli oggetti
-  - `objects.interactions`: lista di `Interaction` (verbo + effetti)
-  - `objects.containers`: capacità, contenuto attuale
-- `[ 01.0052 ]` `[ ]` Usura e rottura
-  - `condition` decresce con uso (rate dipende da oggetto)
-  - A `condition == 0` → `state = BROKEN`
-  - Manutenzione periodica (NPC autonomo)
-- `[ 01.0053 ]` `[ ]` Azione `REPAIR_OBJECT`
-  - Richiede skill, tool, tempo
-  - Ripristina `condition` a soglia (90% se successo pieno)
-- `[ 01.0054 ]` `[ ]` Percezione oggetti nei metodi `is_valid()`
-  - NPC vede solo oggetti nella sua location o adiacenti
-- `[ 01.0055 ]` `[ ]` Estensione "Total Realism" — Fisica semplificata
-  - Possibilità di spostare arredi
-  - Oggetti che cadono e si rompono dinamicamente
-  - Accumulo di polvere/sporcizia
-  - Simulazione semplificata di fluidi (es. acqua versata)
+### §4.4 — Buy mode [ ]
 
-#### 1.5 — Sistema di Locazioni (Location) `[0.006]`
+- [ ] `world/buy/`: `enums.py` (`ObjectCategory` 8, `ALLOWED_ROTATIONS` 4, `MAX_OBJECTS_PER_LOT=200`), `models.py` (`ObjectCatalog` con footprint, `is_container`, `icon`), `service.py` (`BuyService.list_catalog/place_object/move_object/remove_object`, `_check_bounds`, `_check_object_overlap`, `_find_room_for_cell`)
+- [ ] `GameObject` esteso (`catalog_type_id`, `lot_id`, `position_x/y`, `rotation`)
+- [ ] `[5300_05]` Migrazione `object_catalog` + 5 colonne su `game_object`
+- [ ] `world/buy/seed.py` (`CATALOG_ENTRIES` 32 voci)
+- [ ] CLI `world catalog/place-object/objects-on-lot`
+- [ ] UI build editor con catalogo (selezione + tool place)
 
-- `[ 01.0060 ]` `[ ]` Classe `Location` (SQLAlchemy model)
-  - Campi: `id`, `name`, `type`, `lot_id`, `parent_id`, `bounds`, `attributes`
-- `[ 01.0061 ]` `[ ]` Capacità di contenere oggetti e NPC
-- `[ 01.0062 ]` `[ ]` Attributi dinamici:
-  - `cleanliness_level` (0.0–1.0)
-  - `noise_level` (0.0–1.0)
-  - `crowd_level` (0–N persone)
-  - `safety_rating` (0.0–1.0)
-  - `aesthetic_score` (0.0–1.0)
-  - Aggiornati ad ogni tick da eventi (rumore, sporco, accessi)
-- `[ 01.0063 ]` `[ ]` Navigazione NPC (pathfinding A*)
-  - Grafo `Location` ↔ `Location` via edges (porta, corridoio, esterno)
-  - Costo movimento basato su distanza + ostacoli
-- `[ 01.0064 ]` `[ ]` Stato ambientale (pulizia, disordine)
-  - `accumulate_dirt()` chiamato ad ogni azione sporcante
-  - Azione `CLEAN_LOCATION` (NPC con tratto `Neat`)
-  - Impatto su mood del NPC dentro
+### §4.4b — Acquisto con pagamento [ ]
 
-#### 1.6 — Statistiche e Tracking `[0.004]`
+- [ ] `world/buy/supplier.py` (`SupplierService.offers_of/find_supplier/get_offer/decrement_stock/restock_all`, `RESTOCK_PER_TYPE=5`, `MAX_STOCK_PER_TYPE=30`)
+- [ ] `place_object` accetta `buyer` + `supplier_location_id`, scala cash + stock, `current_dt` per Transaction
+- [ ] Seed fornitore "Forniture del Quartiere" (12 `ShopItem` risorse) + "Emporio dell'Arredo" (32 `ShopItem` arredi)
+- [ ] Hook restock in `LifecycleManager` daily
+- [ ] CLI `economy suppliers/restock`, `world place-object --buyer --supplier`
 
-- `[ 01.0070 ]` `[ ]` Statistiche di popolazione
-  - Contatori: vivi, morti, nati, emigrati, immigrati
-  - Tracciati per anno/sesso/razza
-- `[ 01.0071 ]` `[ ]` Tracking demografico
-  - Storico censimenti mensili (tabella `population_census`)
-  - Query CLI: `python -m simai stats population --year=5775`
+### §4.4c — UI buyer [ ]
 
-#### 1.7 — Configurazione Globale `[0.010]`
+- [ ] `api_catalog` ritorna `supplier_price`, `supplier_stock`, `sales_tax_rate`
+- [ ] `api_place_object` accetta `buyer_id`, `supplier_location_id`, ritorna `cost_paid`, `item_price`, `tax_paid`
+- [ ] UI: `<select id="buyer-select">` con localStorage per-lotto, opacity inaffordabili, badge stock, prezzo `X+Y`
+- [ ] Toast con breakdown "Acquistato: X + Y (tax) = Z"
 
-- `[ 01.0080 ]` `[?]` Sistema configurazione globale via YAML
-  - `config/simulation.yaml` (parametri economici, demografici, AI)
-  - Override via `.env` per variabili sensibili
-  - Hot-reload in development
+### §4.5 — Style mode [ ]
 
----
+- [ ] `world/style/`: `enums.py` (`StyleKind` FLOOR/WALL, `WallSide` INTERIOR/EXTERIOR), `models.py` (`StyleCatalog` con color/pattern/icon, `FloorTile` unique `(lot, x, y)`, `WallCovering` unique `(wall, side)`), `service.py` (`StyleService.set_floor/set_wall_style/clear_floor/clear_wall_style/clear_all`), `seed.py` (`STYLE_ENTRIES` 21 voci: 11 floor + 10 wall, pattern solid/wood/tile/stripes/floral/dots/brick/marble/stone)
+- [ ] `[5300_06]` Migrazione `style_catalog, floor_tile, wall_covering`
+- [ ] CLI `world styles --kind/set-floor/set-wall-style`
+- [ ] UI build editor con tool FLOOR/WALLSTYLE + `<select id="style-kind">`
 
-### 🌍 FASE 2 — Anthalys Time (range 5100–5199)
+### §4.6 — Terrain mode [ ]
 
-Espande §1.0 della FASE 1 in un package dedicato.
+- [ ] `world/terrain/`: `enums.py` (`TerrainType` 8, `MAX_HEIGHT=3`, `FLAT_ONLY`, `BLOCKING_TERRAINS`), `models.py` (`TerrainTile` unique `(lot, x, y)`), `service.py` (`TerrainService.set_terrain/clear_tile/clear_all`, costo `TERRAIN_BASE_COST=3` + `TERRAIN_ELEVATION_COST=5`/livello, `FLAT_ONLY` validation), `palette.py` (`TERRAIN_COLORS`, `TERRAIN_LABELS`, `lighten_hex` per elevazione)
+- [ ] `[5300_07]` Migrazione `terrain_tile`
+- [ ] CLI `world terrain-types/set-terrain/terrain-show`
+- [ ] UI build editor con tool TERRAIN + slider elevation 0–3
 
-- `[ 02.0001 ]` `[ ]` Package `simai/sim/anthalys/time/`
-- `[ 02.0002 ]` `[ ]` `AnthalysClock` (wrapper di `AnthalysDateTime` + tick)
-- `[ 02.0003 ]` `[ ]` `Calendar` (conversioni e lookup)
-- `[ 02.0004 ]` `[ ]` `Holidays` (registry + 12 festività fisse iniziali)
-- `[ 02.0005 ]` `[ ]` `MoonCycles` (3 lune con periodi orbitali)
-- `[ 02.0006 ]` `[ ]` `Seasons` (6 stagioni, transizioni graduali)
-- `[ 02.0007 ]` `[ ]` `DayPhase` (fasi giorno/notte)
-- `[ 02.0008 ]` `[ ]` `AstroEvents` (eclissi, comete, eventi cosmici rari)
-- `[ 02.0009 ]` `[ ]` `TimeManager` integration test
-- `[ 02.0010 ]` `[ ]` Comandi CLI completi (status, jump, set-speed, dump)
+### §4.7 — Città [ ]
+
+- [ ] `city/`: `enums.py` (`PublicServiceType` 6, `TaxKind` 3, `INCOME_TAX_RATE=0.10`, `SALES_TAX_RATE=0.05`, `DEFAULT_DAILY_COST`, `DEFAULT_QUALITY=0.6`, `DEFAULT_COVERAGE_RADIUS=40`), `models.py` (`PublicService` unique `(district, type)`, `CityBudget` singleton, `TaxPayment`), `service.py` (`CityService.get_budget/add_revenue/add_expense/register_service/all_services/services_of_district/daily_tick` con quality degradation −0.02/giorno se non pagato), `tax.py` (`TaxService.preview_sales_tax/total_with_tax/collect_income_tax/collect_sales_tax/collect_property_tax/payments_of`), `satisfaction.py` (`SERVICE_TO_AREA`, `SATISFACTION_WEIGHTS` safety 0.20/health 0.18/education 0.18/cleanliness 0.17/wellbeing 0.15/infrastructure 0.12, `SatisfactionService.compute_district/compute_all`), `seed.py` (`seed_demo_city`: police/hospital/school/garbage/park)
+- [ ] `[5300_08]` Migrazione `public_service, city_budget, tax_payment`
+- [ ] Hook in `PaydayService.process` (income tax), `PropertyTaxService.collect_all` (property → CityBudget), `LifecycleManager` daily (city tick)
+- [ ] CLI `city services/register-service/budget/tick/taxes/satisfaction`
+- [ ] UI `/city` (bilancio, servizi, soddisfazione, tasse)
+
+### §4.7b — Soddisfazione→mood [ ]
+
+- [ ] `city/mood.py` (`CityMoodService.daily_tick` con cache per distretto, moodlet "Servizi buoni/scadenti/eccellenti/in rovina" + aree specifiche sotto soglia, `CITY_MOODLET_DURATION=336`)
+- [ ] Hook in `LifecycleManager` daily
+- [ ] CLI `city citizens-mood/mood-tick`
+- [ ] UI `/city` con tabella moodlet auto-refresh (htmx + JSON parse)
+
+### §4.7c — Sales tax su acquisti [ ]
+
+- [ ] `TaxService.preview_sales_tax/total_with_tax`
+- [ ] `MarketService.buy` e `BuyService.place_object` applicano 5% tax, `item_price`/`tax_paid`/`cost_paid` in result
+- [ ] Transaction con `metadata_json["sales_tax"]`
+- [ ] UI mostra `X+Y` e toast con breakdown
+- [ ] CLI `economy buy` mostra breakdown
+- [ ] IVA/accise/successione → FASE 5
+
+### §4.8 — Crafting [ ]
+
+- [ ] `npc/crafting/`: `enums.py` (`CraftingQuality` POOR/COMMON/GOOD/EXCELLENT, `QUALITY_PRICE_MULTIPLIER` 0.6/1.0/1.5/2.5, `SKILL_LEVEL_COMMON=3/GOOD=8/EXCELLENT=14`, `QUALITY_JITTER_SIGMA=0.05`), `recipes.py` (`Recipe` 10, `RECIPES`, `RESOURCE_NAMES` 12, `RESOURCE_PRICES`), `service.py` (`CraftingService.craft` con skill check + input consume + quality `base + skill_bonus×(lvl/20) + gauss`, +15 XP, `CraftResult`, `missing_inputs`, `inventory_count`)
+- [ ] `[5300_05]` (già coperto) — usati `GameObject` esistenti
+- [ ] CLI `npc recipes/resources/craft`
+
+### §4.8b — Crafting AI + quality pricing [ ]
+
+- [ ] `npc/crafting/ai.py` (`CraftingAI.maybe_craft` con `BASE_TICK_PROBABILITY=0.0015`, `SKILL_LEVEL_BONUS=0.10`, `MAX_CRAFTS_PER_DAY_PER_NPC=3`, `CraftingTickReport`)
+- [ ] `NPCState.crafts_today`/`last_craft_day_index`, contatore resettato a cambio giorno
+- [ ] `MarketService.sell` legge `metadata_json["quality_label"]` e applica multiplier
+- [ ] `SaleResult` esteso (`quality_label`, `base_price`)
+- [ ] CLI `economy sell` mostra breakdown
+
+### §4.8c — UI inventario + vendita [ ]
+
+- [ ] Endpoint `/api/npcs/{id}/inventory.json` (con `crafted`, `quality_label`, `quality_value`)
+- [ ] Endpoint `/api/items/{type}/buyers.json`
+- [ ] Endpoint `POST /api/npcs/{id}/sell` (usa `MarketService.sell` con quality pricing)
+- [ ] Tab "Inventario" in `/npcs/{id}` con badge qualità colorati (POOR rosso, COMMON grigio, GOOD azzurro, EXCELLENT verde)
+- [ ] Modal Bootstrap per scelta negozio + conferma vendita
+
+### §4.9 — Infrastructure [ ]
+
+- [ ] `city/infrastructure/`: `enums.py` (`RoadType` 4, `RoadCondition` 5, `LightType` 3, `ROAD_COSTS`, `LIGHT_COSTS`, `LIGHT_RADII`, `ROAD_DAILY_DEGRADATION=0.001`, `LIGHT_DAILY_DEGRADATION=0.0005`, `LIGHT_OFF_CONDITION=0.20`), `models.py` (`RoadTile`, `StreetLight`), `service.py` (`InfrastructureService.place_road/place_light/remove_road/remove_light/lighting_coverage_at/district_roads_coverage/district_lighting_coverage/daily_tick/clear_all`, `MAX_COORD=199`)
+- [ ] `[5300_09]` Migrazione `road_tile, street_light`
+- [ ] `SatisfactionService` esteso: area `infrastructure` peso 0.12 + safety bonus da illuminazione (+0.10 max)
+- [ ] Hook degrado in `LifecycleManager` daily
+- [ ] CLI `city infra-costs/road-place/light-place/road-remove/light-remove/infra-list/infra-tick/coverage`
+- [ ] UI `/world/infrastructure` (canvas con griglia, strade, lampioni, raggi)
+
+### §4.9b — Upkeep + riparazione [ ]
+
+- [ ] Costo giornaliero 1 Athel/lampione dal CityBudget
+- [ ] `repair_road`, `repair_light` (azione + costo)
+- [ ] Auto-degradation acceleration se inquinato
+- [ ] Illuminazione notturna dinamica (ON 19-7)
+
+### §4.10 — Transport [ ]
+
+- [ ] `city/transport/`: `enums.py` (`TransportMode` 5, `VehicleType` 2, `RouteType` 2, velocità 0.5/1.9/5.0/3.0/7.5, `BUS_FARE=2`, `METRO_FARE=3`, `CAR_FUEL_PER_CELL=1.5`, `CAR_FUEL_COST_PER_CELL=0.15`, `VEHICLE_PRICES` CAR=2500/BIKE=150), `models.py` (`Vehicle` unique `(owner, type)`, `TransportRoute`, `RouteStop` unique `(route, seq)` e `(route, loc)`), `service.py` (`TransportService.vehicle_of/vehicles_of/buy_vehicle/refuel_car/all_routes/stops_of/routes_serving_location/create_route/plan/plan_all/travel/home_location_id/work_location_id/daily_commute`), `seed.py` (`seed_demo_routes`: bus + metro)
+- [ ] `[5300_10]` Migrazione `vehicle, transport_route, route_stop`
+- [ ] Hook `daily_commute` in `LifecycleManager` daily
+- [ ] CLI `transport vehicles/buy-vehicle/refuel/routes/route-stops/plan/travel`
+- [ ] UI `/transport` (linee + veicoli)
+
+### §4.10b — Pathfinding + transito [ ]
+
+- [ ] `city/transport/pathfinding.py` (`RoadGraph`, `RoadPath`, A* 4-direzionale con penalty condition, `_CONDITION_PENALTY_WEIGHT=2.0`)
+- [ ] `city/transport/transit.py` (`TransitJob` con `legs` metadata, `TransitService.start/tick/compute_progress/active_job_ids/is_in_transit/cancel`, `TransitStatus` 3)
+- [ ] `EVENT_NPC_ARRIVED`
+- [ ] `NPCManager.update_all_npcs` salta `report.in_transit_ids`
+- [ ] `TransitService.tick` in `LifecycleManager.tick` ad ogni tick
+- [ ] `TransitService.plan_all` usa `RoadGraph` se disponibile, altrimenti geometrico
+- [ ] `[5300_11]` Migrazione `transit_job`
+- [ ] CLI `transport travel --instant`, `transit-list`, `transit-status`
+
+### §4.10c — Multi-tratta + UI live [ ]
+
+- [ ] `city/transport/multi_leg.py` (`TravelLeg`, `MultiLegPlan`, `MultiLegPlanner.plan_all` walk+bus/metro+walk, `MAX_WALK_TO_STOP=25`, `MAX_TOTAL_WALK=50`, `TRANSFER_PENALTY_TICKS=3`, dedup + cap 20)
+- [ ] `TransitService.start` accetta `MultiLegPlan`, `compute_progress` per UI
+- [ ] CLI `transport plan-multi/travel-multi`
+- [ ] UI `/transport/transits` (canvas 200×200, linee+stop+transiti interpolati), endpoint `/api/transport/transits.json` con `from_xy`/`to_xy`/`progress`/`legs`
+- [ ] Refresh ogni 3s
+
+### §4.10d — Miglioramenti futuri [ ]
+
+- [ ] Percorso su polyline (non solo interpolazione lineare from→to)
+- [ ] Timing bus/metro reali (orari)
+- [ ] Tracking preciso per-leg
 
 ---
 
-### 👤 FASE 3 — Character / NPC (range 5200–5299)
+## FASE 5 — ECONOMY (range 5400–5499)
 
-#### 3.0 — Generazione NPC `[0.100]`
+### §5.0 — Economia base [ ]
 
-- `[ 03.0001 ]` `[ ]` Classe `Character` (SQLAlchemy model)
-- `[ 03.0002 ]` `[ ]` Generatore procedurale `CharacterGenerator`
-  - Nome + cognome (da `NameGenerator` con dizionari lore)
-  - Sesso biologico, genere, orientamento
-  - Età, data di nascita, luogo
-  - Aspetto fisico (colori, altezze, forme)
-  - Tratti e aspirazioni
-  - Voce (tono, timbro)
-  - Background narrativo breve
-- `[ 03.0003 ]` `[ ]` Seed di default: Erika Lamborghetti (F, 14.24),
-  Max Volpi (M, 14.32)
-- `[ 03.0004 ]` `[ ]` Generazione batch 4–6 NPC random
+- [ ] `[05.0000]` `economy/enums.py` (`JobType` 10, `TransactionKind` 9, `MortgageStatus` 4, `DEFAULT_WAGES`, `SHOP_RESALE_MARGIN=0.20`), `models.py` (`Job` unique `(char)` esteso, `ShopItem`, `Transaction`), `jobs.py` (`JobService.assign/quit/job_of/all_active_jobs` con skill validation + wage scaling), `market.py` (`MarketService.items_in/find_item/buy/sell` con quality-based pricing + sales tax), `payday.py` (`PaydayService.is_payday/process` con income tax), `seed.py` (`seed_demo_economy`)
+- [ ] `[5400_01]` Migrazione `job, shop_item, transaction`
+- [ ] `[5400_02]` Migrazione `job skill extensions`
+- [ ] `[00.0014b]` CLI `economy seed/jobs/job-assign/job-quit/wages/shops/shop/buy/sell/payday/transactions/stats`
+- [ ] UI `/economy`
 
-#### 3.1 — Filosofia creazione iniziale `[!]`
+### §5.1 — Banche, mutui, investimenti [ ]
 
-- `[ 03.0010 ]` `[!]` Il giocatore definisce il punto di partenza
-- `[ 03.0011 ]` `[!]` Processo intuitivo ma profondo
-- `[ 03.0012 ]` `[!]` Personaggi giocatore = NPC `LOD1` (dettagliati)
-- `[ 03.0013 ]` `[!]` Esperienza emotivamente coinvolgente
-- `[ 03.0014 ]` `[ ]` Architettura Coscienza NPC: distinzione
-  "Anima Digitale" ↔ "Personalità Agente" `[2.000]`
+- [ ] `[05.0010]` `Bank`, `BankAccount`, `Deposit`, `Loan` (mutui già in 5300_03 ma mancano banca + interessi attivi)
+- [ ] Tassi variabili, banche multiple
+- [ ] Investimenti azionari
+- [ ] Conti correnti + interessi passivi
 
-#### 3.2 — Interfaccia di Creazione `[1.500]`
+### §5.2 — Tasse avanzate [ ]
 
-- `[ 03.0020 ]` `[ ]` Editor personaggio (UI web o CLI interattiva)
-- `[ 03.0021 ]` `[ ]` Personalizzazione aspetto fisico
-- `[ 03.0022 ]` `[ ]` Identità di base
-- `[ 03.0023 ]` `[ ]` Tratti di personalità
-- `[ 03.0024 ]` `[ ]` Aspirazione di vita
-- `[ 03.0025 ]` `[?]` Sistema punti creazione `[1.540]`
-- `[ 03.0026 ]` `[?]` Salvataggio template personalità `[1.560]`
-- `[ 03.0027 ]` `[ ]` Definizione abbigliamento iniziale
-- `[ 03.0028 ]` `[P]` Definizione relazioni iniziali
-- `[ 03.0029 ]` `[ ]` Background narrativo ed eventi formativi
+- [ ] `[05.0020]` IVA/accise (oltre sales tax base)
+- [ ] Tassa di successione
+- [ ] Esenzioni e detrazioni
+- [ ] Fisco progressivo
 
-#### 3.3 — Sistema Genetico `[0.101]`
+### §5.3 — AION (piattaforma commerciale) [ ]
 
-- `[ 03.0030 ]` `[ ]` DNA simulato: 2048 alleli distribuiti in categorie
-- `[ 03.0031 ]` `[ ]` Ereditarietà aspetto fisico dai genitori
-- `[ 03.0032 ]` `[ ]` Applicazione a tutti i nuovi NPC nati in sim
-- `[ 03.0033 ]` `[ ]` Gemelli identici / fraterni
-- `[ 03.0034 ]` `[ ]` Tratti ereditari `[2.400]`
-- `[ 03.0035 ]` `[ ]` Total Realism — genetica avanzata:
-  - Predisposizioni a talenti/malattie
-  - `[F]` Mutazioni genetiche casuali
-
-#### 3.4 — Fase finale creazione
-
-- `[ 03.0040 ]` `[ ]` Selezione quartiere di partenza
-- `[ 03.0041 ]` `[ ]` Selezione lotto residenziale
-- `[ 03.0042 ]` `[ ]` Fondi iniziali (Athel)
-- `[ 03.0043 ]` `[ ]` Avvio sim dopo il trasferimento
-
-#### 3.5 — Scenari di inizio partita
-
-- `[ 03.0050 ]` `[ ]` Scenari predefiniti (es. "Giovane coppia in città",
-  "Erede di famiglia nobile", "Emigrante")
-
-#### 3.6 — Caratteristiche personaggio `[0.400]`
-
-Vedi TODO originale §4.4 (invariato). Riepilogo:
-
-- `[ 03.0100 ]` `[ ]` Sogni/aspirazioni `[0.600]`
-- `[ 03.0101 ]` `[ ]` Tratti di personalità `[0.400]`
-- `[ 03.0102 ]` `[ ]` Categorie tratti (Sociale, Personalità, Lifestyle,
-  Mentale, Fisico, Economico, Lavoro)
-- `[ 03.0103 ]` `[ ]` Tratto "Maschera" `[0.420]`
-- `[ 03.0104 ]` `[ ]` Orientamento sessuale dinamico e fluidità temporanea `[1.820]`
-- `[ 03.0105 ]` `[ ]` Vizi e dipendenze `[0.420]`
-- `[ 03.0106 ]` `[ ]` Sviluppo dinamico personalità/valori
-- `[ 03.0107 ]` `[ ]` Background e storia pregressa `[0.440]`
-- `[ 03.0108 ]` `[ ]` Tratto `SexuallyExplorative` `[2.140]`
-- `[ 03.0109 ]` `[ ]` Predisposizione a intimità mentale/emotiva
-- `[ 03.0110 ]` `[ ]` Sexual Education Profile (SEP) `[0.230]`
-- `[ 03.0111 ]` `[ ]` Esplorazione intimità e novità relazionale `[1.480]`
-- `[ 03.0112 ]` `[ ]` Orientamento sessuale dinamico e fasi esplorazione `[1.260]`
-- `[ 03.0113 ]` `[ ]` `CulturalProfile` — norme, inibizioni, reazioni `[0.520]`
-
-#### 3.7 — Bisogni `[0.010]`
-
-- `[ 03.0200 ]` `[ ]` Sistema bisogni: `hunger`, `thirst`, `bladder`,
-  `energy`, `hygiene`, `social`, `fun`, `comfort`, `intimacy`, ...
-- `[ 03.0201 ]` `[ ]` Decadimento e soglie critiche
-- `[ 03.0202 ]` `[ ]` Intimità personale (solitudine) `[0.180]`
-- `[ 03.0203 ]` `[ ]` Reazioni emotive a rifiuto/insuccesso intimo `[0.220]`
-- `[ 03.0204 ]` `[ ]` Erotismo non fisico e intimità cognitiva `[0.260]`
-- `[ 03.0205 ]` `[ ]` Fattori di stress inibenti `[0.140]`
-- `[ 03.0206 ]` `[ ]` Curva dinamica del desiderio `[0.120]`
-- `[ 03.0207 ]` `[ ]` Intimità non sessuale (azioni sostitutive) `[0.150]`
-- `[ 03.0208 ]` `[ ]` Regolazione intima autonoma `[0.180]`
-- `[ 03.0209 ]` `[ ]` Intimità digitale e virtuale `[0.210]`
-
-#### 3.8 — Ciclo vita NPC `[0.100]`
-
-- `[ 03.0300 ]` `[ ]` Fasi vita integrate con Anthalys (PARTE II)
-- `[ 03.0301 ]` `[ ]` Transizioni di fase con effetti (pubertà, età adulta, ecc.)
-- `[ 03.0302 ]` `[ ]` Invecchiamento progressivo
-- `[ 03.0303 ]` `[ ]` Morte e cause
-- `[ 03.0304 ]` `[ ]` Eredità e successione
-
-#### 3.9 — Famiglia e Relazioni `[0.200]`
-
-Vedi TODO originale §4.3 (invariato). Riepilogo:
-
-- `[ 03.0400 ]` `[ ]` Sistema famiglia e albero genealogico
-- `[ 03.0401 ]` `[ ]` Dinamiche familiari intergenerazionali `[0.250]`
-- `[ 03.0402 ]` `[ ]` Dinamiche sociali avanzate `[0.250]`
-- `[ 03.0403 ]` `[ ]` Dinamiche di coppia adolescenti `[0.255]`
-- `[ 03.0404 ]` `[ ]` Poliamorosità `[2.500]`
-- `[ 03.0405 ]` `[ ]` Dinamiche LGBTQ+ `[1.500]`
-- `[ 03.0406 ]` `[ ]` Consanguineità culturale `[1.800]`
-- `[ 03.0407 ]` `[ ]` Eventi sociali drastici/rotture `[0.850]`
-- `[ 03.0408 ]` `[ ]` Mentoring intergenerazionale `[1.250]`
-- `[ 03.0409 ]` `[ ]` Pettegolezzo e reputazione `[2.100]`
-- `[ 03.0410 ]` `[ ]` Preferenze intime e compatibilità `[2.240]`
-- `[ 03.0411 ]` `[ ]` Infedeltà con sfumature `[1.980]`
-- `[ 03.0412 ]` `[ ]` Noia relazionale/routine `[1.760]`
-- `[ 03.0413 ]` `[ ]` Intesa erotica e complicità `[0.980]`
-- `[ 03.0414 ]` `[ ]` Libido asimmetrica e negoziazione `[1.340]`
-- `[ 03.0415 ]` `[ ]` Intimità come comunicazione emotiva `[1.360]`
-
-#### 3.10 — AI NPC `[0.010]`
-
-Vedi TODO originale §4.5 (invariato). Riepilogo:
-
-- `[ 03.0500 ]` `[ ]` Sistema base azioni
-- `[ 03.0501 ]` `[ ]` Logica decisionale (utility + behaviour tree)
-- `[ 03.0502 ]` `[ ]` Implementazione azioni specifiche
-- `[ 03.0503 ]` `[ ]` Sistema stati umore e influenza `[0.500]`
-- `[ 03.0504 ]` `[ ]` Cure infantili e genitorialità `[0.800]`
-- `[ 03.0505 ]` `[ ]` Obiettivi e aspirazioni
-- `[ 03.0506 ]` `[ ]` Pianificazione AI avanzata e apprendimento
-- `[ 03.0507 ]` `[ ]` Simulazione off-screen e LOD
-- `[ 03.0508 ]` `[ ]` Sistema moodlet ed espressioni
-- `[ 03.0509 ]` `[ ]` Sistema relazioni sociali `[0.700]`
-- `[ 03.0510 ]` `[ ]` Caratteristiche avanzate
-- `[ 03.0511 ]` `[ ]` Coping intimo disfunzionale `[1.420]`
-- `[ 03.0512 ]` `[ ]` Esiti negativi intimità `[0.620]`
-
-#### 3.11 — Memoria NPC `[1.300]`
-
-- `[ 03.0600 ]` `[ ]` Struttura base memoria
-- `[ 03.0601 ]` `[ ]` Architettura a livelli (short/long/emotional)
-- `[ 03.0602 ]` `[ ]` Processi gestione memoria (decay, consolidamento)
-- `[ 03.0603 ]` `[ ]` Integrazione con altri sistemi
-- `[ 03.0604 ]` `[ ]` Persistenza emotiva residua `[1.320]`
-- `[ 03.0605 ]` `[ ]` Micro-ancore emotive `[2.120]`
-- `[ 03.0606 ]` `[ ]` Conflitto relazionale latente
-- `[ 03.0607 ]` `[ ]` `FantasyProfile` — vita fantasmatica interiore `[2.420]`
-- `[ 03.0608 ]` `[ ]` Memoria emotiva intima `[1.520]`
-
-#### 3.12 — Consapevolezza sociale `[0.710]`
-
-- `[ 03.0700 ]` `[ ]` Scoperta tratti tramite interazione
-- `[ 03.0701 ]` `[ ]` Norme culturali su intimità e sessualità `[1.620]`
-
-#### 3.13 — Storyline generate AI `[2.000]`
-
-- `[ 03.0800 ]` `[ ]` Auto-narrazione `[2.120]`
-- `[ 03.0801 ]` `[ ]` Crollo cosciente e ricostruzione identitaria `[2.180]`
-
-#### 3.14 — Comportamenti emergenti e "Riverie" `[2.100]`
-
-- `[ 03.0900 ]` `[ ]` Recupero intimità post-trauma `[1.900]`
-
-#### 3.15 — Autoanalisi, riflessività, cambiamento `[2.200]`
-
-- `[ 03.1000 ]` `[ ]` Self-Reflection
-- `[ 03.1001 ]` `[ ]` Impatto su comportamento e personalità
-- `[ 03.1002 ]` `[ ]` Diario o voce interiore
+- [ ] `[05.0030]` AION marketplace (acquisto/vendita NPC↔NPC)
+- [ ] `[05.0040]` Spedizioni cargo (multi-location, tracking)
+- [ ] `[05.0050]` Mercato azionario locale
 
 ---
 
-### 🌐 FASE 4 — World (range 5300–5399)
+## FASE 6 — POLITICS (range 5500–5599)
 
-Vedi TODO originale §3 (invariato). Riepilogo:
-
-#### 4.1 — Struttura mondo e lotti `[0.025]`
-
-- `[ 04.0001 ]` `[ ]` Quartieri, lotti, edifici
-- `[ 04.0002 ]` `[ ]` Sistema coordinate (griglia 2D)
-
-#### 4.2 — Proprietà e gestione lotti `[2.000]`
-
-- `[ 04.0010 ]` `[ ]` Acquisto, vendita, affitto, mutui
-
-#### 4.3 — Build Mode (strutture) `[1.400]`
-
-- `[ 04.0020 ]` `[ ]` Pareti, porte, finestre, tetti
-- `[ 04.0021 ]` `[ ]` Anteprima 3D con Three.js `[F]`
-
-#### 4.4 — Buy Mode (oggetti) `[0.027]`
-
-- `[ 04.0030 ]` `[ ]` Catalogo oggetti per categoria
-
-#### 4.5 — Style Mode (pittura, rivestimenti) `[1.400]`
-
-#### 4.6 — Terrain Mode (landscaping)
-
-#### 4.7 — Gestione mondo (livello città) `[2.200]`
-
-#### 4.8 — Sistema oggetti e crafting `[1.000]`
-
-#### 4.9 — Infrastrutture e urbanistica `[1.400]`
-
-#### 4.10 — Trasporti (auto, bus, metro, traghetti, aerei)
-
-- `[ 04.0100 ]` `[ ]` `TransportService` (pathfinding multi-tratta)
-- `[ 04.0101 ]` `[ ]` Veicoli privati NPC (carburante, parcheggi)
-- `[ 04.0102 ]` `[ ]` Accessibilità (NPC con disabilità)
+- [ ] `[06.0000]` Governo, elezioni, partiti
+- [ ] `[06.0010]` Leggi e regolamenti
+- [ ] `[06.0020]` Servizi pubblici politici (sanità, scuola, sicurezza già in city, ma mancano leggi)
+- [ ] `[06.0030]` Costituzione di Anthal — framework legale
+- [ ] `[06.0040]` Partecipazione civica, proteste
 
 ---
 
-### 💰 FASE 5 — Economy (range 5400–5499)
+## FASE 7 — SONET (range 5600–5699)
 
-Vedi TODO originale §9 + §10 (invariato). Riepilogo:
-
-- `[ 05.0000 ]` `[ ]` Sistema economico base (Athel, offerta, domanda)
-- `[ 05.0010 ]` `[ ]` Banche, mutui, investimenti
-- `[ 05.0020 ]` `[ ]` Tasse e fisco
-- `[ 05.0030 ]` `[ ]` **AION** — piattaforma commerciale centralizzata `[3.500]`
-- `[ 05.0040 ]` `[ ]` AION spedizioni cargo
-- `[ 05.0050 ]` `[ ]` Mercato azionario locale
+- [ ] `[07.0000]` Identità digitale del cittadino
+- [ ] `[07.0010]` Servizi online (documenti, prenotazioni, pagamenti)
+- [ ] `[07.0020]` Fascicolo sanitario elettronico
+- [ ] `[07.0030]` Fascicolo scolastico
+- [ ] `[07.0040]` Dichiarazione dei redditi
+- [ ] `[07.0050]` Votazioni digitali
 
 ---
 
-### 🏛️ FASE 6 — Politics (range 5500–5599)
+## FASE 8 — MULTIPLAYER (range 5700–5799)
 
-Vedi TODO originale §6 + §21 (invariato). Riepilogo:
-
-- `[ 06.0000 ]` `[ ]` Governo, elezioni, partiti
-- `[ 06.0010 ]` `[ ]` Leggi e regolamenti
-- `[ 06.0020 ]` `[ ]` Servizi pubblici (sanità, scuola, sicurezza)
-- `[ 06.0030 ]` `[ ]` Costituzione di Anthal — framework legale
-- `[ 06.0040 ]` `[ ]` Partecipazione civica e proteste
-
----
-
-### 🌐 FASE 7 — SoNet (range 5600–5699)
-
-Vedi TODO originale §16 (invariato). Portale unico dei servizi al cittadino.
-
-- `[ 07.0000 ]` `[ ]` Identità digitale del cittadino
-- `[ 07.0010 ]` `[ ]` Servizi online (documenti, prenotazioni, pagamenti)
-- `[ 07.0020 ]` `[ ]` Fascicolo sanitario elettronico
-- `[ 07.0030 ]` `[ ]` Fascicolo scolastico
-- `[ 07.0040 ]` `[ ]` Dichiarazione dei redditi
-- `[ 07.0050 ]` `[ ]` Votazioni digitali
+- [ ] `[08.0000]` Architettura client-server
+- [ ] `[08.0010]` Sincronizzazione stato (WebSocket / UDP)
+- [ ] `[08.0020]` Server authority su NPC e mondo
+- [ ] `[08.0030]` Scaling (sharding per quartiere/regione)
+- [ ] `[08.0040]` Persistenza multiplayer (PostgreSQL cluster)
+- [ ] `[08.0050]` Anti-cheat
+- [ ] `[08.0060]` Chat globale e vocale
+- [ ] `[08.0070]` Economia persistente cross-server
+- [ ] `[08.0080]` Sistema di "istanze" per eventi
 
 ---
 
-### 🌍 FASE 8 — Multiplayer (range 5700–5799)
+## FASE 9 — HARDENING / DEBITO TECNICO
 
-Vedi TODO originale §28 (invariato). Tempo reale accelerato.
+- [ ] `[09.0000]` Refactor e hardening generale
+- [ ] `[09.0010]` Ottimizzazione performance (profilazione, cache, `RoadGraph` cache)
+- [ ] `[09.0020]` Documentazione tecnica completa
+- [ ] `[09.0030]` Sistema di plugin/estensioni utente
+- [ ] `[09.0040]` Analizzatore statico + fix mypy/pyright residui
+- [ ] `[09.0050]` Setup deploy e distribuzione
 
-- `[ 08.0000 ]` `[!]` Architettura client-server
-- `[ 08.0010 ]` `[ ]` Sincronizzazione stato (WebSocket / UDP)
-- `[ 08.0020 ]` `[ ]` Server authority su NPC e mondo
-- `[ 08.0030 ]` `[ ]` Scaling (sharding per quartiere/regione)
-- `[ 08.0040 ]` `[ ]` Persistenza multiplayer (PostgreSQL cluster)
-- `[ 08.0050 ]` `[ ]` Anti-cheat
-- `[ 08.0060 ]` `[ ]` Chat globale e vocale
-- `[ 08.0070 ]` `[ ]` Economia persistente cross-server
-- `[ 08.0080 ]` `[ ]` Sistema di "istanze" per eventi
+### Debiti tecnici specifici
 
----
+- [ ] **VI.1** Miglioramenti abbigliamento (pattern, poligenici, dominanza)
+- [ ] **VI.2** Build mode enhancements (anteprima 3D, undo/redo, snap, roof styles, collision)
+- [ ] **VI.3** Regolamenti ambientali (inquinamento, ispezioni, multe)
+- [ ] **VI.4** Lavoro/trasporti NPC (`TravelAction` generica, stipendio, skill→performance)
+- [ ] **VI.5** AION spedizioni cargo
+- [ ] **VI.6** Pathfinding multi-tratta (`TravelAction` generica)
+- [ ] **VI.7** Veicoli privati NPC (uso, carburante)
+- [ ] **VI.8** Accessibilità trasporti (filtro rotte accessibili)
+- [ ] **VI.9** Crisi di mezza età (`apply_midlife_crisis_effects`)
+- [ ] **VI.10** Albero genealogico d3.js
+- [ ] **VI.11** Analisi errori pregressi (già risolti: `target_location`, `partner`, `is_parent_of`, `NameGenerator`, `NPCAIService`, enum `LifeStage` duplicato, firme `ActionExecutor`, N+1, cache `WorldState`, indici FK)
+- [ ] **VI.12** Note architetturali aperte (URL UI, test policy, `WorkflowTransition`)
 
-### 🎁 FASE 9 — Bonus / Debito tecnico
+### Miglioramenti FASE 4 rimandati
 
-- `[ 09.0000 ]` `[ ]` Refactor e hardening generale
-- `[ 09.0010 ]` `[ ]` Ottimizzazione performance (profilazione, cache)
-- `[ 09.0020 ]` `[ ]` Documentazione tecnica completa
-- `[ 09.0030 ]` `[ ]` Sistema di plugin/estensioni utente
-- `[ 09.0040 ]` `[ ]` Analizzatore statico + fix mypy/pyright
-- `[ 09.0050 ]` `[ ]` Setup deploy e distribuzione
+- [ ] `4.10d` polyline + timing bus/metro reali + tracking per-leg
+- [ ] `4.9b` upkeep + riparazione infrastrutture
+- [ ] `4.8d` alberi crafting multi-livello
+- [ ] `4.7d` IVA/accise/successione
+- [ ] `4.6b` rendering isometrico terrain
+- [ ] `4.5b` preview visuale pattern
+- [ ] `4.3b` materiali muro con costo + skill
+- [ ] `4.2c` banche multiple + tassi variabili
 
----
+### Task FASE 3 sospesi
 
-## PARTE IV — DETTAGLI FASI RIMANENTI
-
-Le seguenti sezioni sono **mantenute dall'originale** ma riassunte.
-Per il contenuto integrale, vedi il TODO originale SimAI.
-
-### Sistema scolastico (§5)
-
-### Sistema mediatico (§8)
-
-### Sistema abilità (§11)
-
-### Interfaccia e UI (§12)
-
-### Database e performance (§13)
-
-### Feature avanzate (§14)
-
-### Bilanciamento e gameplay (§15)
-
-### Localizzazione e multilingua (§17)
-
-### Giochi d'azzardo e scommesse (§18)
-
-### Atteggiamenti culturali/familiari (§19)
-
-### Strumenti developer (§20)
-
-### Sistema sanitario approfondito (§22)
-
-### Clima e eventi atmosferici (§23)
-
-### Flora di Anthalys (§24)
-
-### Fauna di Anthalys (§25)
-
-### Vita militare e difesa (§26)
-
-### Lore per Anthalys (§27)
+- [ ] `3.1.14` Architettura coscienza NPC (→ LLM)
+- [ ] `3.2.20-0029` Editor creazione personaggio (UI)
+- [ ] `3.4.40-0043` Fase finale creazione quartiere/lotto/fondi (UI) — parziale (`Athel_balance` già generato)
+- [ ] `3.5.50` Scenari predefiniti (UI)
 
 ---
 
-## PARTE V — ARCHITETTURA TECNICA PYTHON
+## TEST BILANCIAMENTO 60 ANNI (RIMANDATO)
 
-### V.1 Diagramma moduli
+Dopo fix di Chunk 3.x, non è stato ri-eseguito il run 60 anni. Ultimo run 1 anno: valori OK (values 0.5-0.6, traits non saturi, skill job > 0, relazioni > 0 dopo fix `location_id`, addictions 1+ dopo fix seed). Rifare per validare.
 
-```mermaid
-graph TD
-    subgraph Core["Core (5000-5099)"]
-        A1[SimulationLoop]
-        A2[TimeManager]
-        A3[EventBus]
-        A4[SaveManager]
-    end
+**Griglia valutazione attesa**:
 
-    subgraph Time["Anthalys Time (5100-5199)"]
-        T1[AnthalysDateTime]
-        T2[AnthalysCalendar]
-        T3[Holidays]
-        T4[MoonCycles]
-    end
-
-    subgraph NPC["NPC (5200-5299)"]
-        N1[Character]
-        N2[NeedsProcessor]
-        N3[AIDecisionMaker]
-        N4[ActionExecutor]
-        N5[Genetics]
-        N6[Relationships]
-        N7[Memory]
-    end
-
-    subgraph World["World (5300-5399)"]
-        W1[Location]
-        W2[GameObject]
-        W3[Transport]
-        W4[Climate]
-    end
-
-    subgraph Economy["Economy (5400-5499)"]
-        E1[Market]
-        E2[AION]
-        E3[Banking]
-    end
-
-    subgraph Politics["Politics (5500-5599)"]
-        P1[Government]
-        P2[Laws]
-        P3[Elections]
-    end
-
-    subgraph SoNet["SoNet (5600-5699)"]
-        S1[CitizenPortal]
-        S2[Services]
-    end
-
-    subgraph Networking["Networking (5700-5799)"]
-        M1[MultiplayerServer]
-        M2[Sync]
-    end
-
-    Core --> Time
-    Core --> NPC
-    Core --> World
-    World --> Economy
-    Economy --> Politics
-    Politics --> SoNet
-    SoNet --> Networking
-
-    NPC -.-> Time
-    World -.-> NPC
-    Economy -.-> NPC
-```
-
-### V.2 Flusso di un tick
-
-```
-1. SimulationLoop.tick() riceve il segnale
-2. TimeManager.advance_tick()
-   → emette "time.hour.changed" (se ora cambiata)
-   → emette "time.day.changed" (se giorno cambiato)
-   → emette "time.month.changed", "time.year.changed", ...
-3. EventBus.process_queue()
-   → esegue listener registrati in ordine di priorità
-4. WorldManager.update_environment()
-   → aggiorna meteo, temperatura, stagione
-   → aggiorna attributi location (cleanliness, noise, ...)
-5. NPСManager.update_all_npcs()  # per LOD FULL e REDUCED
-   → per ogni NPC: NeedsProcessor.update()
-   → AIDecisionMaker.decide()
-   → ActionExecutor.execute()
-6. WorldManager.update_state()
-   → accumula sporcizia, rumore, cambiamenti infrastrutturali
-7. SaveManager.maybe_autosave()  # ogni N tick
-8. PerformanceMonitor.record_tick_duration()
-```
-
-### V.3 Modello di concorrenza
-
-- **Single-thread** di default (semplicità, debug, riproducibilità).
-- **Async** opzionale per I/O (salvataggi, chiamate LLM future).
-- **Multiprocessing** per lotti di NPC `BACKGROUND` (opzionale, se profilo mostra bottleneck).
-
-### V.4 Database
-
-- **SQLite** primario con PRAGMA:
-  - `journal_mode=WAL`
-  - `foreign_keys=ON`
-  - `synchronous=NORMAL`
-- **PostgreSQL** opzionale via `SIMAI_DB_URL`.
-- **Alembic** per migrazioni (formato `NNNN_SS_slug.py`).
-
-### V.5 Storage
-
-- **SQLite** → dati simulazione
-- **File JSON** → config e save esportabili
-- **Formato `.sav`** → dump compresso (zstd) e opzionalmente cifrato (Fernet)
-- **Directory `data/`**:
-  - `data/saves/` — salvataggi
-  - `data/logs/` — log applicativi
-  - `data/exports/` — CSV/JSON esportati
-  - `data/lore/` — contenuti lore (accessibili runtime)
-
----
-
-## PARTE VI — DEBITO TECNICO
-
-### VI.1 Miglioramenti futuri abbigliamento
-
-- `[ ]` Override colore/pattern per singolo capo
-- `[ ]` Influenza ambientale su tratti/abilità (non solo genetica)
-- `[ ]` Tratti poligenici (più alleli per tratto)
-- `[ ]` Dominanza/recessività
-
-### VI.2 Build Mode enhancements
-
-- `[ ]` Anteprima 3D con Three.js
-- `[ ]` Undo/redo
-- `[ ]` Snap automatico a muri
-- `[ ]` Stili tetto selezionabili
-- `[ ]` Collision detection scale
-
-### VI.3 Regolamenti ambientali
-
-- `[ ]` Impatto su umore NPC (inquinamento)
-- `[ ]` Eventi casuali (ispezioni, multe)
-- `[ ]` Conseguenze economiche
-
-### VI.4 Lavoro e trasporti NPC
-
-- `[ ]` Viaggio verso location appropriata
-- `[ ]` Stipendio periodico
-- `[ ]` Skill influenzano performance/promozioni
-
-### VI.5 AION e spedizioni cargo
-
-- `[ ]` Collegamento a inventario AION
-
-### VI.6 Pathfinding multi-tratta
-
-- `[ ]` `TravelAction` generica
-
-### VI.7 Veicoli privati NPC
-
-- `[ ]` Uso auto privata
-- `[ ]` Consumo carburante
-
-### VI.8 Accessibilità trasporti
-
-- `[ ]` Filtro rotte accessibili
-
-### VI.9 Crisi di mezza età
-
-- `[ ]` Effetti aggiuntivi (`apply_midlife_crisis_effects`)
-
-### VI.10 Albero genealogico — d3.js
-
-- `[ ]` Integrazione d3.js in `ui/static/js/d3.min.js`
-
-### VI.11 Analisi errori (dal TODO originale)
-
-- `[ ]` **Variabili non definite**: `target_location`, `partner`
-  in azioni e NeedsProcessor
-- `[ ]` **Metodi mancanti**: `Character.is_parent_of()`,
-  `NameGenerator.generate_last_name()` (statico)
-- `[ ]` **Service duplicati**: `NPCAIService` vs `AIDecisionMaker`
-- `[ ]` **Relazioni duplicate**: `family_relationships` e `relatives`
-- `[ ]` **Enum `LifeStage` duplicato**
-- `[ ]` **Firme incoerenti** in `ActionExecutor.execute_action()`
-- `[ ]` **N+1 query** in `SimulationService.update_npcs()`
-- `[ ]` **Cache in-memory** per `WorldState.get()/set()`
-- `[ ]` **Indici mancanti** su FK
-
-### Tabella riepilogo critici
-
-| Issue                                       | Severità | File                    |
-| ------------------------------------------- | -------- | ----------------------- |
-| `target_location` non definita              | Alta     | MoveAction, TakeMetroAction, UseBusAction, UseFerryAction, UseMetroAction |
-| `partner` in `NeedsProcessor`               | Alta     | NeedsProcessor          |
-| `is_parent_of()` mancante                   | Media    | Character               |
-| Metodo statico chiamato come istanza        | Media    | NameGenerator           |
-| Service duplicato `NPCAIService`            | Bassa    | NPCAIService            |
-
-### VI.12 Note architetturali aperte
-
-- `[ ]` Decidere dove collocare l'evento `WorkflowTransition`
-  (attualmente in `WorkflowEmail` in ClaireCMS, non rilevante per SimAI)
-- `[ ]` Definire schema URL per UI web (se abilitata) — no CDN
-- `[ ]` Decidere se abilitare test in futuro (richiederebbe override
-  della no-test policy)
-
----
-
-## 📅 ROADMAP DI RILASCIO
-
-| Versione | Contenuto                              | Stato   |
-| -------- | -------------------------------------- | ------- |
-| `0.1.0`  | FASE 0–1 (Setup + Core Simulation)     | `[ ]`   |
-| `0.2.0`  | FASE 2 (Anthalys Time)                 | `[ ]`   |
-| `0.3.0`  | FASE 3 (Character/NPC)                 | `[ ]`   |
-| `0.4.0`  | FASE 4 (World)                         | `[ ]`   |
-| `0.5.0`  | FASE 5 (Economia, AION)                | `[ ]`   |
-| `0.6.0`  | FASE 6 (Politica)                      | `[ ]`   |
-| `0.7.0`  | FASE 7 (SoNet)                         | `[ ]`   |
-| `0.8.0`  | FASE 8 (Multiplayer)                   | `[ ]`   |
-| `0.9.0`  | FASE 9 (Hardening)                     | `[ ]`   |
-| `1.0.0`  | Prima release stabile pubblica         | `[ ]`   |
-
----
-
-### 📝 Note operative finali
-
-1. **Convenzione priorità**: a parità di priorità, vale l'ordine di lettura.
-2. **Ogni task chiuso** deve avere:
-   - Commit Conventional Commit
-   - Entry in `CHANGELOG.md` (sezione `[Unreleased]` → poi spostata)
-   - Bump di versione (PATCH fix, MINOR feature)
-3. **Ogni package nuovo** deve avere:
-   - `__init__.py` che esporta l'API pubblica
-   - `README.md` nel package (se ≥ 5 moduli interni)
-   - Migrazioni Alembic nel range corretto
-4. **Prima di taggare una release**:
-
-   ```bash
-   ruff check .
-   ruff format --check .
-   mypy simai/
-   python -m simai db upgrade
-   python -m simai version
-   ```
-
-5. **Compatibilità retroattiva**: da `1.0.0` in poi, ogni breaking
-   change richiede MAJOR bump.
-6. **Deprecazioni**: annunciare in `CHANGELOG.md` sotto `Deprecated`
-   almeno una minor version prima della rimozione.
-7. **SimAI — istruzioni specifiche**:
-   - Linguaggio principale **Python 3.12+**
-   - DB **SQLite** (PostgreSQL opzionale)
-   - UI web in **Jinja2 + CSS/JS nativi** (nessun bundler)
-   - Rispetto rigoroso dei **Principi Guida** (§VI.0 → mantenuti
-     dall'originale: Unicità, Coerenza, Realismo bilanciato,
-     Rispetto, Modularità, Approccio modulare, Lore, Deep simulation)
-   - Coerenza con il lore di Anthalys e la Costituzione
-   - Sistema tempo personalizzato (432 giorni / 18 mesi / 24 giorni / 28 ore)
-   - Fasce di età Anthaliane (PARTE II di questo TODO)
-   - Nessun test (no-test policy)
-8. **Niente Vite / npm / Node.js** — tassativo, come per ClaireCMS.
-9. **Niente CDN** — tutto offline-first.
-
----
-
-### 📌 Note sull'output
-
-1. **Il TODO completo fa riferimento al TODO SimAI originale** per le sezioni 4.1–4.10, 5, 6, 8–27. Quelle sezioni sono **riassunte** per evitare di generare un documento enorme; il TODO originale le contiene integralmente. Se vuoi che le espanda una per una, fammelo sapere.
-
-2. **Le regole della PARTE I** sono adattate da PHP/Laravel a Python:
-   - `Auth::` → `current_actor()`
-   - Migration `NNNN_SS_slug.php` → Alembic `NNNN_SS_slug.py`
-   - Composer → Poetry/uv
-   - Blade → Jinja2
-   - Artisan → Typer
-   - Eloquent → SQLAlchemy 2.0
-   - Spatie packages → custom implementations
-
-3. **Nessuna dipendenza da ClaireCMS/ScienzaViva** è richiesta a livello di codice: SimAI è autonomo. Il lore (Anthalys, Costituzione) è condiviso a livello di contenuto.
-
-4. **La no-test policy** è mantenuta per coerenza con ClaireCMS. Per una simulazione di questa complessità, potrebbe essere rivalutata in futuro — ho lasciato il debito tecnico come `[ ]` decidere.
-
-5. **Il file è pronto per essere salvato** come `TODO_SimAI.md` alla root di un nuovo progetto Python separato.
+- Skill: max 15-20, at_max < 20%, 4-8 skill/NPC
+- Trait attivi: 3-6 per NPC, 10-15 con n≥50%
+- Values avg: 0.40-0.60
+- Addictions: 15-35% NPC, dep 20-50
+- Relazioni: partner 30-60% adulti, boredom avg 0.20-0.50, connection avg 0.20-0.50
+- Reflections: 50-500/NPC (60 anni)
+- Crisis: 0-10% attive, 20-60% storiche
+- Bilanci: 1000-10000 Athel mediani
+- Job: 30-70% adulti impiegati

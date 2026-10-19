@@ -1,0 +1,15 @@
+cli:
+  version:
+    description: "Show SimAI version."
+  db:
+    help: "Database commands."
+    upgrade:
+      description: "Apply migrations up to the given revision."
+    downgrade:
+      description: "Roll back migrations."
+    status:
+      description: "Show current Alembic revision."
+  i18n:
+    help: "i18n commands."
+    check:
+      description: "Check key parity between locale files."

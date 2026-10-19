@@ -37,7 +37,8 @@ def test_db_status_after_upgrade(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert runner.invoke(app, ["db", "upgrade"]).exit_code == 0
     result = runner.invoke(app, ["db", "status"])
     assert result.exit_code == 0
-    assert "0001" in result.stdout
+    assert "Revisione corrente:" in result.stdout
+    assert "non inizializzato" not in result.stdout
 
 
 def test_db_status_missing_parent_dir_does_not_crash(

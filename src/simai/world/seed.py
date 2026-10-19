@@ -79,11 +79,9 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     by_key: dict[str, Location] = {}
     for spec in LOCATION_SPECS:
-        existing = session.scalar(
-            select(Location).where(Location.key == spec["key"])
-        )
-        if existing is not None:
-            by_key[spec["key"]] = existing
+        existing_location = session.scalar(select(Location).where(Location.key == spec["key"]))
+        if existing_location is not None:
+            by_key[spec["key"]] = existing_location
             continue
         loc = Location(**spec)
         session.add(loc)
@@ -92,14 +90,14 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     session.flush()
 
-    for spec in CHARACTER_SPECS:
-        existing = session.scalar(
-            select(Character).where(Character.key == spec["key"])
+    for char_spec in CHARACTER_SPECS:
+        existing_character = session.scalar(
+            select(Character).where(Character.key == char_spec["key"])
         )
-        if existing is not None:
+        if existing_character is not None:
             continue
-        data = {k: v for k, v in spec.items() if k != "location_key"}
-        data["location_id"] = by_key[spec["location_key"]].id
+        data = {k: v for k, v in char_spec.items() if k != "location_key"}
+        data["location_id"] = by_key[char_spec["location_key"]].id
         session.add(Character(**data))
         characters_created += 1
 

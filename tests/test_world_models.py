@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from alembic import command
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import joinedload
 
+from alembic import command
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.world.enums import LocationKind
@@ -45,11 +46,17 @@ def test_player_is_unique_and_at_home(tmp_path: Path) -> None:
         seed_muse_core(session)
         session.commit()
     with factory() as session:
-        players = session.scalars(
-            select(Character).where(Character.is_player.is_(True))
-        ).all()
-    assert len(players) == 1
-    assert players[0].location.key == "casa"
+        players = (
+            session.scalars(
+                select(Character)
+                .where(Character.is_player.is_(True))
+                .options(joinedload(Character.location))
+            )
+            .unique()
+            .all()
+        )
+        assert len(players) == 1
+        assert players[0].location.key == "casa"
 
 
 def test_all_kinds_are_represented(tmp_path: Path) -> None:

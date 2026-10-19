@@ -28,12 +28,8 @@ def list_world() -> None:
     engine = get_engine()
     factory = get_session_factory(engine)
     with factory() as session:
-        locations = session.scalars(
-            select(Location).order_by(Location.id)
-        ).all()
-        characters = session.scalars(
-            select(Character).order_by(Character.id)
-        ).all()
+        locations = session.scalars(select(Location).order_by(Location.id)).all()
+        characters = session.scalars(select(Character).order_by(Character.id)).all()
 
     typer.echo(f"Location ({len(locations)}):")
     for loc in locations:

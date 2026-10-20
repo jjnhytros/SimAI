@@ -9,6 +9,8 @@ from sqlalchemy import func, select
 
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
+from simai.economy.enums import TransactionKind
+from simai.economy.models import Transaction
 from simai.needs.enums import NeedKind
 from simai.needs.service import needs_of
 from simai.relationships.models import Relationship
@@ -18,8 +20,6 @@ from simai.sim.tick import TickReport
 from simai.world.models import Character
 from simai.world.seed import seed_muse_core
 
-# Convenzione 1.0: 1 anno = 365 giorni × 24 ore = 8760 tick da 60 min.
-# Provvisoria, in attesa del calendario di Anthalys.
 TICKS_PER_YEAR = 8760
 
 
@@ -35,6 +35,10 @@ class CharacterMetrics:
     needs_mean: dict[str, float]
     needs_min: dict[str, float]
     needs_max: dict[str, float]
+    balance_final: float
+    balance_min: float
+    balance_max: float
+    balance_mean: float
 
 
 @dataclass(frozen=True)
@@ -50,6 +54,8 @@ class BenchmarkReport:
     ticks_per_second: float
     characters: list[CharacterMetrics]
     relationships_active: int
+    salary_transactions: int
+    purchase_transactions: int
     invariants_ok: bool
     invariant_violations: list[str]
 
@@ -57,34 +63,47 @@ class BenchmarkReport:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
 
 
-def _aggregate_samples(
-    samples: list[tuple[float, dict[str, float]]],
+@dataclass(frozen=True)
+class _Aggregate:
+    mood_mean: float
+    mood_min: float
+    mood_max: float
+    needs_final: dict[str, float]
+    needs_mean: dict[str, float]
+    needs_min: dict[str, float]
+    needs_max: dict[str, float]
+    balance_mean: float
+    balance_min: float
+    balance_max: float
+
+
+def _aggregate(
+    samples: list[tuple[float, dict[str, float], float]],
     fallback_mood: float,
+    fallback_balance: float,
     needs_keys: list[str],
-) -> tuple[
-    float, float, float, dict[str, float], dict[str, float], dict[str, float], dict[str, float]
-]:
+) -> _Aggregate:
     if not samples:
         empty = {k: 0.0 for k in needs_keys}
-        return (
-            fallback_mood,
-            fallback_mood,
-            fallback_mood,
-            {},
-            empty,
-            dict(empty),
-            dict(empty),
+        return _Aggregate(
+            mood_mean=fallback_mood,
+            mood_min=fallback_mood,
+            mood_max=fallback_mood,
+            needs_final=dict(empty),
+            needs_mean=dict(empty),
+            needs_min=dict(empty),
+            needs_max=dict(empty),
+            balance_mean=fallback_balance,
+            balance_min=fallback_balance,
+            balance_max=fallback_balance,
         )
-    moods = [m for m, _ in samples]
-    mood_min = min(moods)
-    mood_max = max(moods)
-    mood_mean = sum(moods) / len(moods)
-
+    moods = [m for m, _, _ in samples]
+    balances = [b for _, _, b in samples]
     needs_mean = {k: 0.0 for k in needs_keys}
     needs_min = {k: 100.0 for k in needs_keys}
     needs_max = {k: 0.0 for k in needs_keys}
     needs_final: dict[str, float] = {}
-    for _, sample in samples:
+    for _, sample, _ in samples:
         for k, v in sample.items():
             needs_mean[k] += v
             needs_min[k] = min(needs_min[k], v)
@@ -92,14 +111,17 @@ def _aggregate_samples(
         needs_final = sample
     for k in needs_keys:
         needs_mean[k] /= len(samples)
-    return (
-        mood_mean,
-        mood_min,
-        mood_max,
-        needs_final,
-        needs_mean,
-        needs_min,
-        needs_max,
+    return _Aggregate(
+        mood_mean=sum(moods) / len(moods),
+        mood_min=min(moods),
+        mood_max=max(moods),
+        needs_final=needs_final,
+        needs_mean=needs_mean,
+        needs_min=needs_min,
+        needs_max=needs_max,
+        balance_mean=sum(balances) / len(balances),
+        balance_min=min(balances),
+        balance_max=max(balances),
     )
 
 
@@ -112,12 +134,6 @@ def run_benchmark(
     include_player: bool = False,
     sample_every: int = 24,
 ) -> BenchmarkReport:
-    """Esegue una simulazione accelerata su DB temporaneo e misura.
-
-    Il DB viene creato da zero, popolato con il seed Muse Core, e
-    simulato per `years * TICKS_PER_YEAR` tick. Il file DB resta su
-    disco dopo l'esecuzione, per ispezione.
-    """
     if years <= 0:
         raise ValueError(f"years must be > 0, got {years}")
     if minutes_per_tick <= 0:
@@ -136,7 +152,7 @@ def run_benchmark(
     factory = get_session_factory(engine)
 
     needs_keys = [k.value for k in NeedKind]
-    samples: dict[str, list[tuple[float, dict[str, float]]]] = {}
+    samples: dict[str, list[tuple[float, dict[str, float], float]]] = {}
     violations: list[str] = []
 
     try:
@@ -147,7 +163,7 @@ def run_benchmark(
 
             def on_tick(report: TickReport) -> None:
                 last = ticks - 1
-                if report.tick_index % sample_every != 0 and (report.tick_index != last):
+                if report.tick_index % sample_every != 0 and report.tick_index != last:
                     return
                 chars = session.scalars(select(Character)).all()
                 for c in chars:
@@ -155,10 +171,13 @@ def run_benchmark(
                     sample = (
                         float(c.mood),
                         {k.value: float(v) for k, v in needs.items()},
+                        float(c.balance),
                     )
                     samples.setdefault(c.key, []).append(sample)
                     if not (0.0 <= c.mood <= 100.0):
                         violations.append(f"tick {report.tick_index} {c.key}: mood={c.mood}")
+                    if c.balance < 0.0:
+                        violations.append(f"tick {report.tick_index} {c.key}: balance={c.balance}")
                     for k, v in needs.items():
                         if not (0.0 <= v <= 100.0):
                             violations.append(f"tick {report.tick_index} {c.key}: {k.value}={v}")
@@ -180,37 +199,49 @@ def run_benchmark(
         elapsed = time.perf_counter() - t_start
         tps = ticks / elapsed if elapsed > 0 else 0.0
 
-        character_metrics: list[CharacterMetrics] = []
+        char_metrics: list[CharacterMetrics] = []
         with factory() as session:
             chars = session.scalars(select(Character).order_by(Character.id)).all()
             rel_count = session.scalar(select(func.count()).select_from(Relationship)) or 0
+            salary_count = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(Transaction)
+                    .where(Transaction.kind == TransactionKind.SALARY)
+                )
+                or 0
+            )
+            purchase_count = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(Transaction)
+                    .where(Transaction.kind == TransactionKind.PURCHASE)
+                )
+                or 0
+            )
             final_state = get_state(session)
             if final_state.tick_index != ticks:
                 violations.append(f"tick_index finale {final_state.tick_index} != {ticks}")
 
             for c in chars:
                 s = samples.get(c.key, [])
-                (
-                    mood_mean,
-                    mood_min,
-                    mood_max,
-                    needs_final,
-                    needs_mean,
-                    needs_min,
-                    needs_max,
-                ) = _aggregate_samples(s, float(c.mood), needs_keys)
-                character_metrics.append(
+                agg = _aggregate(s, float(c.mood), float(c.balance), needs_keys)
+                char_metrics.append(
                     CharacterMetrics(
                         character_key=c.key,
                         is_player=c.is_player,
                         mood_final=float(c.mood),
-                        mood_min=mood_min,
-                        mood_max=mood_max,
-                        mood_mean=mood_mean,
-                        needs_final=needs_final,
-                        needs_mean=needs_mean,
-                        needs_min=needs_min,
-                        needs_max=needs_max,
+                        mood_min=agg.mood_min,
+                        mood_max=agg.mood_max,
+                        mood_mean=agg.mood_mean,
+                        needs_final=agg.needs_final,
+                        needs_mean=agg.needs_mean,
+                        needs_min=agg.needs_min,
+                        needs_max=agg.needs_max,
+                        balance_final=float(c.balance),
+                        balance_min=agg.balance_min,
+                        balance_max=agg.balance_max,
+                        balance_mean=agg.balance_mean,
                     )
                 )
 
@@ -224,8 +255,10 @@ def run_benchmark(
             finished_at=finished_at.isoformat(),
             elapsed_seconds=elapsed,
             ticks_per_second=tps,
-            characters=character_metrics,
+            characters=char_metrics,
             relationships_active=int(rel_count),
+            salary_transactions=int(salary_count),
+            purchase_transactions=int(purchase_count),
             invariants_ok=not violations,
             invariant_violations=violations,
         )
@@ -247,15 +280,24 @@ def format_report(report: BenchmarkReport) -> str:
         if len(report.invariant_violations) > 10:
             lines.append(f"  ... e altri {len(report.invariant_violations) - 10}")
     lines.append(f"Relazioni attive: {report.relationships_active}")
-    lines.append("")
     lines.append(
-        f"{'char':<10} {'mood':>18} {'hunger':>18} {'thirst':>18} {'fun':>18} {'intim':>18}"
+        f"Transazioni: {report.salary_transactions} salary, {report.purchase_transactions} purchase"
     )
+    lines.append("")
+    header = (
+        f"{'char':<10} {'mood':>18} {'balance':>18} "
+        f"{'hunger':>18} {'thirst':>18} "
+        f"{'fun':>18} {'intim':>18}"
+    )
+    lines.append(header)
     for c in report.characters:
         marker = "*" if c.is_player else " "
         lines.append(
             f"{marker}{c.character_key:<9} "
-            f"{c.mood_mean:5.1f}/{c.mood_min:4.1f}/{c.mood_max:4.1f} "
+            f"{c.mood_mean:5.1f}/{c.mood_min:4.1f}/"
+            f"{c.mood_max:4.1f} "
+            f"{c.balance_mean:7.1f}/{c.balance_min:5.1f}/"
+            f"{c.balance_max:6.1f} "
             f"{c.needs_mean.get('hunger', 0):5.1f}/"
             f"{c.needs_min.get('hunger', 0):4.1f}/"
             f"{c.needs_max.get('hunger', 0):4.1f} "

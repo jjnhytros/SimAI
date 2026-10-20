@@ -76,6 +76,7 @@ def _render(
     table.add_column("fun", justify="right")
     table.add_column("intimacy", justify="right")
     table.add_column("ultima azione")
+    table.add_column("balance", justify="right")
 
     for char in characters:
         loc = loc_by_id.get(char.location_id)
@@ -87,6 +88,7 @@ def _render(
         table.add_row(
             f"{marker}{char.key}",
             loc_label,
+            f"{float(char.balance):7.1f}",
             f"[{color}]{mood:5.1f}[/{color}] [dim]{mood_label(mood)}[/dim]",
             f"{needs.get(NeedKind.HUNGER, 0):5.1f}",
             f"{needs.get(NeedKind.THIRST, 0):5.1f}",

@@ -27,14 +27,10 @@ class RunReport:
     autosaves: tuple[AutosaveRecord, ...]
     failed_at_tick: int | None
     error_message: str | None
+    total_paydays: int = 0
 
 
 def _try_autosave(session: Session, *, base_name: str, executed_ticks: int) -> AutosaveRecord:
-    """Autosave dopo `executed_ticks` tick eseguiti.
-
-    Il numero usato nel nome file è 1-based ("dopo N tick") e coincide
-    con `sim_state.tick_index` al momento della scrittura.
-    """
     try:
         info = create_save(session, name=f"{base_name}_t{executed_ticks}")
         return AutosaveRecord(tick=executed_ticks, path=info.path, error=None)
@@ -53,12 +49,7 @@ def run_simulation(
     include_player: bool = False,
     on_tick: Callable[[TickReport], None] | None = None,
 ) -> RunReport:
-    """Esegue `ticks` tick consecutivi, con autosave periodico opzionale.
-
-    Ogni tick è una transazione indipendente: se fallisce, viene
-    rollbackato e il loop si ferma. L'autosave non blocca mai il loop:
-    un errore di scrittura produce un `AutosaveRecord` con `error`.
-    """
+    """Esegue `ticks` tick consecutivi, con autosave periodico opzionale."""
     if ticks <= 0:
         raise ValueError(f"ticks must be > 0, got {ticks}")
     if minutes_per_tick <= 0:
@@ -71,6 +62,7 @@ def run_simulation(
     executed = 0
     failed_at: int | None = None
     error_message: str | None = None
+    total_paydays = 0
 
     for _ in range(ticks):
         try:
@@ -88,6 +80,7 @@ def run_simulation(
             break
 
         executed += 1
+        total_paydays += report.payday_count
         if on_tick is not None:
             on_tick(report)
 
@@ -109,4 +102,5 @@ def run_simulation(
         autosaves=tuple(autosaves),
         failed_at_tick=failed_at,
         error_message=error_message,
+        total_paydays=total_paydays,
     )

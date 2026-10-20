@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -27,6 +26,8 @@ def _format_decision(d: TickDecision) -> str:
     )
     if d.relationship_strength_after is not None:
         base += f"  [rel → {d.relationship_strength_after:.1f}]"
+    if d.cost_paid > 0:
+        base += f"  [-{d.cost_paid:.0f}A]"
     return base
 
 
@@ -53,6 +54,8 @@ def tick(
         session.commit()
 
     typer.echo(f"Tick {report.tick_index} — {report.minutes} minuti (seed {report.seed})")
+    if report.payday_count > 0:
+        typer.echo(f"💰 Payday: {report.payday_count} personaggi pagati")
     for d in report.decisions:
         typer.echo(_format_decision(d))
 
@@ -74,11 +77,15 @@ def run(
     def on_tick(report: TickReport) -> None:
         if quiet:
             return
-        typer.echo(f"Tick {report.tick_index} — {report.minutes}m ({len(report.decisions)} NPC)")
+        payday_note = " 💰" if report.payday_count > 0 else ""
+        typer.echo(
+            f"Tick {report.tick_index} — {report.minutes}m "
+            f"({len(report.decisions)} NPC){payday_note}"
+        )
 
     with factory() as session:
         try:
-            report = run_simulation(
+            run_report = run_simulation(
                 session,
                 ticks=ticks,
                 minutes_per_tick=minutes,
@@ -91,27 +98,33 @@ def run(
             typer.echo(f"Errore: {exc}", err=True)
             raise typer.Exit(code=1) from exc
 
-    if report.failed_at_tick is not None:
+    if run_report.failed_at_tick is not None:
         typer.echo(
-            f"ERRORE al tick {report.failed_at_tick}: {report.error_message}",
+            f"ERRORE al tick {run_report.failed_at_tick}: {run_report.error_message}",
             err=True,
         )
         typer.echo(
-            f"Eseguiti {report.ticks_executed} tick prima del fallimento.",
+            f"Eseguiti {run_report.ticks_executed} tick prima del fallimento.",
             err=True,
         )
         raise typer.Exit(code=1)
 
     typer.echo(
-        f"Eseguiti {report.ticks_executed} tick "
-        f"da tick {report.started_at_tick} a {report.ended_at_tick} "
-        f"({report.total_minutes} minuti simulati)"
+        f"Eseguiti {run_report.ticks_executed} tick "
+        f"da tick {run_report.started_at_tick} "
+        f"a {run_report.ended_at_tick} "
+        f"({run_report.total_minutes} minuti simulati)"
     )
-    if report.autosaves:
-        typer.echo(f"Autosave ({len(report.autosaves)}):")
-        for a in report.autosaves:
+    if run_report.total_paydays > 0:
+        typer.echo(f"Payday totali nel run: {run_report.total_paydays}")
+    if run_report.autosaves:
+        typer.echo(f"Autosave ({len(run_report.autosaves)}):")
+        for a in run_report.autosaves:
             if a.error is not None:
-                typer.echo(f"  tick {a.tick}: ERRORE {a.error}", err=True)
+                typer.echo(
+                    f"  tick {a.tick}: ERRORE {a.error}",
+                    err=True,
+                )
             elif a.path is not None:
                 typer.echo(f"  tick {a.tick}: {a.path}")
 
@@ -155,11 +168,9 @@ def benchmark(
     db: Path | None = typer.Option(None, "--db"),
     output: Path | None = typer.Option(None, "--output", "-o"),
 ) -> None:
-    """Esegue una simulazione accelerata su DB temporaneo.
+    """Esegue una simulazione accelerata su DB temporaneo."""
+    from datetime import UTC, datetime
 
-    Non tocca il DB della partita reale. Il file DB prodotto resta su
-    disco per ispezione. `--output` salva il report JSON.
-    """
     db_path = db or Path(f"data/benchmark/bench_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.db")
     try:
         report = run_benchmark(

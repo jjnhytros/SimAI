@@ -48,3 +48,13 @@ def test_report_serializes_to_json(tmp_path: Path) -> None:
     assert '"ticks"' in payload
     assert '"characters"' in payload
     assert '"invariants_ok"' in payload
+
+
+def test_run_benchmark_reports_balance(tmp_path: Path) -> None:
+    db = tmp_path / "bench.db"
+    report = run_benchmark(db, years=0.01, sample_every=1)
+    assert report.salary_transactions >= 0
+    assert report.purchase_transactions >= 0
+    for c in report.characters:
+        assert c.balance_final >= 0.0
+        assert c.balance_mean >= 0.0

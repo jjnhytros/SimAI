@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.1.0] — 2026-10-20
+
+### Aggiunto
+
+- **Economia minima**: `Character.balance`, `Job` (1:1 con personaggio),
+  `Transaction` (append-only con `from`/`to` nullable per "world").
+  Migrazione `0010`.
+- **Payday**: a fine giornata convenzionale (tick 23, 47, 71, ...),
+  ogni personaggio con job riceve `daily_wage` e viene registrata una
+  `Transaction` `SALARY`.
+- **Costi per azione**: `ActionDef.cost`. EAT a caffè 3, DRINK a caffè 2,
+  PLAY a caffè 4. EAT/DRINK/PLAY a casa e PLAY in piazza gratis.
+  `DRINK` a casa (acqua) esiste: `amount=15, cost=0`.
+- **Filtro affordabilità**: `choose_intent` e `do_action` escludono
+  azioni con `cost > balance`. `balance` non scende mai sotto zero.
+- **CLI `economy`**: `balance`, `ledger`, `jobs`.
+- **`PlayerStatus.balance`**: mostrato in `player status`.
+- **`sim tick` / `sim run`**: mostrano payday quando avvengono.
+- **Benchmark**: colonna `balance` (mean/min/max), contatori
+  `salary_transactions` e `purchase_transactions` nel report.
+
+### Cambiato
+
+- `CATALOG` ha più istanze per `ActionKind` (EAT casa vs caffè, DRINK
+  casa vs caffè, PLAY piazza vs caffè). Il filtro per location in
+  `actions_for_location` resta l'unico modo corretto di accedervi.
+- `tests/test_utility.py::test_actions_for_residential` aggiornato:
+  `{EAT, DRINK, PLAY}`.
+- `tests/test_movement_in_tick.py`: il movimento NPC scatta da
+  `piazza` (dove manca `DRINK`), non più da `casa`.
+
+### Risultato misurato (87 tick, seed 42)
+
+Da verificare con `sim benchmark` dopo merge. Atteso:
+
+- tutti i `balance` finali > 0
+- `salary_transactions = 3 × 5 = 15` (3 payday in 87 tick)
+- `purchase_transactions ≥ 10`
+- nessun invariante violato
+
+### Limiti noti
+
+- **Lavoro fisico non simulato**: gli NPC hanno un `Job` con location
+  e orario, ma non si recano fisicamente al lavoro. Lo stipendio viene
+  pagato ovunque si trovino.
+- **Nessuna tassazione**: salario lordo, prezzi netti.
+- **Nessun supporto familiare**: Erika e Max hanno wage 5
+  ("paghetta"). Nessun trasferimento di denaro tra personaggi.
+- **Nessun inventario**: il caffè vende "un drink" astratto, non merce.
+
 ## [1.0.1] — 2026-10-20
 
 ### Aggiunto

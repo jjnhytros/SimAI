@@ -61,3 +61,38 @@ spostano per `SOCIALIZE` prima che la streak scatti; il player ha
 mood clampato a 0 quando sarebbe solo. Il moodlet esiste, contribuisce
 al mood, ed è coperto da test. Diventerà visibile in 1.1 con tratti
 (`SOLITARY`), soglie per azione, o intenzioni automatiche del player.
+
+---
+
+## 1.1.0 — Limiti dell'economia
+
+### Lavoro fisico non simulato
+Gli NPC hanno un `Job` con `location_key` e `schedule_start/end_tick`,
+ma non si recano fisicamente al lavoro. Il salario viene pagato
+indipendentemente da dove sono. Un NPC che dorme in piazza riceve
+comunque lo stipendio.
+
+**Roadmap 1.2:** `WorkAction` che richiede presenza fisica nella
+location al tick dello stipendio, o almeno "vai al lavoro prima del
+payday".
+
+### Nessuna tassazione
+Il salario è lordo, i prezzi sono netti. Non c'è IVA, non c'è
+tassazione progressiva, non c'è tassa di successione.
+
+**Roadmap 1.3+** (FASE 4 del TODO globale).
+
+### Nessun supporto familiare
+Erika e Max hanno wage 5 (paghetta). Nessun trasferimento di denaro
+tra personaggi in 1.1.0. Se spendono tutto, bevono acqua gratis a casa
+e sopravvivono. Non c'è "mantenimento minori".
+
+**Roadmap 1.2:** trasferimenti familiari (`SUPPORT` transaction kind),
+convivenza economica.
+
+### Nessun inventario
+Il caffè vende "un drink" astratto: paghi 2, ricevi +30 thirst. Non
+esiste merce. Non esiste magazzino. Non esiste "comprare una bottiglia
+e portarla a casa".
+
+**Roadmap 1.2:** oggetti e inventario.

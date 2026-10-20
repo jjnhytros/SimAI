@@ -65,6 +65,7 @@ def test_boost_returns_none_for_non_socialize(tmp_path: Path) -> None:
         satisfies=NeedKind.HUNGER,
         amount=40.0,
         allowed_at=frozenset(),
+        max_need_to_start=30.0,
     )
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
@@ -82,6 +83,7 @@ def test_boost_returns_none_when_no_friend_in_location(
         satisfies=NeedKind.INTIMACY,
         amount=25.0,
         allowed_at=frozenset(),
+        max_need_to_start=70.0,
     )
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
@@ -98,6 +100,7 @@ def test_boost_increases_both_directions(tmp_path: Path) -> None:
         satisfies=NeedKind.INTIMACY,
         amount=25.0,
         allowed_at=frozenset(),
+        max_need_to_start=70.0,
     )
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))

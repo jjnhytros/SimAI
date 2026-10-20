@@ -4,15 +4,10 @@ from sqlalchemy.orm import Session
 
 from simai.actions.catalog import ActionDef, actions_for_location
 from simai.actions.enums import ActionKind
-from simai.actions.utility import filter_by_cooldown
+from simai.actions.utility import filter_by_need_threshold
 from simai.needs.enums import NeedKind
-from simai.needs.service import (
-    apply_effect,
-    last_satisfied_map,
-    needs_of,
-)
+from simai.needs.service import apply_effect, needs_of
 from simai.relationships.service import boost_social_relationship
-from simai.sim.state import get_state
 from simai.world.models import Character, Location
 
 
@@ -40,10 +35,10 @@ def _find_in(actions: list[ActionDef], action_kind: ActionKind) -> ActionDef | N
 def do_action(session: Session, character_key: str, action_kind: ActionKind) -> ActionResult:
     """Esegue un'azione specifica per un personaggio.
 
-    Valida che l'azione sia disponibile nella location corrente e non in
-    cooldown. Applica l'effetto sul bisogno e il boost relazionale se
-    SOCIALIZE. Non avanza il tempo: il chiamante decide quando chiamare
-    `run_tick`.
+    Valida che l'azione sia disponibile nella location corrente e che
+    il bisogno che soddisfa sia sotto la sua soglia di partenza.
+    Applica l'effetto sul bisogno e il boost relazionale se SOCIALIZE.
+    Non avanza il tempo: il chiamante decide quando chiamare `run_tick`.
     """
     char = session.query(Character).filter_by(key=character_key).one_or_none()
     if char is None:
@@ -67,19 +62,15 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
             error=f"Location non valida per {char.key}",
         )
 
-    current_tick = get_state(session).tick_index
-    last = last_satisfied_map(session, char.id)
+    needs = needs_of(session, char.id)
     available = actions_for_location(loc.kind)
-    available_now = filter_by_cooldown(available, current_tick, last)
+    available_now = filter_by_need_threshold(available, needs)
 
     action = _find_in(available_now, action_kind)
     if action is None:
         original = _find_in(available, action_kind)
         if original is not None:
-            last_tick = last.get(original.satisfies)
-            remaining = (
-                original.cooldown_ticks - (current_tick - last_tick) if last_tick is not None else 0
-            )
+            current = needs.get(original.satisfies, 0.0)
             return ActionResult(
                 success=False,
                 action=action_kind,
@@ -87,8 +78,9 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
                 character_key=char.key,
                 location_key=loc.key,
                 error=(
-                    f"Azione '{action_kind.value}' in cooldown "
-                    f"in '{loc.key}' ({remaining} tick rimanenti)."
+                    f"Azione '{action_kind.value}' non necessaria: "
+                    f"{original.satisfies.value}={current:.1f} "
+                    f"(soglia {original.max_need_to_start:.0f})"
                 ),
             )
         names = [a.kind.value for a in available]
@@ -104,8 +96,8 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
             ),
         )
 
-    before = needs_of(session, char.id).get(action.satisfies)
-    after = apply_effect(session, char.id, action, current_tick=current_tick)
+    before = needs.get(action.satisfies)
+    after = apply_effect(session, char.id, action)
     rel_after = boost_social_relationship(session, char.id, action)
 
     return ActionResult(

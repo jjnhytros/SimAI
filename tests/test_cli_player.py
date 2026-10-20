@@ -31,9 +31,17 @@ def test_player_status(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_player_do_valid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _setup(tmp_path, monkeypatch)
-    result = runner.invoke(app, ["player", "do", "-a", "eat"])
-    assert result.exit_code == 0, result.stdout
-    assert "player esegue eat" in result.stdout
+    # Al primo avvio, hunger=100 -> EAT rifiutata. Verifichiamo quello.
+    rejected = runner.invoke(app, ["player", "do", "-a", "eat"])
+    assert rejected.exit_code == 1
+    combined = (rejected.stdout or "") + (rejected.stderr or "")
+    assert "non necessaria" in combined
+
+    # Poi avanziamo di molti tick: hunger scende sotto 30, EAT ok.
+    runner.invoke(app, ["sim", "tick", "-m", "900"])  # 15h
+    accepted = runner.invoke(app, ["player", "do", "-a", "eat"])
+    assert accepted.exit_code == 0, accepted.stdout
+    assert "player esegue eat" in accepted.stdout
 
 
 def test_player_do_invalid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

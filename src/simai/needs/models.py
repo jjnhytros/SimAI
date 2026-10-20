@@ -16,4 +16,3 @@ class Need(Base):
     )
     kind: Mapped[NeedKind] = mapped_column(SAEnum(NeedKind, native_enum=False), nullable=False)
     value: Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
-    last_satisfied_at_tick: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)

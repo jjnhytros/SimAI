@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from simai.actions.catalog import actions_for_location
-from simai.actions.utility import filter_by_cooldown
+from simai.actions.utility import filter_by_need_threshold
 from simai.needs.enums import NeedKind
-from simai.needs.service import last_satisfied_map, needs_of
+from simai.needs.service import needs_of
 from simai.relationships.enums import RelationshipKind
 from simai.relationships.models import Relationship
 from simai.sim.state import get_state
@@ -28,8 +28,8 @@ class PlayerStatus:
     needs: dict[NeedKind, float]
     relationships: dict[str, float]
     available_actions: list[str]
+    unnecessary_actions: list[str]
     other_characters_here: list[str]
-    cooldowns: dict[str, int]
     available_locations: list[dict[str, Any]]
 
 
@@ -63,22 +63,11 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         )
     ).all()
 
+    needs = needs_of(session, player.id)
     actions = actions_for_location(loc.kind)
-
-    now = state.tick_index
-    last = last_satisfied_map(session, player.id)
-    available_now = filter_by_cooldown(actions, now, last)
+    available_now = filter_by_need_threshold(actions, needs)
     available_kinds = {a.kind for a in available_now}
-    cooldowns: dict[str, int] = {}
-    for action in actions:
-        if action.kind in available_kinds:
-            continue
-        last_tick = last.get(action.satisfies)
-        if last_tick is None or action.cooldown_ticks <= 0:
-            continue
-        remaining = action.cooldown_ticks - (now - last_tick)
-        if remaining > 0:
-            cooldowns[action.kind.value] = remaining
+    unnecessary = [a.kind.value for a in actions if a.kind not in available_kinds]
 
     locations = session.scalars(select(Location).order_by(Location.id)).all()
 
@@ -92,11 +81,11 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         location_key=loc.key,
         location_name=loc.name,
         location_kind=loc.kind.value,
-        needs=needs_of(session, player.id),
+        needs=needs,
         relationships=rel_map,
         available_actions=[a.kind.value for a in available_now],
+        unnecessary_actions=unnecessary,
         other_characters_here=[c.key for c in here],
-        cooldowns=cooldowns,
         available_locations=[
             {"key": l.key, "name": l.name, "kind": l.kind.value} for l in locations
         ],

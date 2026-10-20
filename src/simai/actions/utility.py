@@ -40,25 +40,13 @@ def choose_action(
     return scored[0][0]
 
 
-def filter_by_cooldown(
+def filter_by_need_threshold(
     available: list[ActionDef],
-    current_tick: int,
-    last_satisfied: dict[NeedKind, int | None],
+    needs: dict[NeedKind, float],
 ) -> list[ActionDef]:
-    """Rimuove le azioni ancora in cooldown per il loro bisogno.
+    """Mantiene le azioni il cui bisogno è sotto la soglia di partenza.
 
-    Un'azione senza cooldown o mai eseguita resta disponibile. Un tick
-    negativo (last nel futuro) è trattato come "in cooldown".
+    Un'azione è disponibile solo se il bisogno che soddisfa è
+    "abbastanza basso" da giustificarla: non mangi quando sei sazio.
     """
-    result: list[ActionDef] = []
-    for action in available:
-        if action.cooldown_ticks <= 0:
-            result.append(action)
-            continue
-        last = last_satisfied.get(action.satisfies)
-        if last is None:
-            result.append(action)
-            continue
-        if (current_tick - last) >= action.cooldown_ticks:
-            result.append(action)
-    return result
+    return [a for a in available if needs.get(a.satisfies, 100.0) < a.max_need_to_start]

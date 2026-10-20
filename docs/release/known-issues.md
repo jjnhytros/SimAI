@@ -10,8 +10,15 @@ Gli NPC non si spostano mai dalla loro location iniziale. Se il bisogno
 critico non è soddisfacibile localmente (es. sete per chi vive in `casa`,
 dove `DRINK` non è disponibile), resta a zero per sempre.
 
-**Impatto:** Erika e Giulia hanno `thirst` a 0 in modo stabile. Il loro
-mood ne risente.
+**Dati dal benchmark 87 tick (seed 42):**
+
+- Erika (casa): thirst media 18.4, min 0, max 92 (max = primo campione)
+- Max (piazza): thirst media 18.4, min 0
+- Giulia (piazza): thirst media 18.4, min 0
+- Luca (caffè): thirst media 66.0 — l'unico che beve
+
+**Impatto:** mood medio di Erika/Max/Giulia penalizzato di circa 20
+punti (peso THIRST 0.20 × deficit 100).
 
 **Roadmap 1.1:** azione `MOVE` e utility AI che considera anche la
 soddisfacibilità altrove (movimento come effetto collaterale di una
@@ -46,15 +53,13 @@ calcolare compleanni, stagioni o festività.
 **Roadmap 1.1:** `sim/anthalys/time/` con calendario canonico e
 conversione testata.
 
-## 5. Cooldown satura in casi limite
+## 5. NPC immobili (ex cooldown)
 
-Con `PLAY` in `casa`, un NPC con `FUN` già alto può comunque raggiungere
-100 dopo ogni esecuzione. Il cooldown attenua ma non elimina la
-saturazione.
+Il cooldown introdotto in 0.13b è stato **rimosso** in 0.13c: peggiorava
+le metriche. Al suo posto, ogni azione richiede che il bisogno che
+soddisfa sia sotto una soglia (mangi se hunger < 30, bevi se thirst < 40,
+ecc.). Questo elimina la monotonia ma non risolve il problema strutturale:
+chi vive in `casa` non ha `DRINK` disponibile, chi vive in `piazza` non
+ha `EAT`.
 
-**Impatto:** limitato. Il test di bilanciamento mostra `hunger` oscillante
-e non più fisso a 100.
-
-**Roadmap 1.1:** diminishing returns (guadagno decrescente su azioni
-ripetute) e soglie di utilità minima sotto le quali l’NPC salta il turno
-anche senza cooldown.
+**Roadmap 1.1:** movimento NPC e catalogo espanso per location.

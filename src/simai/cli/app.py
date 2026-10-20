@@ -9,6 +9,7 @@ from simai.cli.cmd_relationships import relationships_app
 from simai.cli.cmd_save import save_app
 from simai.cli.cmd_sim import sim_app
 from simai.cli.cmd_version import version_command
+from simai.cli.cmd_watch import watch_app
 from simai.cli.cmd_world import world_app
 
 app = typer.Typer(
@@ -33,6 +34,7 @@ app.add_typer(sim_app, name="sim")
 app.add_typer(relationships_app, name="relationships")
 app.add_typer(save_app, name="save")
 app.add_typer(player_app, name="player")
+app.add_typer(watch_app, name="watch")
 
 
 def main() -> None:

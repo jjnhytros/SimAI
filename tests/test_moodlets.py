@@ -102,28 +102,31 @@ def test_cleanup_expired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_lonely_triggers_after_three_ticks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """LONELY è oggi un moodlet del player.
+
+    Gli NPC evitano la solitudine spostandosi in piazza/caffè per
+    SOCIALIZE. Il player non decide: subisce il decadimento. Con
+    intimacy < 20 per 3 tick consecutivi, LONELY scatta.
+    """
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        cid = _erika_id(session)
-        _set_need(session, cid, NeedKind.INTIMACY, 10.0)
-        # Forzo tutti gli altri alti, così EAT/PLAY non sono più urgenti
-        # di LONELY
+        player = session.scalar(select(Character).where(Character.is_player.is_(True)))
+        assert player is not None
+        _set_need(session, player.id, NeedKind.INTIMACY, 10.0)
         for kind in (NeedKind.HUNGER, NeedKind.THIRST, NeedKind.FUN):
-            _set_need(session, cid, kind, 100.0)
+            _set_need(session, player.id, kind, 100.0)
         session.commit()
 
-    # Tre tick consecutivi con intimacy < 20 (movimento non rilevante
-    # perché Erika è già in casa e DRINK non serve: gli altri sono alti)
     for t in range(3):
         with factory() as session:
-            run_tick(session, minutes=0, tick_index=t, master_seed=42)
+            run_tick(session, minutes=1, tick_index=t, master_seed=42)
             session.commit()
 
-    # Al terzo tick, low_intimacy_streak >= 3: LONELY creato
     with factory() as session:
-        cid = _erika_id(session)
-        rows = session.scalars(select(Moodlet).where(Moodlet.character_id == cid)).all()
+        player = session.scalar(select(Character).where(Character.is_player.is_(True)))
+        assert player is not None
+        rows = session.scalars(select(Moodlet).where(Moodlet.character_id == player.id)).all()
         assert any(r.kind == MoodletKind.LONELY for r in rows)
 
 

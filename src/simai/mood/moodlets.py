@@ -73,23 +73,29 @@ def apply_moodlet(session: Session, character_id: int, kind: MoodletKind, tick: 
 
 
 def active_delta(session: Session, character_id: int, tick: int) -> float:
-    """Somma i delta_per_tick dei moodlet attivi al tick corrente."""
+    """Somma i delta_per_tick dei moodlet attivi al tick corrente.
+
+    Finestra: `[started_at_tick, expires_at_tick)` — il moodlet
+    contribuisce dal tick in cui è applicato fino al tick prima della
+    scadenza. Necessario perché `LONELY` viene rinfrescato ogni tick:
+    con una finestra stretta a sinistra (`<`) non contribuirebbe mai.
+    """
     moodlets = session.scalars(
         select(Moodlet).where(
             Moodlet.character_id == character_id,
-            Moodlet.started_at_tick < tick,
-            Moodlet.expires_at_tick >= tick,
+            Moodlet.started_at_tick <= tick,
+            Moodlet.expires_at_tick > tick,
         )
     ).all()
     return sum(SPECS[m.kind].delta_per_tick for m in moodlets)
 
 
 def cleanup_expired(session: Session, character_id: int, tick: int) -> int:
-    """Rimuove i moodlet la cui `expires_at_tick` è < tick."""
+    """Rimuove i moodlet la cui `expires_at_tick` è <= tick."""
     result = session.execute(
         delete(Moodlet).where(
             Moodlet.character_id == character_id,
-            Moodlet.expires_at_tick < tick,
+            Moodlet.expires_at_tick <= tick,
         )
     )
     assert isinstance(result, CursorResult)

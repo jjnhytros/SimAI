@@ -71,21 +71,40 @@ def test_apply_refresh_not_sum(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_active_delta_respects_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Finestra [started, expires): 4 tick da 0 a 3 se duration=4."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
         apply_moodlet(session, cid, MoodletKind.ATE_WELL, tick=0)
         session.flush()
-        # Al tick 0: started == current, non contribuisce
-        assert active_delta(session, cid, 0) == 0.0
-        # Al tick 1..3: contribuisce +2
+        # Al tick 0 il moodlet è appena applicato: contribuisce.
+        assert active_delta(session, cid, 0) == 2.0
+        # Tick 1..3: contribuisce.
         for t in (1, 2, 3):
             assert active_delta(session, cid, t) == 2.0
-        # Al tick 4: expires_at=4 >= 4, contribuisce ancora
-        assert active_delta(session, cid, 4) == 2.0
-        # Al tick 5: scaduto
-        assert active_delta(session, cid, 5) == 0.0
+        # Tick 4: expires_at=4, 4 > 4 è falso: scaduto.
+        assert active_delta(session, cid, 4) == 0.0
+
+
+def test_lonely_refreshed_every_tick_contributes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regressione: LONELY viene rinfrescato ogni tick (streak >= 3).
+
+    Con la vecchia finestra `started_at_tick < tick`, un moodlet
+    rinfrescato ogni tick non contribuiva mai. Con la finestra
+    `[started_at, expires_at)` contribuisce dal tick di refresh.
+    """
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        cid = _erika_id(session)
+        for t in range(5):
+            apply_moodlet(session, cid, MoodletKind.LONELY, tick=t)
+            session.flush()
+            delta = active_delta(session, cid, t)
+            assert delta == -3.0, f"tick {t}: delta {delta} (atteso -3.0)"
 
 
 def test_cleanup_expired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

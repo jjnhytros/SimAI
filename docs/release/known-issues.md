@@ -53,3 +53,11 @@ chi vive in `casa` non ha `DRINK` disponibile, chi vive in `piazza` non
 ha `EAT`.
 
 **Roadmap 1.1:** movimento NPC e catalogo espanso per location.
+
+---
+
+**Nota:** in 1.0.1 `LONELY` è dormiente in pratica. Gli NPC si
+spostano per `SOCIALIZE` prima che la streak scatti; il player ha
+mood clampato a 0 quando sarebbe solo. Il moodlet esiste, contribuisce
+al mood, ed è coperto da test. Diventerà visibile in 1.1 con tratti
+(`SOLITARY`), soglie per azione, o intenzioni automatiche del player.

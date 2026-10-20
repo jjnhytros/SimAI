@@ -1,10 +1,10 @@
 from pathlib import Path
 
+from alembic import command
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import joinedload
 
-from alembic import command
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.world.enums import LocationKind

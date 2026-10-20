@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
+from alembic import command
 from typer.testing import CliRunner
 
-from alembic import command
 from simai.cli.app import app
 from simai.db.alembic_utils import get_alembic_config
 

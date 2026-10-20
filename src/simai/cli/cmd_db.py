@@ -1,7 +1,7 @@
 import typer
+from alembic import command
 from alembic.runtime.migration import MigrationContext
 
-from alembic import command
 from simai.config.settings import Settings
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine

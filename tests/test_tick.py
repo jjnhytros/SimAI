@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import pytest
+from alembic import command
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
-from alembic import command
 from simai.actions.catalog import CATALOG
 from simai.actions.enums import ActionKind
 from simai.db.alembic_utils import get_alembic_config

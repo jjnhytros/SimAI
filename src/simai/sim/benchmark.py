@@ -4,9 +4,9 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from alembic import command
 from sqlalchemy import func, select
 
-from alembic import command
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.needs.enums import NeedKind

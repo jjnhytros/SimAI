@@ -1,8 +1,8 @@
 from pathlib import Path
 
+from alembic import command
 from sqlalchemy.engine import Engine
 
-from alembic import command
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.sim.state import get_state, reset_state

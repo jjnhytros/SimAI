@@ -1,8 +1,9 @@
 from pathlib import Path
 
+from alembic import command
 from sqlalchemy import create_engine, text
 
-from alembic import command
+import simai.migrations
 from simai.db.alembic_utils import get_alembic_config
 
 
@@ -55,3 +56,19 @@ def test_upgrade_creates_missing_parent_dir(tmp_path: Path) -> None:
     command.upgrade(get_alembic_config(url=url), "head")
 
     assert (nested / "test.db").exists()
+
+
+def test_migrations_packaged_inside_simai() -> None:
+    """Regressione: le migrazioni devono stare nel package, non alla root.
+
+    Se qualcuno le rimuove dal package, questo test fallisce prima che
+    un wheel rotto venga pubblicato.
+    """
+    from pathlib import Path
+
+    mig_dir = Path(simai.migrations.__file__).parent
+    assert (mig_dir / "env.py").is_file()
+    assert (mig_dir / "script.py.mako").is_file()
+    assert (mig_dir / "versions").is_dir()
+    versions = list((mig_dir / "versions").glob("*.py"))
+    assert len(versions) >= 8  # 0001..0008

@@ -1,8 +1,8 @@
 import os
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
 from simai.config.settings import Settings
 from simai.db.base import Base
 from simai.db.registry import ensure_all_models_loaded

@@ -14,6 +14,8 @@ sim_app = typer.Typer(help="Comandi di simulazione.")
 
 
 def _format_decision(d: TickDecision) -> str:
+    if d.moved_to is not None:
+        return f"  {d.character_key:<10} MOVE       {d.moved_from} → {d.moved_to}"
     if d.action is None or d.satisfied is None:
         return f"  {d.character_key:<10} NESSUNA AZIONE (location={d.location_key})"
     assert d.value_before is not None and d.value_after is not None

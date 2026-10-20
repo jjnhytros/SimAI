@@ -3,6 +3,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from simai.economy.enums import JobTitle
+from simai.economy.models import Job
 from simai.needs.service import ensure_initial_needs
 from simai.relationships.enums import RelationshipKind
 from simai.relationships.service import ensure_relationship
@@ -40,6 +42,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 30,
         "is_player": True,
         "location_key": "casa",
+        "balance": 100.0,
     },
     {
         "key": "erika",
@@ -47,6 +50,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 14,
         "is_player": False,
         "location_key": "casa",
+        "balance": 50.0,
     },
     {
         "key": "max",
@@ -54,6 +58,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 14,
         "is_player": False,
         "location_key": "piazza",
+        "balance": 50.0,
     },
     {
         "key": "luca",
@@ -61,6 +66,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 42,
         "is_player": False,
         "location_key": "caffe",
+        "balance": 100.0,
     },
     {
         "key": "giulia",
@@ -68,6 +74,50 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 37,
         "is_player": False,
         "location_key": "piazza",
+        "balance": 100.0,
+    },
+]
+
+JOB_SPECS: list[dict[str, Any]] = [
+    {
+        "character_key": "player",
+        "title": JobTitle.COMMESSO,
+        "location_key": "caffe",
+        "daily_wage": 20.0,
+        "schedule_start_tick": 9,
+        "schedule_end_tick": 17,
+    },
+    {
+        "character_key": "luca",
+        "title": JobTitle.BARISTA,
+        "location_key": "caffe",
+        "daily_wage": 25.0,
+        "schedule_start_tick": 8,
+        "schedule_end_tick": 16,
+    },
+    {
+        "character_key": "giulia",
+        "title": JobTitle.INSEGNANTE,
+        "location_key": "piazza",
+        "daily_wage": 22.0,
+        "schedule_start_tick": 8,
+        "schedule_end_tick": 14,
+    },
+    {
+        "character_key": "erika",
+        "title": JobTitle.STUDENTE,
+        "location_key": "piazza",
+        "daily_wage": 5.0,
+        "schedule_start_tick": 8,
+        "schedule_end_tick": 13,
+    },
+    {
+        "character_key": "max",
+        "title": JobTitle.STUDENTE,
+        "location_key": "piazza",
+        "daily_wage": 5.0,
+        "schedule_start_tick": 8,
+        "schedule_end_tick": 13,
     },
 ]
 
@@ -81,6 +131,7 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     characters_created = 0
     needs_created = 0
     relationships_created = 0
+    jobs_created = 0
 
     by_key: dict[str, Location] = {}
     for spec in LOCATION_SPECS:
@@ -138,6 +189,17 @@ def seed_muse_core(session: Session) -> dict[str, int]:
         if rel2 is not None:
             relationships_created += 1
 
+    for job_spec in JOB_SPECS:
+        job_char = by_char_key.get(job_spec["character_key"])
+        if job_char is None:
+            continue
+        existing_job = session.scalar(select(Job).where(Job.character_id == job_char.id))
+        if existing_job is not None:
+            continue
+        data = {k: v for k, v in job_spec.items() if k != "character_key"}
+        session.add(Job(character_id=job_char.id, **data))
+        jobs_created += 1
+
     session.flush()
 
     return {
@@ -145,4 +207,5 @@ def seed_muse_core(session: Session) -> dict[str, int]:
         "characters_created": characters_created,
         "needs_created": needs_created,
         "relationships_created": relationships_created,
+        "jobs_created": jobs_created,
     }

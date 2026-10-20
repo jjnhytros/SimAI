@@ -60,11 +60,15 @@ def _schema_revision(session: Session) -> str | None:
 
 
 def _serialize_state(session: Session) -> dict[str, Any]:
+    from simai.economy.models import Job, Transaction
+
     locations = session.scalars(select(Location)).all()
     characters = session.scalars(select(Character)).all()
     needs = session.scalars(select(Need)).all()
     relationships = session.scalars(select(Relationship)).all()
     moodlets = session.scalars(select(Moodlet).order_by(Moodlet.id)).all()
+    jobs = session.scalars(select(Job).order_by(Job.id)).all()
+    transactions = session.scalars(select(Transaction).order_by(Transaction.id)).all()
     sim_state = session.get(SimState, 1)
 
     return {
@@ -89,6 +93,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "location_id": c.location_id,
                 "mood": c.mood,
                 "low_intimacy_streak": c.low_intimacy_streak,
+                "balance": c.balance,
             }
             for c in characters
         ],
@@ -120,6 +125,28 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             }
             for m in moodlets
         ],
+        "jobs": [
+            {
+                "character_id": j.character_id,
+                "title": j.title.value,
+                "location_key": j.location_key,
+                "daily_wage": j.daily_wage,
+                "schedule_start_tick": j.schedule_start_tick,
+                "schedule_end_tick": j.schedule_end_tick,
+            }
+            for j in jobs
+        ],
+        "transactions": [
+            {
+                "tick_index": t.tick_index,
+                "from_character_id": t.from_character_id,
+                "to_character_id": t.to_character_id,
+                "amount": t.amount,
+                "kind": t.kind.value,
+                "note": t.note,
+            }
+            for t in transactions
+        ],
         "sim_state": (
             {
                 "tick_index": sim_state.tick_index,
@@ -140,9 +167,15 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
     Ordine di delete: figli prima dei padri.
     Ordine di insert: padri prima dei figli.
     """
+
+    from simai.economy.enums import JobTitle, TransactionKind
+    from simai.economy.models import Job, Transaction
+
     session.execute(delete(Moodlet))
     session.execute(delete(Relationship))
     session.execute(delete(Need))
+    session.execute(delete(Transaction))
+    session.execute(delete(Job))
     session.execute(delete(Character))
     session.execute(delete(Location))
     session.execute(delete(SimState))
@@ -172,6 +205,7 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 location_id=row["location_id"],
                 mood=row.get("mood", 100.0),
                 low_intimacy_streak=row.get("low_intimacy_streak", 0),
+                balance=row.get("balance", 100.0),
             )
         )
     session.flush()
@@ -194,6 +228,30 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 to_character_id=row["to_character_id"],
                 kind=RelationshipKind(row["kind"]),
                 strength=row["strength"],
+            )
+        )
+
+    for row in payload.get("jobs", []):
+        session.add(
+            Job(
+                character_id=row["character_id"],
+                title=JobTitle(row["title"]),
+                location_key=row["location_key"],
+                daily_wage=row["daily_wage"],
+                schedule_start_tick=row["schedule_start_tick"],
+                schedule_end_tick=row["schedule_end_tick"],
+            )
+        )
+
+    for row in payload.get("transactions", []):
+        session.add(
+            Transaction(
+                tick_index=row["tick_index"],
+                from_character_id=row["from_character_id"],
+                to_character_id=row["to_character_id"],
+                amount=row["amount"],
+                kind=TransactionKind(row["kind"]),
+                note=row["note"],
             )
         )
 

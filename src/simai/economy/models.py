@@ -1,0 +1,42 @@
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from simai.db.base import Base
+from simai.economy.enums import JobTitle, TransactionKind
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    character_id: Mapped[int] = mapped_column(
+        ForeignKey("characters.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    title: Mapped[JobTitle] = mapped_column(SAEnum(JobTitle, native_enum=False), nullable=False)
+    location_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    daily_wage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    schedule_start_tick: Mapped[int] = mapped_column(Integer, nullable=False, default=8)
+    schedule_end_tick: Mapped[int] = mapped_column(Integer, nullable=False, default=16)
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tick_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    from_character_id: Mapped[int | None] = mapped_column(
+        ForeignKey("characters.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    to_character_id: Mapped[int | None] = mapped_column(
+        ForeignKey("characters.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    kind: Mapped[TransactionKind] = mapped_column(
+        SAEnum(TransactionKind, native_enum=False), nullable=False
+    )
+    note: Mapped[str] = mapped_column(String(128), nullable=False, default="")

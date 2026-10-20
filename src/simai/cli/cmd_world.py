@@ -20,7 +20,8 @@ def seed() -> None:
         f"Seed Muse Core: {report['locations_created']} location, "
         f"{report['characters_created']} personaggi, "
         f"{report['needs_created']} bisogni, "
-        f"{report['relationships_created']} relazioni creati."
+        f"{report['relationships_created']} relazioni, "
+        f"{report['jobs_created']} lavori creati."
     )
 
 

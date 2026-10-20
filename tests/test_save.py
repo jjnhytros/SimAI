@@ -175,3 +175,35 @@ def test_roundtrip_preserves_moodlets(tmp_path: Path, monkeypatch: pytest.Monkey
         assert len(rows) == 1
         assert rows[0].kind == MoodletKind.ATE_WELL
         assert rows[0].expires_at_tick == 9
+
+
+def test_roundtrip_preserves_economy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.economy.models import Job, Transaction
+
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        erika.balance = 123.45
+        session.commit()
+        create_save(session, name="econ")
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        erika.balance = 0.0
+        session.execute(Transaction.__table__.delete())
+        session.execute(Job.__table__.delete())
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "econ")
+        session.commit()
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        assert erika.balance == 123.45
+        jobs = session.scalars(select(Job)).all()
+        assert len(jobs) == 5

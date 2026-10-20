@@ -62,12 +62,17 @@ def needs_of(session: Session, character_id: int) -> dict[NeedKind, float]:
     return {n.kind: n.value for n in needs}
 
 
-def apply_effect(session: Session, character_id: int, action: ActionDef) -> float:
+def apply_effect(
+    session: Session,
+    character_id: int,
+    action: ActionDef,
+    *,
+    current_tick: int | None = None,
+) -> float:
     """Aumenta il bisogno soddisfatto da `action`, clampato a 100.
 
-    Ritorna il nuovo valore. Se il bisogno non esiste ritorna 0.0:
-    non è un caso atteso in 1.0 ma va gestito senza eccezioni per non
-    bloccare il tick.
+    Se `current_tick` è specificato, aggiorna `last_satisfied_at_tick`.
+    Ritorna il nuovo valore. Se il bisogno non esiste ritorna 0.0.
     """
     need = session.scalar(
         select(Need).where(
@@ -78,4 +83,14 @@ def apply_effect(session: Session, character_id: int, action: ActionDef) -> floa
     if need is None:
         return 0.0
     need.value = clamp(need.value + action.amount)
+    if current_tick is not None:
+        need.last_satisfied_at_tick = current_tick
     return need.value
+
+def last_satisfied_map(
+    session: Session, character_id: int
+) -> dict[NeedKind, int | None]:
+    needs = session.scalars(
+        select(Need).where(Need.character_id == character_id)
+    ).all()
+    return {n.kind: n.last_satisfied_at_tick for n in needs}

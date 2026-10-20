@@ -7,6 +7,7 @@ from sqlalchemy.engine import Engine
 from alembic import command
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
+from simai.needs.models import Need
 from simai.needs.service import needs_of
 from simai.save.errors import (
     SaveError,
@@ -145,3 +146,40 @@ def test_invalid_name_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     factory = get_session_factory(engine)
     with factory() as session, pytest.raises(SaveError):
         create_save(session, name="../etc/passwd")
+
+
+def test_roundtrip_preserves_cooldown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(
+            select(Character).where(Character.key == "erika")
+        )
+        assert erika is not None
+        needs = session.scalars(
+            select(Need).where(Need.character_id == erika.id)
+        ).all()
+        for n in needs:
+            n.last_satisfied_at_tick = 42
+        session.commit()
+        create_save(session, name="cd")
+
+    with factory() as session:
+        needs = session.scalars(
+            select(Need).where(Need.character_id == erika.id)
+        ).all()
+        for n in needs:
+            n.last_satisfied_at_tick = 999
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "cd")
+        session.commit()
+
+    with factory() as session:
+        needs = session.scalars(
+            select(Need).where(Need.character_id == erika.id)
+        ).all()
+        assert all(n.last_satisfied_at_tick == 42 for n in needs)

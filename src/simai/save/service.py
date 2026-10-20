@@ -90,6 +90,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "character_id": n.character_id,
                 "kind": n.kind.value,
                 "value": n.value,
+                "last_satisfied_at_tick": n.last_satisfied_at_tick,
             }
             for n in needs
         ],
@@ -226,6 +227,9 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 character_id=row["character_id"],
                 kind=NeedKind(row["kind"]),
                 value=row["value"],
+                last_satisfied_at_tick=row.get(
+                    "last_satisfied_at_tick"
+                ),
             )
         )
 

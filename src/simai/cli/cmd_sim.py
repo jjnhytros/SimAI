@@ -1,7 +1,11 @@
+from datetime import UTC, datetime
+from pathlib import Path
+
 import typer
 
 from simai.cli._helpers import require_schema
 from simai.db.session import get_engine, get_session_factory
+from simai.sim.benchmark import format_report, run_benchmark
 from simai.sim.loop import run_simulation
 from simai.sim.state import get_state, reset_state
 from simai.sim.tick import TickDecision, TickReport, run_tick
@@ -137,3 +141,43 @@ def reset(
     typer.echo("Stato di simulazione azzerato.")
     typer.echo("tick_index: 0")
     typer.echo(f"master_seed: {seed}")
+
+
+@sim_app.command("benchmark")
+def benchmark(
+    years: float = typer.Option(1.0, "--years", "-y"),
+    minutes: int = typer.Option(60, "--minutes", "-m"),
+    seed: int = typer.Option(42, "--seed"),
+    include_player: bool = typer.Option(False, "--include-player"),
+    sample_every: int = typer.Option(24, "--sample-every"),
+    db: Path | None = typer.Option(None, "--db"),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+) -> None:
+    """Esegue una simulazione accelerata su DB temporaneo.
+
+    Non tocca il DB della partita reale. Il file DB prodotto resta su
+    disco per ispezione. `--output` salva il report JSON.
+    """
+    db_path = db or Path(f"data/benchmark/bench_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.db")
+    try:
+        report = run_benchmark(
+            db_path,
+            years=years,
+            minutes_per_tick=minutes,
+            seed=seed,
+            include_player=include_player,
+            sample_every=sample_every,
+        )
+    except ValueError as exc:
+        typer.echo(f"Errore: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(format_report(report))
+
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(report.to_json(), encoding="utf-8")
+        typer.echo(f"\nReport salvato: {output}")
+
+    if not report.invariants_ok:
+        raise typer.Exit(code=1)

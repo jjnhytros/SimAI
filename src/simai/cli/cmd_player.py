@@ -42,6 +42,11 @@ def status() -> None:
     else:
         typer.echo("Relazioni: nessuna")
     typer.echo(f"Azioni disponibili qui: {', '.join(s.available_actions) or 'nessuna'}")
+    if s.cooldowns:
+        cd_str = ", ".join(
+            f"{k} ({v} tick)" for k, v in s.cooldowns.items()
+        )
+        typer.echo(f"In cooldown: {cd_str}")
     if s.other_characters_here:
         typer.echo(f"Presenti qui: {', '.join(s.other_characters_here)}")
     else:

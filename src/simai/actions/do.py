@@ -4,10 +4,15 @@ from sqlalchemy.orm import Session
 
 from simai.actions.catalog import ActionDef, actions_for_location
 from simai.actions.enums import ActionKind
+from simai.actions.utility import filter_by_cooldown
 from simai.needs.enums import NeedKind
-from simai.needs.service import apply_effect, needs_of
+from simai.needs.service import (
+    apply_effect,
+    last_satisfied_map,
+    needs_of,
+)
 from simai.relationships.service import boost_social_relationship
-from simai.world.enums import LocationKind
+from simai.sim.state import get_state
 from simai.world.models import Character, Location
 
 
@@ -25,19 +30,24 @@ class ActionResult:
     error: str | None = None
 
 
-def _find_action(loc_kind: LocationKind, action_kind: ActionKind) -> ActionDef | None:
-    for action in actions_for_location(loc_kind):
-        if action.kind == action_kind:
-            return action
+def _find_in(
+    actions: list[ActionDef], action_kind: ActionKind
+) -> ActionDef | None:
+    for a in actions:
+        if a.kind == action_kind:
+            return a
     return None
 
 
-def do_action(session: Session, character_key: str, action_kind: ActionKind) -> ActionResult:
+def do_action(
+    session: Session, character_key: str, action_kind: ActionKind
+) -> ActionResult:
     """Esegue un'azione specifica per un personaggio.
 
-    Valida che l'azione sia disponibile nella location corrente. Applica
-    l'effetto sul bisogno e il boost relazionale se SOCIALIZE. Non avanza
-    il tempo: il chiamante decide quando chiamare `run_tick`.
+    Valida che l'azione sia disponibile nella location corrente e non in
+    cooldown. Applica l'effetto sul bisogno e il boost relazionale se
+    SOCIALIZE. Non avanza il tempo: il chiamante decide quando chiamare
+    `run_tick`.
     """
     char = session.query(Character).filter_by(key=character_key).one_or_none()
     if char is None:
@@ -61,9 +71,35 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
             error=f"Location non valida per {char.key}",
         )
 
-    action = _find_action(loc.kind, action_kind)
+    current_tick = get_state(session).tick_index
+    last = last_satisfied_map(session, char.id)
+    available = actions_for_location(loc.kind)
+    available_now = filter_by_cooldown(
+        available, current_tick, last
+    )
+
+    action = _find_in(available_now, action_kind)
     if action is None:
-        available = [a.kind.value for a in actions_for_location(loc.kind)]
+        original = _find_in(available, action_kind)
+        if original is not None:
+            last_tick = last.get(original.satisfies)
+            remaining = (
+                original.cooldown_ticks - (current_tick - last_tick)
+                if last_tick is not None
+                else 0
+            )
+            return ActionResult(
+                success=False,
+                action=action_kind,
+                character_id=char.id,
+                character_key=char.key,
+                location_key=loc.key,
+                error=(
+                    f"Azione '{action_kind.value}' in cooldown "
+                    f"in '{loc.key}' ({remaining} tick rimanenti)."
+                ),
+            )
+        names = [a.kind.value for a in available]
         return ActionResult(
             success=False,
             action=action_kind,
@@ -72,12 +108,14 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
             location_key=loc.key,
             error=(
                 f"Azione '{action_kind.value}' non disponibile in "
-                f"'{loc.key}'. Disponibili: {', '.join(available) or 'nessuna'}."
+                f"'{loc.key}'. Disponibili: {', '.join(names) or 'nessuna'}."
             ),
         )
 
     before = needs_of(session, char.id).get(action.satisfies)
-    after = apply_effect(session, char.id, action)
+    after = apply_effect(
+        session, char.id, action, current_tick=current_tick
+    )
     rel_after = boost_social_relationship(session, char.id, action)
 
     return ActionResult(

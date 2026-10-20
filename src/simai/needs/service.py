@@ -87,10 +87,7 @@ def apply_effect(
         need.last_satisfied_at_tick = current_tick
     return need.value
 
-def last_satisfied_map(
-    session: Session, character_id: int
-) -> dict[NeedKind, int | None]:
-    needs = session.scalars(
-        select(Need).where(Need.character_id == character_id)
-    ).all()
+
+def last_satisfied_map(session: Session, character_id: int) -> dict[NeedKind, int | None]:
+    needs = session.scalars(select(Need).where(Need.character_id == character_id)).all()
     return {n.kind: n.last_satisfied_at_tick for n in needs}

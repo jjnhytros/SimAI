@@ -227,9 +227,7 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 character_id=row["character_id"],
                 kind=NeedKind(row["kind"]),
                 value=row["value"],
-                last_satisfied_at_tick=row.get(
-                    "last_satisfied_at_tick"
-                ),
+                last_satisfied_at_tick=row.get("last_satisfied_at_tick"),
             )
         )
 

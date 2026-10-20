@@ -20,9 +20,7 @@ CATALOG: tuple[ActionDef, ...] = (
         kind=ActionKind.EAT,
         satisfies=NeedKind.HUNGER,
         amount=40.0,
-        allowed_at=frozenset(
-            {LocationKind.RESIDENTIAL, LocationKind.LEISURE}
-        ),
+        allowed_at=frozenset({LocationKind.RESIDENTIAL, LocationKind.LEISURE}),
         cooldown_ticks=8,
     ),
     ActionDef(
@@ -49,9 +47,7 @@ CATALOG: tuple[ActionDef, ...] = (
         kind=ActionKind.SOCIALIZE,
         satisfies=NeedKind.INTIMACY,
         amount=25.0,
-        allowed_at=frozenset(
-            {LocationKind.SOCIAL, LocationKind.LEISURE}
-        ),
+        allowed_at=frozenset({LocationKind.SOCIAL, LocationKind.LEISURE}),
         cooldown_ticks=12,
     ),
 )

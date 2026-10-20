@@ -30,18 +30,14 @@ class ActionResult:
     error: str | None = None
 
 
-def _find_in(
-    actions: list[ActionDef], action_kind: ActionKind
-) -> ActionDef | None:
+def _find_in(actions: list[ActionDef], action_kind: ActionKind) -> ActionDef | None:
     for a in actions:
         if a.kind == action_kind:
             return a
     return None
 
 
-def do_action(
-    session: Session, character_key: str, action_kind: ActionKind
-) -> ActionResult:
+def do_action(session: Session, character_key: str, action_kind: ActionKind) -> ActionResult:
     """Esegue un'azione specifica per un personaggio.
 
     Valida che l'azione sia disponibile nella location corrente e non in
@@ -74,9 +70,7 @@ def do_action(
     current_tick = get_state(session).tick_index
     last = last_satisfied_map(session, char.id)
     available = actions_for_location(loc.kind)
-    available_now = filter_by_cooldown(
-        available, current_tick, last
-    )
+    available_now = filter_by_cooldown(available, current_tick, last)
 
     action = _find_in(available_now, action_kind)
     if action is None:
@@ -84,9 +78,7 @@ def do_action(
         if original is not None:
             last_tick = last.get(original.satisfies)
             remaining = (
-                original.cooldown_ticks - (current_tick - last_tick)
-                if last_tick is not None
-                else 0
+                original.cooldown_ticks - (current_tick - last_tick) if last_tick is not None else 0
             )
             return ActionResult(
                 success=False,
@@ -113,9 +105,7 @@ def do_action(
         )
 
     before = needs_of(session, char.id).get(action.satisfies)
-    after = apply_effect(
-        session, char.id, action, current_tick=current_tick
-    )
+    after = apply_effect(session, char.id, action, current_tick=current_tick)
     rel_after = boost_social_relationship(session, char.id, action)
 
     return ActionResult(

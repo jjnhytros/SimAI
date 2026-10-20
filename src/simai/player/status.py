@@ -65,7 +65,6 @@ def build_player_status(session: Session) -> PlayerStatus | None:
 
     actions = actions_for_location(loc.kind)
 
-    locations = session.scalars(select(Location).order_by(Location.id)).all()
     now = state.tick_index
     last = last_satisfied_map(session, player.id)
     available_now = filter_by_cooldown(actions, now, last)
@@ -81,20 +80,23 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         if remaining > 0:
             cooldowns[action.kind.value] = remaining
 
+    locations = session.scalars(select(Location).order_by(Location.id)).all()
+
     return PlayerStatus(
         tick_index=state.tick_index,
         master_seed=state.master_seed,
         character_key=player.key,
         name=player.name,
         age_years=player.age_years,
-        mood=player.mood,
+        mood=float(player.mood),
         location_key=loc.key,
         location_name=loc.name,
         location_kind=loc.kind.value,
         needs=needs_of(session, player.id),
         relationships=rel_map,
-        available_actions=[a.kind.value for a in actions],
+        available_actions=[a.kind.value for a in available_now],
         other_characters_here=[c.key for c in here],
+        cooldowns=cooldowns,
         available_locations=[
             {"key": l.key, "name": l.name, "kind": l.kind.value} for l in locations
         ],

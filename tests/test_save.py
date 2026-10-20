@@ -145,3 +145,33 @@ def test_invalid_name_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     factory = get_session_factory(engine)
     with factory() as session, pytest.raises(SaveError):
         create_save(session, name="../etc/passwd")
+
+
+def test_roundtrip_preserves_moodlets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.mood.enums import MoodletKind
+    from simai.mood.models import Moodlet
+    from simai.mood.moodlets import apply_moodlet
+
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        apply_moodlet(session, erika.id, MoodletKind.ATE_WELL, tick=5)
+        session.flush()
+        create_save(session, name="mood")
+        session.commit()
+
+    with factory() as session:
+        session.execute(Moodlet.__table__.delete())
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "mood")
+        session.commit()
+
+    with factory() as session:
+        rows = session.scalars(select(Moodlet)).all()
+        assert len(rows) == 1
+        assert rows[0].kind == MoodletKind.ATE_WELL
+        assert rows[0].expires_at_tick == 9

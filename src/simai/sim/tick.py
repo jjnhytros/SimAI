@@ -12,6 +12,14 @@ from simai.actions.utility import (
     filter_by_need_threshold,
     rng_for_decision,
 )
+from simai.mood.enums import MoodletKind
+from simai.mood.moodlets import (
+    LONELY_STREAK_TRIGGER,
+    apply_moodlet,
+    cleanup_expired,
+    moodlets_for_action,
+    update_lonely_streak,
+)
 from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, apply_effect, needs_of
@@ -53,14 +61,13 @@ def run_tick(
 ) -> TickReport:
     """Avanza la simulazione di `minutes`.
 
-    Il decadimento viene applicato a tutti i personaggi, incluso il
-    player. La decisione di azione o movimento viene presa solo per gli
-    NPC, a meno di `include_player=True`.
-
     Ordine interno:
-      1. apply_decay + update_mood per tutti
+      1. apply_decay per tutti
       2. per ogni decider: choose_intent fra azione locale e movimento
       3. esegui (azione o move)
+      4. aggiorna loneliness streak e moodlet derivati
+      5. update_mood (applica delta moodlet)
+      6. cleanup moodlet scaduti
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
@@ -77,12 +84,15 @@ def run_tick(
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
     all_characters = session.scalars(select(Character).order_by(Character.id)).all()
-    needs_by_char: dict[int, dict[NeedKind, float]] = {}
+
+    # 1. Decadimento
     for char in all_characters:
         apply_decay(session, char.id, minutes)
-        update_mood(session, char.id)
-        needs_by_char[char.id] = needs_of(session, char.id)
+    needs_by_char: dict[int, dict[NeedKind, float]] = {
+        c.id: needs_of(session, c.id) for c in all_characters
+    }
 
+    # 2-3. Decisioni e azioni
     q = select(Character).order_by(Character.id)
     if not include_player:
         q = q.where(Character.is_player.is_(False))
@@ -146,6 +156,12 @@ def run_tick(
         before = needs[action.satisfies]
         after = apply_effect(session, char.id, action)
         rel_after = boost_social_relationship(session, char.id, action)
+
+        # Moodlet derivato dall'azione
+        moodlet_kind = moodlets_for_action(action.kind)
+        if moodlet_kind is not None:
+            apply_moodlet(session, char.id, moodlet_kind, tick_index)
+
         decisions.append(
             TickDecision(
                 character_id=char.id,
@@ -158,6 +174,16 @@ def run_tick(
                 relationship_strength_after=rel_after,
             )
         )
+
+    # 4-6. Post-elaborazione per tutti i personaggi
+    for char in all_characters:
+        needs = needs_by_char[char.id]
+        intimacy = needs.get(NeedKind.INTIMACY, 100.0)
+        streak = update_lonely_streak(session, char.id, intimacy)
+        if streak >= LONELY_STREAK_TRIGGER:
+            apply_moodlet(session, char.id, MoodletKind.LONELY, tick_index)
+        update_mood(session, char.id, tick=tick_index)
+        cleanup_expired(session, char.id, tick_index)
 
     return TickReport(
         tick_index=tick_index,

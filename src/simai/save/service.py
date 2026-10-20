@@ -8,7 +8,11 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from simai.config.settings import Settings
+from simai.mood.enums import MoodletKind
+from simai.mood.models import Moodlet
+from simai.needs.enums import NeedKind
 from simai.needs.models import Need
+from simai.relationships.enums import RelationshipKind
 from simai.relationships.models import Relationship
 from simai.save.errors import (
     SaveError,
@@ -17,6 +21,7 @@ from simai.save.errors import (
 )
 from simai.save.format import SaveHeader, decode, encode
 from simai.sim.models import SimState
+from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 
 NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
@@ -59,6 +64,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
     characters = session.scalars(select(Character)).all()
     needs = session.scalars(select(Need)).all()
     relationships = session.scalars(select(Relationship)).all()
+    moodlets = session.scalars(select(Moodlet).order_by(Moodlet.id)).all()
     sim_state = session.get(SimState, 1)
 
     return {
@@ -81,6 +87,8 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "age_years": c.age_years,
                 "is_player": c.is_player,
                 "location_id": c.location_id,
+                "mood": c.mood,
+                "low_intimacy_streak": c.low_intimacy_streak,
             }
             for c in characters
         ],
@@ -103,6 +111,15 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             }
             for r in relationships
         ],
+        "moodlets": [
+            {
+                "character_id": m.character_id,
+                "kind": m.kind.value,
+                "started_at_tick": m.started_at_tick,
+                "expires_at_tick": m.expires_at_tick,
+            }
+            for m in moodlets
+        ],
         "sim_state": (
             {
                 "tick_index": sim_state.tick_index,
@@ -112,6 +129,93 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             else {"tick_index": 0, "master_seed": 42}
         ),
     }
+
+
+def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
+    """Svuota le tabelle di stato e reinserisce il payload.
+
+    Va eseguito dentro una transazione: se qualcosa fallisce, il
+    chiamante deve fare rollback.
+
+    Ordine di delete: figli prima dei padri.
+    Ordine di insert: padri prima dei figli.
+    """
+    session.execute(delete(Moodlet))
+    session.execute(delete(Relationship))
+    session.execute(delete(Need))
+    session.execute(delete(Character))
+    session.execute(delete(Location))
+    session.execute(delete(SimState))
+    session.flush()
+
+    for row in payload["locations"]:
+        session.add(
+            Location(
+                id=row["id"],
+                key=row["key"],
+                name=row["name"],
+                kind=LocationKind(row["kind"]),
+                description=row["description"],
+                capacity=row["capacity"],
+            )
+        )
+    session.flush()
+
+    for row in payload["characters"]:
+        session.add(
+            Character(
+                id=row["id"],
+                key=row["key"],
+                name=row["name"],
+                age_years=row["age_years"],
+                is_player=row["is_player"],
+                location_id=row["location_id"],
+                mood=row.get("mood", 100.0),
+                low_intimacy_streak=row.get("low_intimacy_streak", 0),
+            )
+        )
+    session.flush()
+
+    for row in payload["needs"]:
+        session.add(
+            Need(
+                id=row["id"],
+                character_id=row["character_id"],
+                kind=NeedKind(row["kind"]),
+                value=row["value"],
+            )
+        )
+
+    for row in payload["relationships"]:
+        session.add(
+            Relationship(
+                id=row["id"],
+                from_character_id=row["from_character_id"],
+                to_character_id=row["to_character_id"],
+                kind=RelationshipKind(row["kind"]),
+                strength=row["strength"],
+            )
+        )
+
+    for row in payload.get("moodlets", []):
+        session.add(
+            Moodlet(
+                character_id=row["character_id"],
+                kind=MoodletKind(row["kind"]),
+                started_at_tick=row["started_at_tick"],
+                expires_at_tick=row["expires_at_tick"],
+            )
+        )
+
+    sim_state_row = payload["sim_state"]
+    session.add(
+        SimState(
+            id=1,
+            tick_index=sim_state_row["tick_index"],
+            master_seed=sim_state_row["master_seed"],
+        )
+    )
+    session.flush()
 
 
 def create_save(
@@ -174,81 +278,6 @@ def _resolve_path(name_or_path: str) -> Path:
     if not candidate.exists():
         raise SaveNotFoundError(f"Salvataggio non trovato: {name_or_path}")
     return candidate
-
-
-def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
-    """Svuota le tabelle di stato e reinserisce il payload.
-
-    Va eseguito dentro una transazione: se qualcosa fallisce, il
-    chiamante deve fare rollback.
-    """
-    from simai.needs.enums import NeedKind
-    from simai.relationships.enums import RelationshipKind
-    from simai.world.enums import LocationKind
-
-    session.execute(delete(Relationship))
-    session.execute(delete(Need))
-    session.execute(delete(Character))
-    session.execute(delete(Location))
-    session.execute(delete(SimState))
-    session.flush()
-
-    for row in payload["locations"]:
-        session.add(
-            Location(
-                id=row["id"],
-                key=row["key"],
-                name=row["name"],
-                kind=LocationKind(row["kind"]),
-                description=row["description"],
-                capacity=row["capacity"],
-            )
-        )
-    session.flush()
-
-    for row in payload["characters"]:
-        session.add(
-            Character(
-                id=row["id"],
-                key=row["key"],
-                name=row["name"],
-                age_years=row["age_years"],
-                is_player=row["is_player"],
-                location_id=row["location_id"],
-            )
-        )
-    session.flush()
-
-    for row in payload["needs"]:
-        session.add(
-            Need(
-                id=row["id"],
-                character_id=row["character_id"],
-                kind=NeedKind(row["kind"]),
-                value=row["value"],
-            )
-        )
-
-    for row in payload["relationships"]:
-        session.add(
-            Relationship(
-                id=row["id"],
-                from_character_id=row["from_character_id"],
-                to_character_id=row["to_character_id"],
-                kind=RelationshipKind(row["kind"]),
-                strength=row["strength"],
-            )
-        )
-
-    sim_state_row = payload["sim_state"]
-    session.add(
-        SimState(
-            id=1,
-            tick_index=sim_state_row["tick_index"],
-            master_seed=sim_state_row["master_seed"],
-        )
-    )
-    session.flush()
 
 
 def load_save(session: Session, name_or_path: str) -> SaveHeader:

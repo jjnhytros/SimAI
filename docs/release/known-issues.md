@@ -4,25 +4,15 @@ Questi sono difetti conosciuti e accettati per la release 1.0.0. Non sono
 bug bloccanti del percorso `avvia → simula → salva → ricarica`, ma
 descrivono dove il mondo è meno vivo di quanto dovrebbe.
 
-## 1. NPC immobili
+## 1. NPC senza routine
 
-Gli NPC non si spostano mai dalla loro location iniziale. Se il bisogno
-critico non è soddisfacibile localmente (es. sete per chi vive in `casa`,
-dove `DRINK` non è disponibile), resta a zero per sempre.
+Gli NPC si spostano quando un bisogno critico non è soddisfacibile
+localmente, ma non hanno una casa né una routine. Chi si sposta al caffè
+per bere ci resta finché un altro bisogno critico non lo spinge
+altrove. Non esiste "torna a casa dopo".
 
-**Dati dal benchmark 87 tick (seed 42):**
-
-- Erika (casa): thirst media 18.4, min 0, max 92 (max = primo campione)
-- Max (piazza): thirst media 18.4, min 0
-- Giulia (piazza): thirst media 18.4, min 0
-- Luca (caffè): thirst media 66.0 — l'unico che beve
-
-**Impatto:** mood medio di Erika/Max/Giulia penalizzato di circa 20
-punti (peso THIRST 0.20 × deficit 100).
-
-**Roadmap 1.1:** azione `MOVE` e utility AI che considera anche la
-soddisfacibilità altrove (movimento come effetto collaterale di una
-decisione, non come azione esplicita).
+**Roadmap 1.1:** routine (casa come punto di ancoraggio, cicli
+giornalieri, lavoro).
 
 ## 2. Player statico per default
 

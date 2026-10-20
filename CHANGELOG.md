@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.0.1] — 2026-10-20
+
+### Aggiunto
+
+- **Movimento NPC**: gli NPC si spostano verso un'altra location quando
+  un bisogno sotto soglia non è soddisfacibile dove si trovano. Utility
+  AI estesa con `choose_intent` (azione locale vs. movimento). Costo
+  distanza uniforme (5.0). Gli NPC non tornano a casa dopo.
+- **Moodlet**: 3 eventi temporanei (`ATE_WELL`, `SOCIALIZED`, `LONELY`)
+  con durata in tick, delta per tick e refresh (non somma). `LONELY`
+  scatta dopo 3 tick consecutivi con `INTIMACY < 20`.
+- **`Character.low_intimacy_streak`**: contatore persistente per il
+  trigger di `LONELY`. Migrazione `0009`.
+- **Tabella `moodlets`** con serializzazione in `.sav`.
+
+### Cambiato
+
+- `mood` include i moodlet attivi al tick corrente.
+- `run_tick` esegue: decadimento → decisioni → azioni/movimenti →
+  moodlet → mood → cleanup.
+
+### Risultato misurato
+
+- Benchmark 87 tick (seed 42), pre-1.0.1 → post-1.0.1:
+  - Erika: mood 49.9 → **69.6**, thirst media 18.4 → **66.0**
+  - Max: mood 56.0 → **68.7**, thirst media 18.4 → **66.0**
+  - Giulia: mood 56.0 → **65.7**, thirst media 18.4 → **60.0**
+  - Luca: mood 69.3 → 66.0, thirst media 66.0 → **54.0**
+
+### Limiti noti
+
+- Gli NPC non tornano a casa dopo essersi spostati. Un NPC che va al
+  caffè per bere ci resta finché un altro bisogno critico non lo sposta
+  altrove. "Routine" e "casa" sono 1.1.
+- Luca peggiora leggermente su thirst perché si sposta via dal caffè
+  per altri bisogni.
+
+---
+
 ## [1.0.0] — 2026-10-20
 
 ### Aggiunto

@@ -50,3 +50,13 @@ def filter_by_need_threshold(
     "abbastanza basso" da giustificarla: non mangi quando sei sazio.
     """
     return [a for a in available if needs.get(a.satisfies, 100.0) < a.max_need_to_start]
+
+
+def filter_by_affordability(available: list[ActionDef], balance: float) -> list[ActionDef]:
+    """Mantiene solo le azioni pagabili.
+
+    Azione con `cost <= balance`. `balance` negativo è trattato come 0
+    (non dovrebbe succedere, ma per sicurezza).
+    """
+    effective = max(0.0, balance)
+    return [a for a in available if a.cost <= effective]

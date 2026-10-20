@@ -46,7 +46,8 @@ def test_player_do_valid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_player_do_invalid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _setup(tmp_path, monkeypatch)
-    result = runner.invoke(app, ["player", "do", "-a", "drink"])
+    runner.invoke(app, ["player", "move", "-l", "piazza"])
+    result = runner.invoke(app, ["player", "do", "-a", "eat"])
     assert result.exit_code == 1
     combined = (result.stdout or "") + (result.stderr or "")
     assert "non disponibile" in combined

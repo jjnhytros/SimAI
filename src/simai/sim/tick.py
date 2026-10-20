@@ -4,14 +4,21 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from simai.actions.catalog import actions_for_location
+from simai.actions.catalog import ActionDef, actions_for_location
 from simai.actions.enums import ActionKind
 from simai.actions.intent import choose_intent
-from simai.actions.reachability import available_moves
+from simai.actions.reachability import (
+    available_moves,
+    filter_moves_by_affordability,
+)
 from simai.actions.utility import (
+    filter_by_affordability,
     filter_by_need_threshold,
     rng_for_decision,
 )
+from simai.economy.enums import TransactionKind
+from simai.economy.payday import process_payday
+from simai.economy.service import record_transaction
 from simai.mood.enums import MoodletKind
 from simai.mood.moodlets import (
     LONELY_STREAK_TRIGGER,
@@ -25,6 +32,7 @@ from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, apply_effect, needs_of
 from simai.relationships.service import boost_social_relationship
 from simai.sim.state import get_state
+from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 from simai.world.move import move_character
 
@@ -41,6 +49,7 @@ class TickDecision:
     relationship_strength_after: float | None = None
     moved_from: str | None = None
     moved_to: str | None = None
+    cost_paid: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -49,6 +58,11 @@ class TickReport:
     minutes: int
     seed: int
     decisions: tuple[TickDecision, ...]
+    payday_count: int = 0
+
+
+def _all_actions_by_kind() -> dict[LocationKind, list[ActionDef]]:
+    return {kind: actions_for_location(kind) for kind in LocationKind}
 
 
 def run_tick(
@@ -62,12 +76,13 @@ def run_tick(
     """Avanza la simulazione di `minutes`.
 
     Ordine interno:
-      1. apply_decay per tutti
-      2. per ogni decider: choose_intent fra azione locale e movimento
-      3. esegui (azione o move)
-      4. aggiorna loneliness streak e moodlet derivati
-      5. update_mood (applica delta moodlet)
-      6. cleanup moodlet scaduti
+      1. payday (se è fine giorno)
+      2. apply_decay per tutti
+      3. per ogni decider: choose_intent con azioni e move pagabili
+      4. esegui (azione o move), addebita costi
+      5. aggiorna loneliness streak e moodlet
+      6. update_mood
+      7. cleanup moodlet scaduti
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
@@ -83,16 +98,17 @@ def run_tick(
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
-    all_characters = session.scalars(select(Character).order_by(Character.id)).all()
+    payday_count = process_payday(session, tick_index)
 
-    # 1. Decadimento
+    all_characters = session.scalars(select(Character).order_by(Character.id)).all()
     for char in all_characters:
         apply_decay(session, char.id, minutes)
     needs_by_char: dict[int, dict[NeedKind, float]] = {
         c.id: needs_of(session, c.id) for c in all_characters
     }
 
-    # 2-3. Decisioni e azioni
+    catalog_by_kind = _all_actions_by_kind()
+
     q = select(Character).order_by(Character.id)
     if not include_player:
         q = q.where(Character.is_player.is_(False))
@@ -107,11 +123,15 @@ def run_tick(
         needs = needs_by_char[char.id]
         actions = actions_for_location(loc.kind)
         local_actions = filter_by_need_threshold(actions, needs)
-        moves = available_moves(
+        local_actions = filter_by_affordability(local_actions, char.balance)
+
+        raw_moves = available_moves(
             session,
             current_location_id=loc.id,
             needs=needs,
         )
+        moves = filter_moves_by_affordability(raw_moves, char.balance, catalog_by_kind)
+
         rng = rng_for_decision(master_seed, char.id, tick_index)
         intent = choose_intent(needs, local_actions, moves, rng)
 
@@ -136,8 +156,7 @@ def run_tick(
 
         if intent.action is None:
             logger.debug(
-                f"Nessuna azione per {char.key} in {loc.key}: "
-                f"tutti i bisogni sopra soglia o catalogo vuoto."
+                f"Nessuna azione per {char.key} in {loc.key}: nessuna azione o move disponibile."
             )
             decisions.append(
                 TickDecision(
@@ -155,9 +174,21 @@ def run_tick(
         action = intent.action
         before = needs[action.satisfies]
         after = apply_effect(session, char.id, action)
-        rel_after = boost_social_relationship(session, char.id, action)
 
-        # Moodlet derivato dall'azione
+        cost_paid = 0.0
+        if action.cost > 0:
+            char.balance -= action.cost
+            cost_paid = action.cost
+            record_transaction(
+                session,
+                tick_index=tick_index,
+                amount=action.cost,
+                kind=TransactionKind.PURCHASE,
+                from_character_id=char.id,
+                note=f"{action.kind.value} @ {loc.key}",
+            )
+
+        rel_after = boost_social_relationship(session, char.id, action)
         moodlet_kind = moodlets_for_action(action.kind)
         if moodlet_kind is not None:
             apply_moodlet(session, char.id, moodlet_kind, tick_index)
@@ -172,10 +203,10 @@ def run_tick(
                 value_before=before,
                 value_after=after,
                 relationship_strength_after=rel_after,
+                cost_paid=cost_paid,
             )
         )
 
-    # 4-6. Post-elaborazione per tutti i personaggi
     for char in all_characters:
         needs = needs_by_char[char.id]
         intimacy = needs.get(NeedKind.INTIMACY, 100.0)
@@ -190,4 +221,5 @@ def run_tick(
         minutes=minutes,
         seed=master_seed,
         decisions=tuple(decisions),
+        payday_count=payday_count,
     )

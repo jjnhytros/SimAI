@@ -27,7 +27,11 @@ def _needs(
 
 def test_actions_for_residential() -> None:
     kinds = {a.kind for a in actions_for_location(LocationKind.RESIDENTIAL)}
-    assert kinds == {ActionKind.EAT, ActionKind.PLAY}
+    assert kinds == {
+        ActionKind.EAT,
+        ActionKind.DRINK,
+        ActionKind.PLAY,
+    }
 
 
 def test_actions_for_social() -> None:

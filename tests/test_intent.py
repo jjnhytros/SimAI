@@ -61,10 +61,10 @@ def test_no_actions_but_move_returns_move() -> None:
 
 
 def test_urgent_move_beats_weak_local_action() -> None:
-    # A casa: PLAY disponibile (fun 60 < 70). Thirst 5 (molto urgente)
-    # al caffè. Il move deve vincere.
-    needs = _needs(thirst=5.0, fun=60.0)
-    actions = actions_for_location(LocationKind.RESIDENTIAL)  # EAT, PLAY
+    # A piazza: PLAY disponibile (fun 60 < 70), SOCIALIZE (intimacy 60).
+    # Thirst 5: al caffè c'è DRINK. A piazza non c'è DRINK.
+    needs = _needs(thirst=5.0, fun=60.0, intimacy=60.0)
+    actions = actions_for_location(LocationKind.SOCIAL)
     moves = [
         ReachableMove(
             target_location_key="caffe",

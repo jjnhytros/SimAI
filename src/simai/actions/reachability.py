@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from simai.actions.catalog import actions_for_location
+from simai.actions.catalog import ActionDef, actions_for_location
 from simai.actions.enums import ActionKind
 from simai.needs.enums import NeedKind
 from simai.world.enums import LocationKind
@@ -53,3 +53,30 @@ def available_moves(
                 )
             )
     return moves
+
+
+def filter_moves_by_affordability(
+    moves: list[ReachableMove],
+    balance: float,
+    actions_by_location_kind: dict[LocationKind, list[ActionDef]],
+) -> list[ReachableMove]:
+    """Tiene solo i move verso location dove l'azione target è pagabile.
+
+    `actions_by_location_kind` deve essere la mappa completa (da
+    `actions_for_location` per ogni `LocationKind`). Non facciamo
+    caching qui: il chiamante può preparare la mappa una volta e
+    passarla. In 1.1.0 il catalogo è minuscolo, la performance non è
+    un problema.
+    """
+    effective = max(0.0, balance)
+    result: list[ReachableMove] = []
+    for move in moves:
+        candidates = actions_by_location_kind.get(move.target_location_kind, [])
+        matching = [
+            a for a in candidates if a.kind == move.action_kind and a.satisfies == move.satisfies
+        ]
+        if not matching:
+            continue
+        if all(a.cost <= effective for a in matching):
+            result.append(move)
+    return result

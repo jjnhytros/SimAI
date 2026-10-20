@@ -27,6 +27,7 @@ def status() -> None:
     typer.echo(f"Tick: {s.tick_index} (seed {s.master_seed})")
     typer.echo(f"Player: {s.name} ({s.character_key}), {s.age_years} anni")
     typer.echo(f"Umore: {s.mood:.1f} ({mood_label(s.mood)})")
+    typer.echo(f"Balance: {s.balance:.1f} Athel")
     typer.echo(f"Location: {s.location_name} [{s.location_key}] ({s.location_kind})")
     typer.echo("Bisogni:")
     for kind in NeedKind:
@@ -61,6 +62,7 @@ def do(
     """Esegue un'azione del player nella location corrente.
 
     Non avanza il tempo: il tempo avanza con `simai sim tick`.
+    Se l'azione ha un costo, mostra il costo e il balance aggiornato.
     """
     engine = get_engine()
     require_schema(engine)
@@ -88,13 +90,16 @@ def do(
         )
     if result.relationship_strength_after is not None:
         typer.echo(f"  relazione: {result.relationship_strength_after:.1f}")
+    if result.cost_paid > 0:
+        assert result.balance_after is not None
+        typer.echo(f"  costo: {result.cost_paid:.1f} Athel (balance: {result.balance_after:.1f})")
 
 
 @player_app.command("move")
 def move(
     location: str = typer.Option(..., "--location", "-l"),
 ) -> None:
-    """Sposta il player in un'altra location (istantaneo in 1.0)."""
+    """Sposta il player in un'altra location (istantaneo in 1.1)."""
     engine = get_engine()
     require_schema(engine)
     factory = get_session_factory(engine)

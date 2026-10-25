@@ -96,3 +96,62 @@ esiste merce. Non esiste magazzino. Non esiste "comprare una bottiglia
 e portarla a casa".
 
 **Roadmap 1.2:** oggetti e inventario.
+
+### Utility non penalizza il costo
+Quando un NPC deve spostarsi per un bisogno, `choose_intent` confronta
+casa (azione gratis) e caffè (azione a pagamento) con lo stesso score.
+Risultato: metà delle volte spende quando potrebbe non spendere.
+
+**Impatto:** studenti (paghetta 5) vivono al verde, adulti
+paycheck-to-paycheck. Realistico ma non razionale.
+
+**Roadmap 1.2:** `COST_PENALTY` in `choose_intent`. Non ora: rischia di
+uccidere il caffè come location (mai visitato se gratis è sempre meglio).
+
+### Nessun motivo per risparmiare
+L'economia non ha obiettivi a lungo termine (case, investimenti,
+pensioni). Il comportamento ottimale è spendere tutto.
+
+**Roadmap 1.2+:** proprietà, mutui, investimenti. Solo allora il
+risparmio diventa razionale.
+
+---
+
+## Debiti aperti post-1.1.1
+
+### Test 60 anni su 1.1.1 non eseguito
+
+Il test 60 anni è stato eseguito su 1.1.0 (ha rivelato il bug del
+decadimento) ma non su 1.1.1. Il 1 anno è verde. Il 60 anni va eseguito
+**prima di aprire 1.2.0** (lavoro fisico), perché il lavoro fisico
+aggiunge un vincolo (presenza al payday) che può interagire con derive
+non visibili su 12 mesi.
+
+Comando:
+
+```bash
+uv run simai sim benchmark --years 60 \
+  --output docs/release/benchmarks/60y-1.1.1.json \
+  --sample-every 336
+
+---
+
+## Debito aperto 1.2.0 — 60y su 1.1.1 non eseguito
+
+**Stato**: 1.2.0 è stata aperta senza eseguire il test 60 anni su
+1.1.1. Il 1 anno è verde, il 60y su 1.1.0 ha rivelato il bug del
+decadimento, ma non c'è una baseline 60y su 1.1.1.
+
+**Rischio**: se 1.2.0 (lavoro fisico) rivela derive su 60 anni, non
+sapremo distinguere "colpa del lavoro fisico" da "deriva già presente
+in 1.1.1". Il debugging richiederà di eseguire 60y su 1.1.1 a
+posteriori, costando il doppio.
+
+**Mitigazione**: appena disponibile una macchina libera,
+eseguire:
+
+```bash
+git checkout v1.1.1
+uv run simai sim benchmark --years 60 \
+  --output docs/release/benchmarks/60y-1.1.1.json \
+  --sample-every 336

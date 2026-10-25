@@ -54,8 +54,13 @@ def tick(
         session.commit()
 
     typer.echo(f"Tick {report.tick_index} — {report.minutes} minuti (seed {report.seed})")
-    if report.payday_count > 0:
-        typer.echo(f"💰 Payday: {report.payday_count} personaggi pagati")
+
+    if report.payday.paid > 0 or report.payday.absent > 0:
+        line = f"💰 Payday: {report.payday.paid} pagati"
+        if report.payday.absent > 0:
+            line += f", {report.payday.absent} assenti ({', '.join(report.payday.absent_keys)})"
+        typer.echo(line)
+
     for d in report.decisions:
         typer.echo(_format_decision(d))
 
@@ -77,7 +82,7 @@ def run(
     def on_tick(report: TickReport) -> None:
         if quiet:
             return
-        payday_note = " 💰" if report.payday_count > 0 else ""
+        payday_note = " 💰" if report.payday.paid > 0 else ""
         typer.echo(
             f"Tick {report.tick_index} — {report.minutes}m "
             f"({len(report.decisions)} NPC){payday_note}"
@@ -116,7 +121,7 @@ def run(
         f"({run_report.total_minutes} minuti simulati)"
     )
     if run_report.total_paydays > 0:
-        typer.echo(f"Payday totali nel run: {run_report.total_paydays}")
+        typer.echo(f"Payday nel run: {run_report.total_paydays} pagati")
     if run_report.autosaves:
         typer.echo(f"Autosave ({len(run_report.autosaves)}):")
         for a in run_report.autosaves:

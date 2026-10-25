@@ -80,7 +80,7 @@ def run_simulation(
             break
 
         executed += 1
-        total_paydays += report.payday_count
+        total_paydays += report.payday.paid
         if on_tick is not None:
             on_tick(report)
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from loguru import logger
 from sqlalchemy import select
@@ -17,8 +17,12 @@ from simai.actions.utility import (
     rng_for_decision,
 )
 from simai.economy.enums import TransactionKind
-from simai.economy.payday import process_payday
-from simai.economy.service import record_transaction
+from simai.economy.payday import PaydayReport, process_payday
+from simai.economy.service import job_of, record_transaction
+from simai.economy.work import (
+    should_prioritize_work,
+    tick_in_day,
+)
 from simai.mood.enums import MoodletKind
 from simai.mood.moodlets import (
     LONELY_STREAK_TRIGGER,
@@ -58,7 +62,7 @@ class TickReport:
     minutes: int
     seed: int
     decisions: tuple[TickDecision, ...]
-    payday_count: int = 0
+    payday: PaydayReport = field(default_factory=PaydayReport)
 
 
 def _all_actions_by_kind() -> dict[LocationKind, list[ActionDef]]:
@@ -76,9 +80,9 @@ def run_tick(
     """Avanza la simulazione di `minutes`.
 
     Ordine interno:
-      1. payday (se è fine giorno)
+      1. payday (se è fine giorno, richiede presenza)
       2. apply_decay per tutti
-      3. per ogni decider: choose_intent con azioni e move pagabili
+      3. per ogni decider: priorità lavoro o choose_intent
       4. esegui (azione o move), addebita costi
       5. aggiorna loneliness streak e moodlet
       6. update_mood
@@ -98,7 +102,7 @@ def run_tick(
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
-    payday_count = process_payday(session, tick_index)
+    payday_report = process_payday(session, tick_index)
 
     all_characters = session.scalars(select(Character).order_by(Character.id)).all()
     for char in all_characters:
@@ -108,6 +112,7 @@ def run_tick(
     }
 
     catalog_by_kind = _all_actions_by_kind()
+    t_in_day = tick_in_day(tick_index)
 
     q = select(Character).order_by(Character.id)
     if not include_player:
@@ -131,10 +136,32 @@ def run_tick(
             current_location_id=loc.id,
             needs=needs,
         )
-        # Non offrire un move per un bisogno già soddisfacibile qui:
-        # spostarsi per fare ciò che potresti fare sul posto è rumore.
         raw_moves = [m for m in raw_moves if m.satisfies not in local_satisfies]
         moves = filter_moves_by_affordability(raw_moves, char.balance, catalog_by_kind)
+
+        job = job_of(session, char.id)
+        hunger = needs.get(NeedKind.HUNGER, 100.0)
+        if should_prioritize_work(job, t_in_day, hunger):
+            assert job is not None
+            if loc.key != job.location_key:
+                result = move_character(session, char.key, job.location_key)
+                if not result.success:
+                    raise RuntimeError(f"Move lavoro fallito per {char.key}: {result.error}")
+                decisions.append(
+                    TickDecision(
+                        character_id=char.id,
+                        character_key=char.key,
+                        location_key=loc.key,
+                        action=None,
+                        satisfied=None,
+                        value_before=None,
+                        value_after=None,
+                        moved_from=result.from_location_key,
+                        moved_to=result.to_location_key,
+                    )
+                )
+                continue
+            moves = []
 
         rng = rng_for_decision(master_seed, char.id, tick_index)
         intent = choose_intent(needs, local_actions, moves, rng)
@@ -225,5 +252,5 @@ def run_tick(
         minutes=minutes,
         seed=master_seed,
         decisions=tuple(decisions),
-        payday_count=payday_count,
+        payday=payday_report,
     )

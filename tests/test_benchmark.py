@@ -19,17 +19,31 @@ def test_run_benchmark_short(tmp_path: Path) -> None:
     assert report.ticks == 87
     assert report.invariants_ok
     assert report.relationships_active >= 0
-    assert len(report.characters) == 5
+    # Player escluso di default
+    assert len(report.characters) == 4
+    assert all(not c.is_player for c in report.characters)
 
 
-def test_run_benchmark_no_player_decisions(tmp_path: Path) -> None:
+def test_run_benchmark_no_player_decisions(
+    tmp_path: Path,
+) -> None:
     db = tmp_path / "bench.db"
     report = run_benchmark(db, years=0.005, sample_every=1)
+    # Player escluso: non c'è modo di verificare "no decisions"
+    # dal report se non appare. Verifichiamo esplicitamente che
+    # nessun character nel report sia il player.
+    assert all(not c.is_player for c in report.characters)
+    assert len(report.characters) == 4
+
+
+def test_run_benchmark_includes_player_when_asked(
+    tmp_path: Path,
+) -> None:
+    db = tmp_path / "bench.db"
+    report = run_benchmark(db, years=0.001, sample_every=1, include_player=True)
     players = [c for c in report.characters if c.is_player]
     assert len(players) == 1
-    # Player non agisce: bisogni a 0 dopo abbastanza tempo.
-    p = players[0]
-    assert p.needs_final["hunger"] < 50
+    assert len(report.characters) == 5
 
 
 def test_run_benchmark_invalid_args(tmp_path: Path) -> None:

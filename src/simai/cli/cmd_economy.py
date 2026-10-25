@@ -5,6 +5,12 @@ from simai.cli._helpers import require_schema, resolve_character
 from simai.db.session import get_engine, get_session_factory
 from simai.economy.models import Job, Transaction
 from simai.economy.service import all_jobs, job_of, transactions_of
+from simai.economy.work import (
+    WorkState,
+    tick_in_day,
+    work_state_for,
+)
+from simai.sim.state import get_state
 from simai.world.models import Character
 
 economy_app = typer.Typer(help="Comandi sull'economia.")
@@ -106,7 +112,7 @@ def ledger(
 
 @economy_app.command("jobs")
 def jobs() -> None:
-    """Elenca i lavori."""
+    """Elenca i lavori con stato corrente."""
     engine = get_engine()
     require_schema(engine)
     factory = get_session_factory(engine)
@@ -119,13 +125,24 @@ def jobs() -> None:
             if c is not None:
                 names[c.id] = c.key
 
+        current_tick = get_state(session).tick_index
+        t = tick_in_day(current_tick)
+
     typer.echo(f"Lavori ({len(job_list)}):")
     for job in job_list:
         key = names.get(job.character_id, f"id={job.character_id}")
+        state = work_state_for(job, t)
+        state_label = {
+            WorkState.BEFORE_WORK: "in attesa",
+            WorkState.WORKING: "al lavoro",
+            WorkState.AFTER_WORK: "fuori orario",
+            WorkState.NO_JOB: "—",
+        }[state]
         typer.echo(
             f"  {key:<10} {job.title.value:<12} "
             f"@ {job.location_key:<8} "
             f"wage {job.daily_wage:.1f}/day  "
             f"{job.schedule_start_tick:02d}-"
-            f"{job.schedule_end_tick:02d}"
+            f"{job.schedule_end_tick:02d}  "
+            f"[{state_label}]"
         )

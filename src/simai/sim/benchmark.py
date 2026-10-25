@@ -9,8 +9,10 @@ from sqlalchemy import func, select
 
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
+from simai.economy.calendar import TICKS_PER_DAY
 from simai.economy.enums import TransactionKind
 from simai.economy.models import Transaction
+from simai.economy.service import job_of
 from simai.needs.enums import NeedKind
 from simai.needs.service import needs_of
 from simai.relationships.models import Relationship
@@ -39,6 +41,7 @@ class CharacterMetrics:
     balance_min: float
     balance_max: float
     balance_mean: float
+    job_attendance_rate: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -154,6 +157,7 @@ def run_benchmark(
     needs_keys = [k.value for k in NeedKind]
     samples: dict[str, list[tuple[float, dict[str, float], float]]] = {}
     violations: list[str] = []
+    attendance: dict[str, list[bool]] = {}
 
     try:
         with factory() as session:
@@ -162,9 +166,29 @@ def run_benchmark(
             session.commit()
 
             def on_tick(report: TickReport) -> None:
+                # 1. Registra attendance al payday (solo chi ha
+                #    un job con wage > 0).
+                if report.payday.paid > 0 or report.payday.absent > 0:
+                    t_in_day = report.tick_index % TICKS_PER_DAY
+                    chars_at_payday = session.scalars(select(Character)).all()
+                    for c in chars_at_payday:
+                        if c.is_player and not include_player:
+                            continue
+                        job = job_of(session, c.id)
+                        if job is None or job.daily_wage <= 0:
+                            continue
+                        # Conta solo se il turno di QUESTO
+                        # personaggio finisce a questo tick.
+                        if t_in_day != job.schedule_end_tick - 1:
+                            continue
+                        present = c.key not in report.payday.absent_keys
+                        attendance.setdefault(c.key, []).append(present)
+
+                # 2. Campionamento periodico di mood/bisogni/balance
                 last = ticks - 1
                 if report.tick_index % sample_every != 0 and report.tick_index != last:
                     return
+
                 chars = session.scalars(select(Character)).all()
                 for c in chars:
                     needs = needs_of(session, c.id)
@@ -174,6 +198,8 @@ def run_benchmark(
                         float(c.balance),
                     )
                     samples.setdefault(c.key, []).append(sample)
+
+                    # 3. Invarianti (mood, bisogni, balance)
                     if not (0.0 <= c.mood <= 100.0):
                         violations.append(f"tick {report.tick_index} {c.key}: mood={c.mood}")
                     if c.balance < 0.0:
@@ -227,9 +253,9 @@ def run_benchmark(
                 if c.is_player and not include_player:
                     continue
                 s = samples.get(c.key, [])
-                agg = _aggregate(
-                    s, float(c.mood), float(c.balance), needs_keys
-                )
+                agg = _aggregate(s, float(c.mood), float(c.balance), needs_keys)
+                att = attendance.get(c.key, [])
+                rate = sum(att) / len(att) if att else 0.0
                 char_metrics.append(
                     CharacterMetrics(
                         character_key=c.key,
@@ -246,6 +272,7 @@ def run_benchmark(
                         balance_min=agg.balance_min,
                         balance_max=agg.balance_max,
                         balance_mean=agg.balance_mean,
+                        job_attendance_rate=rate,
                     )
                 )
 
@@ -291,7 +318,7 @@ def format_report(report: BenchmarkReport) -> str:
     header = (
         f"{'char':<10} {'mood':>18} {'balance':>18} "
         f"{'hunger':>18} {'thirst':>18} "
-        f"{'fun':>18} {'intim':>18}"
+        f"{'fun':>18} {'intim':>18} {'att%':>6}"
     )
     lines.append(header)
     for c in report.characters:
@@ -313,6 +340,7 @@ def format_report(report: BenchmarkReport) -> str:
             f"{c.needs_max.get('fun', 0):4.1f} "
             f"{c.needs_mean.get('intimacy', 0):5.1f}/"
             f"{c.needs_min.get('intimacy', 0):4.1f}/"
-            f"{c.needs_max.get('intimacy', 0):4.1f}"
+            f"{c.needs_max.get('intimacy', 0):4.1f} "
+            f"{c.job_attendance_rate * 100:5.1f}%"
         )
     return "\n".join(lines)

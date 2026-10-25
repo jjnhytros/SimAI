@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from simai.actions.catalog import actions_for_location
 from simai.actions.utility import filter_by_need_threshold
+from simai.economy.service import job_of
+from simai.economy.work import tick_in_day
 from simai.needs.enums import NeedKind
 from simai.needs.service import needs_of
 from simai.relationships.enums import RelationshipKind
@@ -32,6 +34,7 @@ class PlayerStatus:
     unnecessary_actions: list[str]
     other_characters_here: list[str]
     available_locations: list[dict[str, Any]]
+    job_state: str | None
 
 
 def build_player_status(session: Session) -> PlayerStatus | None:
@@ -72,6 +75,21 @@ def build_player_status(session: Session) -> PlayerStatus | None:
 
     locations = session.scalars(select(Location).order_by(Location.id)).all()
 
+    job = job_of(session, player.id)
+    t = tick_in_day(state.tick_index)
+    if job is None:
+        job_state = None
+    else:
+        from simai.economy.work import work_state_for
+
+        ws = work_state_for(job, t)
+        job_state = {
+            "before_work": "in attesa",
+            "working": "al lavoro",
+            "after_work": "FUORI ORARIO (non pagato oggi)",
+            "no_job": None,
+        }[ws.value]
+
     return PlayerStatus(
         tick_index=state.tick_index,
         master_seed=state.master_seed,
@@ -91,4 +109,5 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         available_locations=[
             {"key": l.key, "name": l.name, "kind": l.kind.value} for l in locations
         ],
+        job_state=job_state,
     )

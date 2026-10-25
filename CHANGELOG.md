@@ -1,5 +1,66 @@
 # Changelog
 
+## [1.2.0] — 2026-10-25
+
+### Aggiunto
+
+- **Lavoro fisico**: `WorkState` (BEFORE_WORK, WORKING, AFTER_WORK,
+  NO_JOB). `should_prioritize_work` con `PRIORITY_WINDOW=2` e
+  salvaguardia `HUNGER < 10`.
+- **Priorità lavoro in `run_tick`**: se mancano ≤2 tick all'inizio
+  del turno e hunger ≥ 10, l'NPC si muove verso `job.location_key`.
+  Se già lì, nessun move.
+- **Payday con presenza fisica**: `process_payday` paga solo chi è
+  nella location del lavoro al tick di payday. `PaydayReport` con
+  `paid`, `absent`, `absent_keys`.
+- **Osservabilità**:
+  - `sim tick` / `sim run`: `💰 Payday: N pagati, M assenti (keys)`.
+  - `economy jobs`: stato corrente (al lavoro / in attesa / fuori orario).
+  - `player status`: `Lavoro: barista (al lavoro)`.
+  - `BenchmarkReport`: `CharacterMetrics.job_attendance_rate`.
+
+### Cambiato
+
+- `TickReport.payday_count` → `TickReport.payday` (`PaydayReport`).
+- `RunReport.total_paydays` = somma di `payday.paid`.
+
+### Risultato misurato (1 anno, seed 42)
+
+Da eseguire post-A2. Atteso: `job_attendance_rate > 0.80` per tutti
+gli NPC con wage > 0. Player a casa di default: 0%.
+
+### Limiti noti
+
+- Gli NPC non tornano a casa dopo il lavoro. Se al lavoro possono
+  soddisfare i bisogni, restano lì. Routine serale in 1.2.1.
+- Il player deve gestire il lavoro attivamente. Nessun auto-work.
+
+## [1.1.1] — 2026-10-21
+
+### Corretto
+
+- **Decadimento bisogni ridotto** da 20.0 a 13.5 per ora simulata
+  (HUNGER 4.0, THIRST 5.0, FUN 3.0, INTIMACY 1.5). Il 60 anni su 1.1.0
+  mostrava deficit strutturale: Erika e Max con mood medio 23.6/23.8,
+  bisogni cronicamente sotto 30. Dopo il fix, su 1 anno: mood medio
+  65.6/67.7, nessun bisogno medio sotto 49.
+- **Movimento inutile filtrato**: `run_tick` non offre più un move per
+  un bisogno già soddisfacibile nella location corrente. Prima un NPC a
+  casa poteva spostarsi al caffè per mangiare, pagando, quando poteva
+  mangiare gratis sul posto. Il filtro `local_satisfies` chiude il caso.
+- **Player escluso dal report benchmark** se `include_player=False`.
+  Prima il player inattivo con mood 3.5 e balance accumulato confondeva
+  le metriche degli NPC. Ora `sim benchmark --include-player` è
+  necessario per vederlo.
+
+### Note
+
+- Il test 60 anni su 1.1.1 non è stato eseguito prima del tag. Il
+  1 anno è verde. Da eseguire prima di 1.2.0 (lavoro fisico).
+- Il bilancio degli NPC è paycheck-to-paycheck: spendono quello che
+  guadagnano perché non c'è motivo di risparmiare. Vedi
+  `known-issues.md`.
+
 ## [1.1.0] — 2026-10-20
 
 ### Aggiunto

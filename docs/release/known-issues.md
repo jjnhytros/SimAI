@@ -155,3 +155,18 @@ git checkout v1.1.1
 uv run simai sim benchmark --years 60 \
   --output docs/release/benchmarks/60y-1.1.1.json \
   --sample-every 336
+```
+
+### Attendance dipende dalla location di lavoro
+Chi lavora in una location senza `EAT`/`DRINK` (piazza) può perdere
+il payday se la salvaguardia fame scatta durante il turno. Giulia:
+80% attendance; Erika/Max (piazza ma studenti, turno corto 8-13):
+95-97%; Luca (caffè, tutto disponibile): 100%.
+
+**Impatto:** ~20% di stipendi persi per chi lavora in piazza. Il
+mood non ne risente (stabile > 60) perché i soldi non mancano
+(Giulia accumula 1155 Athel in 1 anno).
+
+**Roadmap 1.2.1:** fontanella/chiosco a piazza (EAT/DRINK gratis o
+a basso costo). Insieme a routine serale (tornare a casa dopo il
+lavoro).

@@ -28,6 +28,10 @@ def status() -> None:
     typer.echo(f"Player: {s.name} ({s.character_key}), {s.age_years} anni")
     typer.echo(f"Umore: {s.mood:.1f} ({mood_label(s.mood)})")
     typer.echo(f"Balance: {s.balance:.1f} Athel")
+    if s.job_state is not None:
+        typer.echo(f"Lavoro: {s.job_state}")
+    else:
+        typer.echo("Lavoro: nessuno")
     typer.echo(f"Location: {s.location_name} [{s.location_key}] ({s.location_kind})")
     typer.echo("Bisogni:")
     for kind in NeedKind:

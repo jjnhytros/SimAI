@@ -10,10 +10,10 @@ VALUE_MAX = 100.0
 
 # Quanto scende il valore in un'ora simulata.
 DECAY_PER_HOUR: dict[NeedKind, float] = {
-    NeedKind.HUNGER: 6.0,  # pieno -> zero in ~16h40'
-    NeedKind.THIRST: 8.0,  # pieno -> zero in 12h30'
-    NeedKind.FUN: 4.0,  # pieno -> zero in 25h
-    NeedKind.INTIMACY: 2.0,  # pieno -> zero in 50h
+    NeedKind.HUNGER: 4.0,  # pieno -> zero in ~25h
+    NeedKind.THIRST: 5.0,  # pieno -> zero in 20h
+    NeedKind.FUN: 3.0,  # pieno -> zero in ~33h
+    NeedKind.INTIMACY: 1.5,  # pieno -> zero in ~67h
 }
 
 

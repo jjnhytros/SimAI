@@ -224,8 +224,12 @@ def run_benchmark(
                 violations.append(f"tick_index finale {final_state.tick_index} != {ticks}")
 
             for c in chars:
+                if c.is_player and not include_player:
+                    continue
                 s = samples.get(c.key, [])
-                agg = _aggregate(s, float(c.mood), float(c.balance), needs_keys)
+                agg = _aggregate(
+                    s, float(c.mood), float(c.balance), needs_keys
+                )
                 char_metrics.append(
                     CharacterMetrics(
                         character_key=c.key,

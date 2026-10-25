@@ -29,9 +29,10 @@ def test_mood_drops_after_tick(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     _setup(tmp_path, monkeypatch)
     runner.invoke(app, ["sim", "tick", "-m", "600"])
     result = runner.invoke(app, ["player", "status"])
-    # 600 min -> HUNGER -60, THIRST -80, FUN -40, INTIMACY -20
-    # mood = 0.25*40 + 0.20*20 + 0.30*60 + 0.25*80 = 10+4+18+20 = 52
-    assert "Umore: 52.0" in result.stdout
+    # 600 min = 10h -> HUNGER -40, THIRST -50, FUN -30, INTIMACY -15
+    # Valori: 60, 50, 70, 85
+    # Mood = 0.25*60 + 0.20*50 + 0.30*70 + 0.25*85 = 15+10+21+21.25 = 67.25
+    assert "Umore: 67.2" in result.stdout
 
 
 def test_needs_show_includes_mood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

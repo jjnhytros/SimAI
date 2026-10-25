@@ -33,7 +33,11 @@ def test_needs_decay_changes_values(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         ["needs", "decay", "--character", "erika", "--minutes", "120"],
     )
     assert result.exit_code == 0
-    assert "88.0" in result.stdout
+    # 120 min = 2h -> HUNGER -8 (100 -> 92), THIRST -10, FUN -6, INTIMACY -3
+    assert "hunger: 92.0" in result.stdout
+    assert "thirst: 90.0" in result.stdout
+    assert "fun: 94.0" in result.stdout
+    assert "intimacy: 97.0" in result.stdout
 
 
 def test_needs_show_unknown_character(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

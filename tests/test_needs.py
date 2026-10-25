@@ -48,8 +48,8 @@ def test_seed_needs_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_decay_value_proportional() -> None:
-    # HUNGER 100, 60 minuti -> -6 -> 94
-    assert decay_value(100.0, NeedKind.HUNGER, 60) == pytest.approx(94.0)
+    # HUNGER 100, 60 minuti -> -4 -> 96
+    assert decay_value(100.0, NeedKind.HUNGER, 60) == pytest.approx(96.0)
 
 
 def test_decay_floors_at_zero() -> None:
@@ -76,8 +76,8 @@ def test_apply_decay_persists(tmp_path: Path) -> None:
         session.commit()
     with factory() as session:
         values = needs_of(session, cid)
-    # 120 min = 2h -> HUNGER -12, THIRST -16, FUN -8, INTIMACY -4
-    assert values[NeedKind.HUNGER] == pytest.approx(88.0)
-    assert values[NeedKind.THIRST] == pytest.approx(84.0)
-    assert values[NeedKind.FUN] == pytest.approx(92.0)
-    assert values[NeedKind.INTIMACY] == pytest.approx(96.0)
+    # 120 min = 2h -> HUNGER -8, THIRST -10, FUN -6, INTIMACY -3
+    assert values[NeedKind.HUNGER] == pytest.approx(92.0)
+    assert values[NeedKind.THIRST] == pytest.approx(90.0)
+    assert values[NeedKind.FUN] == pytest.approx(94.0)
+    assert values[NeedKind.INTIMACY] == pytest.approx(97.0)

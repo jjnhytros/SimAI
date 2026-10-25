@@ -124,12 +124,16 @@ def run_tick(
         actions = actions_for_location(loc.kind)
         local_actions = filter_by_need_threshold(actions, needs)
         local_actions = filter_by_affordability(local_actions, char.balance)
+        local_satisfies = {a.satisfies for a in local_actions}
 
         raw_moves = available_moves(
             session,
             current_location_id=loc.id,
             needs=needs,
         )
+        # Non offrire un move per un bisogno già soddisfacibile qui:
+        # spostarsi per fare ciò che potresti fare sul posto è rumore.
+        raw_moves = [m for m in raw_moves if m.satisfies not in local_satisfies]
         moves = filter_moves_by_affordability(raw_moves, char.balance, catalog_by_kind)
 
         rng = rng_for_decision(master_seed, char.id, tick_index)

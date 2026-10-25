@@ -1,0 +1,198 @@
+{
+  "years": 60.0,
+  "ticks": 525600,
+  "minutes_per_tick": 60,
+  "total_minutes": 31536000,
+  "seed": 42,
+  "started_at": "2026-10-20T20:12:39.023450+00:00",
+  "finished_at": "2026-10-20T22:18:12.816781+00:00",
+  "elapsed_seconds": 7533.793334395,
+  "ticks_per_second": 69.76565146808719,
+  "characters": [
+    {
+      "character_key": "player",
+      "is_player": true,
+      "mood_final": 0.0,
+      "mood_min": 0.0,
+      "mood_max": 95.2,
+      "mood_mean": 0.06079182630906769,
+      "needs_final": {
+        "fun": 0.0,
+        "hunger": 0.0,
+        "intimacy": 0.0,
+        "thirst": 0.0
+      },
+      "needs_mean": {
+        "hunger": 0.06002554278416347,
+        "thirst": 0.05874840357598978,
+        "fun": 0.06130268199233716,
+        "intimacy": 0.06257982120051085
+      },
+      "needs_min": {
+        "hunger": 0.0,
+        "thirst": 0.0,
+        "fun": 0.0,
+        "intimacy": 0.0
+      },
+      "needs_max": {
+        "hunger": 94.0,
+        "thirst": 92.0,
+        "fun": 96.0,
+        "intimacy": 98.0
+      },
+      "balance_final": 438100.0,
+      "balance_min": 100.0,
+      "balance_max": 438100.0,
+      "balance_mean": 219199.8722860792
+    },
+    {
+      "character_key": "erika",
+      "is_player": false,
+      "mood_final": 23.6,
+      "mood_min": 3.0,
+      "mood_max": 95.2,
+      "mood_mean": 23.56047254150702,
+      "needs_final": {
+        "fun": 19.0,
+        "hunger": 28.0,
+        "intimacy": 18.0,
+        "thirst": 22.0
+      },
+      "needs_mean": {
+        "hunger": 28.948914431673053,
+        "thirst": 18.36845466155811,
+        "fun": 27.279054916985952,
+        "intimacy": 19.549169859514688
+      },
+      "needs_min": {
+        "hunger": 0.0,
+        "thirst": 0.0,
+        "fun": 0.0,
+        "intimacy": 0.0
+      },
+      "needs_max": {
+        "hunger": 94.0,
+        "thirst": 92.0,
+        "fun": 96.0,
+        "intimacy": 98.0
+      },
+      "balance_final": 6.0,
+      "balance_min": 0.0,
+      "balance_max": 50.0,
+      "balance_mean": 5.17816091954023
+    },
+    {
+      "character_key": "max",
+      "is_player": false,
+      "mood_final": 25.1,
+      "mood_min": 3.0,
+      "mood_max": 95.2,
+      "mood_mean": 23.77538314176245,
+      "needs_final": {
+        "fun": 29.0,
+        "hunger": 22.0,
+        "intimacy": 18.0,
+        "thirst": 22.0
+      },
+      "needs_mean": {
+        "hunger": 28.495530012771393,
+        "thirst": 17.896551724137932,
+        "fun": 27.618773946360154,
+        "intimacy": 20.579182630906768
+      },
+      "needs_min": {
+        "hunger": 0.0,
+        "thirst": 0.0,
+        "fun": 0.0,
+        "intimacy": 0.0
+      },
+      "needs_max": {
+        "hunger": 94.0,
+        "thirst": 92.0,
+        "fun": 96.0,
+        "intimacy": 98.0
+      },
+      "balance_final": 6.0,
+      "balance_min": 0.0,
+      "balance_max": 50.0,
+      "balance_mean": 5.161558109833972
+    },
+    {
+      "character_key": "luca",
+      "is_player": false,
+      "mood_final": 61.15,
+      "mood_min": 16.75,
+      "mood_max": 95.2,
+      "mood_mean": 60.544125159642405,
+      "needs_final": {
+        "fun": 67.0,
+        "hunger": 40.0,
+        "intimacy": 73.0,
+        "thirst": 54.0
+      },
+      "needs_mean": {
+        "hunger": 46.780332056194126,
+        "thirst": 46.03767560664112,
+        "fun": 69.95338441890166,
+        "intimacy": 67.31162196679438
+      },
+      "needs_min": {
+        "hunger": 12.0,
+        "thirst": 0.0,
+        "fun": 2.0,
+        "intimacy": 5.0
+      },
+      "needs_max": {
+        "hunger": 94.0,
+        "thirst": 92.0,
+        "fun": 100.0,
+        "intimacy": 98.0
+      },
+      "balance_final": 45718.0,
+      "balance_min": 100.0,
+      "balance_max": 45718.0,
+      "balance_mean": 22896.90932311622
+    },
+    {
+      "character_key": "giulia",
+      "is_player": false,
+      "mood_final": 63.6,
+      "mood_min": 12.3,
+      "mood_max": 95.2,
+      "mood_mean": 59.71634738186462,
+      "needs_final": {
+        "fun": 70.0,
+        "hunger": 44.0,
+        "intimacy": 80.0,
+        "thirst": 58.0
+      },
+      "needs_mean": {
+        "hunger": 46.34227330779055,
+        "thirst": 45.61941251596424,
+        "fun": 69.48659003831418,
+        "intimacy": 65.58109833971903
+      },
+      "needs_min": {
+        "hunger": 6.0,
+        "thirst": 0.0,
+        "fun": 12.0,
+        "intimacy": 0.0
+      },
+      "needs_max": {
+        "hunger": 94.0,
+        "thirst": 92.0,
+        "fun": 100.0,
+        "intimacy": 98.0
+      },
+      "balance_final": 109.0,
+      "balance_min": 15.0,
+      "balance_max": 217.0,
+      "balance_mean": 56.97254150702427
+    }
+  ],
+  "relationships_active": 2,
+  "salary_transactions": 109500,
+  "purchase_transactions": 451384,
+  "invariants_ok": true,
+  "invariant_violations": []
+}

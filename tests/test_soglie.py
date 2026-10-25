@@ -83,8 +83,9 @@ def test_filter_uses_threshold_not_fixed_value() -> None:
 
 
 def test_erika_eats_when_hungry_then_skips(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Erika a casa: con hunger 0 mangia. Poi per due tick è sazia e
-    salta. Poi torna a mangiare quando hunger scende sotto 30."""
+    """Erika a casa: con hunger 0 mangia. Poi per tre tick è sazia
+    (decay 4, hunger scende 40→36→32→28) e salta. Al quarto torna
+    a mangiare."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
 
@@ -103,19 +104,26 @@ def test_erika_eats_when_hungry_then_skips(tmp_path: Path, monkeypatch: pytest.M
     d0 = next(d for d in r0.decisions if d.character_key == "erika")
     assert d0.action == ActionKind.EAT
 
-    # Tick 1: hunger 40 - 6 = 34 > 30 -> skip
+    # Tick 1: hunger 40 - 4 = 36 > 30 -> skip
     with factory() as session:
         r1 = run_tick(session, minutes=60, tick_index=1, master_seed=42)
         session.commit()
     d1 = next(d for d in r1.decisions if d.character_key == "erika")
     assert d1.action is None
 
-    # Tick 2: hunger 34 - 6 = 28 < 30 -> EAT -> 68
+    # Tick 2: hunger 32 > 30 -> skip
     with factory() as session:
         r2 = run_tick(session, minutes=60, tick_index=2, master_seed=42)
         session.commit()
     d2 = next(d for d in r2.decisions if d.character_key == "erika")
-    assert d2.action == ActionKind.EAT
+    assert d2.action is None
+
+    # Tick 3: hunger 28 < 30 -> EAT -> 68
+    with factory() as session:
+        r3 = run_tick(session, minutes=60, tick_index=3, master_seed=42)
+        session.commit()
+    d3 = next(d for d in r3.decisions if d.character_key == "erika")
+    assert d3.action == ActionKind.EAT
 
 
 def test_all_needs_above_threshold_skips_turn(

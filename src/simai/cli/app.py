@@ -13,6 +13,7 @@ from simai.cli.cmd_sim import sim_app
 from simai.cli.cmd_version import version_command
 from simai.cli.cmd_watch import watch_app
 from simai.cli.cmd_world import world_app
+from simai.config.logging import configure_logging
 
 app = typer.Typer(
     name="simai",
@@ -42,4 +43,5 @@ app.add_typer(npc_app, name="npc")
 
 
 def main() -> None:
+    configure_logging()
     app()

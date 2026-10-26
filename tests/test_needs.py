@@ -65,6 +65,31 @@ def test_decay_negative_minutes_clamped() -> None:
 
 
 def test_apply_decay_persists(tmp_path: Path) -> None:
+    """Decadimento senza tratti (player): tutti i bisogni scendono
+    del valore base."""
+    engine = _engine(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        seed_muse_core(session)
+        session.commit()
+    with factory() as session:
+        cid = session.scalars(select(Character.id).where(Character.key == "player")).one()
+        # traits=None: apply_decay legge dal personaggio (player=[])
+        apply_decay(session, cid, 120)
+        session.commit()
+    with factory() as session:
+        values = needs_of(session, cid)
+    # 120 min = 2h -> HUNGER -8, THIRST -10, FUN -6, INTIMACY -3
+    assert values[NeedKind.HUNGER] == pytest.approx(92.0)
+    assert values[NeedKind.THIRST] == pytest.approx(90.0)
+    assert values[NeedKind.FUN] == pytest.approx(94.0)
+    assert values[NeedKind.INTIMACY] == pytest.approx(97.0)
+
+
+def test_apply_decay_with_solitary_trait(
+    tmp_path: Path,
+) -> None:
+    """Erika (solitary): INTIMACY decade *0.60."""
     engine = _engine(tmp_path)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -76,8 +101,12 @@ def test_apply_decay_persists(tmp_path: Path) -> None:
         session.commit()
     with factory() as session:
         values = needs_of(session, cid)
-    # 120 min = 2h -> HUNGER -8, THIRST -10, FUN -6, INTIMACY -3
+    # 120 min = 2h
+    # HUNGER -8 (nessun tratto su hunger)
     assert values[NeedKind.HUNGER] == pytest.approx(92.0)
+    # THIRST -10 (nessun tratto)
     assert values[NeedKind.THIRST] == pytest.approx(90.0)
+    # FUN -6 (nessun tratto)
     assert values[NeedKind.FUN] == pytest.approx(94.0)
-    assert values[NeedKind.INTIMACY] == pytest.approx(97.0)
+    # INTIMACY: 1.5 * 0.60 = 0.9/h * 2h = 1.8 -> 98.2
+    assert values[NeedKind.INTIMACY] == pytest.approx(98.2)

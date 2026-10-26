@@ -33,10 +33,23 @@ def test_needs_decay_changes_values(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         ["needs", "decay", "--character", "erika", "--minutes", "120"],
     )
     assert result.exit_code == 0
-    # 120 min = 2h -> HUNGER -8 (100 -> 92), THIRST -10, FUN -6, INTIMACY -3
+    # Erika = SOLITARY: intimacy decade *0.60
+    # 120 min = 2h -> hunger -8, thirst -10, fun -6, intimacy -1.8
     assert "hunger: 92.0" in result.stdout
     assert "thirst: 90.0" in result.stdout
     assert "fun: 94.0" in result.stdout
+    assert "intimacy: 98.2" in result.stdout
+
+
+def test_needs_decay_player_no_traits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _setup(tmp_path, monkeypatch)
+    result = runner.invoke(
+        app,
+        ["needs", "decay", "--character", "player", "--minutes", "120"],
+    )
+    assert result.exit_code == 0
+    # Player: nessun tratto, decadimento base
+    assert "hunger: 92.0" in result.stdout
     assert "intimacy: 97.0" in result.stdout
 
 

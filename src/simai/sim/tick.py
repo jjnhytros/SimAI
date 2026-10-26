@@ -34,7 +34,11 @@ from simai.mood.moodlets import (
 )
 from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
-from simai.needs.service import apply_decay, apply_effect, needs_of
+from simai.needs.service import (
+    apply_decay,
+    apply_effect,
+    needs_of,
+)
 from simai.relationships.service import boost_social_relationship
 from simai.sim.state import get_state
 from simai.world.enums import LocationKind
@@ -81,13 +85,12 @@ def run_tick(
     """Avanza la simulazione di `minutes`.
 
     Ordine interno:
-      1. payday (se è fine giorno, richiede presenza)
-      2. apply_decay per tutti
-      3. per ogni decider: priorità lavoro o choose_intent
+      1. payday (fine turno, richiede presenza)
+      2. apply_decay (modulato dai tratti)
+      3. per ogni decider: priorità lavoro → priorità casa →
+         choose_intent (con bonus tratti)
       4. esegui (azione o move), addebita costi
-      5. aggiorna loneliness streak e moodlet
-      6. update_mood
-      7. cleanup moodlet scaduti
+      5. moodlet (streak, azione, mood, cleanup)
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
@@ -106,8 +109,15 @@ def run_tick(
     payday_report = process_payday(session, tick_index)
 
     all_characters = session.scalars(select(Character).order_by(Character.id)).all()
+
+    # Fase 1: decadimento con tratti.
     for char in all_characters:
-        apply_decay(session, char.id, minutes)
+        apply_decay(
+            session,
+            char.id,
+            minutes,
+            traits=list(char.traits),
+        )
     needs_by_char: dict[int, dict[NeedKind, float]] = {
         c.id: needs_of(session, c.id) for c in all_characters
     }
@@ -126,6 +136,7 @@ def run_tick(
         if loc is None:
             raise RuntimeError(f"Character {char.key} has invalid location_id={char.location_id}")
 
+        traits = list(char.traits)
         needs = needs_by_char[char.id]
         actions = actions_for_location(loc.kind)
         local_actions = filter_by_need_threshold(actions, needs)
@@ -201,7 +212,7 @@ def run_tick(
                 continue
 
         rng = rng_for_decision(master_seed, char.id, tick_index)
-        intent = choose_intent(needs, local_actions, moves, rng)
+        intent = choose_intent(needs, local_actions, moves, rng, traits)
 
         if intent.move is not None:
             result = move_character(session, char.key, intent.move.target_location_key)

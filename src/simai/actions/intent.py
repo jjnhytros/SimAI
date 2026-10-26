@@ -10,6 +10,7 @@ from simai.actions.utility import (
     score,
 )
 from simai.needs.enums import NeedKind
+from simai.npc.traits import trait_move_penalty
 from simai.world.enums import LocationKind
 
 DISTANCE_PENALTY = 5.0
@@ -30,8 +31,14 @@ class Intent:
     move: MoveIntent | None = None
 
 
-def _move_score(move: ReachableMove, jitter: float) -> float:
+def _move_score(
+    move: ReachableMove,
+    jitter: float,
+    traits: list[str] | None = None,
+) -> float:
     raw = (VALUE_MAX - move.need_value) - DISTANCE_PENALTY
+    if traits:
+        raw += trait_move_penalty(traits)
     return raw + jitter
 
 
@@ -40,33 +47,40 @@ def choose_intent(
     available_actions: list[ActionDef],
     available_moves: list[ReachableMove],
     rng: random.Random,
+    traits: list[str] | None = None,
 ) -> Intent:
-    """Sceglie fra azione locale e movimento verso un'altra location.
+    """Sceglie fra azione locale e movimento.
 
     Con `available_moves` vuoto, il comportamento è identico a
-    `choose_action` (stesso seed, stessa scelta). Il test di equivalenza
-    è il contratto che protegge da divergenze.
+    `choose_action` (stesso seed, stessa scelta).
     """
     if not available_moves:
-        return Intent(action=choose_action(needs, available_actions, rng))
+        return Intent(action=choose_action(needs, available_actions, rng, traits))
 
-    # Valuta ogni move con lo stesso jitter di choose_action (stessa
-    # forma: uniform(-JITTER, +JITTER)), poi confronta il migliore con
-    # la migliore azione locale.
     move_evals = [
         (
             m,
-            _move_score(m, rng.uniform(-JITTER, JITTER)),
+            _move_score(m, rng.uniform(-JITTER, JITTER), traits),
         )
         for m in available_moves
     ]
-    best_move, best_move_score = min(move_evals, key=lambda x: (-x[1], x[0].target_location_key))
+    best_move, best_move_score = min(
+        move_evals,
+        key=lambda x: (-x[1], x[0].target_location_key),
+    )
 
     if available_actions:
         action_evals = [
-            (a, score(a, needs) + rng.uniform(-JITTER, JITTER)) for a in available_actions
+            (
+                a,
+                score(a, needs, traits) + rng.uniform(-JITTER, JITTER),
+            )
+            for a in available_actions
         ]
-        best_action, best_action_score = min(action_evals, key=lambda x: (-x[1], x[0].kind.value))
+        best_action, best_action_score = min(
+            action_evals,
+            key=lambda x: (-x[1], x[0].kind.value),
+        )
         if best_action_score >= best_move_score:
             return Intent(action=best_action)
 

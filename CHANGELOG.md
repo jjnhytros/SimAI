@@ -1,5 +1,9 @@
 # Changelog
 
+Tutte le versioni sono elencate in ordine decrescente.
+
+---
+
 ## [1.3.0] — 2026-10-26
 
 ### Aggiunto
@@ -15,11 +19,13 @@
 - `player status` mostra `Tratti:`.
 - `save`/`load` preserva `traits`.
 
-### In arrivo (A2)
+### Prossimi passi (A2)
 
 - Modificatori applicati in `decay_value` e `score`.
 - Test comportamentali (LAZY vs ENERGETIC, SOLITARY e LONELY).
 - Benchmark 10y.
+
+---
 
 ## [1.2.1] — 2026-10-26
 
@@ -44,6 +50,8 @@
 
 - Nessun ciclo sonno/veglia. Gli NPC tornano a casa ma restano
   svegli. 1.3 con calendario Anthalys.
+
+---
 
 ## [1.2.0] — 2026-10-25
 
@@ -80,6 +88,8 @@ gli NPC con wage > 0. Player a casa di default: 0%.
   soddisfare i bisogni, restano lì. Routine serale in 1.2.1.
 - Il player deve gestire il lavoro attivamente. Nessun auto-work.
 
+---
+
 ## [1.1.1] — 2026-10-21
 
 ### Corretto
@@ -105,6 +115,8 @@ gli NPC con wage > 0. Player a casa di default: 0%.
 - Il bilancio degli NPC è paycheck-to-paycheck: spendono quello che
   guadagnano perché non c'è motivo di risparmiare. Vedi
   `known-issues.md`.
+
+---
 
 ## [1.1.0] — 2026-10-20
 
@@ -155,6 +167,8 @@ Da verificare con `sim benchmark` dopo merge. Atteso:
 - **Nessun supporto familiare**: Erika e Max hanno wage 5
   ("paghetta"). Nessun trasferimento di denaro tra personaggi.
 - **Nessun inventario**: il caffè vende "un drink" astratto, non merce.
+
+---
 
 ## [1.0.1] — 2026-10-20
 

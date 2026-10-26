@@ -94,6 +94,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "mood": c.mood,
                 "low_intimacy_streak": c.low_intimacy_streak,
                 "balance": c.balance,
+                "home_location_id": c.home_location_id,
             }
             for c in characters
         ],
@@ -206,6 +207,7 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 mood=row.get("mood", 100.0),
                 low_intimacy_streak=row.get("low_intimacy_streak", 0),
                 balance=row.get("balance", 100.0),
+                home_location_id=row.get("home_location_id"),
             )
         )
     session.flush()

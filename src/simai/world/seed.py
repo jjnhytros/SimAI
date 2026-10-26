@@ -42,6 +42,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 30,
         "is_player": True,
         "location_key": "casa",
+        "home_location_key": "casa",
         "balance": 100.0,
     },
     {
@@ -50,6 +51,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 14,
         "is_player": False,
         "location_key": "casa",
+        "home_location_key": "casa",
         "balance": 50.0,
     },
     {
@@ -58,6 +60,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 14,
         "is_player": False,
         "location_key": "piazza",
+        "home_location_key": "casa",
         "balance": 50.0,
     },
     {
@@ -66,6 +69,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 42,
         "is_player": False,
         "location_key": "caffe",
+        "home_location_key": "casa",
         "balance": 100.0,
     },
     {
@@ -74,6 +78,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "age_years": 37,
         "is_player": False,
         "location_key": "piazza",
+        "home_location_key": "casa",
         "balance": 100.0,
     },
 ]
@@ -126,6 +131,13 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     """Crea i dati del Quartiere delle Muse se mancanti.
 
     Idempotente: chiavi già presenti non vengono toccate.
+
+    Ordine interno:
+      1. locations
+      2. characters (con home_location_id)
+      3. needs per ogni personaggio
+      4. relationships (Erika ↔ Max)
+      5. jobs
     """
     locations_created = 0
     characters_created = 0
@@ -133,19 +145,21 @@ def seed_muse_core(session: Session) -> dict[str, int]:
     relationships_created = 0
     jobs_created = 0
 
-    by_key: dict[str, Location] = {}
+    # 1. Locations
+    by_location_key: dict[str, Location] = {}
     for spec in LOCATION_SPECS:
         existing_location = session.scalar(select(Location).where(Location.key == spec["key"]))
         if existing_location is not None:
-            by_key[spec["key"]] = existing_location
+            by_location_key[spec["key"]] = existing_location
             continue
         loc = Location(**spec)
         session.add(loc)
-        by_key[spec["key"]] = loc
+        by_location_key[spec["key"]] = loc
         locations_created += 1
 
     session.flush()
 
+    # 2. Characters (con home_location_id)
     characters: list[Character] = []
     for char_spec in CHARACTER_SPECS:
         existing_character = session.scalar(
@@ -154,8 +168,11 @@ def seed_muse_core(session: Session) -> dict[str, int]:
         if existing_character is not None:
             characters.append(existing_character)
             continue
-        data = {k: v for k, v in char_spec.items() if k != "location_key"}
-        data["location_id"] = by_key[char_spec["location_key"]].id
+        data = {
+            k: v for k, v in char_spec.items() if k not in ("location_key", "home_location_key")
+        }
+        data["location_id"] = by_location_key[char_spec["location_key"]].id
+        data["home_location_id"] = by_location_key[char_spec["home_location_key"]].id
         new_char = Character(**data)
         session.add(new_char)
         characters.append(new_char)
@@ -163,10 +180,20 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     session.flush()
 
+    # 2b. Fallback: personaggi esistenti senza home_location_id
+    #     (es. seed creato prima della migrazione 0011).
+    for char in characters:
+        if char.home_location_id is None:
+            char.home_location_id = by_location_key["casa"].id
+
+    session.flush()
+
+    # 3. Needs
     for char in characters:
         needs_created += ensure_initial_needs(session, char.id)
 
-    by_char_key = {c.key: c for c in characters}
+    # 4. Relationships (Erika ↔ Max)
+    by_char_key: dict[str, Character] = {c.key: c for c in characters}
     erika = by_char_key.get("erika")
     max_char = by_char_key.get("max")
     if erika is not None and max_char is not None:
@@ -189,6 +216,9 @@ def seed_muse_core(session: Session) -> dict[str, int]:
         if rel2 is not None:
             relationships_created += 1
 
+    session.flush()
+
+    # 5. Jobs
     for job_spec in JOB_SPECS:
         job_char = by_char_key.get(job_spec["character_key"])
         if job_char is None:

@@ -20,6 +20,7 @@ from simai.economy.enums import TransactionKind
 from simai.economy.payday import PaydayReport, process_payday
 from simai.economy.service import job_of, record_transaction
 from simai.economy.work import (
+    should_prioritize_home,
     should_prioritize_work,
     tick_in_day,
 )
@@ -162,6 +163,42 @@ def run_tick(
                 )
                 continue
             moves = []
+
+        if job is not None and not should_prioritize_work(job, t_in_day, hunger):
+            home_loc = (
+                session.get(Location, char.home_location_id)
+                if char.home_location_id is not None
+                else None
+            )
+            home_key = home_loc.key if home_loc else None
+            intimacy = needs.get(NeedKind.INTIMACY, 100.0)
+            fun = needs.get(NeedKind.FUN, 100.0)
+            if should_prioritize_home(
+                job,
+                t_in_day,
+                home_key,
+                loc.key,
+                intimacy,
+                fun,
+            ):
+                assert home_loc is not None
+                result = move_character(session, char.key, home_loc.key)
+                if not result.success:
+                    raise RuntimeError(f"Move casa fallito per {char.key}: {result.error}")
+                decisions.append(
+                    TickDecision(
+                        character_id=char.id,
+                        character_key=char.key,
+                        location_key=loc.key,
+                        action=None,
+                        satisfied=None,
+                        value_before=None,
+                        value_after=None,
+                        moved_from=result.from_location_key,
+                        moved_to=result.to_location_key,
+                    )
+                )
+                continue
 
         rng = rng_for_decision(master_seed, char.id, tick_index)
         intent = choose_intent(needs, local_actions, moves, rng)

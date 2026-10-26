@@ -47,11 +47,11 @@ def test_player_do_valid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_player_do_invalid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _setup(tmp_path, monkeypatch)
-    # Player a casa (default): SOCIALIZE non è disponibile qui.
+    # Player a casa, intimacy 100: SOCIALIZE non necessaria.
     result = runner.invoke(app, ["player", "do", "-a", "socialize"])
     assert result.exit_code == 1
     combined = (result.stdout or "") + (result.stderr or "")
-    assert "non disponibile" in combined
+    assert "non necessaria" in combined
 
 
 def test_player_move(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -105,3 +105,9 @@ fi
 # --- Done ----------------------------------------------------------------
 
 done_msg
+
+step "setting up..."
+unset VIRTUAL_ENV
+rm -rf data/
+uv run simai db upgrade
+uv run simai world seed

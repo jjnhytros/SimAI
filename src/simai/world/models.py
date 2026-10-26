@@ -36,3 +36,4 @@ class Character(Base):
     balance: Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
     location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"), nullable=False)
     location: Mapped[Location] = relationship(back_populates="characters")
+    home_location_id: Mapped[int | None] = mapped_column(Integer, nullable=True)

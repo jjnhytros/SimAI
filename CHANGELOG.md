@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.2.1] — 2026-10-26
+
+### Aggiunto
+
+- **Fontanella e panino a piazza**: `DRINK` gratis (fontanella,
+  amount 15), `EAT` a 2 Athel (panino). Giulia passa da 80% a
+  100% di attendance.
+- **Routine serale**: `Character.home_location_id`. Dopo il turno,
+  se `INTIMACY >= 40` e `FUN >= 40`, l'NPC torna a casa. Se no,
+  resta dove può socializzare. Evita il crollo delle relazioni
+  dopo il lavoro.
+- Migrazione `0011_home_location`.
+
+### Risultato misurato (3 anni, seed 42)
+
+- Attendance 100% per tutti i 4 NPC.
+- Mood: erika 68.4, max 68.1, luca 71.3, giulia 68.1.
+- Salary: 4380 (esattamente 4 × 365 × 3).
+
+### Limiti noti
+
+- Nessun ciclo sonno/veglia. Gli NPC tornano a casa ma restano
+  svegli. 1.3 con calendario Anthalys.
+
 ## [1.2.0] — 2026-10-25
 
 ### Aggiunto

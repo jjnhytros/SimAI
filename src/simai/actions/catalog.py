@@ -85,12 +85,19 @@ CATALOG: tuple[ActionDef, ...] = (
         max_need_to_start=70.0,
         cost=4.0,
     ),
-    # SOCIALIZE — sempre gratis
+    # SOCIALIZE — gratis ovunque, incluso a casa
+    # (telefono, chat, ospiti: stessa azione, stessa semantica)
     ActionDef(
         kind=ActionKind.SOCIALIZE,
         satisfies=NeedKind.INTIMACY,
         amount=25.0,
-        allowed_at=frozenset({LocationKind.SOCIAL, LocationKind.LEISURE}),
+        allowed_at=frozenset(
+            {
+                LocationKind.RESIDENTIAL,
+                LocationKind.SOCIAL,
+                LocationKind.LEISURE,
+            }
+        ),
         max_need_to_start=70.0,
         cost=0.0,
     ),

@@ -67,6 +67,7 @@ al mood, ed è coperto da test. Diventerà visibile in 1.1 con tratti
 ## 1.1.0 — Limiti dell'economia
 
 ### Lavoro fisico non simulato
+
 Gli NPC hanno un `Job` con `location_key` e `schedule_start/end_tick`,
 ma non si recano fisicamente al lavoro. Il salario viene pagato
 indipendentemente da dove sono. Un NPC che dorme in piazza riceve
@@ -77,12 +78,14 @@ location al tick dello stipendio, o almeno "vai al lavoro prima del
 payday".
 
 ### Nessuna tassazione
+
 Il salario è lordo, i prezzi sono netti. Non c'è IVA, non c'è
 tassazione progressiva, non c'è tassa di successione.
 
 **Roadmap 1.3+** (FASE 4 del TODO globale).
 
 ### Nessun supporto familiare
+
 Erika e Max hanno wage 5 (paghetta). Nessun trasferimento di denaro
 tra personaggi in 1.1.0. Se spendono tutto, bevono acqua gratis a casa
 e sopravvivono. Non c'è "mantenimento minori".
@@ -91,6 +94,7 @@ e sopravvivono. Non c'è "mantenimento minori".
 convivenza economica.
 
 ### Nessun inventario
+
 Il caffè vende "un drink" astratto: paghi 2, ricevi +30 thirst. Non
 esiste merce. Non esiste magazzino. Non esiste "comprare una bottiglia
 e portarla a casa".
@@ -98,6 +102,7 @@ e portarla a casa".
 **Roadmap 1.2:** oggetti e inventario.
 
 ### Utility non penalizza il costo
+
 Quando un NPC deve spostarsi per un bisogno, `choose_intent` confronta
 casa (azione gratis) e caffè (azione a pagamento) con lo stesso score.
 Risultato: metà delle volte spende quando potrebbe non spendere.
@@ -109,6 +114,7 @@ paycheck-to-paycheck. Realistico ma non razionale.
 uccidere il caffè come location (mai visitato se gratis è sempre meglio).
 
 ### Nessun motivo per risparmiare
+
 L'economia non ha obiettivi a lungo termine (case, investimenti,
 pensioni). Il comportamento ottimale è spendere tutto.
 
@@ -158,6 +164,7 @@ uv run simai sim benchmark --years 60 \
 ```
 
 ### Attendance dipende dalla location di lavoro
+
 Chi lavora in una location senza `EAT`/`DRINK` (piazza) può perdere
 il payday se la salvaguardia fame scatta durante il turno. Giulia:
 80% attendance; Erika/Max (piazza ma studenti, turno corto 8-13):
@@ -170,3 +177,26 @@ mood non ne risente (stabile > 60) perché i soldi non mancano
 **Roadmap 1.2.1:** fontanella/chiosco a piazza (EAT/DRINK gratis o
 a basso costo). Insieme a routine serale (tornare a casa dopo il
 lavoro).
+
+### Routine serale (1.2.1b)
+
+Dopo il turno, gli NPC tornano a casa se hanno già soddisfatto i
+bisogni sociali (`INTIMACY >= 40`, `FUN >= 40`). Se non li hanno
+soddisfatti, restano dove possono socializzare (piazza, caffè).
+
+Non c'è "sonno" né "notte" simulata: gli NPC tornano a casa e
+continuano a fare azioni (EAT/DRINK/PLAY) da svegli. Il ciclo
+sonno/veglia è 1.3 (con il calendario Anthalys).
+
+### Migrazioni SQLite fallite lasciano DB inconsistenti
+Se una migrazione con `batch_alter_table` fallisce a metà, SQLite può
+lasciare il DB con la colonna aggiunta ma `alembic_version` invariata.
+Un successivo `db upgrade` fallisce con `duplicate column name`.
+
+**Mitigazione:** reset del DB (`rm data/simai.db*` + `db upgrade` +
+`world seed`). Accettabile finché il DB contiene solo seed. Diventerà
+un problema serio quando ci saranno dati utente non ricreabili.
+
+**Roadmap 1.3:** comando `simai db reset --yes` che gestisce questo
+caso. E test di migrazione `upgrade → downgrade → upgrade` in CI per
+catturare migrazioni che non sono reversibili.

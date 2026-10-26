@@ -54,16 +54,18 @@ def test_do_action_valid_in_leisure(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert result.need_after == 50.0  # 20 + 30
 
 
-def test_do_action_invalid_in_location(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_do_action_need_above_threshold(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tutte le location hanno tutte le azioni in 1.2.1c.
+    L'errore non è 'non disponibile', è 'non necessaria'."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        # player a casa: SOCIALIZE non è disponibile qui.
+        # player a casa, intimacy 100 (default): SOCIALIZE non
+        # necessaria.
         result = do_action(session, "player", ActionKind.SOCIALIZE)
     assert not result.success
     assert result.error is not None
-    assert "non disponibile" in result.error
-    assert "'casa'" in result.error
+    assert "non necessaria" in result.error
 
 
 def test_do_action_unknown_character(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

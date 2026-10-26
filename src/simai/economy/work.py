@@ -5,6 +5,8 @@ from simai.economy.models import Job
 
 PRIORITY_WINDOW = 2
 CRITICAL_HUNGER_THRESHOLD = 10.0
+HOME_INTIMACY_THRESHOLD = 40.0
+HOME_FUN_THRESHOLD = 40.0
 
 
 class WorkState(StrEnum):
@@ -52,3 +54,26 @@ def should_prioritize_work(
         ticks_until = job.schedule_start_tick - t_in_day
         return ticks_until <= PRIORITY_WINDOW
     return state == WorkState.WORKING
+
+
+def should_prioritize_home(
+    job: Job | None,
+    t_in_day: int,
+    home_key: str | None,
+    current_key: str,
+    intimacy: float,
+    fun: float,
+) -> bool:
+    """Dopo il turno, torna a casa se ha già socializzato abbastanza.
+
+    Evita il crollo delle relazioni: chi ha intimacy/fun bassi resta
+    dove può socializzare, non torna a casa a isolarsi.
+    """
+    if job is None or home_key is None:
+        return False
+    if current_key == home_key:
+        return False
+    state = work_state_for(job, t_in_day)
+    if state != WorkState.AFTER_WORK:
+        return False
+    return intimacy >= HOME_INTIMACY_THRESHOLD and fun >= HOME_FUN_THRESHOLD

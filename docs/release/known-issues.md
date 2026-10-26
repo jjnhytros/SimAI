@@ -257,3 +257,50 @@ attivo perché non esiste ancora un `restock` da `LifecycleManager`.
 1.5.0: `stock` finito (20/20/10/15), `restock_all` chiamato da
 `LifecycleManager.daily_tick`, test di integrazione esaurimento +
 restock.
+
+---
+
+## 7. NPCManager (1.5.0)
+
+### 7.1 `NPCState` in-memory, non persistito
+
+`NPCState` è ricostruito da DB a ogni `NPCManager.load()`. Il save
+continua a serializzare lo stato da DB (Character, Need, Job,
+ShopItem, ecc.), non `NPCState`. Se `state` divergesse da DB,
+`load` lo correggerebbe al tick successivo.
+
+`_tick_one` mantiene `state.location_id` e `state.balance`
+sincronizzati con il DB dopo move e acquisti. `state.needs` è
+aggiornato dopo `apply_effect`. I campi non sincronizzati (`traits`,
+`home_location_id`) non sono mai scritti da `_tick_one`.
+
+### 7.2 N+1 su `needs_of` in `load`
+
+`load` fa una query per personaggio per `needs_of`. Su 4 NPC è
+~4 query in più per tick rispetto al loop inline precedente (che
+caricava `needs_by_char` una volta sola per tutti i personaggi).
+
+**Misurato (10y, seed 42)**: `ticks_per_second` 76.5 (1.4.0) →
+70.6 (1.5.0), −7.7%. Il refactor è comportamentalmente puro
+(mood/balance/transactions identici), ma paga il N+1.
+
+**Roadmap 1.6.0**: `load` batch (`needs_of_many`), o `NPCState`
+persistito in `SimState` (JSON). Non prima: oggi non c'è pressione
+sulle performance.
+
+### 7.3 Nessun LOD
+
+`NPCManager` carica tutti gli NPC, non solo quelli vicini al
+player. Nessuna distinzione `BACKGROUND`/`REDUCED`/`FULL`. LOD è
+FASE 1.1, non 1.5.0.
+
+### 7.4 Nessun `SkillSnapshot`
+
+Il TODO §3.2b prevede `SkillSnapshot` in `NPCState`. Non c'è skill
+in 1.5.0. Sarà aggiunto in 3.6a-c, quando `Skill` esisterà.
+
+### 7.5 Nessun lifecycle
+
+`NPCManager` gestisce solo "decisione + esecuzione". Decay, mood,
+moodlet, cleanup restano in `tick.py`. `LifecycleManager` (ageing,
+morte, gravidanza) non esiste ancora. Sarà FASE 3.4, dopo A2.

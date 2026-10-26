@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.5.0] — 2026-10-26
+
+### Aggiunto
+
+- **`NPCManager`** (`src/simai/npc/manager.py`): astrazione sopra il
+  loop di decisione del tick. `NPCState` (in-memory), `NPCManager`
+  (`load`, `update_all`, `_tick_one`), `NPCManagerLike` Protocol.
+  `run_tick` accetta `npc_manager=` per iniezione.
+- **`sim/reports.py`**: `TickDecision` e `TickReport` spostati da
+  `sim/tick.py` per evitare il ciclo `tick → manager → tick`. Re-
+  esportati da `tick.py`, nessun test esistente si rompe.
+- Test `tests/test_npc_manager.py` (10 test): load, update_all
+  ordinato, sync `state.location_id`, priorità lavoro, salvaguardia
+  fame, `NPCManagerLike` strutturale.
+- Test `tests/test_tick_with_fake_manager.py` (3 test): `run_tick`
+  usa il manager iniettato, propaga `include_player`, manager di
+  default produce 4 decisioni.
+
+### Cambiato
+
+- `sim/tick.py` delega a `NPCManager`. Il loop inline sparisce.
+  Ordine, effetti, `TickDecision`, `TickReport` invariati. `tick.py`
+  scende da ~250 a ~110 righe.
+- `npc/__init__.py` resta vuoto (era vuoto prima di B1, doveva
+  restarlo). `npc.traits` è importato da `actions.utility`:
+  re-esportare `NPCManager` innescherebbe un ciclo.
+
+### Verificato (10y, seed 42)
+
+- `10y-1.5.0.json` identico a `10y-1.4.0.json` su `mood_mean`,
+  `balance_mean`, `purchase_transactions`, `salary_transactions`,
+  `job_attendance_rate`.
+- `invariants_ok: true`.
+
+### Limitato (documentato in `known-issues.md` §7)
+
+- `NPCState` in-memory, ricostruito da DB a ogni `load()`. Non
+  persistito.
+- `load` fa N+1 su `needs_of` (una query per NPC). Irrilevante su
+  4 NPC, da correggere in 1.6.0 quando si scala.
+- Nessun LOD, nessun `SkillSnapshot`, nessun lifecycle. Quelli sono
+  A2 e FASE 3.
+- `NPCManagerLike` esiste per test di contract, non ancora usato da
+  implementazioni alternative.
+
 ## [1.4.1] — 2026-10-26
 
 ### Corretto (documentale e test)

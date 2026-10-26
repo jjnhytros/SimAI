@@ -162,9 +162,7 @@ def test_buy_with_infinite_stock_keeps_minus_one(
         assert result.stock_after == -1
 
 
-def test_save_load_preserves_shop_items(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_save_load_preserves_shop_items(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from simai.save.service import create_save, load_save
 
     engine = _seeded(tmp_path, monkeypatch)

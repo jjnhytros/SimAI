@@ -112,3 +112,6 @@ rm -rf data/
 uv run simai db upgrade
 uv run simai world seed
 uv run simai economy seed
+
+step "check git tag and hash..."
+git log --oneline -1

@@ -79,13 +79,22 @@ Costruire prima un **motore di simulazione deterministico, osservabile e verific
 | 0 — Setup | [ ] | — | pyproject, alembic, CLI, CI, py.typed |
 | 1 — Core Simulation | [ ] | 5000–5099, 5200_07 | TimeManager, Loop, SaveManager, Location, Stats |
 | 2 — Anthalys Time | [ ] | 5100 (riservato) | Moons, Holidays, Seasons, Astro, Clock |
-| 3 — Character/NPC | [ ] ~95% | 5200–5299 | 19 task §3.2/3.4/3.5 UI-driven sospesi |
-| 4 — World | [ ] ~90% | 5300–5399 | 4.0→4.10c completati; debiti aperti |
-| 5 — Economy | [ ] ~40% | 5400–5499 | Job/Market/Payday [ ], Banche/AION [ ] |
+| 3 — Character/NPC | [ ] ~25% | 5200–5299 | Solo 4 bisogni, 5 tratti, relazioni FRIEND. Manca NPCManager, lifecycle, skills, identità |
+| 4 — World | [ ] 0% | 5300–5399 | Nessun modulo `world/{district,lot,build,buy,style,terrain,city,ui}` |
+| 5 — Economy | [ ] ~55% | 5400–5499 | Job/Transaction/Payday/ShopItem/MarketService fatti; banche/tasse/AION [ ] |
 | 6 — Politics | [ ] 0% | 5500–5599 | — |
 | 7 — SoNet | [ ] 0% | 5600–5699 | — |
 | 8 — Multiplayer | [ ] 0% | 5700–5799 | — |
 | 9 — Hardening | [ ] 0% | — | — |
+
+> **Nota (2026-10-26, dopo 1.4.0)**: questa tabella era ferma a
+> dichiarazioni pre-ricostruzione. Le percentuali sono state corrette
+> con un audit parziale del codice (`tree.txt` + file del motore).
+> L'audit completo è in `docs/release/1.0-baseline.md` + `CHANGELOG.md`.
+> FASE 0 e 1 sono largamente incomplete (`§1.0 TimeManager`, `§1.3
+> GameObject`, `§1.4 YAML config`, `§1.6 Population stats` non
+> esistono). Non fidarsi delle caselle `[ ]`: il codice reale è la
+> fonte.
 
 ---
 

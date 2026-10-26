@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.1] — 2026-10-26
+
+### Corretto (documentale e test)
+
+- `tests/test_db_migrations.py`: `assert len(versions) >= 8` → `>= 13`
+  (migrazione `0013_shop_item` inclusa). Il test passava, il commento
+  era stale.
+- `tests/test_market.py::test_save_load_preserves_shop_items`:
+  variabile `offer` riusata due volte nella stessa sessione. Funzionava
+  per `expire_on_commit=False`, ma era fragile. Ora `offer` e
+  `offer_after_buy` sono distinte.
+- `TODO_SimAI_ottimizzato.md`: ROADMAP allineata al codice reale
+  (FASE 3 ~25%, FASE 4 0%, FASE 5 ~55%) + nota che le caselle `[ ]`
+  non sono la fonte di verità.
+- `README.md`: rimosso "tassazione" dalla riga `1.4+`; spostata a
+  `1.5+`, previa decisione esplicita. Coerente con Prompt.md (economia
+  avanzata non si apre senza decisione).
+
+### Non incluso
+
+- Nessuna modifica al comportamento del motore. La 1.4.1 è pulizia
+  di test e documentazione.
+
 ## [1.4.0] — 2026-10-26
 
 ### Aggiunto

@@ -169,9 +169,9 @@ def test_save_load_preserves_shop_items(tmp_path: Path, monkeypatch: pytest.Monk
     factory = get_session_factory(engine)
     action = _eat_caffe()
     with factory() as session:
-        offer = offer_of(session, "caffe", ActionKind.EAT)
-        assert offer is not None
-        offer.stock = 20
+        offer_after_buy = offer_of(session, "caffe", ActionKind.EAT)
+        assert offer_after_buy is not None
+        offer_after_buy.stock = 99
         session.commit()
 
         player = session.scalar(select(Character).where(Character.key == "player"))

@@ -273,9 +273,10 @@ Questa release è onesta su cosa non fa. I dettagli sono in
   economia, `player do` con stock/prezzo autoritativi. CI attiva.
   10y verde (`purchase_transactions 22402`). Stock infinito in 1.4.0,
   consumo reale + restock in 1.5.0.
-- **1.4+** — Calendario Anthalys, ciclo sonno/veglia, tassazione,
-  supporto familiare, inventario, `COST_PENALTY`, `db reset`. Vedi
-  `TODO_SimAI_ottimizzato.md` per la roadmap globale.
+- **1.4+** — Calendario Anthalys, ciclo sonno/veglia, supporto
+  familiare, inventario, `COST_PENALTY`, `db reset`. Vedi
+  `TODO_SimAI_ottimizzato.md` per la roadmap globale. Tassazione in
+  1.5+, previa decisione esplicita: non è nel perimetro 1.4.x.
 
 ## Documenti
 

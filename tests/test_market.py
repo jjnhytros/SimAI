@@ -162,16 +162,19 @@ def test_buy_with_infinite_stock_keeps_minus_one(
         assert result.stock_after == -1
 
 
-def test_save_load_preserves_shop_items(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_save_load_preserves_shop_items(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from simai.save.service import create_save, load_save
 
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     action = _eat_caffe()
     with factory() as session:
-        offer_after_buy = offer_of(session, "caffe", ActionKind.EAT)
-        assert offer_after_buy is not None
-        offer_after_buy.stock = 99
+        # 1. Forza stock finito (seed è -1 in 1.4.0) e compra.
+        offer_before_buy = offer_of(session, "caffe", ActionKind.EAT)
+        assert offer_before_buy is not None
+        offer_before_buy.stock = 20
         session.commit()
 
         player = session.scalar(select(Character).where(Character.key == "player"))
@@ -179,14 +182,17 @@ def test_save_load_preserves_shop_items(tmp_path: Path, monkeypatch: pytest.Monk
         buy(session, player, "caffe", action, tick_index=0)
         session.commit()
 
+        # 2. Snapshot: stock è 19.
         save_path = tmp_path / "roundtrip.sav"
         create_save(session, name="roundtrip", output=save_path)
 
-        offer = offer_of(session, "caffe", ActionKind.EAT)
-        assert offer is not None
-        offer.stock = 99
+        # 3. Sporca lo stato in memoria: stock diventa 99.
+        offer_after_buy = offer_of(session, "caffe", ActionKind.EAT)
+        assert offer_after_buy is not None
+        offer_after_buy.stock = 99
         session.commit()
 
+        # 4. Load: deve riportare stock a 19 (dal save).
         load_save(session, str(save_path))
         session.commit()
 

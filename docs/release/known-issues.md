@@ -151,3 +151,69 @@ Il 60y su 1.2.1 non è stato eseguito. Al suo posto, 10y (`benchmarks/10y-1.2.1.
 Il tratto SOLITARY rallenta il decadimento di INTIMACY (×0.60), ma non impedisce all’NPC di fare SOCIALIZE quando serve.
 
 **Roadmap 1.3.1+:** perché LONELY scatti anche per gli NPC serve una location senza SOCIALIZE (es. un ufficio, una biblioteca), o una soglia di "troppo socializzato" oltre la quale l’NPC rifiuta SOCIALIZE (satolazione sociale). Entrambe sono 1.4+.
+
+
+---
+
+## 4. Tratti (1.3.0)
+
+### 4.1 Effetto piccolo sui dati
+
+I tratti modificano decadimento (0.60–1.30), utility (0.10–0.15) e
+movimento (−0.10 SOLITARY), ma l'effetto **misurato** sui 10 anni è
+piccolo:
+
+- `fun_mean`: giulia (LAZY+GLUTTON) 79.9 vs 82+ degli altri;
+- `intimacy_mean`: erika (SOLITARY) 81.3 vs 80.3–80.6 degli altri.
+
+Le differenze sono < 1 punto. I tratti sono progettati per spostare
+la decisione solo quando due opzioni sono vicine, non per dominare
+l'utility. Se in futuro si vuole un effetto più visibile, va rivisto
+il design (bonus più alti, o interazione fra tratti), non i numeri.
+
+### 4.2 LAZY — ambiguità semantica
+
+LAZY ha due effetti che spingono in direzioni opposte:
+
+- `FUN` decade più veloce (× 1.30) → l'NPC sente prima il bisogno di
+  divertirsi;
+- `PLAY` ha utility +0.15 → l'NPC sceglie PLAY più spesso.
+
+Netto: giulia ha `fun_mean` più bassa degli altri (79.9 vs 82+), ma
+questo è compatibile sia con "LAZY gioca meno" (utility bonus
+insufficiente a compensare il decay) sia con "LAZY gioca di più ma
+il decadimento è più forte". **La semantica voluta non è documentata.**
+Va chiarito con Marco prima di 1.4: se l'intenzione è "il pigro gioca
+meno", il bonus va rimosso o invertito di segno.
+
+### 4.3 LONELY resta player-only
+
+Confermato in 1.3.0. Gli NPC hanno SOCIALIZE in tutte le location e
+azzerano la streak prima che scatti. Il tratto SOLITARY rallenta
+INTIMACY (× 0.60) ma non impedisce SOCIALIZE. LONELY è raggiungibile
+solo dal player.
+
+---
+
+## 5. Igiene operativa
+
+### 5.1 `scripts/check.sh` cancella `data/` alla fine
+
+Lo script termina con:
+
+```bash
+unset VIRTUAL_ENV
+rm -rf data/
+uv run simai db upgrade
+uv run simai world seed
+```
+
+`set -euo pipefail` garantisce che il `rm -rf data/` parta solo se
+tutti i gate sono passati, quindi non è un bug logico. Ma è
+**distruttivo, non documentato, non gated da flag**. Chi lancia
+`./scripts/check.sh` a metà lavoro perde DB locale e `data/saves/`
+silenziosamente.
+
+**Roadmap 1.4**: `--reset-data` esplicito, oppure sostituire con
+`simai db reset --yes` (già in roadmap §3.4). Per 1.3.1 la mitigazione
+è documentare qui.

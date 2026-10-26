@@ -1,8 +1,25 @@
 # Changelog
 
-Tutte le versioni sono elencate in ordine decrescente.
+## [1.3.1] — 2026-10-26
 
----
+### Corretto (documentale)
+
+- Aggiunto `docs/release/1.3.0-plan.md` retroattivo: il tag v1.3.0
+  era stato creato senza piano scritto. Il piano è ricostruito da
+  CHANGELOG, diff del codice e benchmark.
+- CHANGELOG `[1.3.0]`: la sezione "Prossimi passi (A2)" diceva che i
+  modificatori dei tratti andavano ancora applicati in `decay_value`
+  e `score`. Erano già applicati. Sostituita con i numeri del 10y.
+- README "Stato del progetto": stessa incoerenza su A2. Allineato al
+  codice.
+- `known-issues.md`: aggiunte §4 (limiti dei tratti) e §5
+  (`check.sh` cancella `data/` senza flag).
+- `pyproject.toml` e `__version__.py` bumpati a 1.3.1.
+
+### Non incluso
+
+- Nessuna modifica al codice del motore. La 1.3.1 è puramente
+  documentale.
 
 ## [1.3.0] — 2026-10-26
 
@@ -19,12 +36,16 @@ Tutte le versioni sono elencate in ordine decrescente.
 - `player status` mostra `Tratti:`.
 - `save`/`load` preserva `traits`.
 
-### Prossimi passi (A2)
+### Verificato (10y, seed 42)
 
-- Modificatori applicati in `decay_value` e `score`.
-- Test comportamentali (LAZY vs ENERGETIC, SOLITARY e LONELY).
-- Benchmark 10y.
-
+- Modificatori **applicati** in `decay_value`, `score`, `_move_score`
+  (non solo definiti).
+- Benchmark `10y-1.3.0.json` archiviato: 77.3 tick/s, invarianti OK,
+  `job_attendance_rate 1.0` su tutti gli NPC.
+- Mood medio: erika 68.06, max 68.26, luca 68.14, giulia 67.75
+  (stabile vs 1.2.1: 67.87 / 68.02 / 68.13 / 67.97).
+- Effetto dei tratti sui dati: < 1 punto su `fun_mean`/`intimacy_mean`.
+Accettato, documentato in `known-issues.md` §4.1.
 ---
 
 ## [1.2.1] — 2026-10-26

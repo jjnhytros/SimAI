@@ -262,8 +262,13 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - **1.2.1** — Fontanella e panino a piazza, routine serale
   (`home_location_id`), attendance 100% sui 4 NPC.
 - **1.3.0** — Tratti (`LAZY`, `ENERGETIC`, `SOCIAL`, `SOLITARY`,
-  `GLUTTON`), seed, migrazione, CLI `npc traits`. Modificatori applicati
-  in A2.
+  `GLUTTON`), seed, migrazione, CLI `npc traits`. Modificatori attivi
+  su decadimento, utility e movimento. 10y verde (mood 67.8–68.3,
+  attendance 100%, invarianti OK). Documentazione retroattiva in
+  `docs/release/1.3.0-plan.md`.
+- **1.3.1** — Release documentale: piano retroattivo 1.3.0, CHANGELOG
+  e README allineati al codice, limiti dei tratti in `known-issues.md`,
+  nota su `check.sh --reset-data` rimandato a 1.4.
 - **1.4+** — Calendario Anthalys, ciclo sonno/veglia, tassazione,
   supporto familiare, inventario, `COST_PENALTY`, `db reset`. Vedi
   `TODO_SimAI_ottimizzato.md` per la roadmap globale.

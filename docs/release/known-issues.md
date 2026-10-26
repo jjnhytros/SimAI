@@ -189,6 +189,7 @@ continuano a fare azioni (EAT/DRINK/PLAY) da svegli. Il ciclo
 sonno/veglia è 1.3 (con il calendario Anthalys).
 
 ### Migrazioni SQLite fallite lasciano DB inconsistenti
+
 Se una migrazione con `batch_alter_table` fallisce a metà, SQLite può
 lasciare il DB con la colonna aggiunta ma `alembic_version` invariata.
 Un successivo `db upgrade` fallisce con `duplicate column name`.
@@ -200,3 +201,17 @@ un problema serio quando ci saranno dati utente non ricreabili.
 **Roadmap 1.3:** comando `simai db reset --yes` che gestisce questo
 caso. E test di migrazione `upgrade → downgrade → upgrade` in CI per
 catturare migrazioni che non sono reversibili.
+
+### 60y rimandato, 10y eseguito
+
+Il 60y su 1.2.1 non è stato eseguito. Al suo posto, 10y
+(`benchmarks/10y-1.2.1.json`). 10y copre derive lineari di balance,
+mood, attendance e intimacy. NON copre:
+
+- performance con DB > 50 MB (~200k transazioni, tipico di 60y)
+- derive oltre 10 anni (non ci sono meccanismi noti che le
+  causerebbero, ma "non noti" ≠ "non esistenti")
+
+**Roadmap:** 60y su una release stabile (2.0 o prima di introdurre
+multiplayer) come validazione estesa. 10y ad ogni release che tocca
+`run_tick` o `process_payday`.

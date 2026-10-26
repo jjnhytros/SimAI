@@ -61,23 +61,24 @@ def test_no_actions_but_move_returns_move() -> None:
 
 
 def test_urgent_move_beats_weak_local_action() -> None:
-    # A piazza: PLAY disponibile (fun 60 < 70), SOCIALIZE (intimacy 60).
-    # Thirst 5: al caffè c'è DRINK. A piazza non c'è DRINK.
-    needs = _needs(thirst=5.0, fun=60.0, intimacy=60.0)
-    actions = actions_for_location(LocationKind.SOCIAL)
+    # A casa: EAT disponibile (hunger 60 < 70? no, EAT soglia 30).
+    # Mettiamo hunger 60 (sopra soglia, no EAT), fun 60 (PLAY
+    # disponibile), intimacy 5 (SOCIALIZE non a casa -> move piazza).
+    needs = _needs(hunger=60.0, thirst=100.0, fun=60.0, intimacy=5.0)
+    actions = actions_for_location(LocationKind.RESIDENTIAL)
     moves = [
         ReachableMove(
-            target_location_key="caffe",
-            target_location_kind=LocationKind.LEISURE,
-            satisfies=NeedKind.THIRST,
+            target_location_key="piazza",
+            target_location_kind=LocationKind.SOCIAL,
+            satisfies=NeedKind.INTIMACY,
             need_value=5.0,
-            action_kind=ActionKind.DRINK,
+            action_kind=ActionKind.SOCIALIZE,
         )
     ]
     intent = choose_intent(needs, actions, moves, _rng(0))
     assert intent.action is None
     assert intent.move is not None
-    assert intent.move.satisfies == NeedKind.THIRST
+    assert intent.move.satisfies == NeedKind.INTIMACY
 
 
 def test_local_action_beats_weak_move() -> None:

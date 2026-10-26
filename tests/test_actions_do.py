@@ -58,15 +58,12 @@ def test_do_action_invalid_in_location(tmp_path: Path, monkeypatch: pytest.Monke
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        # player è a casa: EAT è disponibile, ma prima di tutto
-        # spostiamolo a piazza, dove EAT non c'è.
-        move_character(session, "player", "piazza")
-        session.flush()
-        result = do_action(session, "player", ActionKind.EAT)
+        # player a casa: SOCIALIZE non è disponibile qui.
+        result = do_action(session, "player", ActionKind.SOCIALIZE)
     assert not result.success
     assert result.error is not None
     assert "non disponibile" in result.error
-    assert "'piazza'" in result.error
+    assert "'casa'" in result.error
 
 
 def test_do_action_unknown_character(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -35,14 +35,13 @@ def _force_needs(session, character_key: str, **values: float) -> None:
             n.value = values[n.kind.value]
 
 
-def test_erika_moves_from_piazza_when_thirsty(
+def test_erika_drinks_at_piazza_when_thirsty(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Piazza ha DRINK gratis (fontanella): Erika non si sposta."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        # Erika a piazza: qui non c'è DRINK (solo PLAY e SOCIALIZE).
-        # Con thirst 20, deve spostarsi per bere.
         move_character(session, "erika", "piazza")
         session.flush()
         _force_needs(
@@ -59,50 +58,11 @@ def test_erika_moves_from_piazza_when_thirsty(
         report = run_tick(session, minutes=1, tick_index=0, master_seed=42)
         session.commit()
 
-    d = next(
-        (d for d in report.decisions if d.character_key == "erika"),
-        None,
-    )
-    assert d is not None
-    assert d.moved_from == "piazza"
-    assert d.moved_to in ("casa", "caffe")
-    assert d.action is None
-
-    with factory() as session:
-        erika = session.scalar(select(Character).where(Character.key == "erika"))
-        assert erika is not None
-        assert erika.location.key in ("casa", "caffe")
-
-
-def test_after_moving_erika_drinks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = _seeded(tmp_path, monkeypatch)
-    factory = get_session_factory(engine)
-    with factory() as session:
-        move_character(session, "erika", "piazza")
-        session.flush()
-        _force_needs(
-            session,
-            "erika",
-            thirst=20.0,
-            hunger=100.0,
-            fun=100.0,
-            intimacy=100.0,
-        )
-        session.commit()
-
-    with factory() as session:
-        r0 = run_tick(session, minutes=1, tick_index=0, master_seed=42)
-        session.commit()
-    d0 = next(d for d in r0.decisions if d.character_key == "erika")
-    assert d0.moved_to in ("casa", "caffe")
-
-    with factory() as session:
-        r1 = run_tick(session, minutes=1, tick_index=1, master_seed=42)
-        session.commit()
-    d1 = next(d for d in r1.decisions if d.character_key == "erika")
-    # Ora nella location con DRINK: thirst ~19.87 < 40, quindi beve.
-    assert d1.action is not None
-    assert d1.action.value == "drink"
+    d = next(d for d in report.decisions if d.character_key == "erika")
+    assert d.moved_to is None
+    assert d.action is not None
+    assert d.action.value == "drink"
+    assert d.cost_paid == 0.0
 
 
 def test_npc_stays_if_nothing_critical(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

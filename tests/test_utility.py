@@ -36,7 +36,12 @@ def test_actions_for_residential() -> None:
 
 def test_actions_for_social() -> None:
     kinds = {a.kind for a in actions_for_location(LocationKind.SOCIAL)}
-    assert kinds == {ActionKind.PLAY, ActionKind.SOCIALIZE}
+    assert kinds == {
+        ActionKind.EAT,
+        ActionKind.DRINK,
+        ActionKind.PLAY,
+        ActionKind.SOCIALIZE,
+    }
 
 
 def test_actions_for_leisure() -> None:

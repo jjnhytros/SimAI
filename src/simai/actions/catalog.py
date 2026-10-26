@@ -17,7 +17,7 @@ class ActionDef:
 
 
 CATALOG: tuple[ActionDef, ...] = (
-    # EAT — casa (gratis), caffè (3 Athel)
+    # EAT — casa (gratis), caffè (3), piazza (panino 2)
     ActionDef(
         kind=ActionKind.EAT,
         satisfies=NeedKind.HUNGER,
@@ -30,11 +30,20 @@ CATALOG: tuple[ActionDef, ...] = (
         kind=ActionKind.EAT,
         satisfies=NeedKind.HUNGER,
         amount=40.0,
+        allowed_at=frozenset({LocationKind.SOCIAL}),
+        max_need_to_start=30.0,
+        cost=2.0,
+    ),
+    ActionDef(
+        kind=ActionKind.EAT,
+        satisfies=NeedKind.HUNGER,
+        amount=40.0,
         allowed_at=frozenset({LocationKind.LEISURE}),
         max_need_to_start=30.0,
         cost=3.0,
     ),
-    # DRINK — casa (acqua, gratis), caffè (2 Athel)
+    # DRINK — casa (acqua, gratis), piazza (fontanella, gratis),
+    # caffè (2)
     ActionDef(
         kind=ActionKind.DRINK,
         satisfies=NeedKind.THIRST,
@@ -46,12 +55,20 @@ CATALOG: tuple[ActionDef, ...] = (
     ActionDef(
         kind=ActionKind.DRINK,
         satisfies=NeedKind.THIRST,
+        amount=15.0,
+        allowed_at=frozenset({LocationKind.SOCIAL}),
+        max_need_to_start=40.0,
+        cost=0.0,
+    ),
+    ActionDef(
+        kind=ActionKind.DRINK,
+        satisfies=NeedKind.THIRST,
         amount=30.0,
         allowed_at=frozenset({LocationKind.LEISURE}),
         max_need_to_start=40.0,
         cost=2.0,
     ),
-    # PLAY — piazza (gratis), casa (gratis), caffè (4 Athel)
+    # PLAY — piazza, casa (gratis), caffè (4)
     ActionDef(
         kind=ActionKind.PLAY,
         satisfies=NeedKind.FUN,

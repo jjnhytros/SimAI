@@ -5,7 +5,6 @@ from alembic import command
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
-from simai.actions.enums import ActionKind
 from simai.actions.reachability import available_moves
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
@@ -54,7 +53,9 @@ def test_all_needs_high_no_moves(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert moves == []
 
 
-def test_thirsty_from_casa_reaches_caffe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_thirsty_from_casa_reaches_drink_locations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -65,12 +66,13 @@ def test_thirsty_from_casa_reaches_caffe(tmp_path: Path, monkeypatch: pytest.Mon
             current_location_id=casa.id,
             needs=_needs(thirst=20.0),
         )
-    # Solo il caffè ha DRINK
-    assert len(moves) == 1
-    assert moves[0].target_location_key == "caffe"
-    assert moves[0].satisfies == NeedKind.THIRST
-    assert moves[0].action_kind == ActionKind.DRINK
-    assert moves[0].need_value == 20.0
+    # Caffè (DRINK 2 Athel) e piazza (fontanella gratis)
+    targets = {(m.target_location_key, m.action_kind.value) for m in moves}
+    assert ("caffe", "drink") in targets
+    assert ("piazza", "drink") in targets
+    assert len(moves) == 2
+    assert all(m.satisfies == NeedKind.THIRST for m in moves)
+    assert all(m.need_value == 20.0 for m in moves)
 
 
 def test_hungry_from_caffe_can_reach_casa(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

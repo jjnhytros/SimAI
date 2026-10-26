@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.3.0] — 2026-10-26
+
+### Aggiunto
+
+- **Tratti**: `Character.traits` (JSON list). 5 tratti:
+  LAZY, ENERGETIC, SOCIAL, SOLITARY, GLUTTON.
+- Modificatori di decadimento (`trait_decay_multiplier`) e di utility
+  (`trait_utility_bonus`), `trait_move_penalty`.
+- Seed: erika=SOLITARY, max=ENERGETIC, luca=SOCIAL,
+  giulia=LAZY+GLUTTON, player=nessuno.
+- Migrazione `0012_traits`.
+- CLI `simai npc traits -c <key>`.
+- `player status` mostra `Tratti:`.
+- `save`/`load` preserva `traits`.
+
+### In arrivo (A2)
+
+- Modificatori applicati in `decay_value` e `score`.
+- Test comportamentali (LAZY vs ENERGETIC, SOLITARY e LONELY).
+- Benchmark 10y.
+
 ## [1.2.1] — 2026-10-26
 
 ### Aggiunto

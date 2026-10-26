@@ -207,3 +207,28 @@ def test_roundtrip_preserves_economy(tmp_path: Path, monkeypatch: pytest.MonkeyP
         assert erika.balance == 123.45
         jobs = session.scalars(select(Job)).all()
         assert len(jobs) == 5
+
+
+def test_roundtrip_preserves_traits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        assert erika.traits == ["solitary"]
+        create_save(session, name="tr")
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        erika.traits = []
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "tr")
+        session.commit()
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        assert erika.traits == ["solitary"]

@@ -5,6 +5,7 @@ from simai.cli.cmd_db import db_app
 from simai.cli.cmd_economy import economy_app
 from simai.cli.cmd_i18n import i18n_app
 from simai.cli.cmd_needs import needs_app
+from simai.cli.cmd_npc import npc_app
 from simai.cli.cmd_player import player_app
 from simai.cli.cmd_relationships import relationships_app
 from simai.cli.cmd_save import save_app
@@ -37,6 +38,7 @@ app.add_typer(save_app, name="save")
 app.add_typer(player_app, name="player")
 app.add_typer(watch_app, name="watch")
 app.add_typer(economy_app, name="economy")
+app.add_typer(npc_app, name="npc")
 
 
 def main() -> None:

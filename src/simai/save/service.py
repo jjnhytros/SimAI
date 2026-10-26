@@ -8,6 +8,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from simai.config.settings import Settings
+from simai.economy.enums import JobTitle, TransactionKind
+from simai.economy.models import Job, Transaction
 from simai.mood.enums import MoodletKind
 from simai.mood.models import Moodlet
 from simai.needs.enums import NeedKind
@@ -60,8 +62,6 @@ def _schema_revision(session: Session) -> str | None:
 
 
 def _serialize_state(session: Session) -> dict[str, Any]:
-    from simai.economy.models import Job, Transaction
-
     locations = session.scalars(select(Location)).all()
     characters = session.scalars(select(Character)).all()
     needs = session.scalars(select(Need)).all()
@@ -91,10 +91,11 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "age_years": c.age_years,
                 "is_player": c.is_player,
                 "location_id": c.location_id,
+                "home_location_id": c.home_location_id,
                 "mood": c.mood,
                 "low_intimacy_streak": c.low_intimacy_streak,
                 "balance": c.balance,
-                "home_location_id": c.home_location_id,
+                "traits": list(c.traits),
             }
             for c in characters
         ],
@@ -168,15 +169,11 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
     Ordine di delete: figli prima dei padri.
     Ordine di insert: padri prima dei figli.
     """
-
-    from simai.economy.enums import JobTitle, TransactionKind
-    from simai.economy.models import Job, Transaction
-
     session.execute(delete(Moodlet))
-    session.execute(delete(Relationship))
-    session.execute(delete(Need))
     session.execute(delete(Transaction))
     session.execute(delete(Job))
+    session.execute(delete(Relationship))
+    session.execute(delete(Need))
     session.execute(delete(Character))
     session.execute(delete(Location))
     session.execute(delete(SimState))
@@ -204,10 +201,11 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 age_years=row["age_years"],
                 is_player=row["is_player"],
                 location_id=row["location_id"],
+                home_location_id=row.get("home_location_id"),
                 mood=row.get("mood", 100.0),
                 low_intimacy_streak=row.get("low_intimacy_streak", 0),
                 balance=row.get("balance", 100.0),
-                home_location_id=row.get("home_location_id"),
+                traits=row.get("traits", []),
             )
         )
     session.flush()
@@ -233,6 +231,16 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
             )
         )
 
+    for row in payload.get("moodlets", []):
+        session.add(
+            Moodlet(
+                character_id=row["character_id"],
+                kind=MoodletKind(row["kind"]),
+                started_at_tick=row["started_at_tick"],
+                expires_at_tick=row["expires_at_tick"],
+            )
+        )
+
     for row in payload.get("jobs", []):
         session.add(
             Job(
@@ -249,21 +257,11 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
         session.add(
             Transaction(
                 tick_index=row["tick_index"],
-                from_character_id=row["from_character_id"],
-                to_character_id=row["to_character_id"],
+                from_character_id=row.get("from_character_id"),
+                to_character_id=row.get("to_character_id"),
                 amount=row["amount"],
                 kind=TransactionKind(row["kind"]),
                 note=row["note"],
-            )
-        )
-
-    for row in payload.get("moodlets", []):
-        session.add(
-            Moodlet(
-                character_id=row["character_id"],
-                kind=MoodletKind(row["kind"]),
-                started_at_tick=row["started_at_tick"],
-                expires_at_tick=row["expires_at_tick"],
             )
         )
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,3 +37,4 @@ class Character(Base):
     location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"), nullable=False)
     location: Mapped[Location] = relationship(back_populates="characters")
     home_location_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    traits: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)

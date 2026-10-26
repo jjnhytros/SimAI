@@ -44,6 +44,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "location_key": "casa",
         "home_location_key": "casa",
         "balance": 100.0,
+        "traits": [],
     },
     {
         "key": "erika",
@@ -53,6 +54,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "location_key": "casa",
         "home_location_key": "casa",
         "balance": 50.0,
+        "traits": ["solitary"],
     },
     {
         "key": "max",
@@ -62,6 +64,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "location_key": "piazza",
         "home_location_key": "casa",
         "balance": 50.0,
+        "traits": ["energetic"],
     },
     {
         "key": "luca",
@@ -71,6 +74,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "location_key": "caffe",
         "home_location_key": "casa",
         "balance": 100.0,
+        "traits": ["social"],
     },
     {
         "key": "giulia",
@@ -80,6 +84,7 @@ CHARACTER_SPECS: list[dict[str, Any]] = [
         "location_key": "piazza",
         "home_location_key": "casa",
         "balance": 100.0,
+        "traits": ["lazy", "glutton"],
     },
 ]
 

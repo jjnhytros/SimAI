@@ -205,13 +205,25 @@ catturare migrazioni che non sono reversibili.
 ### 60y rimandato, 10y eseguito
 
 Il 60y su 1.2.1 non è stato eseguito. Al suo posto, 10y
-(`benchmarks/10y-1.2.1.json`). 10y copre derive lineari di balance,
-mood, attendance e intimacy. NON copre:
+(`benchmarks/10y-1.2.1.json`, ~19 minuti, 75.5 tick/s).
 
-- performance con DB > 50 MB (~200k transazioni, tipico di 60y)
-- derive oltre 10 anni (non ci sono meccanismi noti che le
-  causerebbero, ma "non noti" ≠ "non esistenti")
+**Confermato da 10y**:
 
-**Roadmap:** 60y su una release stabile (2.0 o prima di introdurre
-multiplayer) come validazione estesa. 10y ad ogni release che tocca
-`run_tick` o `process_payday`.
+- Balance lineare: giulia +3.713/anno, luca +2.657/anno,
+  erika/max +691/anno. Nessuna accelerazione.
+- Mood stabile (67.9–68.1 vs 68.4 a 3y).
+- Attendance 100% per tutti i 4 NPC.
+- Performance stabile (75.5 tick/s, identica a 3y).
+- Salary deterministico (14.600 = 4 × 365 × 10).
+
+**NON coperto da 10y**:
+
+- Performance con DB > 50 MB (~200k transazioni, tipico di 60y).
+  Il 10y produce ~15 MB e mostra performance stabile, ma non
+  dimostra che regga a 50 MB.
+- Derive oltre 10 anni. Non ci sono meccanismi noti che le
+  causerebbero, ma non sono escluse.
+
+**Roadmap**: 60y su una release stabile (2.0 o prima di multiplayer)
+come validazione estesa. 10y ad ogni release che tocca `run_tick` o
+`process_payday`.

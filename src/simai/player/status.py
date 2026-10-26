@@ -24,6 +24,7 @@ class PlayerStatus:
     name: str
     age_years: int
     mood: float
+    traits: list[str]
     balance: float
     location_key: str
     location_name: str
@@ -97,6 +98,7 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         name=player.name,
         age_years=player.age_years,
         mood=float(player.mood),
+        traits=list(player.traits),
         balance=float(player.balance),
         location_key=loc.key,
         location_name=loc.name,

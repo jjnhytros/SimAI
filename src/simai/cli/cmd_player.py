@@ -28,6 +28,8 @@ def status() -> None:
     typer.echo(f"Player: {s.name} ({s.character_key}), {s.age_years} anni")
     typer.echo(f"Umore: {s.mood:.1f} ({mood_label(s.mood)})")
     typer.echo(f"Balance: {s.balance:.1f} Athel")
+    traits_label = ", ".join(s.traits) if s.traits else "nessuno"
+    typer.echo(f"Tratti: {traits_label}")
     if s.job_state is not None:
         typer.echo(f"Lavoro: {s.job_state}")
     else:

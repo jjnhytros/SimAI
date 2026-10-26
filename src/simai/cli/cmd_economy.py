@@ -146,3 +146,57 @@ def jobs() -> None:
             f"{job.schedule_end_tick:02d}  "
             f"[{state_label}]"
         )
+
+
+@economy_app.command("seed")
+def seed() -> None:
+    """Popola i negozi del Quartiere delle Muse (idempotente)."""
+    from simai.economy.seed import seed_demo_economy
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        report = seed_demo_economy(session)
+        session.commit()
+    typer.echo(f"Economia: {report['shop_items_created']} ShopItem creati.")
+
+
+@economy_app.command("shops")
+def shops() -> None:
+    """Elenca i negozi (ShopItem) per location."""
+    from simai.economy.models import ShopItem
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        items = session.scalars(
+            select(ShopItem).order_by(ShopItem.location_key, ShopItem.action_kind)
+        ).all()
+
+    if not items:
+        typer.echo("Nessun negozio. Esegui `simai economy seed`.")
+        return
+
+    typer.echo(f"Negozio ({len(items)} item):")
+    for item in items:
+        stock_label = "∞" if item.stock < 0 else str(item.stock)
+        typer.echo(
+            f"  {item.location_key:<8} {item.action_kind.value:<10} "
+            f"{item.price:5.1f} Athel  stock={stock_label}"
+        )
+
+
+@economy_app.command("restock")
+def restock() -> None:
+    """Riporta lo stock ai valori dello spec."""
+    from simai.economy.seed import restock_all
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        touched = restock_all(session)
+        session.commit()
+    typer.echo(f"Restock: {touched} ShopItem aggiornati.")

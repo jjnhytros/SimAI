@@ -1,7 +1,16 @@
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    Enum as SAEnum,
+)
+from sqlalchemy import (
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
+from simai.actions.enums import ActionKind
 from simai.db.base import Base
 from simai.economy.enums import JobTitle, TransactionKind
 
@@ -40,3 +49,22 @@ class Transaction(Base):
         SAEnum(TransactionKind, native_enum=False), nullable=False
     )
     note: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+
+
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "location_key",
+            "action_kind",
+            name="uq_shop_items_location_action",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    location_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    action_kind: Mapped[ActionKind] = mapped_column(
+        SAEnum(ActionKind, native_enum=False), nullable=False
+    )
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    stock: Mapped[int] = mapped_column(Integer, nullable=False, default=-1)

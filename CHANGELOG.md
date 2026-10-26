@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.4.0] — 2026-10-26
+
+### Aggiunto
+
+- **Mercato e negozi**: `ShopItem` (stock, price, location, action),
+  `MarketService.buy/sell/filter_by_stock`, `seed_demo_economy`,
+  `restock_all`.
+- Migrazione `0013_shop_item`.
+- `player do -a <action>` usa `MarketService.buy` quando c'è uno
+  `ShopItem`: prezzo e stock autoritativi, `Transaction PURCHASE`
+  registrata, `stock` scalato.
+- `sim/tick.py` filtra azioni con `stock == 0` (via `filter_by_stock`).
+- `save`/`load` serializza `ShopItem`.
+- CLI `economy seed / shops / restock`.
+- CI GitHub Actions (`.github/workflows/ci.yml`) con
+  `check.sh --with-tests`.
+
+### Cambiato
+
+- `do_action` refactor: `MarketService.buy` se `ShopItem` esiste,
+  fallback legacy se non esiste (test esistenti invariati).
+- `sim/benchmark.py` semina l'economia (`seed_demo_economy`) prima di
+  `reset_state`. Prima il benchmark non aveva `ShopItem` e
+  `purchase_transactions` era 0: il benchmark non misurava il
+  comportamento di produzione.
+
+### Verificato (10y, seed 42)
+
+- `invariants_ok: true`
+- `purchase_transactions: 22402` (vs 22402 in 1.3.0 — le decisioni
+  non cambiano, cambia il meccanismo)
+- `mood_mean`: erika 68.1, max 68.1, luca 67.9, giulia 67.7
+- `job_attendance_rate: 1.0`
+- `balance_mean`: erika 6987, max 6987, luca 26416, giulia 36454
+  (non più lineare: gli acquisti scalano il saldo)
+
+### Limitato (documentato in `known-issues.md` §6)
+
+- `stock = -1` (infinito) in 1.4.0. Consumo scorte reale + restock
+  in 1.5.0 (con `LifecycleManager`).
+- `available_moves` non considera lo stock: un NPC può muoversi per
+  un'azione esaurita. Non raggiungibile in 1.4.0 (stock infinito).
+- Un solo entry point per l'acquisto (`player do`). Niente
+  `economy buy`.
+
 ## [1.3.1] — 2026-10-26
 
 ### Corretto (documentale)

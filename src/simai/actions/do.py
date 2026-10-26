@@ -9,6 +9,8 @@ from simai.actions.utility import (
     filter_by_need_threshold,
 )
 from simai.economy.enums import TransactionKind
+from simai.economy.market import buy as market_buy
+from simai.economy.market import filter_by_stock
 from simai.economy.service import record_transaction
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_effect, needs_of
@@ -44,9 +46,11 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
     """Esegue un'azione specifica per un personaggio.
 
     Valida, nell'ordine: personaggio, location, disponibilità
-    dell'azione qui, soglia del bisogno, denaro sufficiente. Applica
-    l'effetto sul bisogno, addebita il costo, registra la transaction,
-    applica boost relazionale se SOCIALIZE. Non avanza il tempo.
+    dell'azione qui, soglia del bisogno, denaro sufficiente, stock
+    disponibile. Applica l'effetto sul bisogno, addebita il costo
+    (via MarketService.buy se c'è un ShopItem, altrimenti fallback
+    legacy), registra la transaction, applica boost relazionale se
+    SOCIALIZE.
     """
     char = session.query(Character).filter_by(key=character_key).one_or_none()
     if char is None:
@@ -73,12 +77,13 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
     needs = needs_of(session, char.id)
     available = actions_for_location(loc.kind)
     available_by_need = filter_by_need_threshold(available, needs)
-    available_now = filter_by_affordability(available_by_need, char.balance)
+    available_by_money = filter_by_affordability(available_by_need, char.balance)
+    available_now = filter_by_stock(session, available_by_money, loc.key)
 
     action = _find_in(available_now, action_kind)
     if action is None:
-        original_need = _find_in(available, action_kind)
-        if original_need is None:
+        original = _find_in(available, action_kind)
+        if original is None:
             names = [a.kind.value for a in available]
             return ActionResult(
                 success=False,
@@ -93,8 +98,8 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
                 ),
             )
 
-        if original_need not in available_by_need:
-            current = needs.get(original_need.satisfies, 0.0)
+        if original not in available_by_need:
+            current = needs.get(original.satisfies, 0.0)
             return ActionResult(
                 success=False,
                 action=action_kind,
@@ -103,40 +108,73 @@ def do_action(session: Session, character_key: str, action_kind: ActionKind) -> 
                 location_key=loc.key,
                 error=(
                     f"Azione '{action_kind.value}' non necessaria: "
-                    f"{original_need.satisfies.value}={current:.1f} "
-                    f"(soglia {original_need.max_need_to_start:.0f})"
+                    f"{original.satisfies.value}={current:.1f} "
+                    f"(soglia {original.max_need_to_start:.0f})"
                 ),
             )
+
+        if original not in available_by_money:
+            return ActionResult(
+                success=False,
+                action=action_kind,
+                character_id=char.id,
+                character_key=char.key,
+                location_key=loc.key,
+                error=(
+                    f"Azione '{action_kind.value}' costa "
+                    f"{original.cost:.1f} Athel, "
+                    f"ne hai {char.balance:.1f}"
+                ),
+            )
+
         return ActionResult(
             success=False,
             action=action_kind,
             character_id=char.id,
             character_key=char.key,
             location_key=loc.key,
-            error=(
-                f"Azione '{action_kind.value}' costa "
-                f"{original_need.cost:.1f} Athel, "
-                f"ne hai {char.balance:.1f}"
-            ),
+            error=f"Azione '{action_kind.value}' esaurita in '{loc.key}'",
         )
 
     before = needs.get(action.satisfies)
-    after = apply_effect(session, char.id, action)
-
     cost_paid = 0.0
-    if action.cost > 0:
-        char.balance -= action.cost
-        cost_paid = action.cost
-        tick = get_state(session).tick_index
-        record_transaction(
-            session,
-            tick_index=tick,
-            amount=action.cost,
-            kind=TransactionKind.PURCHASE,
-            from_character_id=char.id,
-            note=f"{action.kind.value} @ {loc.key}",
-        )
+    tick = get_state(session).tick_index
 
+    if action.cost > 0:
+        from simai.economy.market import offer_of
+
+        if offer_of(session, loc.key, action.kind) is not None:
+            purchase = market_buy(
+                session,
+                char,
+                loc.key,
+                action,
+                tick_index=tick,
+            )
+            if not purchase.success:
+                return ActionResult(
+                    success=False,
+                    action=action_kind,
+                    character_id=char.id,
+                    character_key=char.key,
+                    location_key=loc.key,
+                    error=purchase.error or "Acquisto fallito",
+                )
+            cost_paid = purchase.price_paid
+        else:
+            # Fallback legacy: nessun ShopItem, ma ActionDef.cost > 0.
+            char.balance -= action.cost
+            cost_paid = action.cost
+            record_transaction(
+                session,
+                tick_index=tick,
+                amount=action.cost,
+                kind=TransactionKind.PURCHASE,
+                from_character_id=char.id,
+                note=f"{action.kind.value} @ {loc.key}",
+            )
+
+    after = apply_effect(session, char.id, action)
     rel_after = boost_social_relationship(session, char.id, action)
 
     return ActionResult(

@@ -269,6 +269,10 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - **1.3.1** — Release documentale: piano retroattivo 1.3.0, CHANGELOG
   e README allineati al codice, limiti dei tratti in `known-issues.md`,
   nota su `check.sh --reset-data` rimandato a 1.4.
+- **1.4.0** — Mercato e negozi: `ShopItem`, `MarketService`, seed
+  economia, `player do` con stock/prezzo autoritativi. CI attiva.
+  10y verde (`purchase_transactions 22402`). Stock infinito in 1.4.0,
+  consumo reale + restock in 1.5.0.
 - **1.4+** — Calendario Anthalys, ciclo sonno/veglia, tassazione,
   supporto familiare, inventario, `COST_PENALTY`, `db reset`. Vedi
   `TODO_SimAI_ottimizzato.md` per la roadmap globale.

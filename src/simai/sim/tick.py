@@ -16,9 +16,10 @@ from simai.actions.utility import (
     filter_by_need_threshold,
     rng_for_decision,
 )
-from simai.economy.enums import TransactionKind
+from simai.economy.market import buy as market_buy
+from simai.economy.market import filter_by_stock
 from simai.economy.payday import PaydayReport, process_payday
-from simai.economy.service import job_of, record_transaction
+from simai.economy.service import job_of
 from simai.economy.work import (
     should_prioritize_home,
     should_prioritize_work,
@@ -141,6 +142,7 @@ def run_tick(
         actions = actions_for_location(loc.kind)
         local_actions = filter_by_need_threshold(actions, needs)
         local_actions = filter_by_affordability(local_actions, char.balance)
+        local_actions = filter_by_stock(session, local_actions, loc.key)
         local_satisfies = {a.satisfies for a in local_actions}
 
         raw_moves = available_moves(
@@ -256,16 +258,31 @@ def run_tick(
 
         cost_paid = 0.0
         if action.cost > 0:
-            char.balance -= action.cost
-            cost_paid = action.cost
-            record_transaction(
+            purchase = market_buy(
                 session,
+                char,
+                loc.key,
+                action,
                 tick_index=tick_index,
-                amount=action.cost,
-                kind=TransactionKind.PURCHASE,
-                from_character_id=char.id,
-                note=f"{action.kind.value} @ {loc.key}",
             )
+            if not purchase.success:
+                logger.warning(
+                    f"Acquisto fallito per {char.key} ({action.kind.value} @ "
+                    f"{loc.key}): {purchase.error}"
+                )
+                decisions.append(
+                    TickDecision(
+                        character_id=char.id,
+                        character_key=char.key,
+                        location_key=loc.key,
+                        action=None,
+                        satisfied=None,
+                        value_before=None,
+                        value_after=None,
+                    )
+                )
+                continue
+            cost_paid = purchase.price_paid
 
         rel_after = boost_social_relationship(session, char.id, action)
         moodlet_kind = moodlets_for_action(action.kind)

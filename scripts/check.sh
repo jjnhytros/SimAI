@@ -111,3 +111,4 @@ unset VIRTUAL_ENV
 rm -rf data/
 uv run simai db upgrade
 uv run simai world seed
+uv run simai economy seed

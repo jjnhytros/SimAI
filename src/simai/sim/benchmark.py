@@ -12,6 +12,7 @@ from simai.db.session import get_engine, get_session_factory
 from simai.economy.calendar import TICKS_PER_DAY
 from simai.economy.enums import TransactionKind
 from simai.economy.models import Transaction
+from simai.economy.seed import seed_demo_economy
 from simai.economy.service import job_of
 from simai.needs.enums import NeedKind
 from simai.needs.service import needs_of
@@ -162,6 +163,7 @@ def run_benchmark(
     try:
         with factory() as session:
             seed_muse_core(session)
+            seed_demo_economy(session)
             reset_state(session, master_seed=seed)
             session.commit()
 

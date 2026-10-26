@@ -152,7 +152,6 @@ Il tratto SOLITARY rallenta il decadimento di INTIMACY (×0.60), ma non impedisc
 
 **Roadmap 1.3.1+:** perché LONELY scatti anche per gli NPC serve una location senza SOCIALIZE (es. un ufficio, una biblioteca), o una soglia di "troppo socializzato" oltre la quale l’NPC rifiuta SOCIALIZE (satolazione sociale). Entrambe sono 1.4+.
 
-
 ---
 
 ## 4. Tratti (1.3.0)
@@ -217,3 +216,44 @@ silenziosamente.
 **Roadmap 1.4**: `--reset-data` esplicito, oppure sostituire con
 `simai db reset --yes` (già in roadmap §3.4). Per 1.3.1 la mitigazione
 è documentare qui.
+
+---
+
+## 6. Mercato (1.4.0)
+
+### 6.1 `available_moves` non considera lo stock
+
+`reachability.available_moves` propone spostamenti verso location
+dove un bisogno è soddisfacibile, ma non controlla `ShopItem.stock`.
+Se `EAT` al caffè è esaurito, un NPC può muoversi verso il caffè
+"per mangiare", arrivare, e trovare `EAT` filtrato da
+`filter_by_stock`. Turno sprecato.
+
+Non raggiungibile in 1.4.0 (stock=-1, infinito). Da correggere in
+1.5.0 quando lo stock diventa finito.
+
+### 6.2 Un solo entry point per l'acquisto
+
+`player do -a <action>` è l'unico comando per comprare. Non esiste
+`simai economy buy`. Decisione: meno superficie, meno test, e
+`player do` già mostra costo e `balance_after`. Se in futuro serve
+un comando "compra per un NPC", si aggiunge con un nome esplicito
+(`economy buy --for <npc>`), non come alias ambiguo.
+
+### 6.3 `ShopItem.price` vs `ActionDef.cost`
+
+Coerenti per costruzione, garantiti da
+`test_shop_item_price_matches_catalog`. Se il test viene rimosso o
+indebolito, i due numeri possono divergere silenziosamente
+(`filter_by_affordability` usa `cost`, `market_buy` usa `price`).
+
+### 6.4 Stock finito non attivo in 1.4.0
+
+`SHOP_ITEM_SPECS` ha `stock = -1` (infinito). Il campo `stock` è
+implementato, testato (`test_buy_with_infinite_stock_keeps_minus_one`,
+`test_buy_decrements_stock_and_balance`), ma il consumo reale non è
+attivo perché non esiste ancora un `restock` da `LifecycleManager`.
+
+1.5.0: `stock` finito (20/20/10/15), `restock_all` chiamato da
+`LifecycleManager.daily_tick`, test di integrazione esaurimento +
+restock.

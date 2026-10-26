@@ -7,9 +7,10 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from simai.actions.enums import ActionKind
 from simai.config.settings import Settings
 from simai.economy.enums import JobTitle, TransactionKind
-from simai.economy.models import Job, Transaction
+from simai.economy.models import Job, ShopItem, Transaction
 from simai.mood.enums import MoodletKind
 from simai.mood.models import Moodlet
 from simai.needs.enums import NeedKind
@@ -149,6 +150,15 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             }
             for t in transactions
         ],
+        "shop_items": [
+            {
+                "location_key": s.location_key,
+                "action_kind": s.action_kind.value,
+                "price": s.price,
+                "stock": s.stock,
+            }
+            for s in session.scalars(select(ShopItem).order_by(ShopItem.id)).all()
+        ],
         "sim_state": (
             {
                 "tick_index": sim_state.tick_index,
@@ -262,6 +272,17 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 amount=row["amount"],
                 kind=TransactionKind(row["kind"]),
                 note=row["note"],
+            )
+        )
+
+    session.execute(delete(ShopItem))
+    for row in payload.get("shop_items", []):
+        session.add(
+            ShopItem(
+                location_key=row["location_key"],
+                action_kind=ActionKind(row["action_kind"]),
+                price=row["price"],
+                stock=row["stock"],
             )
         )
 

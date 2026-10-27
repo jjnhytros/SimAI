@@ -68,13 +68,21 @@ Il caffè vende "un drink" astratto: paghi 2, ricevi +30 thirst. Non esiste merc
 
 **Roadmap 1.2:** oggetti e inventario.
 
-### 2.5 Utility non penalizza il costo
+### 2.5 Utility non penalizza il costo — **rimandato a 1.7.0**
 
-Quando un NPC deve spostarsi per un bisogno, `choose_intent` confronta casa (azione gratis) e caffè (azione a pagamento) con lo stesso score. Risultato: metà delle volte spende quando potrebbe non spendere.
+`COST_PENALTY = 0.5` previsto in 1.6.0 non funziona: `DISTANCE_PENALTY
+= 5.0` rende il move già penalizzato, e `COST_PENALTY` più piccolo non
+sposta la decisione. `COST_PENALTY > 1.67` farebbe scattare il move,
+ma ucciderebbe il caffè (`PLAY` a 4 Athel con penalty 8 perde contro
+tutto).
 
-**Impatto:** studenti (paghetta 5) vivono al verde, adulti paycheck-to-paycheck. Realistico ma non razionale.
+Il problema è strutturale: la casa ha tutte le azioni gratis, quindi
+il costo non è un segnale utile finché non c'è un'alternativa che la
+casa non ha. Va a 1.7.0 con un design che discuta:
 
-**Roadmap 1.2:** `COST_PENALTY` in `choose_intent`. Non ora: rischia di uccidere il caffè come location (mai visitato se gratis è sempre meglio).
+- moodlet `CAFFE` (bonus mood al caffè, non a casa),
+- `DISTANCE_PENALTY` più basso + accettare la chiusura del caffè,
+- nessuna delle tre.
 
 ### 2.6 Nessun motivo per risparmiare
 
@@ -221,16 +229,12 @@ silenziosamente.
 
 ## 6. Mercato (1.4.0)
 
-### 6.1 `available_moves` non considera lo stock
+### 6.1 `available_moves` non considera lo stock — **risolto in 1.6.0**
 
-`reachability.available_moves` propone spostamenti verso location
-dove un bisogno è soddisfacibile, ma non controlla `ShopItem.stock`.
-Se `EAT` al caffè è esaurito, un NPC può muoversi verso il caffè
-"per mangiare", arrivare, e trovare `EAT` filtrato da
-`filter_by_stock`. Turno sprecato.
-
-Non raggiungibile in 1.4.0 (stock=-1, infinito). Da correggere in
-1.5.0 quando lo stock diventa finito.
+`available_moves` ora accetta `offers_by_key` e non propone move
+verso location con stock 0 per l'azione target. `NPCManager.update_all`
+calcola `offers_by_key` una volta per tick (una query), non una per
+NPC. Test in `test_reachability.py` e `test_npc_manager.py`.
 
 ### 6.2 Un solo entry point per l'acquisto
 

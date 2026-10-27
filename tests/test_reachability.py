@@ -5,6 +5,7 @@ from alembic import command
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
+from simai.actions.enums import ActionKind
 from simai.actions.reachability import available_moves
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
@@ -113,3 +114,68 @@ def test_multiple_moves_from_casa(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert ("caffe", "thirst") in targets
     assert ("piazza", "intimacy") in targets
     assert ("caffe", "intimacy") in targets
+
+
+def test_available_moves_skips_zero_stock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Con `offers_by_key`, location con stock=0 non generano move."""
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        casa = session.scalar(select(Location).where(Location.key == "casa"))
+        assert casa is not None
+        offers = {
+            ("caffe", ActionKind.DRINK): 0,
+            ("piazza", ActionKind.DRINK): 15,
+        }
+        moves = available_moves(
+            session,
+            current_location_id=casa.id,
+            needs=_needs(thirst=20.0),
+            offers_by_key=offers,
+        )
+    targets = {(m.target_location_key, m.action_kind.value) for m in moves}
+    assert ("caffe", "drink") not in targets
+    assert ("piazza", "drink") in targets
+
+
+def test_available_moves_keeps_infinite_stock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        casa = session.scalar(select(Location).where(Location.key == "casa"))
+        assert casa is not None
+        offers = {
+            ("caffe", ActionKind.DRINK): -1,
+            ("piazza", ActionKind.DRINK): -1,
+        }
+        moves = available_moves(
+            session,
+            current_location_id=casa.id,
+            needs=_needs(thirst=20.0),
+            offers_by_key=offers,
+        )
+    targets = {(m.target_location_key, m.action_kind.value) for m in moves}
+    assert ("caffe", "drink") in targets
+    assert ("piazza", "drink") in targets
+
+
+def test_available_moves_legacy_when_offers_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`offers_by_key=None` → comportamento legacy: nessun filtro stock."""
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        casa = session.scalar(select(Location).where(Location.key == "casa"))
+        assert casa is not None
+        moves = available_moves(
+            session,
+            current_location_id=casa.id,
+            needs=_needs(thirst=20.0),
+            offers_by_key=None,
+        )
+    targets = {(m.target_location_key, m.action_kind.value) for m in moves}
+    assert ("caffe", "drink") in targets
+    assert ("piazza", "drink") in targets

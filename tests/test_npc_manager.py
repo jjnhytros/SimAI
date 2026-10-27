@@ -4,6 +4,7 @@ import pytest
 from alembic import command
 from sqlalchemy.engine import Engine
 
+from simai.actions.enums import ActionKind
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.needs.enums import NeedKind
@@ -163,3 +164,20 @@ def test_npc_manager_like_is_structural(tmp_path: Path, monkeypatch: pytest.Monk
     manager: NPCManagerLike = NPCManager()
     assert callable(manager.load)
     assert callable(manager.update_all)
+
+
+def test_offers_by_key_from_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.economy.seed import seed_demo_economy
+    from simai.npc.manager import _offers_by_key
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        seed_demo_economy(session)
+        session.commit()
+    with factory() as session:
+        offers = _offers_by_key(session)
+    assert ("caffe", ActionKind.EAT) in offers
+    assert offers[("caffe", ActionKind.EAT)] == 20
+    assert ("piazza", ActionKind.EAT) in offers
+    assert offers[("piazza", ActionKind.EAT)] == 15

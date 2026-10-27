@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from simai.actions.catalog import ActionDef, actions_for_location
+from simai.actions.enums import ActionKind
 from simai.actions.intent import choose_intent
 from simai.actions.reachability import (
     available_moves,
@@ -18,6 +19,7 @@ from simai.actions.utility import (
 )
 from simai.economy.market import buy as market_buy
 from simai.economy.market import filter_by_stock
+from simai.economy.models import ShopItem
 from simai.economy.service import job_of
 from simai.economy.work import (
     should_prioritize_home,
@@ -61,6 +63,16 @@ class NPCManagerLike(Protocol):
 
 def _all_actions_by_kind() -> dict[LocationKind, list[ActionDef]]:
     return {kind: actions_for_location(kind) for kind in LocationKind}
+
+
+def _offers_by_key(session: Session) -> dict[tuple[str, ActionKind], int]:
+    """Mappa `(location_key, action_kind) -> stock` in una query.
+
+    Una sola query per tick, non una per NPC. Passata a
+    `available_moves` per escludere location con stock esaurito.
+    """
+    items = session.scalars(select(ShopItem)).all()
+    return {(item.location_key, item.action_kind): item.stock for item in items}
 
 
 class NPCManager:
@@ -111,6 +123,7 @@ class NPCManager:
         master_seed: int,
     ) -> list[TickDecision]:
         ordered = sorted(states, key=lambda s: s.character_id)
+        offers_by_key = _offers_by_key(session)
         decisions: list[TickDecision] = []
         for state in ordered:
             decision = self._tick_one(
@@ -118,6 +131,7 @@ class NPCManager:
                 state,
                 tick_index=tick_index,
                 master_seed=master_seed,
+                offers_by_key=offers_by_key,
             )
             decisions.append(decision)
         return decisions
@@ -129,6 +143,7 @@ class NPCManager:
         *,
         tick_index: int,
         master_seed: int,
+        offers_by_key: dict[tuple[str, ActionKind], int] | None = None,
     ) -> TickDecision:
         char = session.get(Character, state.character_id)
         if char is None:
@@ -151,6 +166,7 @@ class NPCManager:
             session,
             current_location_id=loc.id,
             needs=needs,
+            offers_by_key=offers_by_key,
         )
         raw_moves = [m for m in raw_moves if m.satisfies not in local_satisfies]
         moves = filter_moves_by_affordability(raw_moves, state.balance, catalog_by_kind)

@@ -26,12 +26,18 @@ def available_moves(
     *,
     current_location_id: int,
     needs: dict[NeedKind, float],
+    offers_by_key: dict[tuple[str, ActionKind], int] | None = None,
 ) -> list[ReachableMove]:
     """Calcola le location raggiungibili che sbloccherebbero un'azione.
 
     Una location è una meta valida se contiene almeno un'azione il cui
     bisogno è sotto `max_need_to_start`. In 1.0.1 la distanza è uniforme:
     il costo vive nell'utility (`DISTANCE_PENALTY`), non qui.
+
+    `offers_by_key`: mappa `(location_key, action_kind) -> stock`.
+    Se passata, le azioni con `cost > 0` e stock == 0 non generano
+    move. Se `None`, comportamento legacy (nessun filtro stock) per
+    retrocompatibilità con i test esistenti.
     """
     other_locations = session.scalars(
         select(Location).where(Location.id != current_location_id).order_by(Location.id)
@@ -43,6 +49,10 @@ def available_moves(
             value = needs.get(action.satisfies, 100.0)
             if value >= action.max_need_to_start:
                 continue
+            if offers_by_key is not None and action.cost > 0:
+                stock = offers_by_key.get((loc.key, action.kind))
+                if stock == 0:
+                    continue
             moves.append(
                 ReachableMove(
                     target_location_key=loc.key,

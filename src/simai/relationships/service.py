@@ -58,13 +58,19 @@ def ensure_relationship(
     return rel
 
 
-def boost_social_relationship(session: Session, actor_id: int, action: ActionDef) -> float | None:
-    """Se `action` è SOCIALIZE, boost della relazione più forte con un
-    personaggio presente nella stessa location.
+_FAMILY_KINDS: frozenset[RelationshipKind] = frozenset(
+    {RelationshipKind.PARENT_OF, RelationshipKind.CHILD_OF}
+)
 
-    Ritorna il nuovo valore di strength (lato attore) o None se
-    nessun boost è avvenuto (azione non SOCIALIZE, o nessun FRIEND
-    presente localmente).
+
+def boost_social_relationship(session: Session, actor_id: int, action: ActionDef) -> float | None:
+    """Se `action` è SOCIALIZE, boost delle relazioni con personaggi
+    presenti nella stessa location.
+
+    Considera `FRIEND`, `PARENT_OF`, `CHILD_OF`. Per ogni relazione
+    trovata applica `+SOCIALIZE_BOOST` bilaterale (se esiste il
+    mirror). Ritorna il nuovo valore di strength della relazione più
+    forte boostata, o None se nessun boost.
     """
     if action.kind != ActionKind.SOCIALIZE:
         return None
@@ -73,7 +79,7 @@ def boost_social_relationship(session: Session, actor_id: int, action: ActionDef
     if actor is None:
         return None
 
-    candidate = session.scalar(
+    candidates = session.scalars(
         select(Relationship)
         .join(
             Character,
@@ -81,24 +87,26 @@ def boost_social_relationship(session: Session, actor_id: int, action: ActionDef
         )
         .where(
             Relationship.from_character_id == actor_id,
-            Relationship.kind == RelationshipKind.FRIEND,
+            Relationship.kind.in_((RelationshipKind.FRIEND, *_FAMILY_KINDS)),
             Character.location_id == actor.location_id,
         )
         .order_by(Relationship.strength.desc(), Relationship.id)
-    )
-    if candidate is None:
+    ).all()
+    if not candidates:
         return None
 
-    candidate.strength = clamp_strength(candidate.strength + SOCIALIZE_BOOST)
-
-    mirror = session.scalar(
-        select(Relationship).where(
-            Relationship.from_character_id == candidate.to_character_id,
-            Relationship.to_character_id == actor_id,
-            Relationship.kind == RelationshipKind.FRIEND,
+    best: Relationship | None = None
+    for candidate in candidates:
+        candidate.strength = clamp_strength(candidate.strength + SOCIALIZE_BOOST)
+        mirror = session.scalar(
+            select(Relationship).where(
+                Relationship.from_character_id == candidate.to_character_id,
+                Relationship.to_character_id == actor_id,
+                Relationship.kind == candidate.kind,
+            )
         )
-    )
-    if mirror is not None:
-        mirror.strength = clamp_strength(mirror.strength + SOCIALIZE_BOOST)
-
-    return candidate.strength
+        if mirror is not None:
+            mirror.strength = clamp_strength(mirror.strength + SOCIALIZE_BOOST)
+        if best is None or candidate.strength > best.strength:
+            best = candidate
+    return best.strength if best is not None else None

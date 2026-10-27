@@ -223,6 +223,48 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     session.flush()
 
+    # 4b. Famiglia: giulia madre di erika, luca padre di max.
+    giulia = by_char_key.get("giulia")
+    luca = by_char_key.get("luca")
+    if giulia is not None and erika is not None:
+        rel_gp = ensure_relationship(
+            session,
+            giulia.id,
+            erika.id,
+            kind=RelationshipKind.PARENT_OF,
+            strength=80.0,
+        )
+        if rel_gp is not None:
+            relationships_created += 1
+        rel_cg = ensure_relationship(
+            session,
+            erika.id,
+            giulia.id,
+            kind=RelationshipKind.CHILD_OF,
+            strength=80.0,
+        )
+        if rel_cg is not None:
+            relationships_created += 1
+    if luca is not None and max_char is not None:
+        rel_lp = ensure_relationship(
+            session,
+            luca.id,
+            max_char.id,
+            kind=RelationshipKind.PARENT_OF,
+            strength=80.0,
+        )
+        if rel_lp is not None:
+            relationships_created += 1
+        rel_cm = ensure_relationship(
+            session,
+            max_char.id,
+            luca.id,
+            kind=RelationshipKind.CHILD_OF,
+            strength=80.0,
+        )
+        if rel_cm is not None:
+            relationships_created += 1
+
     # 5. Jobs
     for job_spec in JOB_SPECS:
         job_char = by_char_key.get(job_spec["character_key"])

@@ -28,7 +28,7 @@ def test_seed_creates_expected_counts(tmp_path: Path) -> None:
         "locations_created": 3,
         "characters_created": 5,
         "needs_created": 20,
-        "relationships_created": 2,
+        "relationships_created": 6,  # 2 FRIEND + 2 PARENT_OF + 2 CHILD_OF
         "jobs_created": 5,
     }
 

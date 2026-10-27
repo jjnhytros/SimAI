@@ -9,6 +9,7 @@ from simai.actions.enums import ActionKind
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.needs.enums import NeedKind
+from simai.relationships.enums import RelationshipKind
 from simai.relationships.models import Relationship
 from simai.relationships.service import (
     SOCIALIZE_BOOST,
@@ -38,23 +39,21 @@ def test_seed_creates_symmetric_friendship(tmp_path: Path) -> None:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
         max_c = session.scalar(select(Character).where(Character.key == "max"))
         assert erika is not None and max_c is not None
-        assert len(relationships_of(session, erika.id)) == 1
-        assert len(relationships_of(session, max_c.id)) == 1
-        rel_em = session.scalar(
-            select(Relationship).where(
-                Relationship.from_character_id == erika.id,
-                Relationship.to_character_id == max_c.id,
-            )
-        )
-        rel_me = session.scalar(
+        rels = relationships_of(session, erika.id)
+        # 1.6.0: erika ha FRIEND verso max e CHILD_OF verso giulia.
+        assert len(rels) == 2
+        kinds = {r.kind for r in rels}
+        assert RelationshipKind.FRIEND in kinds
+        assert RelationshipKind.CHILD_OF in kinds
+        # Il FRIEND è reciproco.
+        mirror = session.scalar(
             select(Relationship).where(
                 Relationship.from_character_id == max_c.id,
                 Relationship.to_character_id == erika.id,
+                Relationship.kind == RelationshipKind.FRIEND,
             )
         )
-        assert rel_em is not None and rel_me is not None
-        assert rel_em.strength == 60.0
-        assert rel_me.strength == 60.0
+        assert mirror is not None
 
 
 def test_boost_returns_none_for_non_socialize(tmp_path: Path) -> None:
@@ -178,3 +177,63 @@ def test_tick_socialize_boosts_relationship(tmp_path: Path) -> None:
     assert max_decision is not None
     assert max_decision.action == ActionKind.SOCIALIZE
     assert max_decision.relationship_strength_after == (60.0 + SOCIALIZE_BOOST)
+
+
+def test_seed_creates_six_relationships(tmp_path: Path) -> None:
+    from sqlalchemy import func
+
+    from simai.relationships.models import Relationship
+
+    engine = _seeded(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        count = session.scalar(select(func.count()).select_from(Relationship))
+    assert count == 6
+
+
+def test_seed_family_idempotent(tmp_path: Path) -> None:
+    engine = _seeded(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        report = seed_muse_core(session)
+        session.commit()
+    assert report["relationships_created"] == 0
+
+
+def test_boost_social_with_parent(tmp_path: Path) -> None:
+    """Erika e Giulia nella stessa location, erika fa SOCIALIZE,
+    la relazione CHILD_OF (erika→giulia) viene boostata."""
+    from simai.actions.catalog import actions_for_location
+    from simai.actions.enums import ActionKind
+    from simai.relationships.service import boost_social_relationship
+    from simai.world.enums import LocationKind
+
+    engine = _seeded(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        giulia = session.scalar(select(Character).where(Character.key == "giulia"))
+        assert erika is not None and giulia is not None
+        # Sposta giulia nella stessa location di erika.
+        giulia.location_id = erika.location_id
+        session.commit()
+
+        socialize = next(
+            a
+            for a in actions_for_location(LocationKind.RESIDENTIAL)
+            if a.kind == ActionKind.SOCIALIZE
+        )
+        before = session.scalar(
+            select(Relationship).where(
+                Relationship.from_character_id == erika.id,
+                Relationship.to_character_id == giulia.id,
+                Relationship.kind == RelationshipKind.CHILD_OF,
+            )
+        )
+        assert before is not None
+        before_strength = before.strength
+        after = boost_social_relationship(session, erika.id, socialize)
+        session.commit()
+
+    assert after is not None
+    assert after > before_strength

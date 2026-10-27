@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.7.0] — 2026-10-27
+
+### Aggiunto
+
+- **`RelationshipKind` 11 kind**: `FRIEND`, `PARENT_OF`, `CHILD_OF`,
+  `SIBLING_OF`, `SPOUSE_OF`, `EX_PARTNER_OF`, `GRANDPARENT_OF`,
+  `GRANDCHILD_OF`, `UNCLE_AUNT_OF`, `NEPHEW_NIECE_OF`, `COUSIN_OF`.
+  Nessuna migrazione: `kind` è `String(16)` senza CHECK.
+- **`family_tree.py`**: `parents_of`, `children_of`, `siblings_of`,
+  `ancestors_of` (BFS), `descendants_of` (BFS).
+- **`kinship.py`**: `relationship_coefficient` (path-based, grado
+  1/2/3 → 0.5/0.25/0.125), `kinship_coefficient` (r/2),
+  `relationship_name` (italiano neutro).
+- **Seed famiglia**: giulia madre di erika, luca padre di max.
+  4 relazioni (`PARENT_OF` + `CHILD_OF`) + 2 `FRIEND` = 6.
+- **Boost `SOCIALIZE` familiare**: `boost_social_relationship`
+  boosta `PARENT_OF`/`CHILD_OF` oltre a `FRIEND`.
+- CLI `relationships family/ancestors/descendants/kinship`.
+
+### Verificato (10y, seed 42)
+
+- `relationships_active: 6` (era 2 in 1.6.0).
+- `mood_mean`: 67.7–68.1, identici a 1.6.0.
+- `balance_final` e `purchase_transactions: 22402` identici a 1.6.0.
+  Il boost familiare cambia `strength` delle relazioni, non l'utility
+  o l'economia.
+- `invariants_ok: true`, tps 73.4.
+
+### Limitato (documentato in `known-issues.md` §8)
+
+- Relazioni familiari **statiche**: senza `LifecycleManager` (C), il
+  tick non le usa per decisioni (matrimonio, gravidanza, morte).
+- `relationship_name` neutro ("genitore", "figlio/a"): `Character.gender`
+  non esiste.
+- `relationship_coefficient` copre grado 1–3. Oltre: 0.0.
+- `player status` non mostra famiglia (rischio `PlayerStatus` frozen).
+  `npc relationships family` copre l'uso.
+
 ## [1.6.0] — 2026-10-27
 
 ### Aggiunto

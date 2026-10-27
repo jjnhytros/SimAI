@@ -341,3 +341,53 @@ in 1.5.0. Sarà aggiunto in 3.6a-c, quando `Skill` esisterà.
 `NPCManager` gestisce solo "decisione + esecuzione". Decay, mood,
 moodlet, cleanup restano in `tick.py`. `LifecycleManager` (ageing,
 morte, gravidanza) non esiste ancora. Sarà FASE 3.4, dopo A2.
+
+
+---
+
+## 8. Famiglia (1.7.0)
+
+### 8.1 Relazioni familiari statiche
+
+Le relazioni familiari (`PARENT_OF`, `CHILD_OF`, ecc.) sono create
+dal seed e lette da `family_tree`. Il tick le usa solo per il boost
+`SOCIALIZE` (`strength` +5). Non ci sono decisioni basate su di
+esse: niente matrimonio, gravidanza, morte, eredità.
+
+Senza `LifecycleManager` (C), le relazioni familiari sono **dati
+preparati**, non comportamento. Il 10y di 1.7.0 ha `mood_mean` e
+`balance` identici a 1.6.0: A2 non cambia il comportamento
+osservabile. Va detto, non nascosto.
+
+**Roadmap C**: `LifecycleManager` (ageing, morte, gravidanza,
+successione) userà `family_tree` e `kinship` per decidere chi eredita,
+chi è tutore, chi si sposa. Allora le relazioni familiari avranno
+effetti.
+
+### 8.2 `relationship_name` neutro
+
+`Character.gender` non esiste. `relationship_name` restituisce forme
+neutre: "genitore" (non "madre"/"padre"), "figlio/a", "fratello/sorella",
+"nonno/a", "zio/a", "nipote (di nonno)"/"nipote (di zio)", "cugino/a".
+
+`RelationshipKind` ha `UNCLE_AUNT_OF` e `NEPHEW_NIECE_OF` (11 kind
+totali, non 13) proprio per non richiedere `gender`. Aggiungerlo è
+`Character.gender` + migrazione + refactor di `relationship_name`:
+1.7.1+.
+
+### 8.3 `relationship_coefficient` limitato a grado 3
+
+`relationship_coefficient` copre grado 1 (genitore/figlio/fratello),
+grado 2 (nonno/zio/nipote), grado 3 (cugino primo). Oltre: `0.0`.
+BFS multi-livello in 1.8.0 se serve.
+
+`kinship_coefficient = r/2` è convenzione semplificata (TODO §3.3).
+Il coefficiente genetico vero è `r`; `r/2` è la probabilità di allele
+condiviso in modelli semplificati.
+
+### 8.4 `player status` non mostra famiglia
+
+`PlayerStatus` è frozen con campi fissi; aggiungere `family` richiede
+toccare `build_player_status`, `cmd_player.py`, e tutti i test del
+pannello. Rischio sproporzionato per "una riga". `npc relationships
+family -c <key>` copre l'uso. Va in C o 1.7.1.

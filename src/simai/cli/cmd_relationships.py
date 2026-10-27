@@ -27,3 +27,80 @@ def show(
     typer.echo(f"Relazioni di '{character}' ({len(rels)}):")
     for line in lines:
         typer.echo(line)
+
+
+@relationships_app.command("family")
+def family(character: str = typer.Option(..., "--character", "-c")) -> None:
+    """Mostra genitori, figli e fratelli di un personaggio."""
+    from simai.relationships.family_tree import (
+        children_of,
+        parents_of,
+        siblings_of,
+    )
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        char = resolve_character(session, character)
+        parents = [c.key for c in parents_of(session, char.id)]
+        children = [c.key for c in children_of(session, char.id)]
+        siblings = [c.key for c in siblings_of(session, char.id)]
+    typer.echo(f"Famiglia di '{character}':")
+    typer.echo(f"  genitori: {', '.join(parents) or '—'}")
+    typer.echo(f"  figli:    {', '.join(children) or '—'}")
+    typer.echo(f"  fratelli: {', '.join(siblings) or '—'}")
+
+
+@relationships_app.command("ancestors")
+def ancestors(character: str = typer.Option(..., "--character", "-c")) -> None:
+    """Mostra tutti gli antenati (BFS su PARENT_OF)."""
+    from simai.relationships.family_tree import ancestors_of
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        char = resolve_character(session, character)
+        result = [c.key for c in ancestors_of(session, char.id)]
+    typer.echo(f"Antenati di '{character}': {', '.join(result) or '—'}")
+
+
+@relationships_app.command("descendants")
+def descendants(character: str = typer.Option(..., "--character", "-c")) -> None:
+    """Mostra tutti i discendenti (BFS su PARENT_OF)."""
+    from simai.relationships.family_tree import descendants_of
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        char = resolve_character(session, character)
+        result = [c.key for c in descendants_of(session, char.id)]
+    typer.echo(f"Discendenti di '{character}': {', '.join(result) or '—'}")
+
+
+@relationships_app.command("kinship")
+def kinship(
+    character: str = typer.Option(..., "--character", "-c"),
+    with_: str = typer.Option(..., "--with", "-w"),
+) -> None:
+    """Mostra r, r/2 e nome della relazione tra due personaggi."""
+    from simai.relationships.kinship import (
+        kinship_coefficient,
+        relationship_coefficient,
+        relationship_name,
+    )
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        a = resolve_character(session, character)
+        b = resolve_character(session, with_)
+        r = relationship_coefficient(session, a.id, b.id)
+        k = kinship_coefficient(session, a.id, b.id)
+        name = relationship_name(session, a.id, b.id)
+    typer.echo(f"{character} è {name} di {with_}")
+    typer.echo(f"  r:    {r}")
+    typer.echo(f"  r/2:  {k}")

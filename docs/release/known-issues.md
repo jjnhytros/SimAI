@@ -1,6 +1,6 @@
 # SimAI — Problemi noti e debiti aperti
 
-Questo documento raccoglie difetti noti, limiti accettati e debiti aperti tra 1.0.0 e 1.2.1. Non sono bug bloccanti del percorso `avvia → simula → salva → ricarica`, ma descrivono dove il mondo è meno vivo di quanto dovrebbe.
+Questo documento raccoglie difetti noti, limiti accettati e debiti aperti tra 1.0.0 e 1.6.0. Non sono bug bloccanti del percorso `avvia → simula → salva → ricarica`, ma descrivono dove il mondo è meno vivo di quanto dovrebbe.
 
 ## 1. Problemi noti 1.0.0
 
@@ -19,6 +19,8 @@ Il player non subisce decisioni automatiche nel tick. Se non invocato, i suoi bi
 **Roadmap 1.1:** `include_player=True` di default in `sim run`, con opzione `--manual` per chi vuole controllarlo tick per tick.
 
 ### 1.3 Nessun moodlet
+
+> **Risolto in 1.0.1**: moodlet `ATE_WELL`, `SOCIALIZED`, `LONELY`.
 
 L’umore è solo una media pesata dei bisogni. Non ci sono eventi temporanei (“ha litigato con un amico”, “ha vinto alla lotteria”) che modificano l’umore indipendentemente dai bisogni.
 
@@ -45,6 +47,9 @@ In 1.0.1 `LONELY` è dormiente in pratica. Gli NPC si spostano per `SOCIALIZE` p
 ## 2. Limiti dell’economia (1.1.0)
 
 ### 2.1 Lavoro fisico non simulato
+
+> **Risolto in 1.2.0**: `WorkState`, priorità lavoro, payday con
+> presenza fisica.
 
 Gli NPC hanno un `Job` con `location_key` e `schedule_start/end_tick`, ma non si recano fisicamente al lavoro. Il salario viene pagato indipendentemente da dove sono. Un NPC che dorme in piazza riceve comunque lo stipendio.
 
@@ -112,6 +117,9 @@ uv run simai sim benchmark --years 60 \
 ```
 
 ### 3.2 Attendance dipende dalla location di lavoro
+
+> **Risolto in 1.2.1**: fontanella a piazza, panino 2 Athel, routine
+> serale. Attendance 100% sui 4 NPC.
 
 Chi lavora in una location senza `EAT`/`DRINK` (piazza) può perdere il payday se la salvaguardia fame scatta durante il turno. Giulia: 80% attendance; Erika/Max (piazza ma studenti, turno corto 8-13): 95-97%; Luca (caffè, tutto disponibile): 100%.
 

@@ -276,6 +276,10 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - **1.5.0** — `NPCManager` (`npc/manager.py`): astrazione sopra il
   tick, `NPCState` in-memory, `NPCManagerLike` per test di contract.
   Comportamento invariato (10y identico a 1.4.0). 261 test verdi.
+- **1.6.0** — Stock finito + restock giornaliero (`daily_tick`),
+  `needs_of_many`, `available_moves` esclude stock esaurito.
+  `COST_PENALTY` a 1.7.0 (richiede design, non costante). 274 test
+  verdi.
 - **1.5+** — `RelationshipKind` 11 kind (A2), stock finito + restock +
   `COST_PENALTY` + inventario, `LifecycleManager`, skills, memoria,
   calendario Anthalys. Tassazione in 1.5+ **solo previa decisione

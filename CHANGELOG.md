@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.6.0] — 2026-10-27
+
+### Aggiunto
+
+- **Stock finito**: `SHOP_ITEM_SPECS` con stock 20/20/10/15 (era
+  `-1`, infinito in 1.4.0). `daily_tick` in `sim/daily.py` fa
+  `restock_all` ogni 24 tick (tick 0, 24, 48, ...).
+- **`needs_of_many`** in `needs/service.py`: una query per i bisogni
+  di tutti gli NPC. `NPCManager.load` la usa. Recuperato da 1.5.1.
+- **`available_moves` con `offers_by_key`**: le location con
+  `stock == 0` per l'azione target non sono più proposte come meta.
+  `NPCManager.update_all` calcola `offers_by_key` una volta per tick.
+
+### Cambiato
+
+- `daily_tick` chiamato da `run_tick` prima del payday. Punto di
+  aggancio futuro per `LifecycleManager`.
+
+### Rimandato
+
+- **`COST_PENALTY` a 1.7.0**. `COST_PENALTY = 0.5` previsto in 1.6.0
+  non funziona: `DISTANCE_PENALTY = 5.0` rende il move già penalizzato
+  e `0.5` non sposta la decisione. Valori più alti ucciderebbero il
+  caffè. Il problema è strutturale (la casa ha tutte le azioni
+  gratis). Va discusso come design, non come costante. Vedi
+  `known-issues.md` §2.5.
+
+### Corretto (documentale)
+
+- `docs/release/1.5.0-plan.md` §7.2: la stima "irrilevante (< 1ms)"
+  per il N+1 era sbagliata. Il N+1 costa ~11s su 10y (0.9%), non
+  −7.7% del tps. Il baseline 76.5 tps di 1.4.0 non era valido:
+  rimisurato lo stesso giorno di 1.5.1, dà 72.27 tps. Differenza
+  reale 1.4.0 → 1.5.0: 2.2%, non 7.7%.
+- `known-issues.md` §7.2 corretto con il dato reale. §6.1, §6.4,
+  §2.5 marcati risolti/rimandati. §1.3, §2.1, §3.2 marcati "risolto"
+  (erano stale da 1.0.1, 1.2.0, 1.2.1).
+
+### Non incluso
+
+- `InventoryService` (personaggio), `RelationshipKind` 11 (A2),
+  `LifecycleManager`, tassazione, skills, memoria. 1.7.0+.
+
 ## [1.5.0] — 2026-10-26
 
 ### Aggiunto

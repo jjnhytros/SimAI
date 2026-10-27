@@ -11,25 +11,25 @@ SHOP_ITEM_SPECS: list[dict[str, Any]] = [
         "location_key": "caffe",
         "action_kind": ActionKind.EAT,
         "price": 3.0,
-        "stock": -1,
+        "stock": 20,
     },
     {
         "location_key": "caffe",
         "action_kind": ActionKind.DRINK,
         "price": 2.0,
-        "stock": -1,
+        "stock": 20,
     },
     {
         "location_key": "caffe",
         "action_kind": ActionKind.PLAY,
         "price": 4.0,
-        "stock": -1,
+        "stock": 10,
     },
     {
         "location_key": "piazza",
         "action_kind": ActionKind.EAT,
         "price": 2.0,
-        "stock": -1,
+        "stock": 15,
     },
 ]
 

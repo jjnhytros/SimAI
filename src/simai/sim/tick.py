@@ -13,6 +13,7 @@ from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, needs_of
 from simai.npc.manager import NPCManager, NPCManagerLike
+from simai.sim.daily import daily_tick
 from simai.sim.reports import TickDecision, TickReport
 from simai.sim.state import get_state
 from simai.world.models import Character
@@ -55,6 +56,8 @@ def run_tick(
 
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
+
+    daily_tick(session, tick_index)
 
     payday_report = process_payday(session, tick_index)
 

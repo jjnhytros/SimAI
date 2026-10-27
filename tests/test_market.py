@@ -46,7 +46,7 @@ def test_offer_of_returns_item(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
         offer = offer_of(session, "caffe", ActionKind.EAT)
     assert offer is not None
     assert offer.price == 3.0
-    assert offer.stock == -1
+    assert offer.stock == 20
 
 
 def test_stock_of_missing_returns_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -169,10 +169,10 @@ def test_save_load_preserves_shop_items(tmp_path: Path, monkeypatch: pytest.Monk
     factory = get_session_factory(engine)
     action = _eat_caffe()
     with factory() as session:
-        # 1. Forza stock finito (seed è -1 in 1.4.0) e compra.
+        # 1. Stock è 20 dal seed 1.6.0. Compra.
         offer_before_buy = offer_of(session, "caffe", ActionKind.EAT)
         assert offer_before_buy is not None
-        offer_before_buy.stock = 20
+        assert offer_before_buy.stock == 20
         session.commit()
 
         player = session.scalar(select(Character).where(Character.key == "player"))
@@ -230,3 +230,46 @@ def test_shop_item_price_matches_catalog() -> None:
             f"{spec['action_kind'].value}: "
             f"ShopItem={spec['price']}, CATALOG={catalog_by_key[key]}"
         )
+
+
+def test_stock_exhaustion_and_restock_via_tick(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """20 acquisti esauriscono EAT caffè; daily_tick a tick 24 ripristina."""
+    from simai.sim.tick import run_tick
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    action = _eat_caffe()
+
+    with factory() as session:
+        offer = offer_of(session, "caffe", ActionKind.EAT)
+        assert offer is not None
+        offer.stock = 1
+        session.commit()
+
+        player = session.scalar(select(Character).where(Character.key == "player"))
+        assert player is not None
+        player.balance = 1000.0
+        session.commit()
+
+        # Compra finché c'è stock.
+        result = buy(session, player, "caffe", action, tick_index=10)
+        session.commit()
+        assert result.success
+        assert result.stock_after == 0
+
+        # Secondo acquisto: stock esaurito.
+        result = buy(session, player, "caffe", action, tick_index=11)
+        session.commit()
+        assert not result.success
+        assert result.error is not None and "esaurito" in result.error
+
+        # Tick 24: daily_tick restock.
+        run_tick(session, minutes=60, tick_index=24, master_seed=42)
+        session.commit()
+
+    with factory() as session:
+        offer = offer_of(session, "caffe", ActionKind.EAT)
+        assert offer is not None
+        assert offer.stock == 20

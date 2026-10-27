@@ -86,8 +86,8 @@ def test_restock_resets_stock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
             )
         )
         assert item is not None
-        # spec 1.4.0: stock=-1 (infinito). 1.5.0: 20 + restock da lifecycle.
-        assert item.stock == -1
+        # spec 1.6.0: stock=20 + restock giornaliero da `daily_tick`.
+        assert item.stock == 20
 
 
 def test_restock_is_noop_when_already_full(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

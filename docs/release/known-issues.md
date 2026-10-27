@@ -258,6 +258,26 @@ attivo perché non esiste ancora un `restock` da `LifecycleManager`.
 `LifecycleManager.daily_tick`, test di integrazione esaurimento +
 restock.
 
+### 6.5 Stock finito non vincolante con 4 NPC (1.6.0)
+
+`SHOP_ITEM_SPECS` ha stock 20/20/10/15. Con 4 NPC che comprano ~6
+volte al giorno complessivamente, lo stock si esaurirebbe in ~3
+giorni, ma `daily_tick` fa restock ogni 24 tick (tick 0, 24, 48, ...).
+Risultato: `filter_by_stock` non filtra mai nella simulazione reale.
+Il 10y di 1.6.0 ha `purchase_transactions: 22402` e `balance_final`
+identici a 1.5.0: lo stock finito non ha effetto osservabile.
+
+Il meccanismo è implementato e testato
+(`test_stock_exhaustion_and_restock_via_tick`), ma non vincolante
+alla scala attuale. Diventerà vincolante quando:
+
+- gli NPC saranno > 10 (più domanda), o
+- lo stock scenderà sotto 10 (meno offerta), o
+- il restock sarà meno frequente (es. ogni 7 giorni, non ogni giorno).
+
+Nessuna delle tre è in 1.6.0. Va documentato, non corretto con
+stock artificialmente bassi.
+
 ---
 
 ## 7. NPCManager (1.5.0)

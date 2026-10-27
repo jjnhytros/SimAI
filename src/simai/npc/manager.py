@@ -26,7 +26,7 @@ from simai.economy.work import (
 )
 from simai.mood.moodlets import apply_moodlet, moodlets_for_action
 from simai.needs.enums import NeedKind
-from simai.needs.service import apply_effect, needs_of
+from simai.needs.service import apply_effect, needs_of_many
 from simai.relationships.service import boost_social_relationship
 from simai.sim.reports import TickDecision
 from simai.world.enums import LocationKind
@@ -83,6 +83,9 @@ class NPCManager:
             q = q.where(Character.is_player.is_(False))
         characters = session.scalars(q).all()
 
+        character_ids = [c.id for c in characters]
+        needs_by_id = needs_of_many(session, character_ids)
+
         states: list[NPCState] = []
         for char in characters:
             states.append(
@@ -93,7 +96,7 @@ class NPCManager:
                     home_location_id=char.home_location_id,
                     traits=list(char.traits),
                     balance=float(char.balance),
-                    needs=needs_of(session, char.id),
+                    needs=needs_by_id.get(char.id, {}),
                     is_player=char.is_player,
                 )
             )

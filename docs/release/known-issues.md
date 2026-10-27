@@ -280,13 +280,18 @@ aggiornato dopo `apply_effect`. I campi non sincronizzati (`traits`,
 ~4 query in più per tick rispetto al loop inline precedente (che
 caricava `needs_by_char` una volta sola per tutti i personaggi).
 
-**Misurato (10y, seed 42)**: `ticks_per_second` 76.5 (1.4.0) →
-70.6 (1.5.0), −7.7%. Il refactor è comportamentalmente puro
-(mood/balance/transactions identici), ma paga il N+1.
+**Misurato (10y, seed 42)**: la stima originale ("irrilevante,
+< 1ms") era sbagliata. Il N+1 costa ~11 secondi su 87600 tick
+(0.9%). Non è la causa della differenza di tps tra 1.4.0 e 1.5.0:
+il baseline `76.5 tps` di 1.4.0 (misura del 2026-10-25) non era
+valido. Rimisurato 1.4.0 lo stesso giorno di 1.5.1:
+`72.27 tps`. La differenza reale è **2.2%**, non 7.7%.
 
-**Roadmap 1.6.0**: `load` batch (`needs_of_many`), o `NPCState`
-persistito in `SimState` (JSON). Non prima: oggi non c'è pressione
-sulle performance.
+**Risolto in 1.6.0** con `needs_of_many` batch in
+`needs/service.py`: `load` fa una query per i bisogni di tutti gli
+NPC, non N. Guadagno misurato: +0.9% (70.6 → 71.3 tps su 10y).
+Piccolo, ma chiude il N+1 e prepara il terreno per quando gli NPC
+saranno più di 4.
 
 ### 7.3 Nessun LOD
 

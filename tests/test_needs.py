@@ -110,3 +110,57 @@ def test_apply_decay_with_solitary_trait(
     assert values[NeedKind.FUN] == pytest.approx(94.0)
     # INTIMACY: 1.5 * 0.60 = 0.9/h * 2h = 1.8 -> 98.2
     assert values[NeedKind.INTIMACY] == pytest.approx(98.2)
+
+
+def test_needs_of_many_empty(tmp_path: Path) -> None:
+    from simai.needs.service import needs_of_many
+
+    engine = _engine(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        assert needs_of_many(session, []) == {}
+
+
+def test_needs_of_many_single(tmp_path: Path) -> None:
+    from simai.needs.service import needs_of_many
+
+    engine = _engine(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        seed_muse_core(session)
+        session.commit()
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        result = needs_of_many(session, [erika.id])
+    assert len(result) == 1
+    (erika_id,) = result.keys()
+    assert len(result[erika_id]) == 4
+
+
+def test_needs_of_many_multiple(tmp_path: Path) -> None:
+    from simai.needs.service import needs_of_many
+
+    engine = _engine(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        seed_muse_core(session)
+        session.commit()
+    with factory() as session:
+        chars = session.scalars(select(Character)).all()
+        ids = [c.id for c in chars]
+        assert len(ids) == 5
+        result = needs_of_many(session, ids)
+    assert set(result.keys()) == set(ids)
+    for needs in result.values():
+        assert len(needs) == 4
+
+
+def test_needs_of_many_missing_character(tmp_path: Path) -> None:
+    from simai.needs.service import needs_of_many
+
+    engine = _engine(tmp_path)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        result = needs_of_many(session, [999999])
+    assert result == {999999: {}}

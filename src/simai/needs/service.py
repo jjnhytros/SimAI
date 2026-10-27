@@ -105,3 +105,18 @@ def apply_effect(
         return 0.0
     need.value = clamp(need.value + action.amount)
     return need.value
+
+
+def needs_of_many(session: Session, character_ids: list[int]) -> dict[int, dict[NeedKind, float]]:
+    """Bisogni di più personaggi in una query.
+
+    Ritorna `{character_id: {kind: value}}`. Character senza bisogni
+    hanno `{}`, non assenza. Lista vuota → dict vuoto, zero query.
+    """
+    if not character_ids:
+        return {}
+    needs = session.scalars(select(Need).where(Need.character_id.in_(character_ids))).all()
+    result: dict[int, dict[NeedKind, float]] = {cid: {} for cid in character_ids}
+    for need in needs:
+        result[need.character_id][need.kind] = need.value
+    return result

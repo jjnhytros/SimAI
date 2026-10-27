@@ -87,6 +87,7 @@ def build_player_status(session: Session) -> PlayerStatus | None:
         job_state = {
             "before_work": "in attesa",
             "working": "al lavoro",
+            "on_break": "in pausa",
             "after_work": "FUORI ORARIO (non pagato oggi)",
             "no_job": None,
         }[ws.value]

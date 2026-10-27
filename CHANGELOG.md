@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.7.1] — 2026-10-27
+
+### Cambiato
+
+- **`TICKS_PER_DAY = 28`** (era 24): giorno Anthalys di 28 ore.
+  Payday tick 27, 55, 83, ...
+- **`TICKS_PER_YEAR = 12096`** (era 8760): 28 × 432 (calendario
+  Anthalys). `sample_every` default 28.
+- **`Job.break_start_tick` / `break_end_tick`**: pausa pranzo.
+  Migrazione `0014`.
+- **`WorkState.ON_BREAK`**: durante la pausa, l'NPC è libero di
+  lasciare la location. `should_prioritize_work` è `False` in pausa.
+- **Seed orari nuovi**: luca barista 14-21, giulia/erika/max 7-14
+  + pausa 14-15 + 15-18, player commesso 10-19.
+- **`player/status.py` / `cmd_economy.py`**: mapping `on_break` →
+  "in pausa".
+
+### Verificato (10y, seed 42)
+
+- 120.960 tick, `invariants_ok: true`, tps 77.0.
+- `mood_mean`: 67.5–68.1.
+- `job_attendance_rate: 1.0` (pausa 14-15 non riduce l'attenzione).
+- `purchase_transactions: 34665` (+11.7%/tick rispetto a 1.7.0,
+  coerente con decadimento +16.7%).
+- `balance_mean` per erika: 9590 (era 13922 in 1.7.0, calo dovuto
+  a consumo reale).
+
+### Limitato (documentato in `known-issues.md` §9)
+
+- Decadimento +16.7% e acquisti +11.7%: il baseline cambia, i 10y
+  precedenti non sono più confrontabili.
+- Turni barista 7-14 e 21-28 scoperti (un solo barista nel seed).
+- `TICKS_PER_YEAR = 12096`, non 8760. `--years 1` fa 12096 tick.
+
 ## [1.7.0] — 2026-10-27
 
 ### Aggiunto

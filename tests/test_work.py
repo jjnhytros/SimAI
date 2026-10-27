@@ -52,8 +52,9 @@ def _make_job(start: int, end: int) -> Job:
 def test_tick_in_day() -> None:
     assert tick_in_day(0) == 0
     assert tick_in_day(23) == 23
-    assert tick_in_day(24) == 0
-    assert tick_in_day(47) == 23
+    assert tick_in_day(28) == 0
+    assert tick_in_day(47) == 19
+    assert tick_in_day(55) == 27
 
 
 def test_work_state_no_job() -> None:
@@ -208,3 +209,44 @@ def test_priority_working_state_critical_hunger() -> None:
     """Salvaguardia fame si applica anche durante il turno."""
     job = _make_job(8, 16)
     assert should_prioritize_work(job, 10, CRITICAL_HUNGER_THRESHOLD - 1.0) is False
+
+
+def test_work_state_on_break() -> None:
+    from simai.economy.models import Job
+    from simai.economy.work import WorkState, work_state_for
+
+    job = Job(
+        character_id=1,
+        title="insegnante",
+        location_key="piazza",
+        daily_wage=22.0,
+        schedule_start_tick=7,
+        schedule_end_tick=18,
+        break_start_tick=14,
+        break_end_tick=15,
+    )
+    assert work_state_for(job, 6) == WorkState.BEFORE_WORK
+    assert work_state_for(job, 7) == WorkState.WORKING
+    assert work_state_for(job, 13) == WorkState.WORKING
+    assert work_state_for(job, 14) == WorkState.ON_BREAK
+    assert work_state_for(job, 15) == WorkState.WORKING
+    assert work_state_for(job, 17) == WorkState.WORKING
+    assert work_state_for(job, 18) == WorkState.AFTER_WORK
+
+
+def test_should_prioritize_work_on_break() -> None:
+    from simai.economy.models import Job
+    from simai.economy.work import should_prioritize_work
+
+    job = Job(
+        character_id=1,
+        title="insegnante",
+        location_key="piazza",
+        daily_wage=22.0,
+        schedule_start_tick=7,
+        schedule_end_tick=18,
+        break_start_tick=14,
+        break_end_tick=15,
+    )
+    assert should_prioritize_work(job, 14, 100.0) is False
+    assert should_prioritize_work(job, 15, 100.0) is True

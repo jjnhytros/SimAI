@@ -28,9 +28,12 @@ def _seeded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Engine:
 
 
 def test_is_payday_tick_utility() -> None:
-    assert TICKS_PER_DAY == 24
+    assert TICKS_PER_DAY == 28
     assert not is_payday_tick(0)
-    assert is_payday_tick(23)
+    assert is_payday_tick(27)
+    assert is_payday_tick(55)
+    assert not is_payday_tick(28)
+    assert not is_payday_tick(54)
 
 
 def test_mid_shift_does_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,58 +48,57 @@ def test_mid_shift_does_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_payday_at_end_of_shift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Seed:
-       - giulia (insegnante, 8-14, piazza): fine turno tick 13
-       - erika/max (studente, 8-13, piazza): fine turno tick 12
-       - luca (barista, 8-16, caffe): fine turno tick 15
-       - player (commesso, 9-17, caffe): fine turno tick 16
-    Al tick 12: erika (a casa) assente, max (a piazza) pagato.
+    """Seed 1.7.1:
+       - giulia (insegnante, 7-18, piazza, break 14-15): fine turno tick 17
+       - erika/max (studente, 7-18, piazza, break 14-15): fine turno tick 17
+       - luca (barista, 14-21, caffe): fine turno tick 20
+       - player (commesso, 10-19, caffe): fine turno tick 18
+    Al tick 17: erika (a casa) assente, max e giulia (a piazza) pagati.
     """
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         before = {c.key: c.balance for c in session.scalars(select(Character)).all()}
-        report = process_payday(session, tick_index=12)
+        report = process_payday(session, tick_index=17)
         session.commit()
-    assert report.paid == 1
+    assert report.paid == 2
     assert report.absent == 1
     assert report.absent_keys == ("erika",)
     with factory() as session:
         after = {c.key: c.balance for c in session.scalars(select(Character)).all()}
     assert after["max"] == before["max"] + 5.0
     assert after["erika"] == before["erika"]
+    assert after["giulia"] == before["giulia"] + 22.0
 
 
 def test_multiple_shifts_paid_at_own_tick(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        # tick 12: erika assente, max pagato (studenti)
-        r12 = process_payday(session, tick_index=12)
-        # tick 13: giulia pagata (insegnante)
-        r13 = process_payday(session, tick_index=13)
-        # tick 15: luca pagato (barista)
-        r15 = process_payday(session, tick_index=15)
-        # tick 16: player a casa, assente
-        r16 = process_payday(session, tick_index=16)
+        # tick 17: erika assente, max e giulia pagati
+        r17 = process_payday(session, tick_index=17)
+        # tick 18: player a casa, assente
+        r18 = process_payday(session, tick_index=18)
+        # tick 20: luca a caffe, pagato
+        r20 = process_payday(session, tick_index=20)
         session.commit()
-    assert r12.paid == 1 and r12.absent == 1
-    assert r13.paid == 1 and r13.absent == 0
-    assert r15.paid == 1 and r15.absent == 0
-    assert r16.paid == 0 and r16.absent == 1
-    assert r16.absent_keys == ("player",)
+    assert r17.paid == 2 and r17.absent == 1
+    assert r17.absent_keys == ("erika",)
+    assert r18.paid == 0 and r18.absent == 1
+    assert r18.absent_keys == ("player",)
+    assert r20.paid == 1 and r20.absent == 0
 
 
 def test_records_salary_transactions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
-        process_payday(session, tick_index=12)
-        process_payday(session, tick_index=13)
-        process_payday(session, tick_index=15)
+        process_payday(session, tick_index=17)
+        process_payday(session, tick_index=18)
+        process_payday(session, tick_index=20)
         session.commit()
     with factory() as session:
         txs = session.scalars(select(Transaction)).all()
     assert len(txs) == 3
     assert all(t.kind == TransactionKind.SALARY for t in txs)
-    assert {t.tick_index for t in txs} == {12, 13, 15}
+    assert {t.tick_index for t in txs} == {17, 20}

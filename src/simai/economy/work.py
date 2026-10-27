@@ -13,6 +13,7 @@ class WorkState(StrEnum):
     NO_JOB = "no_job"
     BEFORE_WORK = "before_work"
     WORKING = "working"
+    ON_BREAK = "on_break"
     AFTER_WORK = "after_work"
 
 
@@ -25,9 +26,15 @@ def work_state_for(job: Job | None, t_in_day: int) -> WorkState:
         return WorkState.NO_JOB
     if t_in_day < job.schedule_start_tick:
         return WorkState.BEFORE_WORK
-    if t_in_day < job.schedule_end_tick:
-        return WorkState.WORKING
-    return WorkState.AFTER_WORK
+    if t_in_day >= job.schedule_end_tick:
+        return WorkState.AFTER_WORK
+    if (
+        job.break_start_tick is not None
+        and job.break_end_tick is not None
+        and job.break_start_tick <= t_in_day < job.break_end_tick
+    ):
+        return WorkState.ON_BREAK
+    return WorkState.WORKING
 
 
 def should_prioritize_work(
@@ -35,15 +42,10 @@ def should_prioritize_work(
     t_in_day: int,
     hunger_value: float,
 ) -> bool:
-    """La priorità lavoro copre tutto il turno, non solo l'inizio.
+    """Priorità lavoro: BEFORE_WORK entro finestra, WORKING sempre.
+    ON_BREAK: nessuna priorità (l'NPC è libero). AFTER_WORK: nessuna.
 
-    - BEFORE_WORK: priorità solo entro `PRIORITY_WINDOW` tick.
-    - WORKING: priorità sempre. L'NPC resta al lavoro.
-    - AFTER_WORK: nessuna priorità.
-
-    Salvaguardia: hunger < 10 → priorità decade. Meglio perdere un
-    turno che morire di fame. Un NPC che lascia il posto durante il
-    turno non prende lo stipendio.
+    Salvaguardia: hunger < 10 → priorità decade.
     """
     if job is None:
         return False

@@ -235,7 +235,7 @@ def test_shop_item_price_matches_catalog() -> None:
 def test_stock_exhaustion_and_restock_via_tick(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """20 acquisti esauriscono EAT caffè; daily_tick a tick 24 ripristina."""
+    """20 acquisti esauriscono EAT caffè; daily_tick a tick 28 ripristina."""
     from simai.sim.tick import run_tick
 
     engine = _seeded(tmp_path, monkeypatch)
@@ -265,8 +265,8 @@ def test_stock_exhaustion_and_restock_via_tick(
         assert not result.success
         assert result.error is not None and "esaurito" in result.error
 
-        # Tick 24: daily_tick restock.
-        run_tick(session, minutes=60, tick_index=24, master_seed=42)
+        # Tick 28: daily_tick restock.
+        run_tick(session, minutes=60, tick_index=28, master_seed=42)
         session.commit()
 
     with factory() as session:

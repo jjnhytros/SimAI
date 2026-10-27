@@ -29,6 +29,8 @@ class Job(Base):
     daily_wage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     schedule_start_tick: Mapped[int] = mapped_column(Integer, nullable=False, default=8)
     schedule_end_tick: Mapped[int] = mapped_column(Integer, nullable=False, default=16)
+    break_start_tick: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    break_end_tick: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Transaction(Base):

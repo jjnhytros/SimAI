@@ -283,11 +283,11 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - **1.7.0** — `RelationshipKind` 11 kind, `family_tree`, `kinship`,
   seed famiglia (giulia→erika, luca→max), boost `SOCIALIZE` familiare.
   Relazioni statiche senza lifecycle. 289 test verdi.
-
-- **1.5+** — `RelationshipKind` 11 kind (A2), stock finito + restock +
-  `COST_PENALTY` + inventario, `LifecycleManager`, skills, memoria,
-  calendario Anthalys. Tassazione in 1.5+ **solo previa decisione
-  esplicita**: non è nel perimetro 1.5.0.
+- **1.7.1** — Giorno di 28 ore (`TICKS_PER_DAY=28`,
+  `TICKS_PER_YEAR=12096`), pausa pranzo (`Job.break_*`,
+  `WorkState.ON_BREAK`), nuovi orari job. 292 test verdi. 10y a
+  120.960 tick, baseline non confrontabile con i precedenti.
+- **1.8+** — `RelationshipKind` 11 kind (A2), stock finito + restock +
 
 ## Documenti
 

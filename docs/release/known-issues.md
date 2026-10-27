@@ -391,3 +391,58 @@ condiviso in modelli semplificati.
 toccare `build_player_status`, `cmd_player.py`, e tutti i test del
 pannello. Rischio sproporzionato per "una riga". `npc relationships
 family -c <key>` copre l'uso. Va in C o 1.7.1.
+
+
+---
+
+## 9. Giorno di 28 ore (1.7.1)
+
+### 9.1 Decadimento +16.7%, acquisti +11.7%
+
+`DECAY_PER_HOUR` non è cambiato (HUNGER 4.0, THIRST 5.0, FUN 3.0,
+INTIMACY 1.5). Con 28 ore/giorno, il decadimento giornaliero passa
+da 324 a 378 punti (+16.7%). Gli NPC fanno più azioni, quindi più
+acquisti.
+
+**Misurato (10y, seed 42):**
+
+- `purchase_transactions`: 22402 (1.7.0, 87600 tick) → 34665
+  (1.7.1, 120960 tick). Per tick: 0.256 → 0.286 (+11.7%).
+- `balance_mean` per erika: 13922 (1.7.0) → 9590 (1.7.1).
+  Il calo è dovuto al consumo reale, non a un bug.
+- `mood_mean`: 67.7–68.1 (1.7.0) → 67.5–68.1 (1.7.1). Stabile.
+
+Il +11.7% è inferiore al +16.7% del decadimento perché le azioni
+gratuite (casa, piazza) assorbono parte dell'aumento. Coerente.
+
+### 9.2 Turni barista scoperti
+
+Il seed ha un solo barista (luca, turno 14-21). I turni "barista 1"
+(7-14) e "barista 3" (21-28) restano scoperti. Il mondo non ha 3
+baristi, non c'è modo di coprirli senza aggiungere 2 NPC.
+
+**Roadmap 1.8.0+**: 2 NPC baristi in più (7 NPC totali) o sistema
+di turni condivisi. Fuori scope 1.7.1.
+
+### 9.3 Pausa 14-15 e attendance
+
+Con `WorkState.ON_BREAK` (14-15 per giulia/erika/max), l'NPC è
+libero di lasciare la location. Se al tick 17 (`schedule_end_tick
+- 1`) non è in location, non viene pagato.
+
+**Misurato:** `job_attendance_rate: 1.0` per tutti i 4 NPC su
+120960 tick. La pausa non ha ridotto l'attenzione. `PRIORITY_WINDOW
+= 2` è sufficiente per far rientrare l'NPC in tempo.
+
+### 9.4 Baseline non confrontabile
+
+I 10y da 1.2.1 a 1.7.0 sono a 87.600 tick (365 × 24). Il nuovo
+10y è 120.960 tick (432 × 28). **Non confrontabili.** Il baseline
+riparte da `10y-1.7.1.json`. I 10y precedenti restano come
+archivio storico, non come riferimento.
+
+### 9.5 `TICKS_PER_YEAR` non è più 8760
+
+`sim/benchmark.py` ha `TICKS_PER_YEAR = 12096` (28 × 432), non
+8760. Il comando `simai sim benchmark --years N` esegue `N × 12096`
+tick. Un `--years 1` fa 12096 tick, non 8760.

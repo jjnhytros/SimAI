@@ -40,7 +40,7 @@ def test_home_seeded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_should_prioritize_home_after_work(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Dopo il turno (tick 17 per commesso), a piazza, con
+    """Dopo il turno (tick 19+ per commesso 10-19), a caffe, con
     intimacy/fun alti: priorità casa attiva."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
@@ -52,11 +52,11 @@ def test_should_prioritize_home_after_work(tmp_path: Path, monkeypatch: pytest.M
 
         job = job_of(session, player.id)
         assert job is not None
-        # t=17: AFTER_WORK per commesso (9-17)
+        # t=19: AFTER_WORK per commesso (10-19)
         assert (
             should_prioritize_home(
                 job,
-                t_in_day=17,
+                t_in_day=19,
                 home_key="casa",
                 current_key="caffe",
                 intimacy=80.0,
@@ -82,7 +82,7 @@ def test_no_home_priority_when_low_intimacy(
         assert (
             should_prioritize_home(
                 job,
-                t_in_day=17,
+                t_in_day=19,
                 home_key="casa",
                 current_key="caffe",
                 intimacy=30.0,
@@ -102,11 +102,11 @@ def test_no_home_priority_during_work(tmp_path: Path, monkeypatch: pytest.Monkey
 
         job = job_of(session, player.id)
         assert job is not None
-        # t=10: WORKING per commesso (9-17)
+        # t=12: WORKING per commesso (10-19)
         assert (
             should_prioritize_home(
                 job,
-                t_in_day=10,
+                t_in_day=12,
                 home_key="casa",
                 current_key="caffe",
                 intimacy=80.0,
@@ -117,8 +117,8 @@ def test_no_home_priority_during_work(tmp_path: Path, monkeypatch: pytest.Monkey
 
 
 def test_npc_returns_home_after_shift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Luca (barista, 8-16) a caffe al tick 16 (fine turno): priorità
-    casa al tick 17 (torna a casa)."""
+    """Luca (barista, 14-21) a caffe al tick 22 (dopo la fine turno):
+    priorità casa, torna a casa."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -130,9 +130,9 @@ def test_npc_returns_home_after_shift(tmp_path: Path, monkeypatch: pytest.Monkey
             n.value = 100.0
         session.commit()
 
-    # tick 17: t_in_day = 17, dopo il turno di luca (8-16)
+    # tick 22: t_in_day = 22, dopo il turno di luca (14-21)
     with factory() as session:
-        report = run_tick(session, minutes=1, tick_index=17, master_seed=42)
+        report = run_tick(session, minutes=1, tick_index=22, master_seed=42)
         session.commit()
     d = next(
         (d for d in report.decisions if d.character_key == "luca"),

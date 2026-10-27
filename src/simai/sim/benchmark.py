@@ -23,7 +23,7 @@ from simai.sim.tick import TickReport
 from simai.world.models import Character
 from simai.world.seed import seed_muse_core
 
-TICKS_PER_YEAR = 8760
+TICKS_PER_YEAR = 12096  # 28 tick × 432 giorni (calendario Anthalys)
 
 
 @dataclass(frozen=True)
@@ -136,7 +136,7 @@ def run_benchmark(
     minutes_per_tick: int = 60,
     seed: int = 42,
     include_player: bool = False,
-    sample_every: int = 24,
+    sample_every: int = 28,
 ) -> BenchmarkReport:
     if years <= 0:
         raise ValueError(f"years must be > 0, got {years}")

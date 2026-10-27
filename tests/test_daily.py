@@ -60,7 +60,7 @@ def test_daily_tick_restocks_at_tick_zero(tmp_path: Path, monkeypatch: pytest.Mo
         assert offer.stock == 20
 
 
-def test_daily_tick_restocks_at_tick_24(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_daily_tick_restocks_at_tick_28(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -70,7 +70,7 @@ def test_daily_tick_restocks_at_tick_24(tmp_path: Path, monkeypatch: pytest.Monk
         session.commit()
 
     with factory() as session:
-        daily_tick(session, 24)
+        daily_tick(session, 28)
         session.commit()
 
     with factory() as session:
@@ -93,7 +93,7 @@ def test_daily_tick_restocks_all_locations(tmp_path: Path, monkeypatch: pytest.M
         session.commit()
 
     with factory() as session:
-        daily_tick(session, 48)
+        daily_tick(session, 56)
         session.commit()
 
     with factory() as session:

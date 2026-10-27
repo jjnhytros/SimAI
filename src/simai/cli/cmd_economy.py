@@ -135,6 +135,7 @@ def jobs() -> None:
         state_label = {
             WorkState.BEFORE_WORK: "in attesa",
             WorkState.WORKING: "al lavoro",
+            WorkState.ON_BREAK: "in pausa",
             WorkState.AFTER_WORK: "fuori orario",
             WorkState.NO_JOB: "—",
         }[state]

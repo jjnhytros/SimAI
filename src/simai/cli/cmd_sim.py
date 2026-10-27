@@ -169,7 +169,7 @@ def benchmark(
     minutes: int = typer.Option(60, "--minutes", "-m"),
     seed: int = typer.Option(42, "--seed"),
     include_player: bool = typer.Option(False, "--include-player"),
-    sample_every: int = typer.Option(24, "--sample-every"),
+    sample_every: int = typer.Option(28, "--sample-every"),
     db: Path | None = typer.Option(None, "--db"),
     output: Path | None = typer.Option(None, "--output", "-o"),
 ) -> None:

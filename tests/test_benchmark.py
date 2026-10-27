@@ -9,14 +9,14 @@ from simai.sim.benchmark import (
 
 
 def test_ticks_per_year_constant() -> None:
-    assert TICKS_PER_YEAR == 8760
+    assert TICKS_PER_YEAR == 12096
 
 
 def test_run_benchmark_short(tmp_path: Path) -> None:
     db = tmp_path / "bench.db"
     report = run_benchmark(db, years=0.01, sample_every=1)
-    # 0.01 * 8760 = 87.6 -> 87
-    assert report.ticks == 87
+    # 0.01 * 12096 = 120.96 -> 120
+    assert report.ticks == 120
     assert report.invariants_ok
     assert report.relationships_active >= 0
     # Player escluso di default

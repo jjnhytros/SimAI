@@ -62,8 +62,8 @@ def test_economy_ledger_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
 def test_economy_ledger_after_payday(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _setup(tmp_path, monkeypatch)
-    # 24 tick: payday al tick 23
-    runner.invoke(app, ["sim", "run", "--ticks", "24"])
+    # 28 tick: payday al tick 27
+    runner.invoke(app, ["sim", "run", "--ticks", "28"])
     result = runner.invoke(app, ["economy", "ledger", "-c", "luca"])
     assert result.exit_code == 0
     assert "salary" in result.stdout.lower()

@@ -16,7 +16,7 @@ pytestmark = pytest.mark.slow
 def test_one_year_simulation(tmp_path: Path) -> None:
     db = tmp_path / "bench_1y.db"
     report = run_benchmark(db, years=1.0, sample_every=336)
-    assert report.ticks == 8760
+    assert report.ticks == 12096
     assert report.invariants_ok, report.invariant_violations
     assert report.relationships_active == 2
     # Almeno un NPC mantiene mood medio > 0.

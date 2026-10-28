@@ -30,6 +30,7 @@ class Character(Base):
     key: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(64), nullable=False)
     age_years: Mapped[int] = mapped_column(Integer, nullable=False)
+    age_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_player: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     mood: Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
     low_intimacy_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -38,3 +39,17 @@ class Character(Base):
     location: Mapped[Location] = relationship(back_populates="characters")
     home_location_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     traits: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+
+
+class Pregnancy(Base):
+    __tablename__ = "pregnancy"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    character_id: Mapped[int] = mapped_column(
+        ForeignKey("characters.id", ondelete="CASCADE"), nullable=False
+    )
+    partner_id: Mapped[int | None] = mapped_column(
+        ForeignKey("characters.id", ondelete="SET NULL"), nullable=True
+    )
+    conceived_at_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+    due_at_tick: Mapped[int] = mapped_column(Integer, nullable=False)

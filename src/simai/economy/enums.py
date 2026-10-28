@@ -11,3 +11,4 @@ class JobTitle(StrEnum):
 class TransactionKind(StrEnum):
     SALARY = "salary"
     PURCHASE = "purchase"
+    OTHER = "other"

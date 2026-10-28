@@ -427,12 +427,10 @@ di turni condivisi. Fuori scope 1.7.1.
 ### 9.3 Pausa 14-15 e attendance
 
 Con `WorkState.ON_BREAK` (14-15 per giulia/erika/max), l'NPC è
-libero di lasciare la location. Se al tick 17 (`schedule_end_tick
-- 1`) non è in location, non viene pagato.
+libero di lasciare la location. Se al tick 17 (`schedule_end_tick - 1`) non è in location, non viene pagato.
 
 **Misurato:** `job_attendance_rate: 1.0` per tutti i 4 NPC su
-120960 tick. La pausa non ha ridotto l'attenzione. `PRIORITY_WINDOW
-= 2` è sufficiente per far rientrare l'NPC in tempo.
+120960 tick. La pausa non ha ridotto l'attenzione. `PRIORITY_WINDOW = 2` è sufficiente per far rientrare l'NPC in tempo.
 
 ### 9.4 Baseline non confrontabile
 
@@ -446,3 +444,66 @@ archivio storico, non come riferimento.
 `sim/benchmark.py` ha `TICKS_PER_YEAR = 12096` (28 × 432), non
 8760. Il comando `simai sim benchmark --years N` esegue `N × 12096`
 tick. Un `--years 1` fa 12096 tick, non 8760.
+
+
+---
+
+## 10. Lifecycle (1.8.0)
+
+### 10.1 Morte probabilistica non implementata
+
+Il TODO §3.4 prevede `DeathService` con "mortalità baseline `1e-5`,
+rampa cubica, max 1/30 a `exp_max`". **Non è implementata.** Serve
+un'unità di misura (per tick? per anno? per giorno?) che il TODO non
+specifica. Le tre interpretazioni plausibili danno risultati
+incompatibili (morte in 200 tick, in 200 anni, in 100.000 anni).
+
+In 1.8.0: solo morte per età (`age_years >= 100`) e morte manuale
+(`kill()`). **1.9.0+**: morte probabilistica, con unità definita e
+`exp_max` calibrato.
+
+### 10.2 `DeathCause` 4 inutilizzati
+
+`DeathCause` ha 6 valori: `OLD_AGE`, `ILLNESS`, `ACCIDENT`, `VIOLENCE`,
+`UNKNOWN`, `MANUAL`. In 1.8.0 solo `OLD_AGE` (automatico) e `MANUAL`
+(CLI) sono generati. Gli altri 4 esistono per il futuro, mai generati.
+Documentato, non nascosto.
+
+### 10.3 `LIFESTAGE` assente
+
+Nessuna transizione pediatrica/psicosociale. `AgingService` fa solo
+`age_days += 1` e `age_years += 1` a 432 giorni. Nessun moodlet di
+compleanno, nessuna soglia (`MINOR`, `ADULT`, `SENIOR`). 1.9.0+.
+
+### 10.4 Gravidanza senza sesso modellato
+
+`conceive()` non valida il sesso: `Character.gender` non esiste.
+Qualsiasi coppia adulta può concepire. Documentato. `gender` in
+1.9.0+ (con migrazione).
+
+### 10.5 Gemelli identici vs fraterni
+
+`roll_twins()` ritorna `(n, identical)` con 1.5% identici e 30%
+fraterni. Ma senza genetica, `traits=[]` per tutti i nuovi nati.
+La distinzione è calcolata ma non osservabile. Diventerà visibile
+quando ci sarà ereditarietà dei tratti.
+
+### 10.6 `death_cause` campo inutilizzato
+
+`Character.death_cause` (String(16), nullable) esiste in migrazione
+`5200_04` ma non è usato: `kill()` **rimuove** il `Character`, non
+lo marca come morto. Il campo è per il futuro (`is_alive` flag +
+storia). Se in 1.9.0+ si passa a `is_alive`, va usato.
+
+### 10.7 Nessuna `Transaction` per nascita
+
+Il parto non registra una `Transaction`. Solo la successione ne
+registra una (`OTHER`, `note="succession"`). Se serve tracciare le
+nascite, va aggiunto in 1.9.0+.
+
+### 10.8 Ritardo parto
+
+`LifecycleManager.daily_tick` gira a tick 28, 56, ... Una gravidanza
+con `due_at_tick=100` viene consegnata a tick 112, non 100. Ritardo
+max 27 tick. `due_at_tick <= tick_index` recupera le gravidanze
+scadute, non si perdono.

@@ -25,7 +25,7 @@ from simai.save.errors import (
 from simai.save.format import SaveHeader, decode, encode
 from simai.sim.models import SimState
 from simai.world.enums import LocationKind
-from simai.world.models import Character, Location
+from simai.world.models import Character, Location, Pregnancy
 
 NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 
@@ -90,6 +90,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
                 "key": c.key,
                 "name": c.name,
                 "age_years": c.age_years,
+                "age_days": c.age_days,
                 "is_player": c.is_player,
                 "location_id": c.location_id,
                 "home_location_id": c.home_location_id,
@@ -150,6 +151,16 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             }
             for t in transactions
         ],
+        "pregnancies": [
+            {
+                "id": p.id,
+                "character_id": p.character_id,
+                "partner_id": p.partner_id,
+                "conceived_at_tick": p.conceived_at_tick,
+                "due_at_tick": p.due_at_tick,
+            }
+            for p in session.scalars(select(Pregnancy).order_by(Pregnancy.id)).all()
+        ],
         "shop_items": [
             {
                 "location_key": s.location_key,
@@ -181,12 +192,14 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
     """
     session.execute(delete(Moodlet))
     session.execute(delete(Transaction))
+    session.execute(delete(ShopItem))
     session.execute(delete(Job))
     session.execute(delete(Relationship))
     session.execute(delete(Need))
     session.execute(delete(Character))
     session.execute(delete(Location))
     session.execute(delete(SimState))
+    session.execute(delete(Pregnancy))
     session.flush()
 
     for row in payload["locations"]:
@@ -209,6 +222,7 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 key=row["key"],
                 name=row["name"],
                 age_years=row["age_years"],
+                age_days=row.get("age_days", 0),
                 is_player=row["is_player"],
                 location_id=row["location_id"],
                 home_location_id=row.get("home_location_id"),
@@ -275,7 +289,6 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
             )
         )
 
-    session.execute(delete(ShopItem))
     for row in payload.get("shop_items", []):
         session.add(
             ShopItem(
@@ -283,6 +296,17 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 action_kind=ActionKind(row["action_kind"]),
                 price=row["price"],
                 stock=row["stock"],
+            )
+        )
+
+    for row in payload.get("pregnancies", []):
+        session.add(
+            Pregnancy(
+                id=row["id"],
+                character_id=row["character_id"],
+                partner_id=row.get("partner_id"),
+                conceived_at_tick=row["conceived_at_tick"],
+                due_at_tick=row["due_at_tick"],
             )
         )
 

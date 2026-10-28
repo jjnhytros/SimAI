@@ -1,5 +1,61 @@
 # Changelog
 
+## [1.8.0] — 2026-10-28
+
+### Aggiunto
+
+- **`LifecycleManager`** (`npc/lifecycle.py`): chiamato da
+  `daily_tick` ogni 28 tick. Ageing (`age_days`, `age_years`),
+  morte per età, parto automatico delle gravidanze scadute.
+- **`Character.age_days`** (Integer, 0–431). Migrazione `5200_04`
+  insieme a `death_cause` e `pregnancy`. Seed: erika 14y 24d,
+  max 14y 32d, altri 0d.
+- **`DeathService.kill()`** (`npc/death.py`): rimuove il
+  `Character`, distribuisce il `balance`, registra `Transaction`
+  `OTHER`. Morte automatica solo a 100 anni (`OLD_AGE`), manuale
+  via CLI (`MANUAL`).
+- **`InheritanceService.distribute()`** (`npc/inheritance.py`):
+  5 tier (SPOUSE 50% + CHILD resto, PARENT, SIBLING, OTHER→world).
+  Solo `balance`.
+- **`Pregnancy` + `PregnancyService`** (`npc/pregnancy.py`):
+  300 giorni Anthalys (= 8400 tick), gemelli (1.5% identici,
+  30% fraterni), parto automatico da `daily_tick`.
+- **`DeathCause`** 6 enum (`OLD_AGE`, `ILLNESS`, `ACCIDENT`,
+  `VIOLENCE`, `UNKNOWN`, `MANUAL`). Solo `OLD_AGE` e `MANUAL`
+  generati in 1.8.0.
+- **`TransactionKind.OTHER`** (terzo valore, oltre SALARY/PURCHASE).
+- CLI `npc kill`, `npc conceive`, `npc pregnancies`, `npc deliver`,
+  `npc lifecycle-tick`.
+- `save`/`load` serializza `age_days` e `Pregnancy`.
+
+### Verificato (10y, seed 42)
+
+- `10y-1.8.0.json` **identico a `10y-1.7.1.json`** su
+  `mood_mean`, `balance_mean`, `purchase_transactions`,
+  `salary_transactions`, `job_attendance_rate`, `relationships_active`.
+- `death_count: 0` (nessuno arriva a 100 anni: erika/max 24,
+  giulia 47, luca 52).
+- `invariants_ok: true`.
+
+### Rimandato (documentato in `known-issues.md` §10)
+
+- **Morte probabilistica**: `1e-5` baseline, rampa cubica,
+  `exp_max` del TODO §3.4 **non implementata**. Serve un'unità di
+  misura (per tick? per anno? per giorno?) che il TODO non
+  specifica. 1.9.0+.
+- **`DeathCause` 4 inutilizzati** (`ILLNESS`, `ACCIDENT`,
+  `VIOLENCE`, `UNKNOWN`): enum per il futuro, mai generati.
+- **`LIFESTAGE`**: nessuna transizione pediatrica/psicosociale.
+  `AgingService` fa solo compleanno.
+- **Gravidanza senza sesso modellato**: `conceive()` non valida il
+  sesso. `Character.gender` non esiste.
+- **Gemelli identici vs fraterni**: `roll_twins()` calcola il flag
+  ma non ha effetto osservabile (nessuna genetica). `traits=[]`
+  per tutti i nuovi nati.
+- **Nessuna `Transaction` per nascita** (solo per successione).
+- **`death_cause` campo nullable in `Character`**: non usato in
+  1.8.0 (`kill()` rimuove il `Character`, non c'è nulla da salvare).
+
 ## [1.7.1] — 2026-10-27
 
 ### Cambiato

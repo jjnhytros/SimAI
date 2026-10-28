@@ -7,6 +7,7 @@ from simai.mood.moodlets import (
     LONELY_STREAK_TRIGGER,
     apply_moodlet,
     cleanup_expired,
+    refresh_need_moodlets,
     update_lonely_streak,
 )
 from simai.mood.service import update_mood
@@ -37,7 +38,7 @@ def run_tick(
       2. apply_decay (modulato dai tratti)
       3. NPCManager.load → NPCManager.update_all (priorità lavoro →
          priorità casa → choose_intent → esegui)
-      4. moodlet (streak, LONELY, mood, cleanup)
+      4. moodlet (streak, LONELY, need, mood, cleanup)
 
     `npc_manager=None` usa `NPCManager()`. Il parametro esiste per i
     test di contract (manager finto) e per future implementazioni
@@ -89,6 +90,7 @@ def run_tick(
         streak = update_lonely_streak(session, char.id, intimacy)
         if streak >= LONELY_STREAK_TRIGGER:
             apply_moodlet(session, char.id, MoodletKind.LONELY, tick_index)
+        refresh_need_moodlets(session, char.id, needs, tick_index)
         update_mood(session, char.id, tick=tick_index)
         cleanup_expired(session, char.id, tick_index)
 

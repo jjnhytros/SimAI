@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
-from simai.economy.calendar import TICKS_PER_DAY
+from simai.economy.calendar import TICKS_PER_DAY, TICKS_PER_YEAR
 from simai.economy.enums import TransactionKind
 from simai.economy.models import Transaction
 from simai.economy.seed import seed_demo_economy
@@ -22,8 +22,6 @@ from simai.sim.state import get_state, reset_state
 from simai.sim.tick import TickReport
 from simai.world.models import Character
 from simai.world.seed import seed_muse_core
-
-TICKS_PER_YEAR = 12096  # 28 tick × 432 giorni (calendario Anthalys)
 
 
 @dataclass(frozen=True)

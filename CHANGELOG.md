@@ -1,5 +1,89 @@
 # Changelog
 
+## [0.1100] — 2026-10-28
+
+**Nota versioning**: ex `1.10.0` nella numerazione storica. Da questa
+release la numerazione è `0.1xy0` (`xy` = minor storica). La release
+**1.0** sarà ufficiale quando ci sarà un engine grafico stabile e la
+simulazione sarà giocabile dal player. La serie `1.x.y` è storica.
+Mappatura completa in `TODO.md` §"Mappatura versioni".
+
+### Aggiunto
+
+- **Moodlet da stato dei bisogni**: 19 nuovi `MoodletKind` need-based
+  (`STARVING`, `HUNGRY`, `SATISFIED`, `WELL_FED`, `STUFFED` per HUNGER;
+  `DEHYDRATED`, `THIRSTY`, `HYDRATED`, `REFRESHED`, `OVERHYDRATED` per
+  THIRST; `MISERABLE`, `BORED`, `CONTENT`, `ENTERTAINED`, `BLISSFUL`
+  per FUN; `INTIMATE`, `CONNECTED`, `CLOSE`, `ADORED` per INTIMACY).
+  Totale moodlet need-based: 22 (3 esistenti + 19 nuovi).
+- **`moodlet_for_need(need, value) -> MoodletKind | None`** in
+  `mood/moodlets.py`. Funzione pura, deterministica. `None` per
+  INTIMACY < `LONELY_THRESHOLD` (coperto da `LONELY` via streak).
+- **`refresh_need_moodlets(session, char_id, needs, tick)`**:
+  applica il moodlet dello stato corrente. Transizione: delete+insert.
+  Stato invariato e lontano dalla scadenza: nessuna scrittura. Stato
+  invariato e vicino (`expires - tick <= 14`): refresh in-place.
+- **`NEED_MOODLETS`**, **`REFRESH_THRESHOLD_TICKS`** in
+  `mood/moodlets.py`.
+- **Moodlet di transizione LifeStage**: 3 nuovi kind (`BECAME_CHILD`
+  a 6 anni, `BECAME_YOUNG_ADULT` a 20, `BECAME_SENIOR` a 60),
+  `duration_ticks=10`, `delta_per_tick=+0.5`. Applicati da
+  `LifecycleManager.daily_tick` dopo `apply_aging`.
+- **`LIFESTAGE_TRANSITION_MOODLETS`** dict in `npc/lifecycle.py`.
+
+### Cambiato
+
+- `sim/tick.py` fase 3: `refresh_need_moodlets` tra
+  `apply_moodlet(LONELY)` e `update_mood`.
+- `sim/benchmark.py`: rimosso `TICKS_PER_YEAR = 12096` locale, ora
+  importato da `economy/calendar.py` (fonte canonica).
+- `economy/calendar.py`: aggiunti `TICKS_PER_YEAR = TICKS_PER_DAY * 432`
+  e `DAYS_PER_YEAR = 432`.
+- Archivio documentale: `zzzDocs/TODO.md` → `TODO.md` (root),
+  `zzzDocs/TODO_SimAI_1.0_Muse_Core.md` e
+  `zzzDocs/TODO_SimAI_ottimizzato.md` → `docs/archive/todo/`.
+  `TODO.md` è ora la fonte di verità. `zzzDocs/Prompt.md` resta
+  (specifica aspirational, da consolidare).
+
+### Corretto (test)
+
+- `tests/test_cli_mood.py::test_mood_drops_after_tick`: atteso "81.2"
+  invece di "67.2". I moodlet stato-dipendenti aggiungono +14 al mood
+  dopo 10h (HUNGER 60→`SATISFIED`+2, THIRST 50→`HYDRATED`+2,
+  FUN 70→`ENTERTAINED`+5, INTIMACY 85→`CLOSE`+5).
+- `tests/test_moodlets.py::test_moodlet_for_need_intimacy_below_lonely_is_none`:
+  soglie corrette (90.0 → `ADORED`, non `CLOSE`). Aggiunti i confini
+  49.99/69.99/89.99.
+
+### Verificato (10y, seed 42)
+
+- `10y-0.1100.json` (ex `10y-1.10.0.json`), 120.960 tick.
+- **Comportamento deterministico identico a 0.1090 (ex 1.9.0)**:
+  `needs_*`, `balance_*`, `salary_transactions=17280`,
+  `purchase_transactions=34665`, `relationships_active=6`,
+  `job_attendance_rate=1.0` invariati. Rischio "`score` legge `mood`"
+  chiuso due volte (grep + 10y).
+- **Mood +12.88 medio** (67.85 → 80.73). Atteso: i moodlet
+  stato-dipendenti aggiungono ~+14 nel caso tipico. `mood_max`
+  clippa a 100 per tutti e 4 gli NPC.
+- **Performance −5.42%** (71.44 → 67.57 tps, stessa giornata).
+  Accettato consapevolmente: il calo è dovuto alle transizioni
+  DELETE+INSERT, non al SELECT. Ottimizzazione tracciata per 0.1101.
+- `invariants_ok: true`.
+
+### Rimandato (0.1101+)
+
+- **Ottimizzazione `refresh_need_moodlets`**: batch SELECT (1 per tutti
+  i char), UPDATE invece di DELETE+INSERT (richiede colonna `need` su
+  `Moodlet` → migrazione).
+- **Calibrazione Δ moodlet**: +12.88 medio è forse troppo. Da valutare
+  su 60y o con player incluso.
+- **Le altre 5 transizioni LifeStage** (12, 15, 25, 40, 50 anni) senza
+  moodlet.
+- **Unificazione `AGE_DAYS_PER_YEAR`** (`npc/lifecycle.py`) con
+  `DAYS_PER_YEAR` (`economy/calendar.py`): stesso valore 432 in due
+  posti.
+
 ## [1.9.0] — 2026-10-28
 
 ### Aggiunto

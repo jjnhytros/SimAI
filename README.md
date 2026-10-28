@@ -1,4 +1,4 @@
-# SimAI 1.9.0
+# SimAI 0.1100
 
 SimAI è il motore di simulazione della vita di Anthalys. La 1.0 ha
 dimostrato che il nucleo funziona end-to-end (`avvia → simula → interagisci
@@ -8,6 +8,13 @@ e relazioni, e il giorno Anthalys di 28 ore.
 
 Il mondo iniziale è il **Quartiere delle Muse**: 3 location (casa,
 piazza, caffè), 5 personaggi (4 NPC autonomi + 1 Sim giocabile).
+
+> **Nota di versioning (pre-1.0)**: dalla 0.1100 la numerazione è
+> `0.1xy0`, dove `xy` è la minor storica. La serie `1.x.y` è storica
+> (l'ultima è `0.1090`, ex `1.9.0`). La release **1.0** sarà ufficiale
+> quando ci sarà un engine grafico stabile e la simulazione sarà
+> giocabile dal player. Mappatura completa in `TODO.md`
+> §"Mappatura versioni".
 
 ## Requisiti
 
@@ -172,9 +179,11 @@ Convenzione Anthalys: `1 anno = 12096 tick` (432 giorni × 28 ore).
 Un `--years 1` esegue 12096 tick, non 8760. Un `--years 10` esegue
 120960 tick.
 
-Riferimento attuale: `benchmarks/10y-1.7.1.json` (120.960 tick, ~1571s,
-77.0 tick/s). Il 60y è un debito aperto e va eseguito su una release
-stabile (vedi `known-issues.md`).
+Riferimento attuale: `benchmarks/10y-0.1100.json` (120.960 tick, 1790s,
+67.6 tick/s). Il tps è calato del 5.4% rispetto a `10y-1.9.0.json`
+(71.4 tps) per l'introduzione dei moodlet stato-dipendenti; ottimizzazione
+tracciata per 0.1101. Il 60y è un debito aperto e va eseguito su una
+release stabile (vedi `known-issues.md`).
 
 **Nota storica**: i 10y da 1.2.1 a 1.7.0 sono a 87.600 tick
 (365 × 24, convenzione gregoriana). Non sono confrontabili con i
@@ -204,7 +213,7 @@ salvataggi sono file `.sav` indipendenti in `data/saves/`.
   + `db upgrade` + `world seed` + `economy seed`. Funziona finché il DB
   contiene solo seed.
 
-## Limiti noti della 1.7.1
+## Limiti noti (0.1100)
 
 Questa release è onesta su cosa non fa. I dettagli sono in
 [`docs/release/known-issues.md`](docs/release/known-issues.md).
@@ -296,6 +305,18 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - **Nessuna cifratura dei salvataggi.** I file `.sav` hanno checksum
   per l'integrità, ma non sono cifrati.
 
+### Moodlet (0.1100)
+
+- **Moodlet stato-dipendenti gonfiano il mood.** `mood_mean` 10y passa
+  da 67.9 a 80.7 (+12.9). I need contribuiscono sia alla base pesata
+  sia ai moodlet: è doppio conteggio, accettato in 0.1100 ma da
+  calibrare. `mood_max` clippa a 100 per tutti e 4 gli NPC.
+- **Performance −5.4%.** `refresh_need_moodlets` fa DELETE+INSERT ad
+  ogni transizione. Su 10y: 71.4 → 67.6 tps. Ottimizzazione in 0.1101.
+- **Moodlet positivi su stati "OK".** Anche HUNGER 30–69 (`SATISFIED`
+  +2) dà un delta. Se si vuole che solo gli stati critici contino, i Δ
+  positivi vanno ridotti (0.1101+).
+
 ## Stato del progetto
 
 - **1.0.0** — Muse Core: percorso `avvia → simula → interagisci → salva
@@ -336,10 +357,28 @@ Questa release è onesta su cosa non fa. I dettagli sono in
   Anthalys, gemelli). Morte manuale via CLI. Morte probabilistica e
   `LIFESTAGE` rimandati. 317 test verdi. 10y identico a 1.7.1
   (`death_count=0`).
-- **1.9.0** — `LifeStage` (9 valori, tassonomia Anthalys 0–60+),
+- **0.1090 (ex 1.9.0)** — `LifeStage` (9 valori, tassonomia Anthalys 0–60+),
   `life_stage_for`, `is_pediatric`/`is_psychosocial`, CLI
   `npc stages`. Nessun effetto sul comportamento (dato derivato).
   340 test verdi. 10y identico a 1.8.0.
+
+- **0.1100 (ex 1.10.0)** — Moodlet da stato dei bisogni: 19 nuovi
+  `MoodletKind` (`STARVING`, `HUNGRY`, `SATISFIED`, `WELL_FED`,
+  `STUFFED`; `DEHYDRATED`...`OVERHYDRATED`; `MISERABLE`...`BLISSFUL`;
+  `INTIMATE`...`ADORED`), `moodlet_for_need`, `refresh_need_moodlets`
+  con transizione e refresh condizionale. 3 moodlet di transizione
+  `LifeStage` (`BECAME_CHILD`, `BECAME_YOUNG_ADULT`, `BECAME_SENIOR`).
+  Fix `TICKS_PER_YEAR` (import da `economy/calendar.py`). 352 test
+  verdi. 10y: `mood_mean` 80.7 (era 67.9), deterministico invariato,
+  tps −5.4%.
+
+- **0.1101+** — Ottimizzazione `refresh_need_moodlets` (batch SELECT,
+  UPDATE invece di DELETE+INSERT, richiede migrazione), calibrazione
+  Δ moodlet, morte probabilistica (richiede unità di misura),
+  `COST_PENALTY` (richiede design), `InventoryService`, calendario
+  Anthalys completo (stagioni, festività, lune), supporto familiare,
+  `db reset`. Tassazione **solo previa decisione esplicita**.
+  Vedi `TODO.md` per la roadmap globale.
 
 - **1.10+** — Morte probabilistica (richiede unità di misura),
   moodlet di transizione (`BIRTHDAY`, `PUBERTY`, `ADULTHOOD`,
@@ -353,5 +392,5 @@ Questa release è onesta su cosa non fa. I dettagli sono in
 - [`docs/release/known-issues.md`](docs/release/known-issues.md) — difetti noti e debiti aperti
 - [`docs/release/1.0-baseline.md`](docs/release/1.0-baseline.md) — cronaca degli incrementi
 - [`docs/release/1.5.0-plan.md`](docs/release/1.5.0-plan.md), [`1.6.0-plan.md`](docs/release/1.6.0-plan.md), [`1.7.0-plan.md`](docs/release/1.7.0-plan.md), [`1.7.1-plan.md`](docs/release/1.7.1-plan.md) — piani delle release recenti
-- [`TODO_SimAI_1.0_Muse_Core.md`](TODO_SimAI_1.0_Muse_Core.md) — piano 1.0
-- [`TODO_SimAI_ottimizzato.md`](TODO_SimAI_ottimizzato.md) — roadmap globale
+- [`docs/release/0.1100-plan.md`](docs/release/0.1100-plan.md) — piano release corrente
+- [`TODO.md`](TODO.md) — roadmap globale e mappatura versioni

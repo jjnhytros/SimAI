@@ -1,6 +1,6 @@
 [project]
 name = "simai"
-version = "1.9.0"
+version = "0.1100"
 description = "SimAI — motore di simulazione della vita di Anthalys"
 requires-python = ">=3.13"
 dependencies = [

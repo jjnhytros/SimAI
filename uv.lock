@@ -670,7 +670,7 @@ wheels = [
 
 [[package]]
 name = "simai"
-version = "1.9.0"
+version = "0.1100"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },

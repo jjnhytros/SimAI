@@ -7,7 +7,68 @@
 
 **Versione corrente**: `0.1.0.dev0`
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite
-**Stato**: FASE 0–4 completate (4.10c inclusa). Prossima: FASE 5 o FASE 6.
+**Stato dichiarato**: FASE 0–4 sviluppate nella versione precedente; il TODO è stato azzerato per la nuova ricostruzione. Le caselle `[ ]` indicano quindi lo stato del lavoro nella ricostruzione corrente, non dimostrano che il codice precedente sia assente.
+
+
+## 🧭 DIREZIONE ESECUTIVA — LEGGERE PRIMA DI IMPLEMENTARE
+
+### Obiettivo
+
+Costruire prima un **motore di simulazione deterministico, osservabile e verificabile**; poi far emergere da esso individui, società e sistemi economici. La UI deve osservare e comandare il motore, non contenerne la logica. L'integrazione LLM è un'estensione futura e non deve essere necessaria per far avanzare il mondo.
+
+- **SimAI**: motore, runtime, servizi e strumenti di simulazione.
+- **Anthalys**: mondo simulato, regole, calendario, cultura e contenuti.
+- **ClaireOS**: progetto distinto ma integrabile, dedicato all'assistente personale, alla continuità d'identità e alla memoria relazionale. Evitare dipendenze circolari: SimAI non deve importare logica specifica di ClaireOS.
+- **Principio guida**: ogni Sim deve poter vivere una storia coerente anche senza osservatori; la simulazione deve poter essere messa in pausa, salvata, ripresa e verificata.
+
+### Priorità consigliata
+
+1. **P0 — Baseline affidabile**: recuperare il codice reale, creare un branch/tag di riferimento, verificare installazione, migrazioni, CLI e test. Non dedurre lo stato del codice dal TODO.
+2. **P1 — Vertical slice end-to-end**: mondo demo + NPC + bisogni/decisioni + tempo + persistenza + statistiche. Deve funzionare da CLI senza UI.
+3. **P2 — Validazione di lungo periodo**: simulazione accelerata riproducibile, invarianti, report e test di bilanciamento a 1, 10 e 60 anni simulati.
+4. **P3 — Mondo interattivo**: UI, lotti, costruzione, inventario, trasporti e città, mantenendo il backend indipendente.
+5. **P4 — Sistemi economici e sociali avanzati**: introdurli solo quando i sistemi precedenti superano i test di regressione e bilanciamento.
+6. **P5 — LLM, multiplayer e scalabilità**: non anticiparli. Prima definire contratti, confini di processo e requisiti misurati.
+
+### Regole di esecuzione
+
+- Ogni task deve avere: **risultato verificabile**, test associato, dipendenze e criterio di completamento.
+- Non iniziare una fase solo perché la precedente “sembra finita”: passare il relativo **gate di uscita**.
+- Non introdurre nuove dipendenze senza motivazione, alternativa valutata e costo di manutenzione esplicito.
+- Preferire piccoli incrementi verticali e migrazioni reversibili rispetto a grandi batch di moduli.
+- Prima di rifattorizzare, verificare gli usi reali con ricerca nel repository e test; il TODO è una mappa, non una specifica infallibile.
+- Mantenere un `CHANGELOG.md` o registro decisioni per scelte architetturali, cambi di schema e modifiche al bilanciamento.
+
+### Decisioni architetturali da fissare presto
+
+- **Test automatici obbligatori in CI**: unitari, integrazione DB/migrazioni e smoke test CLI. Il precedente “no test job” va rimosso.
+- **RNG riproducibile**: seed master + stream RNG separati per sottosistema/entità; registrare seed e versione delle regole nei report e nei salvataggi.
+- **Tick atomico**: definire ordine dei sistemi, confini transazionali, gestione degli errori e comportamento al riavvio. Un tick fallito non deve lasciare metà mondo aggiornato.
+- **Tempo canonico**: un'unica rappresentazione interna e conversioni testate; niente calcoli temporali duplicati nei singoli servizi.
+- **Eventi**: distinguere eventi di dominio persistenti, notifiche runtime e semplici log. Definire se gli eventi sono sincroni, ordinati e idempotenti.
+- **Persistenza**: SQLite per la prima versione single-player; repository/servizi non devono dipendere da dettagli SQLite. PostgreSQL solo quando un requisito reale lo giustifica.
+- **UI/API**: validazione agli ingressi, autorizzazione dove necessaria, nessuna logica di simulazione nei route handler.
+- **Dati e salvataggi**: versionare lo schema del payload `.sav`, verificare integrità prima del caricamento e testare migrazioni/backup/restore.
+- **Configurazione**: distinguere configurazione di sistema, configurazione di simulazione e dati del mondo; definire precedenza e validazione, evitando hot-reload impliciti di parametri che cambiano le regole a metà tick.
+- **Osservabilità**: log strutturati, contatori per tick, durata per sistema, errori e report di bilanciamento; evitare di loggare dati personali non necessari.
+
+### Invarianti di sicurezza e coerenza per NPC
+
+- Ogni azione deve essere valida rispetto a età, stato, posizione, risorse e prerequisiti; l'AI può proporre un'azione, ma il servizio di dominio deve validarla.
+- Le interazioni sessuali/intime di natura sessuale sono **solo tra personaggi adulti**. I personaggi minorenni possono avere dinamiche sociali e affettive non sessuali; nessun parametro di consenso o comando `force` deve aggirare il controllo d'età o il rifiuto.
+- Il consenso è un requisito esplicito, non una semplice probabilità di successo. Un punteggio di disponibilità può modellare l'incertezza della decisione, ma non deve autorizzare coercizione, incapacità o bypass.
+- Evitare che salute, identità, orientamento o altri attributi sensibili siano esposti automaticamente nella UI, nei log o nei report.
+- Le morti, le nascite, le eredità, le transazioni e gli spostamenti devono essere idempotenti: ripetere un job dopo un crash non deve duplicare effetti.
+
+### Gate di uscita per fase
+
+- **Fase 0**: installazione pulita riproducibile; lint, typecheck e test passano in CI; migrazione vuota e upgrade funzionano.
+- **Fase 1–2**: calendario coperto da test ai confini; tick riproducibili con seed; salvataggio/caricamento produce lo stesso stato logico.
+- **Fase 3**: invarianti NPC, età, famiglia e relazioni testate; run accelerati senza errori; report di bilanciamento archiviati.
+- **Fase 4**: geometria e pathfinding coperti da test; acquisti e costruzione sono atomici; UI non può creare stati invalidi.
+- **Fase 5–7**: transazioni economiche riconciliate; imposte e stipendi non duplicabili; servizi pubblici e leggi hanno regole versionate.
+- **Fase 8**: definire protocollo, autorità server e modello di concorrenza prima di implementare il multiplayer.
+- **Fase 9**: profiling basato su benchmark e colli di bottiglia misurati, non ottimizzazioni speculative.
 
 ---
 
@@ -18,13 +79,23 @@
 | 0 — Setup | [ ] | — | pyproject, alembic, CLI, CI, py.typed |
 | 1 — Core Simulation | [ ] | 5000–5099, 5200_07 | TimeManager, Loop, SaveManager, Location, Stats |
 | 2 — Anthalys Time | [ ] | 5100 (riservato) | Moons, Holidays, Seasons, Astro, Clock |
-| 3 — Character/NPC | [ ] ~95% | 5200–5299 | 19 task §3.2/3.4/3.5 UI-driven sospesi |
-| 4 — World | [ ] ~90% | 5300–5399 | 4.0→4.10c completati; debiti aperti |
-| 5 — Economy | [ ] ~40% | 5400–5499 | Job/Market/Payday [ ], Banche/AION [ ] |
+| 3 — Character/NPC | [ ] ~25% | 5200–5299 | Solo 4 bisogni, 5 tratti, relazioni FRIEND. Manca NPCManager, lifecycle, skills, identità |
+| 4 — World | [ ] 0% | 5300–5399 | Nessun modulo `world/{district,lot,build,buy,style,terrain,city,ui}` |
+| 5 — Economy | [ ] ~55% | 5400–5499 | Job/Transaction/Payday/ShopItem/MarketService fatti; banche/tasse/AION [ ] |
 | 6 — Politics | [ ] 0% | 5500–5599 | — |
 | 7 — SoNet | [ ] 0% | 5600–5699 | — |
 | 8 — Multiplayer | [ ] 0% | 5700–5799 | — |
 | 9 — Hardening | [ ] 0% | — | — |
+
+> **Nota (2026-10-26, dopo 1.4.0)**: questa tabella era ferma a
+> dichiarazioni pre-ricostruzione. Le percentuali sono state corrette
+> con un audit parziale del codice (file del motore, non più
+> `tree.txt`: rimosso prima di 0.1100 (commit 7a84975) perché fermo a 1.3.0.
+> L'audit completo è in `docs/release/1.0-baseline.md` + `CHANGELOG.md`.
+> FASE 0 e 1 sono largamente incomplete (`§1.0 TimeManager`, `§1.3
+> GameObject`, `§1.4 YAML config`, `§1.6 Population stats` non
+> esistono). Non fidarsi delle caselle `[ ]`: il codice reale è la
+> fonte.
 
 ---
 
@@ -48,7 +119,7 @@
 - [ ] `[00.0015]` `simai/__version__.py` (`0.1.0.dev0`)
 - [ ] `[00.0016]` Hook commit-msg + `scripts/install-hooks.sh`
 - [ ] `[00.0017]` `docs/simai/README.md`, `docs/simai/lore/README.md`
-- [ ] `[00.0018]` CI GitHub Actions (`lint`, `typecheck`, no test job)
+- [ ] `[00.0018]` CI GitHub Actions (`lint`, `typecheck`, `pytest`: unitari + integrazione + smoke test)
 - [ ] `[00.0019]` `.env.example`
 - [ ] `[00.0020]` `python -m simai version` funziona
 - [ ] `simai/py.typed` (marker PEP 561) + `[tool.hatch.build.targets.wheel.force-include]`
@@ -340,7 +411,7 @@ Package `simai/sim/anthalys/time/`:
 
 ### §3.1 (architettura coscienza NPC) — SOSPESO
 
-- [ ] `[03.0014]` Architettura `Anima Digitale` ↔ `Personalità Agente` → rimandato a LLM integration (FASE 8+)
+- [ ] `[03.0014]` Architettura `Anima Digitale` ↔ `Personalità Agente` → track separato LLM/ClaireOS, dopo la baseline single-player; non confonderlo con la FASE 8 (Multiplayer)
 
 ### §3.2 / 3.4 / 3.5 — SOSPESI (UI-driven)
 
@@ -650,3 +721,40 @@ Dopo fix di Chunk 3.x, non è stato ri-eseguito il run 60 anni. Ultimo run 1 ann
 - Crisis: 0-10% attive, 20-60% storiche
 - Bilanci: 1000-10000 Athel mediani
 - Job: 30-70% adulti impiegati
+
+---
+
+## 🧪 TASK TRASVERSALI DA AGGIUNGERE ALLA ROADMAP
+
+Queste attività non sostituiscono i task esistenti: sono prerequisiti che impediscono al progetto di accumulare sistemi non verificabili.
+
+- [ ] **XT.01 — Audit del repository**: mappare moduli esistenti, entry point, migrazioni, dipendenze e test; associare ogni task al codice effettivo.
+- [ ] **XT.02 — Test policy**: `pytest`, fixture DB temporaneo, test dei servizi e delle migrazioni, smoke test CLI e copertura dei bug già risolti.
+- [ ] **XT.03 — Test determinismo**: stesso seed + stessa configurazione + stessi comandi = stesso stato logico e stesso report, salvo campi esplicitamente non deterministici.
+- [ ] **XT.04 — Contratto del tick**: ordine canonico dei sistemi, gestione errori, atomicità e recupero dopo interruzione.
+- [ ] **XT.05 — Contratti evento**: payload tipizzati/versionati, ordinamento, idempotenza, distinzione fra eventi persistenti e notifiche runtime.
+- [ ] **XT.06 — Versionamento dei salvataggi**: schema version, migrazioni del payload, checksum/integrità, test di file troncati/corrotti e restore.
+- [ ] **XT.07 — Invarianti di dominio**: bilanci mai NaN/infiniti, nessun saldo negativo dove vietato, riferimenti FK validi, nessuna doppia nascita/morte/paga/transazione.
+- [ ] **XT.08 — Benchmark baseline**: numero NPC, tick/s, tempo per tick, query DB, memoria e tempo di salvataggio per scenari standard.
+- [ ] **XT.09 — Test di bilanciamento versionati**: run 1/10/60 anni con seed fissi, soglie motivabili e report confrontabili fra release.
+- [ ] **XT.10 — Threat model minimo**: segreti fuori dal repository, validazione input CLI/API, protezione dei salvataggi, backup e log senza dati sensibili.
+- [ ] **XT.11 — Registro decisioni architetturali (ADR)**: documentare decisioni non banali, alternative scartate e conseguenze.
+- [ ] **XT.12 — Definizione del perimetro LLM**: API astratta, timeout, fallback, budget di risorse, isolamento e divieto di accesso diretto dell'LLM al DB.
+- [ ] **XT.13 — Separazione single-player/multiplayer**: identificare le assunzioni non compatibili con concorrenza e autorità server prima della FASE 8.
+- [ ] **XT.14 — Revisione del backlog**: deduplicare ID riutilizzati (es. `03.0304`, `03.0401`, `03.0500`), distinguere ID requisito da ID migrazione e assegnare ID univoci ai task.
+- [ ] **XT.15 — Glossario canonico**: definire termini e unità (`tick`, giorno, anno, Athel, `level`, `strength`, `connection`, `desire`, `consent`) e indicare intervalli validi.
+- [ ] **XT.16 — Politica di compatibilità**: versioni Python/dipendenze supportate, formato di configurazione, compatibilità DB e procedura di upgrade.
+- [ ] **XT.17 — Recovery e backup**: test automatici di backup/restore del DB e dei `.sav`; documentare cosa è autorevole in caso di divergenza.
+
+## 🚦 PROSSIMO BLOCCO CONSIGLIATO
+
+Non partire direttamente da FASE 5 o FASE 6 solo perché la FASE 4 risulta “completata” nel riepilogo. Prima:
+
+1. Eseguire **XT.01** e confrontare il TODO con il repository reale.
+2. Chiudere **XT.02–XT.07** almeno per il percorso verticale principale.
+3. Eseguire il test di bilanciamento di 1 anno e poi quello di 60 anni, salvando seed, configurazione, versione e report.
+4. Correggere i difetti emersi e fissare una baseline/tag.
+5. Solo allora scegliere il prossimo blocco: **Economy** se il ciclo lavoro–reddito–consumi è la priorità; **Politics** solo dopo aver stabilizzato economia, popolazione, città e regole di dominio.
+
+La priorità non è completare il maggior numero di moduli: è ottenere un mondo piccolo che funzioni in modo coerente, autonomo e riproducibile, prima di renderlo enorme.
+

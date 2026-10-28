@@ -1,4 +1,6 @@
 TICKS_PER_DAY = 28
+DAYS_PER_YEAR = 432  # Anthalys: 432 giorni per anno
+TICKS_PER_YEAR = TICKS_PER_DAY * DAYS_PER_YEAR  # 12096
 
 
 def is_payday_tick(tick_index: int) -> bool:

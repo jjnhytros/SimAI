@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from simai.db.base import Base
 from simai.mood.enums import MoodletKind
+from simai.needs.enums import NeedKind
 
 
 class Moodlet(Base):
@@ -15,6 +16,9 @@ class Moodlet(Base):
     )
     kind: Mapped[MoodletKind] = mapped_column(
         SAEnum(MoodletKind, native_enum=False), nullable=False
+    )
+    need: Mapped[NeedKind | None] = mapped_column(
+        SAEnum(NeedKind, native_enum=False), nullable=True
     )
     started_at_tick: Mapped[int] = mapped_column(Integer, nullable=False)
     expires_at_tick: Mapped[int] = mapped_column(Integer, nullable=False)

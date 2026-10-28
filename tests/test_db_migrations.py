@@ -71,4 +71,5 @@ def test_migrations_packaged_inside_simai() -> None:
     assert (mig_dir / "script.py.mako").is_file()
     assert (mig_dir / "versions").is_dir()
     versions = list((mig_dir / "versions").glob("*.py"))
-    assert len(versions) >= 13  # 0001..0013
+    # 0001..0014 + 5200_04 + 0015 = 16
+    assert len(versions) >= 16

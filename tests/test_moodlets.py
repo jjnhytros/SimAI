@@ -17,7 +17,7 @@ from simai.mood.moodlets import (
     apply_moodlet,
     cleanup_expired,
     moodlet_for_need,
-    refresh_need_moodlets,
+    refresh_need_moodlets_many,
 )
 from simai.needs.enums import NeedKind
 from simai.needs.models import Need
@@ -51,6 +51,9 @@ def _set_need(session, char_id: int, kind: NeedKind, value: float) -> None:
     n.value = value
 
 
+# --- Test esistenti (1.9.0), invariati ---
+
+
 def test_specs_match_design() -> None:
     assert SPECS[MoodletKind.ATE_WELL].duration_ticks == 4
     assert SPECS[MoodletKind.ATE_WELL].delta_per_tick == 2.0
@@ -76,31 +79,21 @@ def test_apply_refresh_not_sum(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_active_delta_respects_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Finestra [started, expires): 4 tick da 0 a 3 se duration=4."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
         apply_moodlet(session, cid, MoodletKind.ATE_WELL, tick=0)
         session.flush()
-        # Al tick 0 il moodlet è appena applicato: contribuisce.
         assert active_delta(session, cid, 0) == 2.0
-        # Tick 1..3: contribuisce.
         for t in (1, 2, 3):
             assert active_delta(session, cid, t) == 2.0
-        # Tick 4: expires_at=4, 4 > 4 è falso: scaduto.
         assert active_delta(session, cid, 4) == 0.0
 
 
 def test_lonely_refreshed_every_tick_contributes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Regressione: LONELY viene rinfrescato ogni tick (streak >= 3).
-
-    Con la vecchia finestra `started_at_tick < tick`, un moodlet
-    rinfrescato ogni tick non contribuiva mai. Con la finestra
-    `[started_at, expires_at)` contribuisce dal tick di refresh.
-    """
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -126,12 +119,6 @@ def test_cleanup_expired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_lonely_triggers_after_three_ticks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """LONELY è oggi un moodlet del player.
-
-    Gli NPC evitano la solitudine spostandosi in piazza/caffè per
-    SOCIALIZE. Il player non decide: subisce il decadimento. Con
-    intimacy < 20 per 3 tick consecutivi, LONELY scatta.
-    """
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
@@ -185,12 +172,10 @@ def test_mood_includes_moodlet_delta(tmp_path: Path, monkeypatch: pytest.MonkeyP
             _set_need(session, cid, kind, 100.0)
         session.commit()
 
-    # Tick 0: EAT + ATE_WELL (al tick 1 in poi contribuisce)
     with factory() as session:
         run_tick(session, minutes=1, tick_index=0, master_seed=42)
         session.commit()
 
-    # Tick 1..2: mood include +2/tick
     moods: list[float] = []
     for t in (1, 2):
         with factory() as session:
@@ -205,8 +190,10 @@ def test_mood_includes_moodlet_delta(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert len(moods) == 2
 
 
+# --- Test 0.1100 ---
+
+
 def test_specs_cover_all_kinds() -> None:
-    """Ogni MoodletKind ha una MoodletSpec: nessuna dimenticanza."""
     assert set(SPECS) == set(MoodletKind)
 
 
@@ -228,10 +215,8 @@ def test_moodlet_for_need_hunger_thresholds() -> None:
 
 
 def test_moodlet_for_need_intimacy_below_lonely_is_none() -> None:
-    # Sotto LONELY_THRESHOLD (20): nessun moodlet-need (coperto da LONELY).
     for value in (0.0, 5.0, 19.99):
         assert moodlet_for_need(NeedKind.INTIMACY, value) is None
-    # Scaglioni: 20–49, 50–69, 70–89, ≥ 90.
     assert moodlet_for_need(NeedKind.INTIMACY, 20.0) == MoodletKind.INTIMATE
     assert moodlet_for_need(NeedKind.INTIMACY, 49.99) == MoodletKind.INTIMATE
     assert moodlet_for_need(NeedKind.INTIMACY, 50.0) == MoodletKind.CONNECTED
@@ -243,7 +228,6 @@ def test_moodlet_for_need_intimacy_below_lonely_is_none() -> None:
 
 
 def test_need_moodlets_are_disjoint() -> None:
-    """Un kind non può essere associato a due need diversi."""
     seen: set[MoodletKind] = set()
     for kinds in NEED_MOODLETS.values():
         for kind in kinds:
@@ -251,58 +235,89 @@ def test_need_moodlets_are_disjoint() -> None:
             seen.add(kind)
 
 
-def test_refresh_need_moodlets_transition_replaces(
+# --- Test 0.1101 (B3): Δ positivi a +0.5 ---
+
+
+def test_need_moodlet_positive_deltas_are_small() -> None:
+    """B3: i 13 Δ positivi need-based sono +0.5, non +2/+3/+4/+5."""
+    positive = 0
+    for need_kinds in NEED_MOODLETS.values():
+        for kind in need_kinds:
+            spec = SPECS[kind]
+            if spec.delta_per_tick > 0:
+                assert spec.delta_per_tick == 0.5, f"{kind}: {spec.delta_per_tick}"
+                positive += 1
+    assert positive == 13
+
+
+def test_need_moodlet_negative_deltas_unchanged() -> None:
+    """I 6 Δ negativi restano invariati."""
+    expected = {
+        MoodletKind.STARVING: -15.0,
+        MoodletKind.HUNGRY: -6.0,
+        MoodletKind.DEHYDRATED: -15.0,
+        MoodletKind.THIRSTY: -6.0,
+        MoodletKind.MISERABLE: -12.0,
+        MoodletKind.BORED: -5.0,
+    }
+    for kind, delta in expected.items():
+        assert SPECS[kind].delta_per_tick == delta
+
+
+# --- Test 0.1101: refresh batch ---
+
+
+def test_refresh_many_transition_updates_not_recreates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """La transizione deve fare UPDATE del kind, non DELETE+INSERT."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 5.0}, tick=0)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 5.0}}, tick=0)
         session.flush()
-        assert (
-            session.scalar(select(Moodlet).where(Moodlet.character_id == cid)).kind
-            == MoodletKind.STARVING
-        )
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 50.0}, tick=1)
+        first = session.scalar(select(Moodlet).where(Moodlet.character_id == cid))
+        assert first is not None
+        first_id = first.id
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 50.0}}, tick=1)
         session.flush()
         rows = session.scalars(select(Moodlet).where(Moodlet.character_id == cid)).all()
-        kinds = {r.kind for r in rows}
-        assert kinds == {MoodletKind.SATISFIED}
+        assert len(rows) == 1
+        assert rows[0].id == first_id  # UPDATE, non nuovo record
+        assert rows[0].kind == MoodletKind.SATISFIED
+        assert rows[0].need == NeedKind.HUNGER
 
 
-def test_refresh_need_moodlets_no_refresh_far_from_expiry(
+def test_refresh_many_no_refresh_far_from_expiry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 5.0}, tick=0)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 5.0}}, tick=0)
         session.flush()
         first = session.scalar(select(Moodlet).where(Moodlet.character_id == cid))
         assert first is not None
         started = first.started_at_tick
-        # stato invariato, lontano dalla scadenza: nessuna scrittura
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 5.0}, tick=1)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 5.0}}, tick=1)
         session.flush()
         again = session.scalar(select(Moodlet).where(Moodlet.character_id == cid))
         assert again is not None
         assert again.started_at_tick == started
 
 
-def test_refresh_need_moodlets_refresh_near_expiry(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_refresh_many_refresh_near_expiry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 5.0}, tick=0)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 5.0}}, tick=0)
         session.flush()
         spec = SPECS[MoodletKind.STARVING]
         near = spec.duration_ticks - REFRESH_THRESHOLD_TICKS
-        refresh_need_moodlets(session, cid, {NeedKind.HUNGER: 5.0}, tick=near)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.HUNGER: 5.0}}, tick=near)
         session.flush()
         again = session.scalar(select(Moodlet).where(Moodlet.character_id == cid))
         assert again is not None
@@ -310,23 +325,57 @@ def test_refresh_need_moodlets_refresh_near_expiry(
         assert again.expires_at_tick == near + spec.duration_ticks
 
 
-def test_refresh_need_moodlets_intimacy_below_threshold_clears(
+def test_refresh_many_intimacy_below_threshold_clears(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:
         cid = _erika_id(session)
-        refresh_need_moodlets(session, cid, {NeedKind.INTIMACY: 30.0}, tick=0)
+        refresh_need_moodlets_many(session, {cid: {NeedKind.INTIMACY: 30.0}}, tick=0)
         session.flush()
-        assert (
-            session.scalar(select(Moodlet).where(Moodlet.character_id == cid)).kind
-            == MoodletKind.INTIMATE
-        )
-        refresh_need_moodlets(session, cid, {NeedKind.INTIMACY: 10.0}, tick=1)
+        row = session.scalar(select(Moodlet).where(Moodlet.character_id == cid))
+        assert row is not None
+        assert row.kind == MoodletKind.INTIMATE
+        refresh_need_moodlets_many(session, {cid: {NeedKind.INTIMACY: 10.0}}, tick=1)
         session.flush()
-        rows = session.scalars(select(Moodlet).where(Moodlet.character_id == cid)).all()
-        assert rows == []
+        assert session.scalars(select(Moodlet).where(Moodlet.character_id == cid)).all() == []
+
+
+def test_refresh_many_batch_multiple_characters(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Un solo SELECT per tutti i char: verifica funzionale del batch."""
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        chars = session.scalars(select(Character)).all()
+        ids = [c.id for c in chars]
+        needs_by_char = {cid: {NeedKind.HUNGER: 5.0} for cid in ids}
+        refresh_need_moodlets_many(session, needs_by_char, tick=0)
+        session.flush()
+        rows = session.scalars(select(Moodlet)).all()
+        assert len(rows) == len(ids)
+        assert all(r.kind == MoodletKind.STARVING for r in rows)
+
+
+# --- Test coerenza update_mood(needs=...) ---
+
+
+def test_update_mood_with_needs_matches_internal_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from simai.mood.service import update_mood
+    from simai.needs.service import needs_of
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        cid = _erika_id(session)
+        needs = needs_of(session, cid)
+        mood_without = update_mood(session, cid, tick=0)
+        mood_with = update_mood(session, cid, tick=0, needs=needs)
+        assert mood_without == mood_with
 
 
 # --- LifeStage transitions ---
@@ -403,7 +452,6 @@ def test_lifestage_transition_became_senior(
 def test_lifestage_no_transition_on_regular_day(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Giorno senza cambio anno: nessun moodlet lifestage."""
     engine = _seeded(tmp_path, monkeypatch)
     factory = get_session_factory(engine)
     with factory() as session:

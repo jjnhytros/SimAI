@@ -342,7 +342,6 @@ in 1.5.0. Sarà aggiunto in 3.6a-c, quando `Skill` esisterà.
 moodlet, cleanup restano in `tick.py`. `LifecycleManager` (ageing,
 morte, gravidanza) non esiste ancora. Sarà FASE 3.4, dopo A2.
 
-
 ---
 
 ## 8. Famiglia (1.7.0)
@@ -391,7 +390,6 @@ condiviso in modelli semplificati.
 toccare `build_player_status`, `cmd_player.py`, e tutti i test del
 pannello. Rischio sproporzionato per "una riga". `npc relationships
 family -c <key>` copre l'uso. Va in C o 1.7.1.
-
 
 ---
 
@@ -444,7 +442,6 @@ archivio storico, non come riferimento.
 `sim/benchmark.py` ha `TICKS_PER_YEAR = 12096` (28 × 432), non
 8760. Il comando `simai sim benchmark --years N` esegue `N × 12096`
 tick. Un `--years 1` fa 12096 tick, non 8760.
-
 
 ---
 
@@ -508,7 +505,6 @@ con `due_at_tick=100` viene consegnata a tick 112, non 100. Ritardo
 max 27 tick. `due_at_tick <= tick_index` recupera le gravidanze
 scadute, non si perdono.
 
-
 ---
 
 ## 11. LIFESTAGE (1.9.0)
@@ -569,3 +565,50 @@ campi fissi; aggiungere `life_stage` richiede toccare
 `build_player_status`, `cmd_player.py`, e i test del pannello.
 `npc stages -c <key>` copre l'uso. Va in 1.10.0+ se serve.
 
+---
+
+## 12. Moodlet stato-dipendenti e ottimizzazione (0.1100 → 0.1101)
+
+### 12.1 Doppio conteggio mood (0.1100, corretto in 0.1101)
+
+In 0.1100 i moodlet stato-dipendenti avevano Δ positivi in linea con
+la base pesata (+2/+3/+4/+5). Risultato: `mood_mean` 10y passa da
+67.85 a 80.73 (+12.88). I need contribuiscono **due volte** al mood:
+una nella media pesata (`MOOD_WEIGHTS`), una nei moodlet attivi.
+
+In 0.1101 (B3) i 13 Δ positivi scendono a **+0.5**. I 6 Δ negativi
+(`STARVING`, `HUNGRY`, `DEHYDRATED`, `THIRSTY`, `MISERABLE`, `BORED`)
+restano invariati: sono segnali di stato critico, non premi.
+
+**Conseguenza**: i moodlet need-based non sono più "varietà di umore"
+ma "allarme + rifinitura". Il mood torna in 67.5–70.5 sul 10y.
+
+### 12.2 Performance −5.42% in 0.1100 (ottimizzato in 0.1101)
+
+`refresh_need_moodlets` in 0.1100 faceva:
+
+- 5 SELECT/tick (uno per char) — 604.800 query su 10y
+- DELETE+INSERT per transizione (~240k su 10y → 480k scritture)
+
+`tps` 10y: 71.44 → 67.57 (−5.42%).
+
+In 0.1101:
+
+- `refresh_need_moodlets_many`: 1 SELECT per tutti i char, UPDATE
+  invece di DELETE+INSERT (grazie a `Moodlet.need`)
+- `update_mood(needs=...)`: salta la query interna
+- `needs_of_many`: una query per i bisogni di tutti i char
+
+**Atteso**: `tps >= 70.5`. Se il batch non basta, `active_delta` e
+`cleanup_expired` restano per-char (5 SELECT/tick + 5 DELETE/tick,
+ma i DELETE sono quasi sempre 0) e si aprono 0.1102.
+
+### 12.3 Breaking change `.sav` (0.1101)
+
+`Moodlet.need` è una colonna nuova. La migrazione `0015` cambia lo
+`schema_revision` da `5200_04` a `0015`. `load_save` rifiuta i `.sav`
+con schema diverso:
+
+```python
+if header.schema_revision != current_rev:
+    raise SaveFormatError(...)

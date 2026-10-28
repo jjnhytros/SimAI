@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1100` (ex 1.10.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1101` (ex 1.10.1 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 352 verdi (0.1100), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1100.json` (120.960 tick, seed 42, invarianti OK, tps 67.6)
+**Test**: 357 verdi (0.1101), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1101.json` (120.960 tick, seed 42, invarianti OK, tps 79.7)
 
 Questo documento sostituisce:
 
@@ -26,6 +26,7 @@ player.
 | --- | --- | --- |
 | 1.9.0 | 0.1090 | tag `v1.9.0` già pushato, non si tocca |
 | 1.10.0 | **0.1100** | release corrente |
+| 1.10.1 | 0.1101 | patch: ottimizzazione moodlet, B3, `.sav` breaking |
 | 1.11.0 | 0.1110 | |
 | 1.12.0 | 0.1120 | |
 | … | … | |
@@ -269,10 +270,10 @@ Costruire prima un **motore di simulazione deterministico, osservabile e verific
 - **`DeathCause` 4 inutilizzati** (`ILLNESS`, `ACCIDENT`, `VIOLENCE`, `UNKNOWN`).
 - **Gravidanza senza sesso modellato**, gemelli identici senza effetti.
 - **`zzzDocs/Prompt.md`** (Claire persona) e **`zzzDocs/TODO_SimAI_*.md`** vanno consolidati/rimossi (questo documento li sostituisce).
-- **Ottimizzazione moodlet (0.1101)**: `refresh_need_moodlets` fa
-  DELETE+INSERT per transizione. `tps` −5.42% in 0.1100.
-- **`TICKS_PER_YEAR` duplicato**: `sim/benchmark.py` ridefiniva la
-  costante. Fix in 0.1100 (import da `economy/calendar.py`).
+- **`active_delta` / `cleanup_expired` per-char**: restano N+1 in
+  0.1101 (5 SELECT + 5 DELETE/tick). `active_delta_many` e
+  `cleanup_expired_many` in 0.1102 se serve, ma dopo il 79.7 di
+  0.1101 non è prioritario.
 - **`AGE_DAYS_PER_YEAR` vs `DAYS_PER_YEAR`**: stesso valore (432) in
   `npc/lifecycle.py` e `economy/calendar.py`. Da unificare.
 - **README/`known-issues.md` con riferimenti storici 1.x.y**: la nota
@@ -513,6 +514,7 @@ Package `simai/sim/anthalys/time/`:
 - [P] `[03.0301]` Transizioni con effetti: 3 moodlet di transizione
   (`BECAME_CHILD`, `BECAME_YOUNG_ADULT`, `BECAME_SENIOR`) in 0.1100.
   Le altre 5 transizioni (12, 15, 25, 40, 50 anni) senza moodlet.
+  Δ positivi in B3 (0.1101): +0.5 invece di +2/+3/+4/+5.
 - [x] `[03.0302]` Invecchiamento progressivo in `LifecycleManager.daily_tick`
 - [P] `[03.0303]` `DeathService` — **solo morte per età 100+ (`OLD_AGE`) e manuale (`MANUAL`)**. **Morte probabilistica 1e-5 + rampa cubica + `exp_max` non implementata** (unità di misura non definita)
 - [x] `[03.0304]` `InheritanceService.distribute` 5 tier (SPOUSE 50%, CHILD, PARENT, SIBLING, OTHER→world), solo `balance`
@@ -848,18 +850,23 @@ Package `simai/sim/anthalys/time/`:
 
 ### Prossimi passi realistici
 
-1. **0.1101** (ottimizzazione): `refresh_need_moodlets` batch (1 SELECT
-   per tutti i char), transizione UPDATE invece di DELETE+INSERT
-   (richiede colonna `need` su `Moodlet` → migrazione). Obiettivo:
-   recuperare il −5.42% di tps di 0.1100.
-2. **0.1110** (lifestage → comportamento): divieti lavoro per lifestage.
+1. **0.1101** (fatto): `Moodlet.need` + `refresh_need_moodlets_many`
+   (batch + UPDATE). B3: 13 Δ positivi a +0.5. Fix efficienza:
+   `update_mood(needs=...)` elimina doppia `needs_of`. Breaking change
+   `.sav` (schema `0015`). 10y: `tps` 79.7 (era 67.57), `mood_mean`
+   69.83 (era 80.73), comportamento identico a 0.1100.
+2. **0.1102** (ottimizzazione residua): `active_delta_many` e
+   `cleanup_expired_many` (N+1 residuo: 5 SELECT + 5 DELETE/tick).
+   Priorità più bassa dopo il 79.7 di 0.1101. Si fa solo se si vuole
+   tornare sotto il muro dei 5 query/tick prima di aggiungere NPC.
+3. **0.1110** (lifestage → comportamento): divieti lavoro per lifestage.
    Richiede decisione su soglia età e cosa succede ai job già assegnati
    (Erika e Max hanno 14y e oggi lavorano).
-3. **0.1120** (morte probabilistica): unità di misura da definire.
-4. **0.1130** (`COST_PENALTY` + design caffè): decisione di design.
-5. **0.1140** (calendario Anthalys completo): cosmetico, nessun effetto
+4. **0.1120** (morte probabilistica): unità di misura da definire.
+5. **0.1130** (`COST_PENALTY` + design caffè): decisione di design.
+6. **0.1140** (calendario Anthalys completo): cosmetico, nessun effetto
    sul tick.
-6. **Audit documentale**: correggere i path stale nel documento
+7. **Audit documentale**: correggere i path stale nel documento
    (`npc/needs/` → `needs/`, `npc/utility.py` → `actions/utility.py`),
    unificare `AGE_DAYS_PER_YEAR`/`DAYS_PER_YEAR`, aggiornare README e
    `known-issues.md` alla nuova numerazione.

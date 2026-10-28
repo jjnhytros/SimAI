@@ -7,12 +7,12 @@ from simai.mood.moodlets import (
     LONELY_STREAK_TRIGGER,
     apply_moodlet,
     cleanup_expired,
-    refresh_need_moodlets,
+    refresh_need_moodlets_many,
     update_lonely_streak,
 )
 from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
-from simai.needs.service import apply_decay, needs_of
+from simai.needs.service import apply_decay, needs_of_many
 from simai.npc.manager import NPCManager, NPCManagerLike
 from simai.sim.daily import daily_tick
 from simai.sim.reports import TickDecision, TickReport
@@ -39,10 +39,6 @@ def run_tick(
       3. NPCManager.load → NPCManager.update_all (priorità lavoro →
          priorità casa → choose_intent → esegui)
       4. moodlet (streak, LONELY, need, mood, cleanup)
-
-    `npc_manager=None` usa `NPCManager()`. Il parametro esiste per i
-    test di contract (manager finto) e per future implementazioni
-    (LOD, batch, ecc.).
     """
     if minutes <= 0:
         raise ValueError(f"minutes must be > 0, got {minutes}")
@@ -84,14 +80,16 @@ def run_tick(
     )
 
     # Fase 3: moodlet, mood, cleanup per tutti (player incluso).
+    char_ids = [c.id for c in all_characters]
+    needs_by_char = needs_of_many(session, char_ids)
     for char in all_characters:
-        needs = needs_of(session, char.id)
-        intimacy = needs.get(NeedKind.INTIMACY, 100.0)
+        intimacy = needs_by_char[char.id].get(NeedKind.INTIMACY, 100.0)
         streak = update_lonely_streak(session, char.id, intimacy)
         if streak >= LONELY_STREAK_TRIGGER:
             apply_moodlet(session, char.id, MoodletKind.LONELY, tick_index)
-        refresh_need_moodlets(session, char.id, needs, tick_index)
-        update_mood(session, char.id, tick=tick_index)
+    refresh_need_moodlets_many(session, needs_by_char, tick_index)
+    for char in all_characters:
+        update_mood(session, char.id, tick=tick_index, needs=needs_by_char[char.id])
         cleanup_expired(session, char.id, tick_index)
 
     return TickReport(

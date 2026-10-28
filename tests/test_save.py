@@ -232,3 +232,34 @@ def test_roundtrip_preserves_traits(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         erika = session.scalar(select(Character).where(Character.key == "erika"))
         assert erika is not None
         assert erika.traits == ["solitary"]
+
+
+def test_roundtrip_preserves_moodlet_need(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.mood.enums import MoodletKind
+    from simai.mood.models import Moodlet
+    from simai.mood.moodlets import refresh_need_moodlets_many
+    from simai.needs.enums import NeedKind
+
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        refresh_need_moodlets_many(session, {erika.id: {NeedKind.HUNGER: 5.0}}, tick=5)
+        session.flush()
+        create_save(session, name="need")
+        session.commit()
+
+    with factory() as session:
+        session.execute(Moodlet.__table__.delete())
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "need")
+        session.commit()
+
+    with factory() as session:
+        rows = session.scalars(select(Moodlet)).all()
+        assert len(rows) == 1
+        assert rows[0].kind == MoodletKind.STARVING
+        assert rows[0].need == NeedKind.HUNGER

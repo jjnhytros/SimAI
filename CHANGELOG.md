@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.1101] — 2026-10-28
+
+### Cambiato
+
+- **`Moodlet.need`**: nuova colonna `SAEnum(NeedKind, native_enum=False)`,
+  nullable. Popolata per i 19 moodlet need-based, `None` per
+  `ATE_WELL`, `SOCIALIZED`, `LONELY`, `BECAME_*`. Migrazione `0015`.
+- **`refresh_need_moodlets` → `refresh_need_moodlets_many`**: batch
+  su tutti i char (1 SELECT invece di N). Transizione = UPDATE del
+  `kind` invece di DELETE+INSERT.
+- **`update_mood(session, char_id, tick=None, needs=None)`**: nuova
+  keyword `needs` per evitare la query interna quando i bisogni sono
+  già calcolati. Retro-compatibile.
+- **`sim/tick.py` fase 3**: `needs_of_many` una volta per tick,
+  `refresh_need_moodlets_many` una volta, `update_mood` con `needs`
+  precalcolati.
+- **`SPECS` (B3)**: i 13 Δ positivi need-based passano da +2/+3/+4/+5
+  a **+0.5**. I 6 Δ negativi invariati. `ATE_WELL`, `SOCIALIZED`,
+  `LONELY`, `BECAME_*` invariati.
+- **`save/service.py`**: serializza/deserializza `Moodlet.need`.
+  **Breaking change `.sav`**: i file con `schema_revision="5200_04"`
+  sono rifiutati da 0.1101+ (schema `0015`). Documentato in
+  `known-issues.md` §12.3.
+
+### Corretto (efficienza, non bug)
+
+- **Doppia `needs_of` per char per tick** in `tick.py` + `update_mood`
+  (presente da 0.1090, es. 1.9.0). `update_mood(needs=...)` elimina
+  la query ridondante. Effetto combinato con il batch moodlet:
+  `tps` da 67.57 (0.1100) a **79.7** (0.1101), **+17.9%**. 0.1101
+  è più veloce anche di 0.1090 (71.44) pur avendo 19 moodlet in più.
+
+### Verificato (10y, seed 42)
+
+- `10y-0.1101.json`, 120.960 tick.
+- **`tps`: 79.7** (era 67.57 in 0.1100, target ≥ 70.5).
+- **`mood_mean`: 69.83** (69.6 / 70.0 / 70.1 / 69.6 per erika / max /
+  luca / giulia). Era 80.73 in 0.1100, 67.85 in 0.1090. Target 67.5–70.5.
+- **Comportamento deterministico identico a 0.1100**:
+  `balance_*`, `purchase_transactions=34665`,
+  `salary_transactions=17280`, `relationships_active=6`,
+  `job_attendance_rate=1.0` invariati. `invariants_ok: true`.
+- CPU time: 1325s (era 1611s in 0.1100). Non è variazione di carico
+  macchina: rapporto CPU/wall simile (~87% vs ~90%), CPU work
+  realmente ridotto.
+
+### Rimosso
+
+- `refresh_need_moodlets` (sostituito da `refresh_need_moodlets_many`).
+  Nessun chiamante esterno.
+
 ## [0.1100] — 2026-10-28
 
 **Nota versioning**: ex `1.10.0` nella numerazione storica. Da questa
@@ -193,7 +244,7 @@ Mappatura completa in `TODO.md` §"Mappatura versioni".
 - **`WorkState.ON_BREAK`**: durante la pausa, l'NPC è libero di
   lasciare la location. `should_prioritize_work` è `False` in pausa.
 - **Seed orari nuovi**: luca barista 14-21, giulia/erika/max 7-14
-  + pausa 14-15 + 15-18, player commesso 10-19.
+  - pausa 14-15 + 15-18, player commesso 10-19.
 - **`player/status.py` / `cmd_economy.py`**: mapping `on_break` →
   "in pausa".
 
@@ -454,6 +505,7 @@ Mappatura completa in `TODO.md` §"Mappatura versioni".
   (stabile vs 1.2.1: 67.87 / 68.02 / 68.13 / 67.97).
 - Effetto dei tratti sui dati: < 1 punto su `fun_mean`/`intimacy_mean`.
 Accettato, documentato in `known-issues.md` §4.1.
+
 ---
 
 ## [1.2.1] — 2026-10-26

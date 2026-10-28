@@ -124,6 +124,7 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             {
                 "character_id": m.character_id,
                 "kind": m.kind.value,
+                "need": m.need.value if m.need is not None else None,
                 "started_at_tick": m.started_at_tick,
                 "expires_at_tick": m.expires_at_tick,
             }
@@ -256,10 +257,12 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
         )
 
     for row in payload.get("moodlets", []):
+        need_raw = row.get("need")
         session.add(
             Moodlet(
                 character_id=row["character_id"],
                 kind=MoodletKind(row["kind"]),
+                need=NeedKind(need_raw) if need_raw is not None else None,
                 started_at_tick=row["started_at_tick"],
                 expires_at_tick=row["expires_at_tick"],
             )

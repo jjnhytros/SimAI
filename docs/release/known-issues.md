@@ -507,3 +507,65 @@ nascite, va aggiunto in 1.9.0+.
 con `due_at_tick=100` viene consegnata a tick 112, non 100. Ritardo
 max 27 tick. `due_at_tick <= tick_index` recupera le gravidanze
 scadute, non si perdono.
+
+
+---
+
+## 11. LIFESTAGE (1.9.0)
+
+### 11.1 `LifeStagePediatric`/`LifeStagePsychosocial` come predicati
+
+Il TODO §3.0 elenca `LifeStagePediatric` e `LifeStagePsychosocial`
+come due classi/enum. **Non sono enum separate in 1.9.0.** La
+tassonomia Anthalys è una sequenza (0–6, 6–12, 12–15, 15–20, 20–25,
+25–40, 40–50, 50–60, 60+), non due assi paralleli.
+
+`LifeStage` è una enum unica con 9 valori. I due concetti del TODO
+sono diventati predicati: `is_pediatric(stage)` (True per 0–20) e
+`is_psychosocial(stage)` (True per 20+). Se in futuro servono due
+assi indipendenti (es. sviluppo cognitivo e sviluppo sociale
+separati), si aggiungono enum separate. Per ora, la sequenza è
+sufficiente.
+
+### 11.2 `LifeStageService` assente
+
+`life_stage_for(age_years)` è una funzione pura: nessuno stato da
+salvare, nessuna transizione da gestire. Un `LifeStageService` con
+`on_transition` sarebbe un wrapper vuoto. Se in 1.10.0+ serviranno
+effetti (moodlet di compleanno, `PUBERTY`, `ADULTHOOD`,
+`SENIORITY`), allora il servizio avrà senso.
+
+### 11.3 Nessun effetto sul comportamento
+
+`LifeStage` è **derivato** da `age_years`, non persistito, non letto
+dal tick. `erika`/`max` (14) continuano a lavorare come studenti,
+`giulia` (37) e `luca` (42) come adulti. Nessun divieto di lavoro
+per minori o anziani. Il 10y di 1.9.0 è identico a 1.8.0.
+
+### 11.4 `moodlet_for_need` (22 mapping) rimandato
+
+TODO §3.0508 elenca `moodlet_for_need` (22 mapping need→state→
+moodlet). Non implementato. Necessario per moodlet di transizione
+complessi. 1.10.0+.
+
+### 11.5 Moodlet di transizione rimandati
+
+`BIRTHDAY`, `PUBERTY`, `ADULTHOOD`, `SENIORITY`: nessun moodlet.
+Il compleanno incrementa `age_years` (1.8.0) ma non genera moodlet.
+Se in 1.10.0+ i moodlet di transizione serviranno, richiedono
+`moodlet_for_need` (11.4).
+
+### 11.6 Confine all'anno
+
+`life_stage_for(age_years)` ignora `age_days`. `erika` a 14 anni
+e 431 giorni è `EARLY_ADOLESCENCE`, non `LATE_ADOLESCENCE`. Il
+confine è all'anno. Documentato. Se in futuro serve il confine
+esatto al giorno, `life_stage_for` accetta `age_years` e `age_days`.
+
+### 11.7 `LifeStage` in `PlayerStatus` assente
+
+`player status` non mostra `LifeStage`. `PlayerStatus` è frozen con
+campi fissi; aggiungere `life_stage` richiede toccare
+`build_player_status`, `cmd_player.py`, e i test del pannello.
+`npc stages -c <key>` copre l'uso. Va in 1.10.0+ se serve.
+

@@ -1,4 +1,4 @@
-# SimAI 1.8.0
+# SimAI 1.9.0
 
 SimAI è il motore di simulazione della vita di Anthalys. La 1.0 ha
 dimostrato che il nucleo funziona end-to-end (`avvia → simula → interagisci
@@ -81,6 +81,8 @@ simai relationships ancestors -c <key>  # BFS antenati
 simai relationships descendants -c <key> # BFS discendenti
 simai relationships kinship -c <key> --with <other> # r, r/2, nome
 simai npc traits -c <key>         # tratti dell'NPC
+simai npc stages -c <key>         # età e LifeStage
+
 ```
 
 ### Simulazione
@@ -334,12 +336,16 @@ Questa release è onesta su cosa non fa. I dettagli sono in
   Anthalys, gemelli). Morte manuale via CLI. Morte probabilistica e
   `LIFESTAGE` rimandati. 317 test verdi. 10y identico a 1.7.1
   (`death_count=0`).
+- **1.9.0** — `LifeStage` (9 valori, tassonomia Anthalys 0–60+),
+  `life_stage_for`, `is_pediatric`/`is_psychosocial`, CLI
+  `npc stages`. Nessun effetto sul comportamento (dato derivato).
+  340 test verdi. 10y identico a 1.8.0.
 
-- **1.9+** — Morte probabilistica (richiede unità di misura),
-  `LIFESTAGE`, `COST_PENALTY` (richiede design), `InventoryService`,
-  calendario Anthalys completo (stagioni, festività, lune), supporto
-  familiare, `db reset`. Tassazione in 1.8+ **solo previa decisione
-  esplicita**. Vedi `TODO_SimAI_ottimizzato.md` per la roadmap globale.
+- **1.10+** — Morte probabilistica (richiede unità di misura),
+  moodlet di transizione (`BIRTHDAY`, `PUBERTY`, `ADULTHOOD`,
+  `SENIORITY`) con `moodlet_for_need` (22 mapping), `COST_PENALTY`
+  (richiede design), `InventoryService`, calendario Anthalys completo (stagioni, festività, lune), supporto familiare, `db reset`.
+  Tassazione in 1.8+ **solo previa decisione esplicita**. Vedi `TODO_SimAI_ottimizzato.md` per la roadmap globale.
 
 ## Documenti
 

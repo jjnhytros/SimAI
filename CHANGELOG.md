@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.9.0] — 2026-10-28
+
+### Aggiunto
+
+- **`LifeStage`** enum (9 valori, inglese): `EARLY_CHILDHOOD`,
+  `CHILDHOOD`, `EARLY_ADOLESCENCE`, `LATE_ADOLESCENCE`,
+  `YOUNG_ADULT`, `EARLY_ADULTHOOD`, `MIDDLE_ADULTHOOD`,
+  `LATE_ADULTHOOD`, `SENIORITY`. Tassonomia Anthalys 0–60+.
+- **`npc/lifestage.py`**: `LIFESTAGE_THRESHOLDS` (0, 6, 12, 15, 20,
+  25, 40, 50, 60), `life_stage_for(age_years)` (funzione pura),
+  `is_pediatric`, `is_psychosocial` (predicati).
+- CLI `npc stages -c <key>`: età, `LifeStage`, predicati.
+
+### Verificato (10y, seed 42)
+
+- `10y-1.9.0.json` **identico a `10y-1.8.0.json`**. `LifeStage` non
+  tocca il tick: è un dato derivato, letto solo dalla CLI.
+- Nessuna migrazione: `LifeStage` non è persistito.
+
+### Rimandato (documentato in `known-issues.md` §11)
+
+- **`LifeStagePediatric`/`LifeStagePsychosocial` come enum separate**:
+  non implementate. La tassonomia è una sequenza, non due assi
+  paralleli. Diventano predicati (`is_pediatric`, `is_psychosocial`)
+  sull'enum unica.
+- **`LifeStageService`**: non implementato. `life_stage_for` è
+  funzione pura, nessuno stato da salvare. Se in 1.10.0+ serviranno
+  effetti (moodlet di transizione), il servizio avrà senso.
+- **`moodlet_for_need`** (22 mapping, TODO §3.0508): rimandato.
+- **Moodlet di transizione** (`BIRTHDAY`, `PUBERTY`, `ADULTHOOD`,
+  `SENIORITY`): rimandati.
+- **Divieti di lavoro per minori/anziani**: nessuno. `erika`/`max`
+  (14) continuano a lavorare come studenti.
+- **`LifeStage` in `save`/`load`**: non persistito (derivato da
+  `age_years`).
+- **`LifeStage` in `PlayerStatus`**: non mostrato in `player status`
+  (richiede `PlayerStatus` non frozen). `npc stages` copre l'uso.
+- **Confine all'anno**: `age_days` ignorato. `life_stage_for(14)`
+  è `EARLY_ADOLESCENCE` indipendentemente da `age_days`.
+
 ## [1.8.0] — 2026-10-28
 
 ### Aggiunto

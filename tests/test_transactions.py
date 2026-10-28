@@ -36,7 +36,7 @@ def test_record_salary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         assert erika is not None
         tx = record_transaction(
             session,
-            tick_index=24,
+            tick_index=28,
             amount=5.0,
             kind=TransactionKind.SALARY,
             to_character_id=erika.id,

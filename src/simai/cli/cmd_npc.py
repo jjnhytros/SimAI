@@ -206,3 +206,29 @@ def deliver_command(
         typer.echo(f"Errore: {result.error}", err=True)
         raise typer.Exit(code=1)
     typer.echo(f"Parto: {', '.join(result.children_keys)}")
+
+
+@npc_app.command("stages")
+def stages_command(
+    character: str = typer.Option(..., "--character", "-c"),
+) -> None:
+    """Mostra età e LifeStage di un personaggio."""
+    from simai.npc.lifestage import (
+        is_pediatric,
+        is_psychosocial,
+        life_stage_for,
+    )
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        char = resolve_character(session, character)
+        years = char.age_years
+        days = char.age_days
+
+    stage = life_stage_for(years)
+    typer.echo(f"Età di '{character}': {years} anni, {days} giorni")
+    typer.echo(f"LifeStage: {stage.value}")
+    typer.echo(f"is_pediatric: {is_pediatric(stage)}")
+    typer.echo(f"is_psychosocial: {is_psychosocial(stage)}")

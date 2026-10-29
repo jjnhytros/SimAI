@@ -102,3 +102,57 @@ def test_records_salary_transactions(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert len(txs) == 3
     assert all(t.kind == TransactionKind.SALARY for t in txs)
     assert {t.tick_index for t in txs} == {17, 20}
+
+
+def test_payday_skips_pediatric_non_student(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """NPC pediatrico non-STUDENTE non viene pagato (job sospeso)."""
+    from simai.economy.enums import JobTitle
+    from simai.economy.models import Job
+    from simai.economy.payday import process_payday
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        job = session.scalar(select(Job).where(Job.character_id == erika.id))
+        assert job is not None
+        job.title = JobTitle.BARISTA
+        job.location_key = "casa"
+        job.schedule_end_tick = 10
+        session.commit()
+
+    with factory() as session:
+        report = process_payday(session, tick_index=9)
+        session.commit()
+    assert report.paid == 0
+    assert "erika" not in report.absent_keys
+
+
+def test_payday_pays_pediatric_student(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """STUDENTE è esente: Erika riceve la paghetta anche a 14 anni."""
+    from simai.economy.payday import process_payday
+    from simai.world.models import Location
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        balance_before = erika.balance
+        piazza = session.scalar(select(Location).where(Location.key == "piazza"))
+        assert piazza is not None
+        erika.location_id = piazza.id
+        session.commit()
+
+    with factory() as session:
+        report = process_payday(session, tick_index=17)
+        session.commit()
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        assert erika.balance == balance_before + 5.0
+        assert report.paid >= 1

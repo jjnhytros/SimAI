@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1101` (ex 1.10.1 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1110` (ex 1.11.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 357 verdi (0.1101), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1101.json` (120.960 tick, seed 42, invarianti OK, tps 79.7)
+**Test**: 366 verdi (0.1110), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1110.json` (120.960 tick, seed 42, invarianti OK, tps 69.8)
 
 Questo documento sostituisce:
 

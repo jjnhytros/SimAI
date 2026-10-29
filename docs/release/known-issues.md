@@ -586,22 +586,24 @@ ma "allarme + rifinitura". Il mood torna in 67.5–70.5 sul 10y.
 ### 12.2 Performance −5.42% in 0.1100 (ottimizzato in 0.1101)
 
 `refresh_need_moodlets` in 0.1100 faceva:
-
 - 5 SELECT/tick (uno per char) — 604.800 query su 10y
 - DELETE+INSERT per transizione (~240k su 10y → 480k scritture)
 
 `tps` 10y: 71.44 → 67.57 (−5.42%).
 
 In 0.1101:
-
 - `refresh_need_moodlets_many`: 1 SELECT per tutti i char, UPDATE
   invece di DELETE+INSERT (grazie a `Moodlet.need`)
 - `update_mood(needs=...)`: salta la query interna
 - `needs_of_many`: una query per i bisogni di tutti i char
 
-**Atteso**: `tps >= 70.5`. Se il batch non basta, `active_delta` e
-`cleanup_expired` restano per-char (5 SELECT/tick + 5 DELETE/tick,
-ma i DELETE sono quasi sempre 0) e si aprono 0.1102.
+**Misurato (rerun 1y, stesso giorno)**:
+- 0.1110 = 148.0s CPU (71.8 tps)
+- 0.1101 = 155.4s CPU (70.1 tps)
+
+0.1110 usa **−4.8% CPU** rispetto a 0.1101. Il `79.7` tps del
+`10y-0.1101.json` era anomalo (vedi §13.5). La baseline vera è
+**~70 tps**, non 79.7.
 
 ### 12.3 Breaking change `.sav` (0.1101)
 
@@ -612,3 +614,111 @@ con schema diverso:
 ```python
 if header.schema_revision != current_rev:
     raise SaveFormatError(...)
+```
+
+**Conseguenza**: i `.sav` creati con 0.1100 **non caricano** in
+0.1101+. Non c'è backfill: il progetto è pre-1.0, i `.sav` sono
+usa-e-getta. Se servisse, si aggiunge un lettore che tollera
+`schema_revision="5200_04"` e mappa `need=None`.
+
+**Mitigazione**: ricreare i save dopo 0.1101. Documentato in
+CHANGELOG 0.1101.
+
+### 12.4 `Moodlet.need` nullable, non indice
+
+Colonna `String(16)` nullable, `SAEnum(native_enum=False)`.
+- Moodlet need-based: `need = <kind>`
+- `ATE_WELL`, `SOCIALIZED`, `LONELY`, `BECAME_*`: `need = None`
+
+Non c'è indice dedicato: le query batch filtrano per `character_id`
+(indice esistente da `0009`) e `expires_at_tick > tick`.
+
+Se `EXPLAIN QUERY PLAN` in 0.1102 mostrasse un full scan su
+`moodlets` in `refresh_need_moodlets_many`, si aggiunge
+`ix_moodlets_need` o `ix_moodlets_character_expires`.
+
+### 12.5 `TICKS_PER_YEAR` duplicato (risolto in 0.1100)
+
+`sim/benchmark.py` ridefiniva `TICKS_PER_YEAR = 12096`. Ora importa
+da `economy/calendar.py`, che è la fonte canonica:
+
+```python
+TICKS_PER_DAY = 28
+DAYS_PER_YEAR = 432
+TICKS_PER_YEAR = TICKS_PER_DAY * DAYS_PER_YEAR  # 12096
+```
+
+`npc/lifecycle.py` ha ancora `AGE_DAYS_PER_YEAR = 432` in locale.
+Stesso valore, ma **due fonti**. Da unificare in una release
+documentale (0.1120+): importare `DAYS_PER_YEAR` da `economy/calendar.py`.
+
+---
+
+## 13. Divieto lavoro pediatrico (0.1110)
+
+### 13.1 Divieto "soft", non "hard"
+
+`can_work(job, age_years)` ritorna False per pediatrici (0–20) con
+job non-`STUDENTE`. Il `Job` **resta in DB**: non viene cancellato,
+non viene riassegnato. Al compleanno che porta `age_years` a 20,
+`is_pediatric(life_stage_for(20))` diventa False e il divieto si
+revoca automaticamente al tick successivo.
+
+**Conseguenza**: chi è pediatrico non-STUDENTE non si muove verso
+il lavoro (`should_prioritize_work` False) e non viene pagato
+(`process_payday` salta). Non finisce in `absent_keys`: non è
+assente, è sospeso. Il `PaydayReport` non lo conta.
+
+Se in futuro serve distinguere "sospeso" da "assente" in
+`PaydayReport`, va aggiunto un campo. Non ora: nessun NPC del seed
+è pediatrico non-STUDENTE, quindi il caso non è osservabile in
+produzione.
+
+### 13.2 `STUDENTE` esente
+
+`JobTitle.STUDENTE` (wage 5, Erika/Max) è esente dal divieto. La
+motivazione è semantica: la paghetta non è salario. Il divieto
+protegge i minori dal lavoro, non toglie la paghetta.
+
+Se in futuro il design vorrà che gli studenti non ricevano la
+paghetta, sarà una release dedicata (e il 10y cambierà su
+`balance`/`purchase`/`salary`). Non in 0.1110.
+
+### 13.3 `SENIORITY` non coperto
+
+Il TODO §3.4 parla di "divieti lavoro per minori/anziani". 0.1110
+copre solo i minori. Nessun NPC del seed ha 60+ (`SENIORITY`):
+Erika/Max 14, Player 30, Giulia 37, Luca 42. Il divieto per
+anziani non è implementato, non è testato, non è esercitato.
+Va in una release futura, quando ci sarà un NPC anziano o quando
+l'ageing del 10y produrrà qualcuno a 60+ (con morte a 100 e
+seed attuale, 10y non basta: nessuno invecchia di 60 anni).
+
+### 13.4 Firma breaking di `should_prioritize_work`
+
+`should_prioritize_work` ora richiede `*, age_years: int`. I
+chiamanti sono: `npc/manager.py` (uno), e i test in `test_work.py`,
+`test_routine.py`, `test_jobs.py` (da verificare). MyPy strict
+segnala ogni chiamata senza `age_years`. Nei test esistenti va
+aggiunto `age_years=30` (adulto), **non** cambiato il codice.
+
+### 13.5 Baseline tps anomala in `10y-0.1101.json`
+
+Il `10y-0.1101.json` riporta `tps: 79.7` (1517.9s wall). Il rerun
+1y dello stesso commit (0.1101) dà 70.1 tps (155.4s CPU, 173.3s
+wall). Il `10y-0.1110.json` dà 69.8 tps (148.0s CPU, 169.3s wall
+su 1y), coerente col proprio 1y (71.8).
+
+**Conclusione**: il `79.7` del 10y di 0.1101 era anomalo, non
+riproducibile. Il tps vero è ~70 per 0.1101 e 0.1110. La differenza
+di CPU tra le due release su 1y è −4.8% per 0.1110 (148.0s vs
+155.4s), compatibile con rumore di misurazione.
+
+**Causa probabile**: condizioni macchina diverse (carico, cache DB,
+throttling termico). Non investigata.
+
+**Regola operativa**: d'ora in poi, ogni benchmark che "batte il
+target" va verificato con CPU time (`user` + `sys`) e, se
+possibile, con un rerun 1y dello stesso commit. Un `tps` assoluto
+senza CPU time e senza baseline stesso-giorno non è un dato
+(lezione #1 della lista errori).

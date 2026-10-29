@@ -22,6 +22,7 @@ from simai.economy.market import filter_by_stock
 from simai.economy.models import ShopItem
 from simai.economy.service import job_of
 from simai.economy.work import (
+    can_work,
     should_prioritize_home,
     should_prioritize_work,
     tick_in_day,
@@ -174,8 +175,14 @@ class NPCManager:
         t_in_day = tick_in_day(tick_index)
         job = job_of(session, state.character_id)
         hunger = needs.get(NeedKind.HUNGER, 100.0)
+        age_years = char.age_years
 
-        if should_prioritize_work(job, t_in_day, hunger):
+        # Divieto lavoro pediatrico (non-STUDENTE): job sospeso.
+        # `char` è già stato caricato sopra, `age_years` è disponibile.
+        if not can_work(job, age_years):
+            job = None
+
+        if should_prioritize_work(job, t_in_day, hunger, age_years=age_years):
             assert job is not None
             if loc.key != job.location_key:
                 result = move_character(session, state.key, job.location_key)
@@ -195,7 +202,9 @@ class NPCManager:
                 )
             moves = []
 
-        if job is not None and not should_prioritize_work(job, t_in_day, hunger):
+        if job is not None and not should_prioritize_work(
+            job, t_in_day, hunger, age_years=age_years
+        ):
             home_loc = (
                 session.get(Location, state.home_location_id)
                 if state.home_location_id is not None

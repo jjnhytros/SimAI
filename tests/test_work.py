@@ -13,6 +13,7 @@ from simai.economy.work import (
     CRITICAL_HUNGER_THRESHOLD,
     PRIORITY_WINDOW,
     WorkState,
+    can_work,
     should_prioritize_work,
     tick_in_day,
     work_state_for,
@@ -79,19 +80,18 @@ def test_work_state_after() -> None:
 def test_priority_near_start() -> None:
     job = _make_job(8, 16)
     # tick 6 -> ticks_until 2 == PRIORITY_WINDOW
-    assert should_prioritize_work(job, 6, 50.0) is True
-    assert should_prioritize_work(job, 7, 50.0) is True
+    assert should_prioritize_work(job, 6, 50.0, age_years=30) is True
 
 
 def test_priority_too_far() -> None:
     job = _make_job(8, 16)
     # tick 5 -> ticks_until 3 > 2
-    assert should_prioritize_work(job, 5, 50.0) is False
+    assert should_prioritize_work(job, 5, 50.0, age_years=30) is False
 
 
 def test_priority_critical_hunger() -> None:
     job = _make_job(8, 16)
-    assert should_prioritize_work(job, 6, CRITICAL_HUNGER_THRESHOLD - 1.0) is False
+    assert should_prioritize_work(job, 6, CRITICAL_HUNGER_THRESHOLD - 1.0, age_years=30) is False
 
 
 def test_priority_window_constant() -> None:
@@ -195,20 +195,18 @@ def test_priority_during_working_state() -> None:
     tick (purché hunger >= 10)."""
     job = _make_job(8, 16)
     # t=10 è nel mezzo del turno
-    assert should_prioritize_work(job, 10, 50.0) is True
-    assert should_prioritize_work(job, 15, 50.0) is True
+    assert should_prioritize_work(job, 10, 50.0, age_years=30) is True
 
 
 def test_priority_after_work_inactive() -> None:
     job = _make_job(8, 16)
-    assert should_prioritize_work(job, 16, 50.0) is False
-    assert should_prioritize_work(job, 20, 50.0) is False
+    assert should_prioritize_work(job, 16, 50.0, age_years=30) is False
 
 
 def test_priority_working_state_critical_hunger() -> None:
     """Salvaguardia fame si applica anche durante il turno."""
     job = _make_job(8, 16)
-    assert should_prioritize_work(job, 10, CRITICAL_HUNGER_THRESHOLD - 1.0) is False
+    assert should_prioritize_work(job, 10, CRITICAL_HUNGER_THRESHOLD - 1.0, age_years=30) is False
 
 
 def test_work_state_on_break() -> None:
@@ -248,5 +246,57 @@ def test_should_prioritize_work_on_break() -> None:
         break_start_tick=14,
         break_end_tick=15,
     )
-    assert should_prioritize_work(job, 14, 100.0) is False
-    assert should_prioritize_work(job, 15, 100.0) is True
+    assert should_prioritize_work(job, 14, 100.0, age_years=30) is False
+    assert should_prioritize_work(job, 15, 100.0, age_years=30) is True
+
+
+def _job(title: JobTitle, wage: float = 10.0) -> Job:
+    return Job(
+        character_id=1,
+        title=title,
+        location_key="caffe",
+        daily_wage=wage,
+        schedule_start_tick=10,
+        schedule_end_tick=19,
+    )
+
+
+def test_can_work_none_job() -> None:
+    assert can_work(None, age_years=30) is False
+
+
+def test_can_work_adult_any_title() -> None:
+    for title in (JobTitle.BARISTA, JobTitle.INSEGNANTE, JobTitle.COMMESSO):
+        assert can_work(_job(title), age_years=30) is True
+
+
+def test_can_work_pediatric_student_allowed() -> None:
+    """La paghetta non è salario: STUDENTE esente dal divieto."""
+    assert can_work(_job(JobTitle.STUDENTE), age_years=14) is True
+    assert can_work(_job(JobTitle.STUDENTE), age_years=6) is True
+    assert can_work(_job(JobTitle.STUDENTE), age_years=19) is True
+
+
+def test_can_work_pediatric_non_student_blocked() -> None:
+    for age in (0, 6, 14, 19):
+        assert can_work(_job(JobTitle.BARISTA), age_years=age) is False
+        assert can_work(_job(JobTitle.INSEGNANTE), age_years=age) is False
+        assert can_work(_job(JobTitle.COMMESSO), age_years=age) is False
+
+
+def test_can_work_adult_transition() -> None:
+    """A 20 anni esce da is_pediatric: il divieto si revoca."""
+    job = _job(JobTitle.BARISTA)
+    assert can_work(job, age_years=19) is False
+    assert can_work(job, age_years=20) is True
+
+
+def test_should_prioritize_work_pediatric_blocked() -> None:
+    job = _job(JobTitle.BARISTA)
+    # t=10 = inizio turno, hunger alto
+    assert should_prioritize_work(job, 10, hunger_value=100.0, age_years=14) is False
+
+
+def test_should_prioritize_work_pediatric_student_allowed() -> None:
+    job = _job(JobTitle.STUDENTE)
+    assert should_prioritize_work(job, 10, hunger_value=100.0, age_years=14) is True

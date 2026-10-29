@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.1110] — 2026-10-29
+
+### Aggiunto
+
+- **`can_work(job, age_years)`** in `economy/work.py`: True sse
+  `JobTitle.STUDENTE` (esente) o `not is_pediatric(life_stage_for(age_years))`.
+  Soglia `< 20` (EARLY_CHILDHOOD → LATE_ADOLESCENCE).
+- **`should_prioritize_work(job, t_in_day, hunger, *, age_years)`**:
+  aggiunto divieto pediatrico non-STUDENTE. Firma breaking
+  (keyword-only `age_years`).
+- **`process_payday`**: `_can_be_paid(char, job)` salta i pediatrici
+  non-STUDENTE. Non incrementa `absent` (sospensione, non assenza).
+- **`npc/manager.py::_tick_one`**: se `not can_work`, `job = None`.
+
+### Verificato (10y, seed 42)
+
+- **Comportamento deterministico IDENTICO a 0.1101**, al decimale:
+  `balance_mean` (4819.070122656793 / 4814.471650081 /
+  33736.2131451053 / 40363.58805831983), `purchase_transactions=34665`,
+  `salary_transactions=17280`, `relationships_active=6`,
+  `job_attendance_rate=1.0`, `mood_mean` 69.58–70.10, `invariants_ok: true`.
+  Erika/Max sono `STUDENTE` (esenti), gli altri non sono pediatrici.
+- **`tps`: 69.8** sul 10y. **Non è una regressione.**
+  Rerun 1y stesso giorno: 0.1110 = 148.0s CPU (71.8 tps),
+  0.1101 = 155.4s CPU (70.1 tps). **0.1110 usa −4.8% di CPU
+  rispetto a 0.1101.** La baseline `79.7` del 10y di 0.1101 era
+  **anomala** (1y di 0.1101 dà 70.1, non 79.7). Il tps vero è ~70
+  per entrambe le release.
+
+### Nota su baseline tps
+
+Il `10y-0.1101.json` riporta `tps: 79.7`, incoerente con il
+`1y-0.1101` (70.1). La baseline tps da usare per confronti
+d'ora in poi è **~70**, non 79.7. Documentato in
+`known-issues.md` §13.5. I benchmark futuri che "battono il
+target" vanno verificati con CPU time (`user` + `sys`) prima di
+dichiararli, per non ripetere l'errore.
+
 ## [0.1101] — 2026-10-28
 
 ### Cambiato

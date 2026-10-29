@@ -1,0 +1,126 @@
+from pathlib import Path
+
+import pytest
+from alembic import command
+from sqlalchemy import select
+from sqlalchemy.engine import Engine
+
+from simai.db.alembic_utils import get_alembic_config
+from simai.db.session import get_engine, get_session_factory
+from simai.economy.payday import process_payday
+from simai.skills.enums import SkillKind
+from simai.skills.models import Skill
+from simai.skills.service import level_of, skill_of, skills_of, wage_with_skill
+from simai.world.models import Character
+from simai.world.seed import seed_muse_core
+
+
+def _seeded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Engine:
+    url = f"sqlite:///{tmp_path / 'test.db'}"
+    monkeypatch.setenv("SIMAI_DB_URL", url)
+    command.upgrade(get_alembic_config(url=url), "head")
+    engine = get_engine(url)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        seed_muse_core(session)
+        session.commit()
+    return engine
+
+
+def _char_id(session, key: str) -> int:
+    c = session.scalar(select(Character).where(Character.key == key))
+    assert c is not None
+    return c.id
+
+
+def test_seed_creates_five_skills(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        skills = session.scalars(select(Skill)).all()
+    assert len(skills) == 5
+
+
+def test_skill_of_returns_expected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        skill = skill_of(session, luca_id, SkillKind.BARISTA)
+        assert skill is not None
+        assert skill.level == 40.0
+
+
+def test_skill_of_missing_returns_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        assert skill_of(session, luca_id, SkillKind.INSEGNANTE) is None
+
+
+def test_level_of_missing_returns_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        assert level_of(session, luca_id, SkillKind.INSEGNANTE) == 0.0
+
+
+def test_skills_of_orders_by_kind(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        # giulia ha una sola skill (INSEGNANTE)
+        giulia_id = _char_id(session, "giulia")
+        skills = skills_of(session, giulia_id)
+        assert len(skills) == 1
+        assert skills[0].kind == SkillKind.INSEGNANTE
+
+
+def test_wage_with_skill_levels() -> None:
+    assert wage_with_skill(25.0, 0.0) == 25.0
+    assert wage_with_skill(25.0, 50.0) == 31.25
+    assert wage_with_skill(25.0, 100.0) == 37.5
+    assert wage_with_skill(25.0, 200.0) == 37.5  # clip
+    assert wage_with_skill(25.0, -10.0) == 25.0  # clip
+
+
+def test_payday_uses_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        caffe = session.scalar(select(Character).where(Character.key == "luca"))
+        assert caffe is not None
+        # luca è al caffè (seed), turno 14-21 -> payday al tick 20.
+        # Forzo tick_index = 20 (t_in_day = 20, schedule_end_tick = 21,
+        # t_in_day == 20 == 21-1).
+        balance_before = luca.balance
+        session.commit()
+
+    with factory() as session:
+        report = process_payday(session, tick_index=20)
+        session.commit()
+
+    assert report.paid >= 1
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        # 25 * (1 + 40/200) = 30.0
+        assert luca.balance == balance_before + 30.0
+
+
+def test_skill_check_constraint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Il CHECK su level blocca valori fuori range."""
+    from sqlalchemy.exc import IntegrityError
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        with pytest.raises(IntegrityError):
+            session.add(Skill(character_id=luca_id, kind=SkillKind.COMMESSO, level=150.0))
+            session.flush()
+        session.rollback()

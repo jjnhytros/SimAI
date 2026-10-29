@@ -8,6 +8,8 @@ from simai.economy.models import Job
 from simai.needs.service import ensure_initial_needs
 from simai.relationships.enums import RelationshipKind
 from simai.relationships.service import ensure_relationship
+from simai.skills.enums import SkillKind
+from simai.skills.models import Skill
 from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 
@@ -144,6 +146,14 @@ JOB_SPECS: list[dict[str, Any]] = [
         "break_start_tick": 14,
         "break_end_tick": 15,
     },
+]
+
+SKILL_SPECS: list[dict[str, Any]] = [
+    {"character_key": "player", "kind": SkillKind.COMMESSO, "level": 20.0},
+    {"character_key": "luca", "kind": SkillKind.BARISTA, "level": 40.0},
+    {"character_key": "giulia", "kind": SkillKind.INSEGNANTE, "level": 50.0},
+    {"character_key": "erika", "kind": SkillKind.STUDENTE, "level": 15.0},
+    {"character_key": "max", "kind": SkillKind.STUDENTE, "level": 15.0},
 ]
 
 
@@ -294,10 +304,36 @@ def seed_muse_core(session: Session) -> dict[str, int]:
 
     session.flush()
 
+    # 6. Skills (0.1140)
+    skills_created = 0
+    for skill_spec in SKILL_SPECS:
+        skill_char = by_char_key.get(skill_spec["character_key"])
+        if skill_char is None:
+            continue
+        existing = session.scalar(
+            select(Skill).where(
+                Skill.character_id == skill_char.id,
+                Skill.kind == skill_spec["kind"],
+            )
+        )
+        if existing is not None:
+            continue
+        session.add(
+            Skill(
+                character_id=skill_char.id,
+                kind=skill_spec["kind"],
+                level=skill_spec["level"],
+            )
+        )
+        skills_created += 1
+
+    session.flush()
+
     return {
         "locations_created": locations_created,
         "characters_created": characters_created,
         "needs_created": needs_created,
         "relationships_created": relationships_created,
         "jobs_created": jobs_created,
+        "skills_created": skills_created,
     }

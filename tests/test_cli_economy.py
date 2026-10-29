@@ -67,7 +67,8 @@ def test_economy_ledger_after_payday(tmp_path: Path, monkeypatch: pytest.MonkeyP
     result = runner.invoke(app, ["economy", "ledger", "-c", "luca"])
     assert result.exit_code == 0
     assert "salary" in result.stdout.lower()
-    assert "25.00" in result.stdout
+    # 0.1140: luca ha BARISTA livello 40 → 25 * (1 + 40/200) = 30.00
+    assert "30.00" in result.stdout
 
 
 def test_economy_ledger_rejects_zero_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

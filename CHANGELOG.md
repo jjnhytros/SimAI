@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.1140] — 2026-10-29
+
+### Aggiunto
+
+- **`SkillKind`** enum: `BARISTA`, `INSEGNANTE`, `COMMESSO`, `STUDENTE`.
+  Separato da `JobTitle` (stessi valori oggi, modello permette
+  divergenza futura).
+- **`Skill`** model: `character_id` (FK CASCADE), `kind` (SAEnum),
+  `level` (float 0–100), unique `(character_id, kind)`,
+  `CheckConstraint 0 <= level <= 100`. Migrazione `5200_08`.
+- **`skills/service.py`**: `skill_of`, `skills_of`, `level_of`,
+  `wage_with_skill`, `clamp_level`.
+- **`wage_with_skill(daily_wage, level)`**: `daily_wage * (1 + level/200)`.
+  +50% a livello 100. Salario base è il minimo, nessuna penalità.
+- **`process_payday`**: salario modulato dalla skill. `_skill_for(job)`
+  mappa `JobTitle` → `SkillKind` (1:1 oggi).
+- **Seed**: 5 skill iniziali (player COMMESSO 20, luca BARISTA 40,
+  giulia INSEGNANTE 50, erika/max STUDENTE 15).
+- **`save`/`load`**: serializza/deserializza `Skill`.
+- **CLI** `npc skills -c <key>`.
+
+### Verificato (10y, seed 42)
+
+- **`purchase_transactions: 34665` INVARIATO**: `balance` non è letto
+  da `choose_action`/`score`. Rischio (a) del piano chiuso.
+- **`salary_transactions: 17280` INVARIATO**: stessi payday, importi
+  diversi.
+- **`mood_mean`, `needs_*`, `death_count`, `invariants_ok` INVARIATI**.
+- **`balance_mean` aumentato**, coerente con la formula:
+  - luca: 33736 → **44536** (+10800 = +5/giorno × 4320/2)
+  - giulia: 40363 → **52243** (+11880 = +5.5 × 4320/2)
+  - erika: 4819 → **5629** (+810 = +0.375 × 4320/2)
+  - max: 4814 → **5624** (+810)
+- `balance_final` aumentato di `Δwage × 4320`: luca +21600, giulia
+  +23760, erika/max +1620.
+- `tps: 73.9` (era 70.4 in 0.1130).
+
+### Corretto (test obsoleti)
+
+I test hardcodavano i salari base. Aggiornati ai valori scalati:
+
+- `test_cli_economy.py::test_economy_ledger_after_payday`: 25.00 → 30.00
+- `test_payday.py::test_payday_at_end_of_shift`: max 5.0 → 5.375,
+  giulia 22.0 → 27.5
+- `test_payday.py::test_payday_pays_pediatric_student`: 5.0 → 5.375
+- `test_payday_presence.py::test_student_erika_paid_if_moved_to_piazza`:
+  5.0 → 5.375
+- `test_payday_presence.py::test_player_paid_at_caffe`: 20.0 → 22.0
+- `test_world_models.py::test_seed_creates_expected_counts`:
+  + `skills_created: 5`
+- `test_world_models.py::test_seed_is_idempotent`: + `skills_created: 0`
+
+### Rimandato
+
+- **Training action** (`PRACTICE_*`, `STUDY`, `COOK`): 0.1150.
+  Skill statiche in 0.1140.
+- **Skill decay**: 0.1150.
+- **Promozioni job**: 0.1160+.
+- **`death_count` sul 60y**: la morte probabilistica non è ancora
+  stata esercitata (10y ha `death_count: 0`). 60y in coda.
+
 ## [0.1130] — 2026-10-29
 
 ### Aggiunto

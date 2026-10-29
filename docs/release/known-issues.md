@@ -833,3 +833,48 @@ alta. Se 1–3, plausibile.
 L'analisi del 60y è il primo test reale della morte probabilistica
 in un contesto con invecchiamento. Non è "passa/non passa": è
 "cosa racconta".
+
+
+---
+
+## 16. Skills base (0.1140)
+
+### 16.1 Skill statiche, senza training
+
+0.1140 introduce il modello `Skill` e lo scaling salariale, ma
+**nessuna training action**. I livelli del seed non cambiano durante
+la simulazione. `STUDY`, `PRACTICE_COMBAT`, `PRACTICE_ART`, `COOK`,
+`PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE` sono
+0.1150.
+
+**Conseguenza**: sul 10y le skill restano ai valori di seed. Il
+`balance_mean` è aumentato, ma linearmente (skill costanti).
+
+### 16.2 Mapping `JobTitle` → `SkillKind`
+
+Oggi 1:1 (`BARISTA` → `BARISTA`, ecc.), implementato da
+`_skill_for(job)` in `payday.py`. Se in futuro un job richiederà
+più skill (es. `CUOCO` che richiede `COOKING` e `BARISTA`), va
+cambiato il design: `SkillRequirement` con peso, o `Job.skills`
+JSON.
+
+### 16.3 Nessuna penalità per skill basse
+
+Il salario base è il **minimo**: skill 0 → salario base, skill 100 →
++50%. Un NPC senza skill prende comunque il salario pieno. Se in
+futuro si vorrà una penalità (es. skill 0 → -20%), va cambiato
+`wage_with_skill`.
+
+### 16.4 `SkillKind` e `JobTitle` separati
+
+Duplicazione intenzionale: i due enum hanno gli stessi valori oggi,
+ma concettualmente diversi. `JobTitle` è il ruolo (chi sei),
+`SkillKind` è la competenza (cosa sai fare). In futuro:
+`JobTitle.CUOCO` con skill `COOKING`, o `JobTitle.ARTISTA` con
+skill `PAINTING`.
+
+### 16.5 Check constraint su SQLite
+
+`CHECK (level >= 0 AND level <= 100)` è enforced nativamente da
+SQLite (non è una FK). Test `test_skill_check_constraint` copre.
+Se in futuro si passa a PostgreSQL, il comportamento è identico.

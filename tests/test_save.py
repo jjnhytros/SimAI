@@ -263,3 +263,44 @@ def test_roundtrip_preserves_moodlet_need(tmp_path: Path, monkeypatch: pytest.Mo
         assert len(rows) == 1
         assert rows[0].kind == MoodletKind.STARVING
         assert rows[0].need == NeedKind.HUNGER
+
+
+def test_roundtrip_preserves_skills(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.skills.enums import SkillKind
+    from simai.skills.models import Skill
+
+    engine = _seeded_engine(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        skill = session.scalar(
+            select(Skill).where(
+                Skill.character_id == luca.id,
+                Skill.kind == SkillKind.BARISTA,
+            )
+        )
+        assert skill is not None
+        skill.level = 55.0
+        session.commit()
+        create_save(session, name="sk")
+
+    with factory() as session:
+        session.execute(Skill.__table__.delete())
+        session.commit()
+
+    with factory() as session:
+        load_save(session, "sk")
+        session.commit()
+
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        skill = session.scalar(
+            select(Skill).where(
+                Skill.character_id == luca.id,
+                Skill.kind == SkillKind.BARISTA,
+            )
+        )
+        assert skill is not None
+        assert skill.level == 55.0

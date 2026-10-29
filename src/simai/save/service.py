@@ -24,6 +24,8 @@ from simai.save.errors import (
 )
 from simai.save.format import SaveHeader, decode, encode
 from simai.sim.models import SimState
+from simai.skills.enums import SkillKind
+from simai.skills.models import Skill
 from simai.world.enums import LocationKind
 from simai.world.models import Character, Location, Pregnancy
 
@@ -130,6 +132,14 @@ def _serialize_state(session: Session) -> dict[str, Any]:
             }
             for m in moodlets
         ],
+        "skills": [
+            {
+                "character_id": s.character_id,
+                "kind": s.kind.value,
+                "level": s.level,
+            }
+            for s in session.scalars(select(Skill).order_by(Skill.id)).all()
+        ],
         "jobs": [
             {
                 "character_id": j.character_id,
@@ -192,6 +202,7 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
     Ordine di insert: padri prima dei figli.
     """
     session.execute(delete(Moodlet))
+    session.execute(delete(Skill))
     session.execute(delete(Transaction))
     session.execute(delete(ShopItem))
     session.execute(delete(Job))
@@ -265,6 +276,15 @@ def _deserialize_state(session: Session, payload: dict[str, Any]) -> None:
                 need=NeedKind(need_raw) if need_raw is not None else None,
                 started_at_tick=row["started_at_tick"],
                 expires_at_tick=row["expires_at_tick"],
+            )
+        )
+
+    for row in payload.get("skills", []):
+        session.add(
+            Skill(
+                character_id=row["character_id"],
+                kind=SkillKind(row["kind"]),
+                level=row["level"],
             )
         )
 

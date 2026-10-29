@@ -7,7 +7,15 @@ from simai.economy.enums import JobTitle, TransactionKind
 from simai.economy.models import Job
 from simai.economy.service import record_transaction
 from simai.npc.lifestage import is_pediatric, life_stage_for
+from simai.skills.enums import SkillKind
+from simai.skills.service import level_of, wage_with_skill
 from simai.world.models import Character, Location
+
+
+def _skill_for(job: Job) -> SkillKind:
+    """Mapping JobTitle -> SkillKind. 1:1 oggi, ma il modello li tiene
+    separati per permettere job multi-skill in futuro."""
+    return SkillKind(job.title.value)
 
 
 @dataclass(frozen=True)
@@ -57,11 +65,13 @@ def process_payday(session: Session, tick_index: int) -> PaydayReport:
         if loc is None or loc.key != job.location_key:
             absent_keys.append(char.key)
             continue
-        char.balance += job.daily_wage
+        skill_level = level_of(session, char.id, _skill_for(job))
+        wage = wage_with_skill(job.daily_wage, skill_level)
+        char.balance += wage
         record_transaction(
             session,
             tick_index=tick_index,
-            amount=job.daily_wage,
+            amount=wage,
             kind=TransactionKind.SALARY,
             to_character_id=char.id,
             note=f"payday {job.title.value}",

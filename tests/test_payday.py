@@ -66,9 +66,11 @@ def test_payday_at_end_of_shift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert report.absent_keys == ("erika",)
     with factory() as session:
         after = {c.key: c.balance for c in session.scalars(select(Character)).all()}
-    assert after["max"] == before["max"] + 5.0
+    # 0.1140: max STUDENTE livello 15 → 5 * (1 + 15/200) = 5.375
+    assert after["max"] == before["max"] + 5.375
     assert after["erika"] == before["erika"]
-    assert after["giulia"] == before["giulia"] + 22.0
+    # 0.1140: giulia INSEGNANTE livello 50 → 22 * 1.25 = 27.5
+    assert after["giulia"] == before["giulia"] + 27.5
 
 
 def test_multiple_shifts_paid_at_own_tick(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -154,5 +156,6 @@ def test_payday_pays_pediatric_student(tmp_path: Path, monkeypatch: pytest.Monke
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
         assert erika is not None
-        assert erika.balance == balance_before + 5.0
+        # 0.1140: erika STUDENTE livello 15 → 5.375
+        assert erika.balance == balance_before + 5.375
         assert report.paid >= 1

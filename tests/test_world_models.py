@@ -24,13 +24,14 @@ def test_seed_creates_expected_counts(tmp_path: Path) -> None:
     with factory() as session:
         report = seed_muse_core(session)
         session.commit()
-    assert report == {
-        "locations_created": 3,
-        "characters_created": 5,
-        "needs_created": 20,
-        "relationships_created": 6,  # 2 FRIEND + 2 PARENT_OF + 2 CHILD_OF
-        "jobs_created": 5,
-    }
+        assert report == {
+            "locations_created": 3,
+            "characters_created": 5,
+            "needs_created": 20,
+            "relationships_created": 6,  # 2 FRIEND + 2 PARENT_OF + 2 CHILD_OF
+            "jobs_created": 5,
+            "skills_created": 5,  # 0.1140: 5 skill di seed
+        }
 
 
 def test_seed_is_idempotent(tmp_path: Path) -> None:
@@ -42,13 +43,14 @@ def test_seed_is_idempotent(tmp_path: Path) -> None:
     with factory() as session:
         second = seed_muse_core(session)
         session.commit()
-    assert second == {
-        "locations_created": 0,
-        "characters_created": 0,
-        "needs_created": 0,
-        "relationships_created": 0,
-        "jobs_created": 0,
-    }
+        assert second == {
+            "locations_created": 0,
+            "characters_created": 0,
+            "needs_created": 0,
+            "relationships_created": 0,
+            "jobs_created": 0,
+            "skills_created": 0,
+        }
 
 
 def test_player_is_unique_and_at_home(tmp_path: Path) -> None:

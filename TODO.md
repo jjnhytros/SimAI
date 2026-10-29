@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1130` (ex 1.13.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1140` (ex 1.14.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 378 verdi (0.1130), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1120.json` (120.960 tick, seed 42, invarianti OK, tps 70.4)
+**Test**: 387 verdi (0.1140), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1140.json` (120.960 tick, seed 42, invarianti OK, tps 73.9)
 
 Questo documento sostituisce:
 
@@ -30,6 +30,8 @@ player.
 | 1.11.0 | 0.1110 | |
 | 1.12.0 | **0.1120** | morte probabilistica (per anno, rampa cubica) |
 | 1.13.0 | **0.1130** | death_count in benchmark, DAYS_PER_YEAR unificato |
+| 1.14.0 | **0.1140** | skills base, wage scaling, CLI npc skills |
+
 | … | … | |
 | 2.0.0 | 0.2000 | |
 | 1.0.0 | 1.0.0 | release ufficiale, quando ci sarà engine grafico |
@@ -554,10 +556,11 @@ Package `simai/sim/anthalys/time/`:
 
 ### §3.6a-c — Skills
 
-- [ ] `[03.0500b]` `npc/skills/` — **non esiste**
-- [ ] `[03.0502b]` Training actions (`PRACTICE_COMBAT`, `STUDY`, `PRACTICE_ART`, `COOK`, `PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE`) — **non esistono**
-- [ ] `[5200_08]` Migrazione `skill` — **non esiste**
-- [ ] CLI `npc skills/skill-train/skill-decay` — **non esiste**
+- [x] `[03.0500b]` `npc/skills/` — implementato in 0.1140
+  (`simai/skills/`, `SkillKind`, `Skill`, `service`)
+- [ ] `[03.0502b]` Training actions (`PRACTICE_COMBAT`, `STUDY`, `PRACTICE_ART`, `COOK`, `PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE`) — **non esistono** (0.1150)
+- [x] `[5200_08]` Migrazione `skill` — implementata in 0.1140
+- [P] CLI `npc skills` (0.1140); `skill-train`/`skill-decay` (0.1150)
 - [ ] `[03.0034c]` `npc/skills/talent.py` — **non esiste**
 - [ ] `Job` esteso (skill, promozioni) — **non esiste** (`Job` ha solo `title`, `location_key`, `daily_wage`, `schedule_start/end_tick`, `break_start/end_tick`)
 - [ ] `[5400_02]` Migrazione `job skill extensions` — **non esiste**
@@ -865,11 +868,17 @@ Package `simai/sim/anthalys/time/`:
    `docs/release/benchmarks/60y-0.1130.json`, analizzare
    `death_count`, successioni, bilanci, mood. Costo ~3h. Primo
    test reale della morte probabilistica con invecchiamento.
-2. **0.1140** (calibrazione morte): solo se il 60y mostra
-   `death_count` fuori da 1–3.
-3. **0.1150** (`COST_PENALTY` + design caffè): decisione di design.
-4. **0.1160** (calendario Anthalys completo): cosmetico.
-5. **Audit documentale**: `TODO.md` §1.x con path reali, `README.md`
+2. **0.1150** (training action): `PRACTICE_*`, `STUDY`, `COOK`, ecc.
+   Aumentano skill nel tick. `SkillService.train`, azioni nel
+   catalogo, filtro per job/skill. Skill decay da decidere.
+   Dopo 0.1150: **60y** (morte + eredità + skills + training
+   insieme). Archivia `60y-0.1150.json`.
+3. **60y** (operazione, non release): dopo 0.1150, per testare
+   morte + eredità + skills + training insieme. Archivia
+   `60y-0.1150.json`. Costo ~3h.
+4. **0.1150** (`COST_PENALTY` + design caffè): decisione di design.
+5. **0.1160** (calendario Anthalys completo): cosmetico.
+6. **Audit documentale**: `TODO.md` §1.x con path reali, `README.md`
    aggiornato a 0.1130.
 
 ### Prossimi passi realistici

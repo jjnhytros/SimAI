@@ -56,7 +56,8 @@ def test_student_erika_paid_if_moved_to_piazza(
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
         assert erika is not None
-        assert erika.balance == before + 5.0
+        # 0.1140: erika STUDENTE livello 15 → 5.375
+        assert erika.balance == before + 5.375
 
 
 def test_player_absent_at_commesso_shift_end(
@@ -89,7 +90,8 @@ def test_player_paid_if_at_caffe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     with factory() as session:
         player = session.scalar(select(Character).where(Character.is_player.is_(True)))
         assert player is not None
-        assert player.balance == before + 20.0
+        # 0.1140: player COMMESSO livello 20 → 20 * (1 + 20/200) = 22.0
+        assert player.balance == before + 22.0
 
 
 def test_absent_creates_no_transaction(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -796,3 +796,40 @@ inerte sul seed attuale. Diventa significativa:
 
 `death_count` non è nel `BenchmarkReport`: verifica implicita
 (character assente dal report = morto). Da aggiungere in 0.1130.
+
+
+---
+
+## 15. `death_count` nel benchmark (0.1130)
+
+### 15.1 `death_count` in `BenchmarkReport`
+
+Aggiunto in 0.1130. Conta le morti cumulate nel run. È la somma di
+`TickReport.deaths` su tutti i tick, dove `deaths` è `len(kills)`
+da `LifecycleManager.daily_tick` (OLD_AGE + probabilistiche).
+
+`format_report` lo stampa come `Morti: N`.
+
+### 15.2 `TickReport.deaths` default 0
+
+`deaths: int = 0` in `TickReport`. I test che costruiscono
+`TickReport` senza `deaths` continuano a funzionare. I chiamanti
+reali (`run_tick`) lo popolano.
+
+### 15.3 1y non esercita la morte
+
+Con età 14–42 e seed 42, `death_count: 0` sul 1y. La feature è
+inerte sul seed attuale. Diventa significativa sul 60y o su scenari
+con NPC anziani.
+
+### 15.4 60y in arrivo
+
+Prossima operazione: `60y-0.1130.json`. Attesi 1–3 morti
+(luca a 102 = OLD_AGE certo; giulia a 97 = p cumulata ~25%;
+player a 90 = ~15%; erika/max a 74 = ~3%). Se `death_count: 0`,
+la calibrazione è bassa per il 60y, rivedere in 0.1140. Se 5+,
+alta. Se 1–3, plausibile.
+
+L'analisi del 60y è il primo test reale della morte probabilistica
+in un contesto con invecchiamento. Non è "passa/non passa": è
+"cosa racconta".

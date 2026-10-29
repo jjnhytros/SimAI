@@ -72,3 +72,10 @@ def test_run_benchmark_reports_balance(tmp_path: Path) -> None:
     for c in report.characters:
         assert c.balance_final >= 0.0
         assert c.balance_mean >= 0.0
+
+
+def test_run_benchmark_death_count_field(tmp_path: Path) -> None:
+    """Il report espone death_count, anche se 0 sul seed attuale."""
+    db = tmp_path / "bench.db"
+    report = run_benchmark(db, years=0.01, sample_every=1)
+    assert report.death_count == 0

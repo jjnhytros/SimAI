@@ -7,7 +7,7 @@ from sqlalchemy.engine import Engine
 
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
-from simai.npc.lifecycle import AGE_DAYS_PER_YEAR, apply_aging
+from simai.npc.lifecycle import DAYS_PER_YEAR, apply_aging
 from simai.world.models import Character
 from simai.world.seed import seed_muse_core
 
@@ -63,7 +63,7 @@ def test_apply_aging_birthday(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     with factory() as session:
         erika = session.scalar(select(Character).where(Character.key == "erika"))
         assert erika is not None
-        erika.age_days = AGE_DAYS_PER_YEAR - 1
+        erika.age_days = DAYS_PER_YEAR - 1
         erika.age_years = 14
         session.commit()
 
@@ -91,7 +91,7 @@ def test_apply_aging_wraps_after_432(tmp_path: Path, monkeypatch: pytest.MonkeyP
         session.commit()
 
     with factory() as session:
-        for _ in range(AGE_DAYS_PER_YEAR):
+        for _ in range(DAYS_PER_YEAR):
             apply_aging(session)
         session.commit()
 
@@ -113,7 +113,7 @@ def test_apply_aging_counts_all_characters(tmp_path: Path, monkeypatch: pytest.M
     factory = get_session_factory(engine)
     with factory() as session:
         total = 0
-        for _ in range(AGE_DAYS_PER_YEAR):
+        for _ in range(DAYS_PER_YEAR):
             total += apply_aging(session)
         session.commit()
     assert total == 5

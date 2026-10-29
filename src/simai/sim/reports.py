@@ -27,3 +27,4 @@ class TickReport:
     seed: int
     decisions: tuple[TickDecision, ...]
     payday: PaydayReport = field(default_factory=PaydayReport)
+    deaths: int = 0

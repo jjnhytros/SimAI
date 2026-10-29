@@ -1,9 +1,9 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1120` (ex 1.12.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1130` (ex 1.13.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 377 verdi (0.1120), ruff + mypy strict puliti, CI attiva
+**Test**: 378 verdi (0.1130), ruff + mypy strict puliti, CI attiva
 **Benchmark**: `10y-0.1120.json` (120.960 tick, seed 42, invarianti OK, tps 70.4)
 
 Questo documento sostituisce:
@@ -29,6 +29,7 @@ player.
 | 1.10.1 | 0.1101 | patch: ottimizzazione moodlet, B3, `.sav` breaking |
 | 1.11.0 | 0.1110 | |
 | 1.12.0 | **0.1120** | morte probabilistica (per anno, rampa cubica) |
+| 1.13.0 | **0.1130** | death_count in benchmark, DAYS_PER_YEAR unificato |
 | … | … | |
 | 2.0.0 | 0.2000 | |
 | 1.0.0 | 1.0.0 | release ufficiale, quando ci sarà engine grafico |
@@ -265,8 +266,9 @@ Costruire prima un **motore di simulazione deterministico, osservabile e verific
 - **`death_count` non in `BenchmarkReport`**: verifica implicita
   (character assente = morto). Da aggiungere in 0.1130.
 - **`UNKNOWN` come causa di morte**: non generato, placeholder.
-- **60y mai eseguito**: dopo 0.1120 la feature morte è attiva, il 60y
-  è ora significativo. 0.1130.
+- **60y mai eseguito dopo 0.1120**: la morte probabilistica è
+  attiva, il 60y è il primo test che la esercita. 0.1130 lo
+  lancia come operazione.
 - **`LIFESTAGE` con effetti** (moodlet transizione) non implementato.
 - **Genetica, skills, memoria, identità, vizi, background, reputazione, riflessione** non implementati.
 - **FASE 4 interamente non iniziata**.
@@ -842,6 +844,7 @@ Package `simai/sim/anthalys/time/`:
 | `.sav` `zstd` + Fernet | `.sav` `zlib` + sha256 |
 | `NO-TEST POLICY` | 340 test, CI attiva |
 | `utils/coerce.py`, `git.py`, `config/anthalys.py`, `session_scope()`, `IdMixin` | **non esistono** |
+| `npc/needs/`, `npc/utility.py` | `needs/`, `actions/utility.py` |
 | `AnthalysDateTime`, `TimeManager`, `EventBus`, `LOD` | **non esistono** |
 | `LifeStagePediatric`/`Psychosocial` come enum | `LifeStage` unico + predicati (1.9.0) |
 | Morte `1e-5` + rampa cubica | Solo età 100+ (1.8.0) |
@@ -854,6 +857,20 @@ Package `simai/sim/anthalys/time/`:
 - Non è una promessa: `[F]` e `[ ]` sono lavoro da fare, non fatto.
 - Non è una spec: `Prompt.md` descrive un mondo ideale; questo documento descrive cosa c'è e cosa manca.
 - Non è una roadmap a lungo termine: FASE 6–9 sono `[F]`, non pianificate.
+
+### Prossimi passi
+
+1. **60y** (operazione, non release): lanciare
+   `--years 60 --sample-every 336`, archiviare
+   `docs/release/benchmarks/60y-0.1130.json`, analizzare
+   `death_count`, successioni, bilanci, mood. Costo ~3h. Primo
+   test reale della morte probabilistica con invecchiamento.
+2. **0.1140** (calibrazione morte): solo se il 60y mostra
+   `death_count` fuori da 1–3.
+3. **0.1150** (`COST_PENALTY` + design caffè): decisione di design.
+4. **0.1160** (calendario Anthalys completo): cosmetico.
+5. **Audit documentale**: `TODO.md` §1.x con path reali, `README.md`
+   aggiornato a 0.1130.
 
 ### Prossimi passi realistici
 

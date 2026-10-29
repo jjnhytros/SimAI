@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.1130] — 2026-10-29
+
+### Aggiunto
+
+- **`death_count`** in `BenchmarkReport`: conta le morti cumulate
+  nel run. Esposto in `format_report` (riga `Morti: N`).
+- **`TickReport.deaths`**: numero di morti del tick (da
+  `LifecycleManager.daily_tick`). `run_tick` propaga a `TickReport`,
+  `benchmark.py` accumula.
+
+### Cambiato
+
+- **`npc/lifecycle.py`**: rimossa `AGE_DAYS_PER_YEAR = 432` locale,
+  importa `DAYS_PER_YEAR` da `economy/calendar.py`. Fonte unica.
+  `tests/test_lifecycle.py` aggiornato.
+- **`sim/daily.py`**: `restock_all` protetto da
+  `if tick_index % TICKS_PER_DAY == 0`. La forma precedente era
+  corretta ma il diff 0.1130 l'aveva perso; ripristinato.
+- **`TODO.md`**: corretti path stale (`npc/needs/` → `needs/`,
+  `npc/utility.py` → `actions/utility.py`).
+
+### Verificato (1y, seed 42)
+
+- `death_count: 0` (atteso: età 14–42, p cumulata <0.5%).
+- Invarianti OK, tutto identico al 1y di 0.1110.
+- 378 test verdi (377 + 1 per `death_count` in report).
+
+### Rimandato
+
+- **60y**: primo run dopo l'introduzione della morte probabilistica.
+  Non è codice, è operazione. Va eseguito e archiviato come
+  `docs/release/benchmarks/60y-0.1130.json`, con analisi di
+  `death_count`, successioni, ereditità, mood, bilanci. Costo atteso
+  ~3h.
+- **`UNKNOWN` come causa di morte**: non generato.
+
 ## [0.1120] — 2026-10-29
 
 ### Aggiunto

@@ -2,7 +2,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from simai.economy.calendar import TICKS_PER_DAY
+from simai.economy.calendar import DAYS_PER_YEAR, TICKS_PER_DAY
 from simai.mood.enums import MoodletKind
 from simai.mood.moodlets import apply_moodlet
 from simai.npc.death import KillResult, check_age, check_probabilistic
@@ -10,8 +10,6 @@ from simai.npc.lifestage import life_stage_for
 from simai.npc.pregnancy import DeliverResult, deliver, due_pregnancies
 from simai.world.enums import LifeStage
 from simai.world.models import Character
-
-AGE_DAYS_PER_YEAR = 432
 
 # Solo 3 transizioni hanno un moodlet: le altre 5 (12, 15, 25, 40, 50)
 # non sono considerate abbastanza significative in 1.10.0.
@@ -27,7 +25,7 @@ def apply_aging(session: Session) -> int:
     birthdays = 0
     for char in characters:
         char.age_days += 1
-        if char.age_days > AGE_DAYS_PER_YEAR - 1:
+        if char.age_days > DAYS_PER_YEAR - 1:
             char.age_days = 0
             char.age_years += 1
             birthdays += 1

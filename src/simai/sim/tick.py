@@ -54,7 +54,7 @@ def run_tick(
     if tick_index < 0:
         raise ValueError(f"tick_index must be >= 0, got {tick_index}")
 
-    daily_tick(session, tick_index)
+    kills, _deliveries = daily_tick(session, tick_index)
 
     payday_report = process_payday(session, tick_index)
 
@@ -98,4 +98,5 @@ def run_tick(
         seed=master_seed,
         decisions=tuple(decisions),
         payday=payday_report,
+        deaths=len(kills),
     )

@@ -60,6 +60,7 @@ class BenchmarkReport:
     purchase_transactions: int
     invariants_ok: bool
     invariant_violations: list[str]
+    death_count: int = 0
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
@@ -154,6 +155,8 @@ def run_benchmark(
     factory = get_session_factory(engine)
 
     needs_keys = [k.value for k in NeedKind]
+    total_deaths = 0
+
     samples: dict[str, list[tuple[float, dict[str, float], float]]] = {}
     violations: list[str] = []
     attendance: dict[str, list[bool]] = {}
@@ -166,6 +169,9 @@ def run_benchmark(
             session.commit()
 
             def on_tick(report: TickReport) -> None:
+                nonlocal total_deaths
+                total_deaths += report.deaths
+
                 # 1. Registra attendance al payday (solo chi ha
                 #    un job con wage > 0).
                 if report.payday.paid > 0 or report.payday.absent > 0:
@@ -292,6 +298,7 @@ def run_benchmark(
             purchase_transactions=int(purchase_count),
             invariants_ok=not violations,
             invariant_violations=violations,
+            death_count=total_deaths,
         )
     finally:
         engine.dispose()
@@ -314,6 +321,7 @@ def format_report(report: BenchmarkReport) -> str:
     lines.append(
         f"Transazioni: {report.salary_transactions} salary, {report.purchase_transactions} purchase"
     )
+    lines.append(f"Morti: {report.death_count}")
     lines.append("")
     header = (
         f"{'char':<10} {'mood':>18} {'balance':>18} "

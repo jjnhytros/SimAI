@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1110` (ex 1.11.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1120` (ex 1.12.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 366 verdi (0.1110), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1110.json` (120.960 tick, seed 42, invarianti OK, tps 69.8)
+**Test**: 377 verdi (0.1120), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1120.json` (120.960 tick, seed 42, invarianti OK, tps 70.4)
 
 Questo documento sostituisce:
 
@@ -28,7 +28,7 @@ player.
 | 1.10.0 | **0.1100** | release corrente |
 | 1.10.1 | 0.1101 | patch: ottimizzazione moodlet, B3, `.sav` breaking |
 | 1.11.0 | 0.1110 | |
-| 1.12.0 | 0.1120 | |
+| 1.12.0 | **0.1120** | morte probabilistica (per anno, rampa cubica) |
 | … | … | |
 | 2.0.0 | 0.2000 | |
 | 1.0.0 | 1.0.0 | release ufficiale, quando ci sarà engine grafico |
@@ -262,7 +262,11 @@ Costruire prima un **motore di simulazione deterministico, osservabile e verific
 - **Nessuna UI grafica**.
 - **Nessun `InventoryService`** (bene materiale).
 - **`COST_PENALTY`** non implementato.
-- **Morte probabilistica** non implementata (unità di misura non definita).
+- **`death_count` non in `BenchmarkReport`**: verifica implicita
+  (character assente = morto). Da aggiungere in 0.1130.
+- **`UNKNOWN` come causa di morte**: non generato, placeholder.
+- **60y mai eseguito**: dopo 0.1120 la feature morte è attiva, il 60y
+  è ora significativo. 0.1130.
 - **`LIFESTAGE` con effetti** (moodlet transizione) non implementato.
 - **Genetica, skills, memoria, identità, vizi, background, reputazione, riflessione** non implementati.
 - **FASE 4 interamente non iniziata**.
@@ -516,7 +520,10 @@ Package `simai/sim/anthalys/time/`:
   Le altre 5 transizioni (12, 15, 25, 40, 50 anni) senza moodlet.
   Δ positivi in B3 (0.1101): +0.5 invece di +2/+3/+4/+5.
 - [x] `[03.0302]` Invecchiamento progressivo in `LifecycleManager.daily_tick`
-- [P] `[03.0303]` `DeathService` — **solo morte per età 100+ (`OLD_AGE`) e manuale (`MANUAL`)**. **Morte probabilistica 1e-5 + rampa cubica + `exp_max` non implementata** (unità di misura non definita)
+- [x] `[03.0303]` `DeathService` — morte per età 100+ (`OLD_AGE`),
+  manuale (`MANUAL`), probabilistica (`ILLNESS`/`ACCIDENT`/`VIOLENCE`,
+  0.1120). `1e-5`/anno, rampa cubica a `1/30`/anno a 100. Coesiste
+  con OLD_AGE. `UNKNOWN` non generato.
 - [x] `[03.0304]` `InheritanceService.distribute` 5 tier (SPOUSE 50%, CHILD, PARENT, SIBLING, OTHER→world), solo `balance`
 - [x] `[03.0301b]` Gravidanza `Pregnancy` (300gg = 8400 tick), `PregnancyService` (`conceive`, `deliver`, gemelli 1.5%/30% probabilistici), `due_at_tick`
 - [x] `[5200_04]` Migrazione `5200_04_lifecycle` (age_days, death_cause, pregnancy)
@@ -859,14 +866,18 @@ Package `simai/sim/anthalys/time/`:
    `cleanup_expired_many` (N+1 residuo: 5 SELECT + 5 DELETE/tick).
    Priorità più bassa dopo il 79.7 di 0.1101. Si fa solo se si vuole
    tornare sotto il muro dei 5 query/tick prima di aggiungere NPC.
-3. **0.1110** (lifestage → comportamento): divieti lavoro per lifestage.
-   Richiede decisione su soglia età e cosa succede ai job già assegnati
-   (Erika e Max hanno 14y e oggi lavorano).
-4. **0.1120** (morte probabilistica): unità di misura da definire.
-5. **0.1130** (`COST_PENALTY` + design caffè): decisione di design.
-6. **0.1140** (calendario Anthalys completo): cosmetico, nessun effetto
+3. **0.1130** (validazione 60y): primo 60y dopo l'introduzione di
+   morte probabilistica. Aggiunge `death_count` a `BenchmarkReport`.
+   Esegue 60y, archivia, analizza morti/successioni/gravidanze/
+   invecchiamento. Test della feature 0.1120 nel contesto reale.
+4. **0.1140** (`COST_PENALTY` + design caffè): decisione di design.
+5. **0.1150** (calendario Anthalys completo): cosmetico, nessun
+   effetto sul tick.
+6. **Audit documentale**: unificare `AGE_DAYS_PER_YEAR`/`DAYS_PER_YEAR`,
+   aggiornare `TODO.md` §1.x con i path reali.
+7. **0.1140** (calendario Anthalys completo): cosmetico, nessun effetto
    sul tick.
-7. **Audit documentale**: correggere i path stale nel documento
+8. **Audit documentale**: correggere i path stale nel documento
    (`npc/needs/` → `needs/`, `npc/utility.py` → `actions/utility.py`),
    unificare `AGE_DAYS_PER_YEAR`/`DAYS_PER_YEAR`, aggiornare README e
    `known-issues.md` alla nuova numerazione.

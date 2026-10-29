@@ -586,18 +586,21 @@ ma "allarme + rifinitura". Il mood torna in 67.5–70.5 sul 10y.
 ### 12.2 Performance −5.42% in 0.1100 (ottimizzato in 0.1101)
 
 `refresh_need_moodlets` in 0.1100 faceva:
+
 - 5 SELECT/tick (uno per char) — 604.800 query su 10y
 - DELETE+INSERT per transizione (~240k su 10y → 480k scritture)
 
 `tps` 10y: 71.44 → 67.57 (−5.42%).
 
 In 0.1101:
+
 - `refresh_need_moodlets_many`: 1 SELECT per tutti i char, UPDATE
   invece di DELETE+INSERT (grazie a `Moodlet.need`)
 - `update_mood(needs=...)`: salta la query interna
 - `needs_of_many`: una query per i bisogni di tutti i char
 
 **Misurato (rerun 1y, stesso giorno)**:
+
 - 0.1110 = 148.0s CPU (71.8 tps)
 - 0.1101 = 155.4s CPU (70.1 tps)
 
@@ -627,6 +630,7 @@ CHANGELOG 0.1101.
 ### 12.4 `Moodlet.need` nullable, non indice
 
 Colonna `String(16)` nullable, `SAEnum(native_enum=False)`.
+
 - Moodlet need-based: `need = <kind>`
 - `ATE_WELL`, `SOCIALIZED`, `LONELY`, `BECAME_*`: `need = None`
 
@@ -722,3 +726,73 @@ target" va verificato con CPU time (`user` + `sys`) e, se
 possibile, con un rerun 1y dello stesso commit. Un `tps` assoluto
 senza CPU time e senza baseline stesso-giorno non è un dato
 (lezione #1 della lista errori).
+
+---
+
+## 14. Morte probabilistica (0.1120)
+
+### 14.1 Unità di misura: per anno
+
+Il TODO §3.4 dice "mortalità baseline 1e-5, rampa cubica, max 1/30 a
+`exp_max`". L'unità di misura non era specificata. 0.1120 la
+definisce: **per anno**.
+
+Formula: `p_anno(x) = 1e-5 + (1/30 - 1e-5) * (min(x,100)/100)^3`.
+
+`p_anno` a età tipiche: 14y → 0.01%, 30y → 0.09%, 42y → 0.25%,
+60y → 0.72%, 80y → 1.7%, 99y → 3.2%. `p_giorno = 1 - (1-p_anno)^(1/432)`.
+
+Se in futuro servisse una mortalità più alta (es. per un mondo con
+guerre o pestilenze), la costante `MORTALITY_BASE` va alzata, non
+l'unità cambiata.
+
+### 14.2 Coesiste con OLD_AGE
+
+`check_age` (deterministico, età >= 100) e `check_probabilistic`
+(probabilistico, età < 100) sono chiamati in sequenza in
+`LifecycleManager.daily_tick`. Chi ha 100+ anni muore di OLD_AGE
+certo; chi ha < 100 rischia ILLNESS/ACCIDENT/VIOLENCE con p_anno.
+Nessuna sovrapposizione, nessun doppio conteggio.
+
+`check_probabilistic` salta esplicitamente `age_years >= EXP_MAX_YEARS`
+(100), ridondante con `check_age` ma difensivo: se in futuro
+`check_age` cambia soglia, `check_probabilistic` non uccide due volte.
+
+### 14.3 Gravidanza e morte
+
+In 0.1120 `kill()` cancella esplicitamente le gravidanze in cui il
+morente è madre (`character_id`) e azzera `partner_id` in quelle in
+cui è padre. SQLite non enforce `ondelete=CASCADE` di default, quindi
+la cancellazione esplicita + `session.flush()` prima di
+`session.delete(char)` è necessaria per evitare errori di FK.
+
+**Semantica**: madre morente → figlio non nasce (gravidanza cancellata).
+Padre morente → figlio nasce senza padre (`partner_id = None`).
+
+Se in futuro si vorrà che il figlio nasca comunque (parto postumo),
+va cambiato il design: `Pregnancy` con `character_id` nullable e stato
+`ORPHANED`. Non in 0.1120.
+
+### 14.4 RNG deterministico
+
+`f"simai:death:{master_seed}:{char.id}:{tick_index}"`. Isolato da
+altri RNG (moodlet, utility, gravidanza). Stesso seed + stesso char +
+stesso tick → stesso esito, sempre. Test
+`test_check_probabilistic_deterministic` copre.
+
+Se in futuro `master_seed` cambia durante il run (non succede oggi,
+`SimState.master_seed` è fisso), il determinismo si rompe. Non
+gestito.
+
+### 14.5 10y non esercita la feature
+
+Con età 14–42 e seed 42, `death_count: 0` sul 10y. La feature è
+inerte sul seed attuale. Diventa significativa:
+
+- sul 60y (luca arriverebbe a 102, giulia a 97, erika/max a 74,
+  player a 90 — con p_anno cumulata ~25-40% per luca/giulia),
+- su scenari con NPC anziani (test dedicato),
+- quando l'ageing produrrà NPC 60+ in run lunghe.
+
+`death_count` non è nel `BenchmarkReport`: verifica implicita
+(character assente dal report = morto). Da aggiungere in 0.1130.

@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.1120] — 2026-10-29
+
+### Aggiunto
+
+- **Morte probabilistica** (`npc/death.py`): `probability_of_death(age_years)`
+  con rampa cubica da `1e-5`/anno (età 0) a `1/30`/anno (età 100).
+  Unità di misura definita: **per anno**.
+- **`probability_of_death_per_day(age_years)`**: conversione esatta
+  `1 - (1-p_anno)^(1/432)`, non lineare.
+- **`check_probabilistic(session, tick_index, *, master_seed)`**: RNG
+  isolato per char e tick (`f"simai:death:{seed}:{char.id}:{tick}"`).
+  Salta `age_years >= 100` (OLD_AGE, deterministico, già in 1.8.0).
+- **Cause di morte probabilistiche**: ILLNESS 60%, ACCIDENT 30%,
+  VIOLENCE 10%. `UNKNOWN` non generato (placeholder).
+- **`kill()` cancella gravidanze**: madre morente → gravidanza
+  cancellata (figlio non nasce); padre morente → gravidanza resta con
+  `partner_id = None` (figlio nasce senza padre). SQLite non enforce
+  `ondelete=CASCADE`, quindi cancellazione esplicita + flush.
+- **`LifecycleManager.daily_tick`**: chiama `check_probabilistic` dopo
+  `check_age`. Log unificato con conteggio per causa.
+
+### Verificato (10y, seed 42)
+
+- **Comportamento deterministico IDENTICO a 0.1110**, al decimale:
+  `balance_mean`, `purchase_transactions=34665`, `salary_transactions=17280`,
+  `mood_mean`, `relationships_active=6`, `job_attendance_rate=1.0`,
+  `invariants_ok: true`.
+- **`death_count: 0`** (implicito: tutti e 4 gli NPC nel report con
+  balance invariati; una morte li avrebbe rimossi e redistribuito il
+  balance).
+- `tps`: **70.4** (dentro ±2% di 69.8).
+- La feature è inerte sul 10y: p_anno 0.01–0.25% per età 14–42,
+  cumulato <3% su 10y. Diventa significativa sul 60y.
+
+### Corretto (test)
+
+- `tests/test_death.py::test_probability_of_death_per_day_conversion`:
+  usava un'identità lineare (`p_giorno * 432 ≈ p_anno`) che vale solo
+  per `p → 0`. Sostituita con l'identità esatta
+  `(1 - p_giorno)^432 = 1 - p_anno` (tolleranza `1e-12`) + sanity
+  relativa 1%.
+
+### Rimandato
+
+- **`UNKNOWN` come causa generata**: non in 0.1120.
+- **`death_count` in `BenchmarkReport`**: non aggiunto. Verifica
+  implicita (character assente dal report = morto). Da aggiungere in
+  0.1130, quando il 60y avrà morti reali.
+
 ## [0.1110] — 2026-10-29
 
 ### Aggiunto

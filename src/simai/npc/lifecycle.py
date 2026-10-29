@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from simai.economy.calendar import TICKS_PER_DAY
 from simai.mood.enums import MoodletKind
 from simai.mood.moodlets import apply_moodlet
-from simai.npc.death import KillResult, check_age
+from simai.npc.death import KillResult, check_age, check_probabilistic
 from simai.npc.lifestage import life_stage_for
 from simai.npc.pregnancy import DeliverResult, deliver, due_pregnancies
 from simai.world.enums import LifeStage
@@ -70,8 +70,12 @@ class LifecycleManager:
         _apply_lifestage_moodlets(session, tick_index)
 
         kills = check_age(session, tick_index)
+        kills.extend(check_probabilistic(session, tick_index, master_seed=master_seed))
         if kills:
-            logger.info(f"Lifecycle tick {tick_index}: {len(kills)} morti per età")
+            causes: dict[str, int] = {}
+            for k in kills:
+                causes[k.cause.value] = causes.get(k.cause.value, 0) + 1
+            logger.info(f"Lifecycle tick {tick_index}: {len(kills)} morti ({causes})")
 
         deliveries: list[DeliverResult] = []
         for pregnancy in due_pregnancies(session, tick_index):

@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1140` (ex 1.14.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1150` (ex 1.15.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 387 verdi (0.1140), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1140.json` (120.960 tick, seed 42, invarianti OK, tps 73.9)
+**Test**: 394 verdi (0.1150), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1150.json` (120.960 tick, seed 42, invarianti OK, tps 72.6)
 
 Questo documento sostituisce:
 
@@ -31,6 +31,7 @@ player.
 | 1.12.0 | **0.1120** | morte probabilistica (per anno, rampa cubica) |
 | 1.13.0 | **0.1130** | death_count in benchmark, DAYS_PER_YEAR unificato |
 | 1.14.0 | **0.1140** | skills base, wage scaling, CLI npc skills |
+| 1.15.0 | **0.1150** | training implicito durante WORKING |
 
 | … | … | |
 | 2.0.0 | 0.2000 | |
@@ -558,7 +559,9 @@ Package `simai/sim/anthalys/time/`:
 
 - [x] `[03.0500b]` `npc/skills/` — implementato in 0.1140
   (`simai/skills/`, `SkillKind`, `Skill`, `service`)
-- [ ] `[03.0502b]` Training actions (`PRACTICE_COMBAT`, `STUDY`, `PRACTICE_ART`, `COOK`, `PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE`) — **non esistono** (0.1150)
+- [P] `[03.0502b]` Training: implicito durante WORKING (0.1150,
+  `+0.001/tick`). Azioni esplicite (`PRACTICE_*`, `STUDY`, `COOK`)
+  non esistono (0.1160+).
 - [x] `[5200_08]` Migrazione `skill` — implementata in 0.1140
 - [P] CLI `npc skills` (0.1140); `skill-train`/`skill-decay` (0.1150)
 - [ ] `[03.0034c]` `npc/skills/talent.py` — **non esiste**
@@ -861,52 +864,63 @@ Package `simai/sim/anthalys/time/`:
 - Non è una spec: `Prompt.md` descrive un mondo ideale; questo documento descrive cosa c'è e cosa manca.
 - Non è una roadmap a lungo termine: FASE 6–9 sono `[F]`, non pianificate.
 
-### Prossimi passi
-
-1. **60y** (operazione, non release): lanciare
-   `--years 60 --sample-every 336`, archiviare
-   `docs/release/benchmarks/60y-0.1130.json`, analizzare
-   `death_count`, successioni, bilanci, mood. Costo ~3h. Primo
-   test reale della morte probabilistica con invecchiamento.
-2. **0.1150** (training action): `PRACTICE_*`, `STUDY`, `COOK`, ecc.
-   Aumentano skill nel tick. `SkillService.train`, azioni nel
-   catalogo, filtro per job/skill. Skill decay da decidere.
-   Dopo 0.1150: **60y** (morte + eredità + skills + training
-   insieme). Archivia `60y-0.1150.json`.
-3. **60y** (operazione, non release): dopo 0.1150, per testare
-   morte + eredità + skills + training insieme. Archivia
-   `60y-0.1150.json`. Costo ~3h.
-4. **0.1150** (`COST_PENALTY` + design caffè): decisione di design.
-5. **0.1160** (calendario Anthalys completo): cosmetico.
-6. **Audit documentale**: `TODO.md` §1.x con path reali, `README.md`
-   aggiornato a 0.1130.
-
 ### Prossimi passi realistici
 
-1. **0.1101** (fatto): `Moodlet.need` + `refresh_need_moodlets_many`
-   (batch + UPDATE). B3: 13 Δ positivi a +0.5. Fix efficienza:
-   `update_mood(needs=...)` elimina doppia `needs_of`. Breaking change
-   `.sav` (schema `0015`). 10y: `tps` 79.7 (era 67.57), `mood_mean`
-   69.83 (era 80.73), comportamento identico a 0.1100.
-2. **0.1102** (ottimizzazione residua): `active_delta_many` e
-   `cleanup_expired_many` (N+1 residuo: 5 SELECT + 5 DELETE/tick).
-   Priorità più bassa dopo il 79.7 di 0.1101. Si fa solo se si vuole
-   tornare sotto il muro dei 5 query/tick prima di aggiungere NPC.
-3. **0.1130** (validazione 60y): primo 60y dopo l'introduzione di
-   morte probabilistica. Aggiunge `death_count` a `BenchmarkReport`.
-   Esegue 60y, archivia, analizza morti/successioni/gravidanze/
-   invecchiamento. Test della feature 0.1120 nel contesto reale.
-4. **0.1140** (`COST_PENALTY` + design caffè): decisione di design.
-5. **0.1150** (calendario Anthalys completo): cosmetico, nessun
-   effetto sul tick.
-6. **Audit documentale**: unificare `AGE_DAYS_PER_YEAR`/`DAYS_PER_YEAR`,
-   aggiornare `TODO.md` §1.x con i path reali.
-7. **0.1140** (calendario Anthalys completo): cosmetico, nessun effetto
-   sul tick.
-8. **Audit documentale**: correggere i path stale nel documento
-   (`npc/needs/` → `needs/`, `npc/utility.py` → `actions/utility.py`),
-   unificare `AGE_DAYS_PER_YEAR`/`DAYS_PER_YEAR`, aggiornare README e
-   `known-issues.md` alla nuova numerazione.
+1. **60y** (operazione, non release): dopo 0.1150, con skill
+   dinamiche + morte probabilistica + eredità, è il test che vale
+   le 3 ore. Archivia `60y-0.1150.json`. Verifica:
+   - `death_count` atteso **1–3**: luca a 102 (OLD_AGE certo),
+     giulia a 97 (~25% cumulata), player a 90 (~15%), erika/max
+     a 74 (~3–5%).
+   - **Eredità visibile**: max eredita da luca (CHILD_OF),
+     erika eredita da giulia (CHILD_OF). `balance_final` con
+     salti dopo le successioni.
+   - **Skill a 100** per tutti entro i primi 20 anni. Il salario
+     scala, `balance_mean` cresce in modo non lineare.
+   - **Mood stabile** in 67.5–70.5. I moodlet B3 non degradano
+     su 60 anni.
+   - **`purchase_transactions`**: atteso ~208k (60y × 3467/anno).
+     Se il pattern cambia dopo una successione, indagare.
+
+2. **0.1160** (training esplicito): `PRACTICE_*`, `STUDY`, `COOK`.
+   Nuove azioni nel catalogo, filtro per skill. Skill decay da
+   decidere (`decay_skill` in `skills/service.py`). Nuovi
+   `ActionKind` in `actions/enums.py`, catalogo in
+   `actions/catalog.py`, test in `test_skills.py` +
+   `test_actions_do.py`. Tocca `run_tick` → 10y obbligatorio.
+
+3. **0.1170** (`COST_PENALTY` + design caffè): il TODO §2.5
+   rimanda dal 1.6.0. Richiede decisione di design:
+   - moodlet `CAFFE` (bonus mood al caffè, non a casa),
+   - `DISTANCE_PENALTY` più basso + accettare la chiusura del caffè,
+   - nessuna delle due.
+   Impatto sul 10y dipende dalla scelta. Tocca `run_tick` → 10y
+   obbligatorio.
+
+4. **0.1180** (calendario Anthalys completo): FASE 2, cosmetico.
+   Stagioni, festività, lune, `DayPhase`. Nessun effetto sul tick
+   se non quando si aggiungerà sonno/veglia. Rimandato da 0.1000.
+
+5. **Audit documentale** (0.1190 o commit `chore`):
+   - `TODO.md` §1.x con path reali (`core/anthalys_datetime.py`
+     non esiste, `sim/anthalys/` non esiste, ecc.).
+   - `README.md` aggiornato a 0.1150 (stato progetto, limiti noti,
+     benchmark reference).
+   - `known-issues.md` §12.1 con i numeri misurati (non più
+     "atteso").
+   - `AGE_DAYS_PER_YEAR` residui in `npc/pregnancy.py` (se
+     presenti).
+   - `docs/release/0.10xx-plan.md` con i numeri definitivi.
+
+**Nessuno di questi è "ovvio".** Ognuno richiede una decisione
+esplicita, tranne il 60y che è operazione.
+
+**Nota storica**: le release 0.1100–0.1150 hanno aggiunto feature
+comportamentali (moodlet, divieto lavoro, morte, skills). Il 60y è
+il primo test che le esercita tutte insieme. Dopo il 60y, le
+feature successive vanno valutate anche in funzione di cosa il 60y
+ha rivelato (es. se `death_count` è fuori da 1–3, la calibrazione
+morte diventa 0.1160 invece del training).
 
 La 0.1090 (ex 1.9.0) è taggata. La "1.9.1" (chore) non è una release: è il
 commit `7a84975` (rimozione file obsoleti), confluito in 0.1100. Il TODO

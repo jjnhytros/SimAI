@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.1150] — 2026-10-29
+
+### Aggiunto
+
+- **Training durante WORKING**: `train_skill(session, char_id, kind, amount)`
+  in `skills/service.py`. Aumenta il livello (cap 100), crea la
+  skill se manca.
+- **`skill_for_job_title(title_value)`**: mapping centralizzato
+  `JobTitle.value → SkillKind`. Sostituisce `_skill_for` locale di
+  `payday.py`.
+- **`npc/manager.py::_tick_one`**: durante `WorkState.WORKING`, se
+  l'NPC è nella `job.location_key`, chiama `train_skill(..., 0.001)`.
+  Formazione come effetto del lavoro, non azione separata.
+
+### Verificato (10y, seed 42)
+
+- **Skill crescono**: luca 40→70.24 (+30.24 = 7 tick/giorno × 4320),
+  giulia 50→93.2 (+43.2 = 10 tick/giorno × 4320), erika/max
+  15→58.2 (+43.2). Player resta a 20 (`include_player=False`).
+- **`balance_mean` aumentato**:
+  - luca: 44536 → **47258.8** (+2722.6)
+  - giulia: 52243 → **55666.4** (+3422.8)
+  - erika: 5629 → **6407.0** (+777.9)
+  - max: 5624 → **6402.4** (+777.9)
+  Gli aumenti sono coerenti con il wage crescente × giorni / 2.
+- **`purchase_transactions: 34665` INVARIATO** (balance non letto
+  da `choose_action`).
+- **`salary_transactions: 17280` INVARIATO** (stessi payday).
+- **`mood_mean`, `needs_*`, `death_count`, `invariants_ok` INVARIATI**.
+- `tps: 72.6` (era 73.9 in 0.1140).
+
+### Corretto (test)
+
+- `tests/test_payday.py::test_second_payday_pays_more` → rinominato
+  `test_payday_pays_more_with_higher_skill`: testava training
+  implicito tra due `process_payday` senza `run_tick`, cosa
+  impossibile. Sostituito con training esplicito via
+  `train_skill` + verifica del wage al payday successivo.
+
+### Rimandato
+
+- **Skill decay**: nessuna perdita di skill. 0.1160+.
+- **Training action esplicita** (`PRACTICE_*`, `STUDY`, `COOK`):
+  0.1160+.
+- **Promozioni job basate su skill**: 0.1160+.
+- **60y**: dopo 0.1150, con skill dinamiche + morte probabilistica +
+  eredità, è il test che vale le 3 ore.
+
 ## [0.1140] — 2026-10-29
 
 ### Aggiunto

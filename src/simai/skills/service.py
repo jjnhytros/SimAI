@@ -6,6 +6,7 @@ from simai.skills.models import Skill
 
 SKILL_MIN = 0.0
 SKILL_MAX = 100.0
+TRAIN_PER_DAY = 0.005
 
 
 def clamp_level(level: float) -> float:
@@ -42,3 +43,23 @@ def wage_with_skill(daily_wage: float, skill_level: float) -> float:
     paga +50%. Nessuna penalità per skill basse.
     """
     return float(daily_wage * (1.0 + clamp_level(skill_level) / 200.0))
+
+
+def skill_for_job_title(title_value: str) -> SkillKind:
+    """Mapping JobTitle.value -> SkillKind. 1:1 oggi, può divergere."""
+    return SkillKind(title_value)
+
+
+def train_skill(
+    session: Session,
+    character_id: int,
+    kind: SkillKind,
+    amount: float,
+) -> float:
+    """Aumenta il livello della skill. Crea la skill se manca. Cap a 100."""
+    skill = skill_of(session, character_id, kind)
+    if skill is None:
+        skill = Skill(character_id=character_id, kind=kind, level=0.0)
+        session.add(skill)
+    skill.level = clamp_level(skill.level + amount)
+    return float(skill.level)

@@ -1,0 +1,167 @@
+{
+  "years": 10.0,
+  "ticks": 120960,
+  "minutes_per_tick": 60,
+  "total_minutes": 7257600,
+  "seed": 42,
+  "started_at": "2026-10-29T15:14:22.693962+00:00",
+  "finished_at": "2026-10-29T15:42:08.381231+00:00",
+  "elapsed_seconds": 1665.6872715160061,
+  "ticks_per_second": 72.61867342596047,
+  "characters": [
+    {
+      "character_key": "erika",
+      "is_player": false,
+      "mood_final": 75.7999999998281,
+      "mood_min": 58.27499999983021,
+      "mood_max": 98.875,
+      "mood_mean": 69.58300161990942,
+      "needs_final": {
+        "fun": 91.0,
+        "hunger": 60.0,
+        "intimacy": 85.99999999931242,
+        "thirst": 40.0
+      },
+      "needs_mean": {
+        "hunger": 48.01203425133071,
+        "thirst": 45.009257116408236,
+        "fun": 83.05207127979634,
+        "intimacy": 82.0678083773465
+      },
+      "needs_min": {
+        "hunger": 32.0,
+        "thirst": 40.0,
+        "fun": 72.0,
+        "intimacy": 66.89999999975552
+      },
+      "needs_max": {
+        "hunger": 96.0,
+        "thirst": 95.0,
+        "fun": 97.0,
+        "intimacy": 99.1
+      },
+      "balance_final": 13543.23199999961,
+      "balance_min": 50.0,
+      "balance_max": 13543.23199999961,
+      "balance_mean": 6406.976122657034,
+      "job_attendance_rate": 1.0
+    },
+    {
+      "character_key": "max",
+      "is_player": false,
+      "mood_final": 74.76999999999994,
+      "mood_min": 61.58499999999999,
+      "mood_max": 98.905,
+      "mood_mean": 69.97860217542234,
+      "needs_final": {
+        "fun": 88.3999999999998,
+        "hunger": 60.0,
+        "intimacy": 85.0,
+        "thirst": 40.0
+      },
+      "needs_mean": {
+        "hunger": 48.01203425133071,
+        "thirst": 45.009257116408236,
+        "fun": 83.95551955565828,
+        "intimacy": 81.83290904883128
+      },
+      "needs_min": {
+        "hunger": 32.0,
+        "thirst": 40.0,
+        "fun": 80.79999999999995,
+        "intimacy": 68.5
+      },
+      "needs_max": {
+        "hunger": 96.0,
+        "thirst": 95.0,
+        "fun": 97.6,
+        "intimacy": 98.5
+      },
+      "balance_final": 13529.23199999961,
+      "balance_min": 50.0,
+      "balance_max": 13529.23199999961,
+      "balance_mean": 6402.377650081241,
+      "job_attendance_rate": 1.0
+    },
+    {
+      "character_key": "luca",
+      "is_player": false,
+      "mood_final": 70.79999999991405,
+      "mood_min": 57.312499999933806,
+      "mood_max": 98.6125,
+      "mood_mean": 70.10295070581215,
+      "needs_final": {
+        "fun": 81.0,
+        "hunger": 60.0,
+        "intimacy": 77.99999999965621,
+        "thirst": 40.0
+      },
+      "needs_mean": {
+        "hunger": 48.01203425133071,
+        "thirst": 45.009257116408236,
+        "fun": 84.91599166859524,
+        "intimacy": 80.94075445481539
+      },
+      "needs_min": {
+        "hunger": 32.0,
+        "thirst": 40.0,
+        "fun": 60.0,
+        "intimacy": 62.44999999966289
+      },
+      "needs_max": {
+        "hunger": 96.0,
+        "thirst": 95.0,
+        "fun": 100.0,
+        "intimacy": 98.05
+      },
+      "balance_final": 97243.14999998343,
+      "balance_min": 100.0,
+      "balance_max": 97243.14999998343,
+      "balance_mean": 47258.803145099126,
+      "job_attendance_rate": 1.0
+    },
+    {
+      "character_key": "giulia",
+      "is_player": false,
+      "mood_final": 75.02999999993108,
+      "mood_min": 50.32499999996635,
+      "mood_max": 98.155,
+      "mood_mean": 69.58021522792197,
+      "needs_final": {
+        "fun": 82.5999999999992,
+        "hunger": 67.99999999972526,
+        "intimacy": 85.0,
+        "thirst": 40.0
+      },
+      "needs_mean": {
+        "hunger": 49.94677158051526,
+        "thirst": 44.43647303864846,
+        "fun": 82.44878500347126,
+        "intimacy": 80.92455450127285
+      },
+      "needs_min": {
+        "hunger": 27.59999999986565,
+        "thirst": 35.0,
+        "fun": 62.29999999999884,
+        "intimacy": 68.5
+      },
+      "needs_max": {
+        "hunger": 94.8,
+        "thirst": 95.0,
+        "fun": 100.0,
+        "intimacy": 98.5
+      },
+      "balance_final": 114656.22080000943,
+      "balance_min": 100.0,
+      "balance_max": 114656.22080000943,
+      "balance_mean": 55666.37445831938,
+      "job_attendance_rate": 1.0
+    }
+  ],
+  "relationships_active": 6,
+  "salary_transactions": 17280,
+  "purchase_transactions": 34665,
+  "invariants_ok": true,
+  "invariant_violations": [],
+  "death_count": 0
+}

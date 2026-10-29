@@ -124,3 +124,92 @@ def test_skill_check_constraint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
             session.add(Skill(character_id=luca_id, kind=SkillKind.COMMESSO, level=150.0))
             session.flush()
         session.rollback()
+
+
+def test_train_skill_increases(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.skills.service import train_skill
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        before = level_of(session, luca_id, SkillKind.BARISTA)
+        new = train_skill(session, luca_id, SkillKind.BARISTA, 0.5)
+        session.commit()
+    assert new == before + 0.5
+
+
+def test_train_skill_caps_at_100(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.skills.service import train_skill
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        new = train_skill(session, luca_id, SkillKind.BARISTA, 200.0)
+        session.commit()
+    assert new == 100.0
+
+
+def test_train_skill_creates_if_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.skills.service import train_skill
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        assert skill_of(session, luca_id, SkillKind.INSEGNANTE) is None
+        new = train_skill(session, luca_id, SkillKind.INSEGNANTE, 5.0)
+        session.commit()
+        assert new == 5.0
+        assert skill_of(session, luca_id, SkillKind.INSEGNANTE) is not None
+
+
+def test_skill_for_job_title_mapping() -> None:
+    from simai.economy.enums import JobTitle
+    from simai.skills.service import skill_for_job_title
+
+    assert skill_for_job_title(JobTitle.BARISTA.value) == SkillKind.BARISTA
+    assert skill_for_job_title(JobTitle.INSEGNANTE.value) == SkillKind.INSEGNANTE
+    assert skill_for_job_title(JobTitle.COMMESSO.value) == SkillKind.COMMESSO
+    assert skill_for_job_title(JobTitle.STUDENTE.value) == SkillKind.STUDENTE
+
+
+def test_working_tick_increases_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Un tick con luca a caffè in orario di lavoro aumenta la skill."""
+    from simai.sim.tick import run_tick
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    # tick 14 -> t_in_day 14, luca 14-21 -> WORKING. Luca è già al caffè.
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        before = level_of(session, luca_id, SkillKind.BARISTA)
+    with factory() as session:
+        run_tick(session, minutes=60, tick_index=14, master_seed=42)
+        session.commit()
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        after = level_of(session, luca_id, SkillKind.BARISTA)
+    assert after == before + 0.001
+
+
+def test_non_working_tick_does_not_increase_skill(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tick fuori orario (luca 14-21): nessun training."""
+    from simai.sim.tick import run_tick
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    # tick 5 -> t_in_day 5, luca BEFORE_WORK
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        before = level_of(session, luca_id, SkillKind.BARISTA)
+    with factory() as session:
+        run_tick(session, minutes=60, tick_index=5, master_seed=42)
+        session.commit()
+    with factory() as session:
+        luca_id = _char_id(session, "luca")
+        after = level_of(session, luca_id, SkillKind.BARISTA)
+    assert after == before

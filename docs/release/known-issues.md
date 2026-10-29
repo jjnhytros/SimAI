@@ -797,7 +797,6 @@ inerte sul seed attuale. Diventa significativa:
 `death_count` non è nel `BenchmarkReport`: verifica implicita
 (character assente dal report = morto). Da aggiungere in 0.1130.
 
-
 ---
 
 ## 15. `death_count` nel benchmark (0.1130)
@@ -834,21 +833,28 @@ L'analisi del 60y è il primo test reale della morte probabilistica
 in un contesto con invecchiamento. Non è "passa/non passa": è
 "cosa racconta".
 
-
 ---
 
 ## 16. Skills base (0.1140)
 
-### 16.1 Skill statiche, senza training
+### 16.1 Skill dinamiche (training durante WORKING, 0.1150)
 
-0.1140 introduce il modello `Skill` e lo scaling salariale, ma
-**nessuna training action**. I livelli del seed non cambiano durante
-la simulazione. `STUDY`, `PRACTICE_COMBAT`, `PRACTICE_ART`, `COOK`,
-`PRACTICE_CRAFT`, `PRACTICE_TRADE`, `PRACTICE_SERVICE` sono
-0.1150.
+Da 0.1150 le skill crescono durante `WorkState.WORKING` (se l'NPC
+è nella `job.location_key`): `+0.001/tick`, lineare, cap a 100.
+Nessuna azione dedicata: il training è effetto collaterale del
+lavorare.
 
-**Conseguenza**: sul 10y le skill restano ai valori di seed. Il
-`balance_mean` è aumentato, ma linearmente (skill costanti).
+**Misurato (10y, seed 42)**:
+
+- luca: 40 → 70.24 (7 ore/giorno × 4320 giorni, 0.001/tick)
+- giulia: 50 → 93.2 (10 ore/giorno, pausa 14-15 esclusa)
+- erika/max: 15 → 58.2 (10 ore/giorno, pausa 14-15 esclusa)
+
+In 60 anni tutti cappano a 100 entro i primi 20 anni. In 10y le
+differenze sono visibili e il salario scala di conseguenza.
+
+**Non c'è ancora** training esplicito (`STUDY`, `PRACTICE_*`),
+skill decay, o promozioni. Quelli sono 0.1160+.
 
 ### 16.2 Mapping `JobTitle` → `SkillKind`
 

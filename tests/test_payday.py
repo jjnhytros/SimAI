@@ -159,3 +159,53 @@ def test_payday_pays_pediatric_student(tmp_path: Path, monkeypatch: pytest.Monke
         # 0.1140: erika STUDENTE livello 15 → 5.375
         assert erika.balance == balance_before + 5.375
         assert report.paid >= 1
+
+
+def test_payday_pays_more_with_higher_skill(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Skill più alta → wage più alto. Il training esplicito (o
+    implicito via run_tick) aumenta la skill; il payday successivo
+    paga di più."""
+    from simai.skills.enums import SkillKind
+    from simai.skills.service import train_skill
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+
+    # Primo payday: skill 40 → 25 * 1.20 = 30.0
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        before1 = luca.balance
+        luca_id = luca.id
+        session.commit()
+    with factory() as session:
+        process_payday(session, tick_index=20)
+        session.commit()
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        wage1 = luca.balance - before1
+
+    # Training esplicito: 40 → 90
+    with factory() as session:
+        train_skill(session, luca_id, SkillKind.BARISTA, 50.0)
+        session.commit()
+
+    # Secondo payday: skill 90 → 25 * 1.45 = 36.25
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        before2 = luca.balance
+    with factory() as session:
+        process_payday(session, tick_index=48)
+        session.commit()
+    with factory() as session:
+        luca = session.scalar(select(Character).where(Character.key == "luca"))
+        assert luca is not None
+        wage2 = luca.balance - before2
+
+    assert wage1 == 30.0  # 25 * (1 + 40/200)
+    assert wage2 == 36.25  # 25 * (1 + 90/200)
+    assert wage2 > wage1

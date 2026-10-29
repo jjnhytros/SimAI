@@ -22,16 +22,19 @@ from simai.economy.market import filter_by_stock
 from simai.economy.models import ShopItem
 from simai.economy.service import job_of
 from simai.economy.work import (
+    WorkState,
     can_work,
     should_prioritize_home,
     should_prioritize_work,
     tick_in_day,
+    work_state_for,
 )
 from simai.mood.moodlets import apply_moodlet, moodlets_for_action
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_effect, needs_of_many
 from simai.relationships.service import boost_social_relationship
 from simai.sim.reports import TickDecision
+from simai.skills.service import skill_for_job_title, train_skill
 from simai.world.enums import LocationKind
 from simai.world.models import Character, Location
 from simai.world.move import move_character
@@ -181,6 +184,18 @@ class NPCManager:
         # `char` è già stato caricato sopra, `age_years` è disponibile.
         if not can_work(job, age_years):
             job = None
+        # 0.1150: training durante WORKING (a prescindere dall'azione).
+        if (
+            job is not None
+            and loc.key == job.location_key
+            and work_state_for(job, t_in_day) == WorkState.WORKING
+        ):
+            train_skill(
+                session,
+                state.character_id,
+                skill_for_job_title(job.title.value),
+                0.001,
+            )
 
         if should_prioritize_work(job, t_in_day, hunger, age_years=age_years):
             assert job is not None

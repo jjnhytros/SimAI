@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1180] — 2026-10-30
+
+### Aggiunto
+
+- **Training opportunistico** (`npc/manager.py::_tick_one`): quando
+  un NPC non ha azioni né move disponibili (`intent.action is None`)
+  e ha un job, pratica la sua skill professionale a `+0.00005/tick`
+  (20× più lento del training durante WORKING, `+0.001/tick`).
+  Silent: nessun moodlet, solo skill.
+
+### Verificato (1y, seed 42)
+
+Attesi: invarianti OK, `mood_mean` ~70.6 invariato (no moodlet),
+`purchase`/`salary`/`death` invariati. La calibrazione vera a 0.1200
+(10y accumulato: 0.1150 + 0.1180 + 0.1190).
+
+### Non verificato
+
+- **10y**: rimandato a 0.1200. La delta di 0.1180 è piccola e
+  localizzata; un 10y isolato costa 30 minuti per un segnale di
+  +0.3 skill/anno. Accumulato con 0.1190 a 0.1200.
+
+### Rimandato
+
+- **Moodlet `PRACTICED`**: no, silent training.
+- **Skill decay**: no.
+- **Training esplicito** (`PRACTICE_*`): ancora no.
+
 ## [0.1170] — 2026-10-30
 
 ### Cambiato

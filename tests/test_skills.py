@@ -176,7 +176,7 @@ def test_skill_for_job_title_mapping() -> None:
 
 
 def test_working_tick_increases_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Un tick con luca a caffè in orario di lavoro aumenta la skill."""
+    """Tick WORKING: +0.001 (training) + 0.00005 (opportunistico, idle)."""
     from simai.sim.tick import run_tick
 
     engine = _seeded(tmp_path, monkeypatch)
@@ -191,13 +191,13 @@ def test_working_tick_increases_skill(tmp_path: Path, monkeypatch: pytest.Monkey
     with factory() as session:
         luca_id = _char_id(session, "luca")
         after = level_of(session, luca_id, SkillKind.BARISTA)
-    assert after == before + 0.001
+    assert after == pytest.approx(before + 0.001 + 0.00005)
 
 
-def test_non_working_tick_does_not_increase_skill(
+def test_non_working_tick_trains_opportunistically_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Tick fuori orario (luca 14-21): nessun training."""
+    """Tick fuori orario: niente training WORKING, solo opportunistico."""
     from simai.sim.tick import run_tick
 
     engine = _seeded(tmp_path, monkeypatch)
@@ -212,4 +212,4 @@ def test_non_working_tick_does_not_increase_skill(
     with factory() as session:
         luca_id = _char_id(session, "luca")
         after = level_of(session, luca_id, SkillKind.BARISTA)
-    assert after == before
+    assert after == pytest.approx(before + 0.00005)

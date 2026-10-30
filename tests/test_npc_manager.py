@@ -181,3 +181,54 @@ def test_offers_by_key_from_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert offers[("caffe", ActionKind.EAT)] == 20
     assert ("piazza", ActionKind.EAT) in offers
     assert offers[("piazza", ActionKind.EAT)] == 15
+
+
+def test_idle_tick_trains_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """NPC idle con job: skill cresce di 0.00005 al tick."""
+    from simai.skills.enums import SkillKind
+    from simai.skills.service import level_of
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    manager = _manager()
+    with factory() as session:
+        # erika a casa, tick 0 (BEFORE_WORK, ~7 tick al lavoro).
+        # Forzo needs alti: nessuna azione urgente → idle.
+        states = manager.load(session, include_player=False)
+        erika_state = next(s for s in states if s.key == "erika")
+        for kind in erika_state.needs:
+            erika_state.needs[kind] = 100.0
+        before = level_of(session, erika_state.character_id, SkillKind.STUDENTE)
+        manager.update_all(session, [erika_state], tick_index=0, master_seed=42)
+        session.commit()
+    with factory() as session:
+        after = level_of(session, erika_state.character_id, SkillKind.STUDENTE)
+    assert after == before + 0.00005
+
+
+def test_idle_tick_no_training_without_job(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Se tolgo il Job a erika, nessun training opportunistico."""
+    from sqlalchemy import delete as sa_delete
+
+    from simai.economy.models import Job
+    from simai.skills.enums import SkillKind
+    from simai.skills.service import level_of
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    manager = _manager()
+    with factory() as session:
+        erika_state = next(
+            s for s in manager.load(session, include_player=False) if s.key == "erika"
+        )
+        for kind in erika_state.needs:
+            erika_state.needs[kind] = 100.0
+        # Rimuovi il Job di erika.
+        session.execute(sa_delete(Job).where(Job.character_id == erika_state.character_id))
+        session.flush()
+        before = level_of(session, erika_state.character_id, SkillKind.STUDENTE)
+        manager.update_all(session, [erika_state], tick_index=0, master_seed=42)
+        session.commit()
+    with factory() as session:
+        after = level_of(session, erika_state.character_id, SkillKind.STUDENTE)
+    assert after == before

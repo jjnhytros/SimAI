@@ -902,7 +902,6 @@ skill `PAINTING`.
 SQLite (non è una FK). Test `test_skill_check_constraint` copre.
 Se in futuro si passa a PostgreSQL, il comportamento è identico.
 
-
 ---
 
 ## 17. IntimacyService (0.1160)
@@ -973,3 +972,28 @@ non è misurato: si misura al prossimo 10y.
 
 **Non è una regressione**: è il costo della feature, documentato e
 bounded.
+
+---
+
+## 18. Training opportunistico (0.1180)
+
+### 18.1 Quantità non calibrata
+
+`+0.00005/tick` è una stima: 20× più lento del WORKING. L'effetto
+reale dipende dall'idle rate (quanti tick un NPC non ha azioni).
+Non misurato su 10y. Se a 0.1200 le skill saturano prima del 2030,
+ridurre a `0.00003`. Se restano troppo basse, alzare a `0.0001`.
+
+### 18.2 Silent training
+
+Nessun moodlet `PRACTICED`. Il training è invisibile finché non si
+guarda `npc skills` o si confrontano i `balance_mean` su 10y. Se
+serve un segnale visibile, in 0.1190+ con moodlet dedicato.
+
+### 18.3 `train_skill` chiamato su ogni idle tick
+
+Se idle rate è alto (log mostra "Nessuna azione" frequentemente),
+il training è applicato quasi ogni tick. Costo: 1 SELECT + 1 UPDATE
+per char idle. Su 10y: ~300k query. Bounded, non bloccante. Se
+diventa un problema, ottimizzare con `train_skill_many` (batch).
+

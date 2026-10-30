@@ -277,6 +277,17 @@ class NPCManager:
             logger.debug(
                 f"Nessuna azione per {state.key} in {loc.key}: nessuna azione o move disponibile."
             )
+            # 0.1180: training opportunistico. Il NPC non ha azioni
+            # né move: usa il tempo libero per praticare la skill
+            # professionale. 20x più lento del training durante
+            # WORKING (0.001/tick). Nessun moodlet: silent.
+            if job is not None:
+                train_skill(
+                    session,
+                    state.character_id,
+                    skill_for_job_title(job.title.value),
+                    0.00005,
+                )
             return TickDecision(
                 character_id=state.character_id,
                 character_key=state.key,

@@ -470,3 +470,8 @@ def test_lifestage_no_transition_on_regular_day(
         assert MoodletKind.BECAME_CHILD not in kinds
         assert MoodletKind.BECAME_YOUNG_ADULT not in kinds
         assert MoodletKind.BECAME_SENIOR not in kinds
+
+
+def test_specs_cover_all_kinds_after_intimacy() -> None:
+    """Dopo 0.1160, SPECS copre anche ROMANTIC e DEVOTED."""
+    assert set(SPECS) == set(MoodletKind)

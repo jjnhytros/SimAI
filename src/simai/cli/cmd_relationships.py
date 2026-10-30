@@ -104,3 +104,33 @@ def kinship(
     typer.echo(f"{character} è {name} di {with_}")
     typer.echo(f"  r:    {r}")
     typer.echo(f"  r/2:  {k}")
+
+
+@relationships_app.command("intimacy")
+def intimacy_command(
+    character: str = typer.Option(..., "--character", "-c"),
+) -> None:
+    """Mostra i livelli di intimità delle relazioni di un personaggio."""
+    from simai.npc.intimacy.service import best_intimacy_level, intimacy_level
+
+    engine = get_engine()
+    require_schema(engine)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        char = resolve_character(session, character)
+        char_id = char.id
+        rels = relationships_of(session, char_id)
+        rows: list[tuple[str, str, float, int]] = []
+        for rel in rels:
+            target = session.get(Character, rel.to_character_id)
+            target_key = target.key if target is not None else f"id={rel.to_character_id}"
+            strength = float(rel.strength)
+            rows.append((target_key, rel.kind.value, strength, intimacy_level(strength)))
+        best = best_intimacy_level(session, char_id)
+
+    if not rows:
+        typer.echo(f"Intimità di '{character}': nessuna relazione")
+        return
+    typer.echo(f"Intimità di '{character}' (best: {best}):")
+    for target_key, kind, strength, level in rows:
+        typer.echo(f"  {target_key:<12} {kind:<14} strength {strength:5.1f}  livello {level}")

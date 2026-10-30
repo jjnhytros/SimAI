@@ -13,6 +13,7 @@ from simai.mood.moodlets import (
 from simai.mood.service import update_mood
 from simai.needs.enums import NeedKind
 from simai.needs.service import apply_decay, needs_of_many
+from simai.npc.intimacy.service import apply_intimacy_moodlets_many
 from simai.npc.manager import NPCManager, NPCManagerLike
 from simai.sim.daily import daily_tick
 from simai.sim.reports import TickDecision, TickReport
@@ -88,6 +89,7 @@ def run_tick(
         if streak >= LONELY_STREAK_TRIGGER:
             apply_moodlet(session, char.id, MoodletKind.LONELY, tick_index)
     refresh_need_moodlets_many(session, needs_by_char, tick_index)
+    apply_intimacy_moodlets_many(session, char_ids, tick_index)
     for char in all_characters:
         update_mood(session, char.id, tick=tick_index, needs=needs_by_char[char.id])
         cleanup_expired(session, char.id, tick_index)

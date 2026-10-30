@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1150` (ex 1.15.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1160` (ex 1.16.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 394 verdi (0.1150), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1150.json` (120.960 tick, seed 42, invarianti OK, tps 72.6)
+**Test**: 405 verdi (0.1160), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1160.json` (120.960 tick, seed 42, invarianti OK, tps 58.6 pre-batch → 63.3 post-batch su 1y)
 
 Questo documento sostituisce:
 
@@ -32,6 +32,7 @@ player.
 | 1.13.0 | **0.1130** | death_count in benchmark, DAYS_PER_YEAR unificato |
 | 1.14.0 | **0.1140** | skills base, wage scaling, CLI npc skills |
 | 1.15.0 | **0.1150** | training implicito durante WORKING |
+| 1.16.0 | **0.1160** | IntimacyService, ROMANTIC/DEVOTED |
 
 | … | … | |
 | 2.0.0 | 0.2000 | |
@@ -498,7 +499,11 @@ Package `simai/sim/anthalys/time/`:
 
 - [ ] `[03.0210]` `npc/ai/bt/` (BT completo) — **non esiste**
 - [ ] `[03.0211]` `npc/memory/` — **non esiste**
-- [ ] `[03.0212]` `npc/intimacy/` — **non esiste** (SOCIALIZE boosta relazioni, ma niente `IntimacyService` con level 0–5)
+- [x] `[03.0212]` `npc/intimacy/` — implementato in 0.1160
+  (`intimacy_level`, `best_intimacy_level`, `intimacy_levels_of`,
+  `apply_intimacy_moodlets`; `ROMANTIC`/`DEVOTED` in `SPECS`)
+- [ ] `[03.0212b]` Consenso attivo, `IntimacyService` con
+  `level 0–5` persistito — **non esiste** (0.1170+)
 - [ ] `[5200_05]` Migrazione `memory` — **non esiste**
 
 ### §3.2d — BT in AI
@@ -866,30 +871,13 @@ Package `simai/sim/anthalys/time/`:
 
 ### Prossimi passi realistici
 
-1. **60y** (operazione, non release): dopo 0.1150, con skill
-   dinamiche + morte probabilistica + eredità, è il test che vale
-   le 3 ore. Archivia `60y-0.1150.json`. Verifica:
-   - `death_count` atteso **1–3**: luca a 102 (OLD_AGE certo),
-     giulia a 97 (~25% cumulata), player a 90 (~15%), erika/max
-     a 74 (~3–5%).
-   - **Eredità visibile**: max eredita da luca (CHILD_OF),
-     erika eredita da giulia (CHILD_OF). `balance_final` con
-     salti dopo le successioni.
-   - **Skill a 100** per tutti entro i primi 20 anni. Il salario
-     scala, `balance_mean` cresce in modo non lineare.
-   - **Mood stabile** in 67.5–70.5. I moodlet B3 non degradano
-     su 60 anni.
-   - **`purchase_transactions`**: atteso ~208k (60y × 3467/anno).
-     Se il pattern cambia dopo una successione, indagare.
+1. **0.1170** (training esplicito): `PRACTICE_*`, `STUDY`, `COOK`.
+   Richiede un concetto di "azione non-need-driven" (il training non
+   soddisfa un bisogno, quindi `filter_by_need_threshold` lo
+   escluderebbe sempre). Design da discutere prima del codice.
+   Tocca `run_tick` → 10y obbligatorio.
 
-2. **0.1160** (training esplicito): `PRACTICE_*`, `STUDY`, `COOK`.
-   Nuove azioni nel catalogo, filtro per skill. Skill decay da
-   decidere (`decay_skill` in `skills/service.py`). Nuovi
-   `ActionKind` in `actions/enums.py`, catalogo in
-   `actions/catalog.py`, test in `test_skills.py` +
-   `test_actions_do.py`. Tocca `run_tick` → 10y obbligatorio.
-
-3. **0.1170** (`COST_PENALTY` + design caffè): il TODO §2.5
+2. **0.1180** (`COST_PENALTY` + design caffè): il TODO §2.5
    rimanda dal 1.6.0. Richiede decisione di design:
    - moodlet `CAFFE` (bonus mood al caffè, non a casa),
    - `DISTANCE_PENALTY` più basso + accettare la chiusura del caffè,
@@ -897,11 +885,11 @@ Package `simai/sim/anthalys/time/`:
    Impatto sul 10y dipende dalla scelta. Tocca `run_tick` → 10y
    obbligatorio.
 
-4. **0.1180** (calendario Anthalys completo): FASE 2, cosmetico.
+3. **0.1190** (calendario Anthalys completo): FASE 2, cosmetico.
    Stagioni, festività, lune, `DayPhase`. Nessun effetto sul tick
    se non quando si aggiungerà sonno/veglia. Rimandato da 0.1000.
 
-5. **Audit documentale** (0.1190 o commit `chore`):
+4. **Audit documentale** (0.1190 o commit `chore`):
    - `TODO.md` §1.x con path reali (`core/anthalys_datetime.py`
      non esiste, `sim/anthalys/` non esiste, ecc.).
    - `README.md` aggiornato a 0.1150 (stato progetto, limiti noti,
@@ -911,6 +899,17 @@ Package `simai/sim/anthalys/time/`:
    - `AGE_DAYS_PER_YEAR` residui in `npc/pregnancy.py` (se
      presenti).
    - `docs/release/0.10xx-plan.md` con i numeri definitivi.
+
+5. **60y** (operazione, rimandato): primo test che esercita morte +
+   eredità + skill dinamiche + training insieme. **Rimandato a
+   decisione di Marco**, appena prima di 0.2000 (2.0.0). Costo
+   ~3h. Non è una release: è validazione. Archivia
+   `60y-0.1xxx.json` con la versione al momento del run.
+
+   Motivo del rinvio: 3h di CPU senza interruzione sono
+   incompatibili con lo sviluppo attivo. Va lanciato quando il
+   codice si ferma per una milestone (0.2000, o prima di
+   multiplayer), non tra una feature e l'altra.
 
 **Nessuno di questi è "ovvio".** Ognuno richiede una decisione
 esplicita, tranne il 60y che è operazione.

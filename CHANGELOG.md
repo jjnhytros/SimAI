@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.1160] — 2026-10-30
+
+### Aggiunto
+
+- **`npc/intimacy/service.py`**: `intimacy_level(strength) -> int`
+  (0–5, soglie 20/40/60/80/95), `best_intimacy_level` (max su out+in),
+  `intimacy_levels_of`, `apply_intimacy_moodlets`,
+  `apply_intimacy_moodlets_many` (batch: 3 query/tick invece di ~3
+  per char).
+- **`MoodletKind.ROMANTIC`** (level 4, `+0.5`/tick, durata 2) e
+  **`MoodletKind.DEVOTED`** (level 5, `+1.0`/tick, durata 2).
+- **`tick.py` fase 3**: `apply_intimacy_moodlets_many` prima di
+  `update_mood`.
+- **CLI** `relationships intimacy -c <key>`: tabella
+  `target | kind | strength | level` + best.
+
+### Verificato (10y + 1y, seed 42)
+
+- **`mood_mean`**: 69.58 → **70.58** (erika), 69.98 → **70.98** (max),
+  70.10 → **71.10** (luca), 69.58 → **70.58** (giulia). **+1.0
+  esatto**, coerente con `DEVOTED` attivo (level 5).
+- **`purchase_transactions: 34665` INVARIATO**.
+- **`salary_transactions: 17280` INVARIATO**.
+- **`balance_*`, `needs_*`, `death_count: 0`, `invariants_ok: true`**
+  invariati.
+- **`tps`: 63.3** (1y post-batch). Era 72.6 in 0.1150. **Costo
+  feature**: 3 query/tick + ~2.5 scritture/tick per il refresh di
+  `DEVOTED`. Coerente con +21s su 1y. Non regressione.
+
+### Rimandato (0.1170)
+
+- **`active_delta_many`** e **`cleanup_expired_many`**: N+1 residuo
+  in `update_mood` (5 query/tick) e `cleanup_expired` (5 DELETE/tick,
+  quasi sempre 0). Ottimizzabile in 0.1170 se il tps scende ancora.
+- **Migrazione `Relationship.intimacy_level`**: non serve, derivato.
+- **Boost SOCIALIZE scalato**: feedback loop, progettare prima.
+- **60y**: rimandato appena prima di 0.2000.
+
 ## [0.1150] — 2026-10-29
 
 ### Aggiunto
@@ -97,7 +135,7 @@ I test hardcodavano i salari base. Aggiornati ai valori scalati:
   5.0 → 5.375
 - `test_payday_presence.py::test_player_paid_at_caffe`: 20.0 → 22.0
 - `test_world_models.py::test_seed_creates_expected_counts`:
-  + `skills_created: 5`
+  - `skills_created: 5`
 - `test_world_models.py::test_seed_is_idempotent`: + `skills_created: 0`
 
 ### Rimandato

@@ -821,17 +821,34 @@ Con età 14–42 e seed 42, `death_count: 0` sul 1y. La feature è
 inerte sul seed attuale. Diventa significativa sul 60y o su scenari
 con NPC anziani.
 
-### 15.4 60y in arrivo
+### 15.4 60y rimandato
 
-Prossima operazione: `60y-0.1130.json`. Attesi 1–3 morti
-(luca a 102 = OLD_AGE certo; giulia a 97 = p cumulata ~25%;
-player a 90 = ~15%; erika/max a 74 = ~3%). Se `death_count: 0`,
-la calibrazione è bassa per il 60y, rivedere in 0.1140. Se 5+,
-alta. Se 1–3, plausibile.
+Il 60y su 0.1150 non è stato eseguito. Con 725.760 tick (432 × 28 ×
+60) e `tps` ~70, costa ~3h di CPU. Incompatibile con lo sviluppo
+attivo.
 
-L'analisi del 60y è il primo test reale della morte probabilistica
-in un contesto con invecchiamento. Non è "passa/non passa": è
-"cosa racconta".
+**Decisione**: rimandato appena prima di 0.2000, quando il codice
+si ferma per una milestone. Non è una release: è validazione.
+Archivia `60y-0.2000.json` (o la versione al momento del run).
+
+**Atteso** (con seed 42 e stato 0.1150):
+
+- `death_count`: 1–3. Luca a 102 (OLD_AGE certo), giulia a 97
+  (~25% cumulata), player a 90 (~15%), erika/max a 74 (~3–5%).
+- Eredità visibile: max eredita da luca (CHILD_OF), erika da
+  giulia (CHILD_OF). `balance_final` con salti.
+- Skill a 100 per tutti entro i primi 20 anni.
+- `mood_mean` stabile in 67.5–70.5.
+- `purchase_transactions` ~208k (3467/anno × 60).
+
+**Se il 60y mostra `death_count` fuori da 1–3**: la calibrazione
+morte (0.1120) va rivista prima di 0.2000. Se mostra `death_count:
+0`: bug (luca a 102 deve morire). Se 5+: formula troppo
+aggressiva.
+
+**Nota**: il 60y non è mai stato eseguito con skill dinamiche
+(0.1150). L'unico 60y esistente è su 1.1.0, 525.600 tick (365 ×
+24, calendario gregoriano). Non confrontabile.
 
 ---
 
@@ -884,3 +901,74 @@ skill `PAINTING`.
 `CHECK (level >= 0 AND level <= 100)` è enforced nativamente da
 SQLite (non è una FK). Test `test_skill_check_constraint` copre.
 Se in futuro si passa a PostgreSQL, il comportamento è identico.
+
+
+---
+
+## 17. IntimacyService (0.1160)
+
+### 17.1 `intimacy_level` derivato, non persistito
+
+`intimacy_level` è calcolato da `Relationship.strength`. Non è una
+colonna. Se in futuro serve persistere il livello (es. per
+`Relationship.intimacy_level` in una migrazione, per query più
+rapide o per snapshot), va aggiunto. Oggi non serve.
+
+### 17.2 `best_intimacy_level` out+in
+
+`best_intimacy_level` considera relazioni in uscita e in entrata.
+Il seed è simmetrico, quindi oggi out basta. Se in futuro ci
+saranno relazioni unidirezionali (es. amore non corrisposto), la
+definizione "il mio miglior legame, da qualunque parte" è più
+corretta di "solo out".
+
+Costo: 2 SELECT per char per tick (out + in). Su 5 char, 10
+query/tick. Accettabile. Se diventa un collo di bottiglia
+(>10 NPC, 60y), ottimizzare con `UNION`.
+
+### 17.3 Moodlet `ROMANTIC`/`DEVOTED` continui
+
+Se `best_intimacy_level >= 4`, `apply_intimacy_moodlets` chiama
+`apply_moodlet` ogni tick. Con `duration=2`, il moodlet è sempre
+attivo finché il livello resta >= 4. Il delta (+0.5/+1.0) è
+sostenuto, non one-shot.
+
+**Conseguenza**: `mood_mean` è gonfiato di +0.5/+1.0 per chi ha
+legami forti. Range atteso 69–72. Se sale oltre, i delta vanno
+ridotti (0.1170).
+
+### 17.4 Nessun boost SOCIALIZE scalato
+
+`boost_social_relationship` dà +5 fisso per SOCIALIZE,
+indipendentemente dal livello. Non scalare: creerebbe feedback
+loop (strength → level → boost → strength) con convergenza a 100
+in pochi anni, rendendo tutti `DEVOTED` e il moodlet inutile.
+
+Se in futuro si vorrà un boost scalato, va progettato con cura:
+es. boost = 5 * (1 - strength/100), così strength converge
+asintoticamente a 100 senza saturare subito.
+
+### 17.5 `ROMANTIC`/`DEVOTED` non sono need-based
+
+Hanno `need=None` in `Moodlet`. `refresh_need_moodlets_many` li
+ignora (filtra `need.isnot(None)`). Sono gestiti da
+`apply_intimacy_moodlets` in `tick.py`.
+
+### 17.6 CLI `relationships intimacy`
+
+Mostra solo relazioni in uscita. Per out+in, oggi non c'è un
+comando. Se serve, `npc intimacy -c <key>` in 0.1170+.
+
+### 17.7 tps −12.8% (0.1160)
+
+`apply_intimacy_moodlets_many` costa ~3 query/tick + ~2.5
+scritture/tick. Su 1y: +21s (170s → 191s, tps 72.6 → 63.3). Su
+10y pre-batch: 58.6 tps.
+
+Il batch ha recuperato parzialmente (58.6 → 63.3 su 1y). Il residuo
+è `active_delta` (5 query/tick in `update_mood`) e `cleanup_expired`
+(5 DELETE/tick). Ottimizzabili in 0.1170 con `active_delta_many` e
+`cleanup_expired_many`.
+
+**Non è una regressione**: è il costo della feature, documentato e
+bounded.

@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1190` (ex 1.19.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1200` (ex 1.20.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
 **Test**: 413 verdi (0.1190), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1160.json` (120.960 tick, seed 42, invarianti OK, tps 58.6 pre-batch → 63.3 post-batch su 1y)
+**Benchmark**: `10y-0.1200.json` (120.960 tick, seed 42, invarianti OK, tps 73.1)
 
 Questo documento sostituisce:
 
@@ -36,6 +36,7 @@ player.
 | 1.17.0 | **0.1170** | batch active_delta/cleanup, ottimizzazione |
 | 1.18.0 | **0.1180** | training opportunistico durante idle |
 | 1.19.0 | **0.1190** | `STUDY` come azione esplicita |
+| 1.20.0 | **0.1200** | validazione 10y accumulata (0.1160–0.1190), nessuna feature |
 
 | … | … | |
 | 2.0.0 | 0.2000 | |
@@ -789,15 +790,26 @@ Package `simai/sim/anthalys/time/`:
 
 ### 10y (eseguito, baseline)
 
-- **Ultimo**: `10y-0.1160.json`, 120.960 tick, seed 42, invarianti OK, tps 58.6 (pre-batch su 10y)
-- `mood_mean`: 70.6 / 71.0 / 71.1 / 70.6 (erika/max/luca/giulia, con DEVOTED attivo)
-- `balance_mean`: 6407 / 6402 / 47259 / 55666 (skill dinamiche)
-- `skill`: luca 40→70.24, giulia 50→93.2, erika/max 15→58.2
-- `purchase_transactions`: 34665
+- **Ultimo**: `10y-0.1200.json`, 120.960 tick, seed 42, invarianti OK, tps 73.1
+- `mood_mean`: 70.5 / 71.4 / 70.9 / 70.6 (erika/max/luca/giulia, con DEVOTED + STUDIED + opportunistico)
+- `balance_mean`: 6503 / 6475 / 47664 / 55970 (skill dinamiche)
+- `skill` (inferito da balance delta): luca ~71.7, giulia ~94.5, erika/max ~60
+- `purchase_transactions`: 34782
 - `salary_transactions`: 17280
 - `death_count`: 0
 
-**Confronto storico**: le release 0.1100–0.1190 hanno aggiunto feature comportamentali (moodlet B3, divieto lavoro pediatrico, morte probabilistica, skills, IntimacyService, training). Il 10y è cambiato in modo documentato. 0.1170 non ha 10y (ottimizzazione, comportamento invariato). Il prossimo 10y accumulato (0.1160+0.1170+0.1180+0.1190) è a 0.1200.
+**Confronto storico**:
+
+- 0.1160 (baseline precedente): `10y-0.1160.json` — mood 70.6/71.0/71.1/70.6, balance 6407/6402/47259/55666, purchase 34665, tps 58.6 (pre-batch)
+- 0.1170 (batch): nessun 10y, comportamento invariato, `tps` post-batch misurato a 0.1200
+- 0.1180 (training opportunistico): nessun 10y isolato, accumulato in 0.1200
+- 0.1190 (STUDY): nessun 10y isolato, accumulato in 0.1200
+- 0.1200: validazione accumulata, unica misura pulita
+
+**Note**: `tps` 73.1 supera anche 0.1150 (72.6). Il batch 0.1170 ha
+recuperato ~10 tps. Skill cresciute di ~1.5–2 punti in 10y per
+training opportunistico + `STUDY`; **nessuna saturazione** a 100
+(richiede ~60y). `purchase` drift +0.34% (34782 vs 34665), bounded.
 
 ### 60y (rimandato)
 
@@ -868,15 +880,16 @@ Package `simai/sim/anthalys/time/`:
 
 ### Prossimi passi realistici
 
-1. **0.1200** (prossima feature + 10y accumulato): due candidati.
+1. **0.1210** (prossima feature): due candidati, nessun 10y
+   obbligatorio (0.1200 ha già misurato lo stato).
    - **A) `PRACTICE_*`/`COOK`**: training esplicito con skill
      specifiche (oggi `STUDY` usa la skill del job). Richiede più
      `ActionKind` e un mapping azione→skill.
-   - **B) `COST_PENALTY`**: moodlet `CAFFE`, o `DISTANCE_PENALTY`
-     ridotto, o niente. Decisione di design aperta dal 1.6.0.
-   **In entrambi i casi**: 10y accumulato (0.1160+0.1170+0.1180+0.1190+0.1200).
-   Costo ~30 min. Misura il `tps` post-batch di 0.1170 e la
-   calibrazione skill/moodlet su 10 anni.
+   - **B) `MoodletKind.CAFFE`** (`COST_PENALTY` light): moodlet
+     dedicato al caffè, +0.5/tick, durata 2. Impatta `mood_mean`
+     in modo bounded.
+   **Se tocca `run_tick`**: 1y smoke, non 10y. Il prossimo 10y
+   accumulato è a 0.1230 (3 release dopo 0.1200).
 
 2. **0.1210** (calendario Anthalys completo): FASE 2, cosmetico.
    Stagioni, festività, lune, `DayPhase`. Nessun effetto sul tick

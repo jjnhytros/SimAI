@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.1200] — 2026-10-30
+
+### Verificato (10y accumulato, seed 42)
+
+Validazione accumulata di 0.1160 + 0.1170 + 0.1180 + 0.1190, mai
+misurate insieme su 10y. **Nessuna feature nuova.**
+
+- **`10y-0.1200.json`**: 120.960 tick, `invariants_ok: true`.
+- **`mood_mean` invariato** rispetto a 0.1160: 70.5 / 71.4 / 70.9 /
+  70.6 (era 70.6 / 71.0 / 71.1 / 70.6). `STUDIED` (0.1190) e
+  training opportunistico (0.1180) non gonfiano il mood oltre
+  `DEVOTED` di 0.1160.
+- **`balance_mean` cresciuto** (skill dinamiche):
+  - erika: 6407 → **6503** (+96, skill ~58.2→~60)
+  - max: 6402 → **6475** (+73, skill ~58.2→~60)
+  - luca: 47259 → **47664** (+406, skill ~70.2→~71.7)
+  - giulia: 55666 → **55970** (+304, skill ~93.2→~94.5)
+  **Nessuna saturazione**: in 10y le skill sono cresciute di
+  ~1.5–2 punti per effetto del training opportunistico e di
+  `STUDY`. Il target 100 richiede ~60y (mai eseguito).
+- **`purchase_transactions: 34782`** (era 34665, +117, +0.34%).
+  Drift bounded, attribuibile a `STUDY` che modifica marginalmente
+  il pattern di azioni.
+- **`salary_transactions: 17280`** invariato.
+- **`death_count: 0`** invariato (età 14–52 a fine 10y).
+- **`tps: 73.1`** (era 58.6 pre-batch in 0.1160, 63.3 post-batch su
+  1y). Il batch `active_delta_many` / `cleanup_expired_many` di
+  0.1170 ha recuperato ~10 tps. Superiore anche a 0.1150 (72.6).
+
+### Note
+
+- **`tps` post-batch era un buco documentale**: colmato. 0.1170 non
+  ha eseguito 10y (comportamento invariato), ma ha lasciato
+  `known-issues.md` §17.7 con "atteso ~65". Il numero reale è 73.1.
+- **`mood_mean` stabile** era l'atteso, ma non scontato: `DEVOTED`
+  (0.1160) + `STUDIED` (0.1190) + opportunistico (0.1180) potevano
+  cumulare. Non lo hanno fatto (i moodlet non-need hanno durata 2,
+  refresh condizionale, delta piccoli).
+- **Nessuna regressione**.
+
+### Rimandato
+
+- **`PRACTICE_*`/`COOK`**: training esplicito con skill specifiche
+  (oggi `STUDY` usa la skill del job). 0.1210.
+- **`COST_PENALTY`**: decisione di design aperta dal 1.6.0. 0.1210
+  o successiva.
+- **60y**: appena prima di 0.2000.
+
 ## [0.1190] — 2026-10-30
 
 ### Aggiunto

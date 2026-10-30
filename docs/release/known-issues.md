@@ -966,9 +966,10 @@ scritture/tick. Su 1y: +21s (170s → 191s, tps 72.6 → 63.3). Su
 10y pre-batch: 58.6 tps.
 
 Il batch ha recuperato parzialmente (58.6 → 63.3 su 1y). Il residuo
-è `active_delta` (5 query/tick in `update_mood`) e `cleanup_expired`
-(5 DELETE/tick). Ottimizzabili in 0.1170 con `active_delta_many` e
-`cleanup_expired_many`.
+era `active_delta` (5 query/tick in `update_mood`) e `cleanup_expired`
+(5 DELETE/tick). **0.1170 li ha ottimizzati** con
+`active_delta_many` e `cleanup_expired_many`. Il tps post-0.1170
+non è misurato: si misura al prossimo 10y.
 
 **Non è una regressione**: è il costo della feature, documentato e
 bounded.

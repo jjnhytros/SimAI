@@ -297,3 +297,45 @@ def update_lonely_streak(session: Session, character_id: int, intimacy: float) -
     else:
         char.low_intimacy_streak = 0
     return char.low_intimacy_streak
+
+
+def active_delta_many(
+    session: Session,
+    char_ids: list[int],
+    tick: int,
+) -> dict[int, float]:
+    """Somma i `delta_per_tick` dei moodlet attivi, per tutti i char.
+
+    1 SELECT invece di N. Stessa finestra `[started_at, expires_at)`.
+    """
+    if not char_ids:
+        return {}
+    moodlets = session.scalars(
+        select(Moodlet).where(
+            Moodlet.character_id.in_(char_ids),
+            Moodlet.started_at_tick <= tick,
+            Moodlet.expires_at_tick > tick,
+        )
+    ).all()
+    result: dict[int, float] = {cid: 0.0 for cid in char_ids}
+    for m in moodlets:
+        result[m.character_id] += SPECS[m.kind].delta_per_tick
+    return result
+
+
+def cleanup_expired_many(
+    session: Session,
+    char_ids: list[int],
+    tick: int,
+) -> int:
+    """Rimuove i moodlet scaduti per tutti i char, 1 DELETE."""
+    if not char_ids:
+        return 0
+    result = session.execute(
+        delete(Moodlet).where(
+            Moodlet.character_id.in_(char_ids),
+            Moodlet.expires_at_tick <= tick,
+        )
+    )
+    assert isinstance(result, CursorResult)
+    return int(result.rowcount or 0)

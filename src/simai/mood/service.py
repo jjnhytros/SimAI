@@ -28,20 +28,25 @@ def update_mood(
     character_id: int,
     tick: int | None = None,
     needs: dict[NeedKind, float] | None = None,
+    moodlet_delta: float | None = None,
 ) -> float:
     """Ricalcola il mood applicando i moodlet attivi al tick.
 
-    Se `tick` è None, i moodlet non contribuiscono (utile per test o
-    contesti senza contesto temporale). Se `needs` è passato, evita la
-    query interna: utile in `run_tick`, dove i bisogni sono già
-    calcolati.
+    Se `tick` è None, i moodlet non contribuiscono.
+    Se `needs` è passato, evita la query interna.
+    Se `moodlet_delta` è passato, evita `active_delta` (batch).
     """
     char = session.get(Character, character_id)
     if char is None:
         return 0.0
     if needs is None:
         needs = needs_of(session, character_id)
-    delta = active_delta(session, character_id, tick) if tick is not None else 0.0
+    if moodlet_delta is not None:
+        delta = moodlet_delta
+    elif tick is not None:
+        delta = active_delta(session, character_id, tick)
+    else:
+        delta = 0.0
     mood = compute_mood(needs, delta)
     char.mood = mood
     return mood

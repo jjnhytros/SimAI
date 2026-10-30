@@ -5,8 +5,9 @@ from simai.economy.payday import process_payday
 from simai.mood.enums import MoodletKind
 from simai.mood.moodlets import (
     LONELY_STREAK_TRIGGER,
+    active_delta_many,
     apply_moodlet,
-    cleanup_expired,
+    cleanup_expired_many,
     refresh_need_moodlets_many,
     update_lonely_streak,
 )
@@ -90,9 +91,16 @@ def run_tick(
             apply_moodlet(session, char.id, MoodletKind.LONELY, tick_index)
     refresh_need_moodlets_many(session, needs_by_char, tick_index)
     apply_intimacy_moodlets_many(session, char_ids, tick_index)
+    deltas_by_char = active_delta_many(session, char_ids, tick_index)
     for char in all_characters:
-        update_mood(session, char.id, tick=tick_index, needs=needs_by_char[char.id])
-        cleanup_expired(session, char.id, tick_index)
+        update_mood(
+            session,
+            char.id,
+            tick=tick_index,
+            needs=needs_by_char[char.id],
+            moodlet_delta=deltas_by_char[char.id],
+        )
+    cleanup_expired_many(session, char_ids, tick_index)
 
     return TickReport(
         tick_index=tick_index,

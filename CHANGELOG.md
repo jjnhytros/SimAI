@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1170] — 2026-10-30
+
+### Cambiato
+
+- **`mood/moodlets.py`**: `active_delta_many(session, char_ids, tick)`
+  (1 SELECT invece di N) e `cleanup_expired_many(session, char_ids, tick)`
+  (1 DELETE invece di N).
+- **`mood/service.py::update_mood`**: nuova keyword
+  `moodlet_delta: float | None = None`. Se passata, salta
+  `active_delta`. Retro-compatibile.
+- **`sim/tick.py` fase 3**: `active_delta_many` e
+  `cleanup_expired_many` batch. Ordine preservato: moodlet intimacy
+  → `active_delta_many` → `update_mood` → `cleanup_expired_many`.
+- **Test**: 2 per `apply_intimacy_moodlets_many` (batch multi-char,
+  refresh), 2 per `active_delta_many`/`cleanup_expired_many`
+  (equivalenza batch vs per-char).
+
+### Non verificato
+
+- **`tps`**: non misurato. Il 10y non è stato rieseguito. Atteso
+  ~63–70 (recupero di ~5–8 query/tick). Si misura al prossimo 10y
+  accumulato (0.1180 o successivo), non ora: il cambiamento è
+  matematicamente equivalente, nessuna feature.
+
 ## [0.1160] — 2026-10-30
 
 ### Aggiunto

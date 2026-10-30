@@ -7,6 +7,7 @@ from sqlalchemy.engine import Engine
 
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
+from simai.mood.models import Moodlet
 from simai.mood.service import (
     MOOD_WEIGHTS,
     compute_mood,
@@ -90,3 +91,41 @@ def test_update_mood_reflects_needs(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         mood = update_mood(session, erika.id)
         session.commit()
     assert mood == pytest.approx(100.0 * (1 - MOOD_WEIGHTS[NeedKind.HUNGER]))
+
+
+def test_active_delta_many_matches_per_char(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Batch e per-char devono concordare."""
+    from simai.mood.enums import MoodletKind
+    from simai.mood.moodlets import active_delta, active_delta_many, apply_moodlet
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        chars = session.scalars(select(Character)).all()
+        ids = [c.id for c in chars]
+        apply_moodlet(session, ids[0], MoodletKind.ATE_WELL, tick=0)
+        session.flush()
+        batch = active_delta_many(session, ids, tick=0)
+        per_char = {cid: active_delta(session, cid, 0) for cid in ids}
+    assert batch == per_char
+
+
+def test_cleanup_expired_many_removes_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.mood.enums import MoodletKind
+    from simai.mood.moodlets import apply_moodlet, cleanup_expired_many
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        chars = session.scalars(select(Character)).all()
+        ids = [c.id for c in chars]
+        for cid in ids:
+            apply_moodlet(session, cid, MoodletKind.ATE_WELL, tick=0)
+        session.flush()
+        deleted = cleanup_expired_many(session, ids, tick=10)
+        session.flush()
+        remaining = session.scalars(select(Moodlet).where(Moodlet.character_id.in_(ids))).all()
+    assert deleted == len(ids)
+    assert remaining == []

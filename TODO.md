@@ -1,10 +1,10 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1160` (ex 1.16.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1170` (ex 1.17.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 405 verdi (0.1160), ruff + mypy strict puliti, CI attiva
-**Benchmark**: `10y-0.1160.json` (120.960 tick, seed 42, invarianti OK, tps 58.6 pre-batch → 63.3 post-batch su 1y)
+**Test**: 409 verdi (0.1170), ruff + mypy strict puliti, CI attiva
+**Benchmark**: `10y-0.1170.json` (120.960 tick, seed 42, invarianti OK, tps 58.6 pre-batch → 63.3 post-batch su 1y)
 
 Questo documento sostituisce:
 
@@ -33,6 +33,7 @@ player.
 | 1.14.0 | **0.1140** | skills base, wage scaling, CLI npc skills |
 | 1.15.0 | **0.1150** | training implicito durante WORKING |
 | 1.16.0 | **0.1160** | IntimacyService, ROMANTIC/DEVOTED |
+| 1.17.0 | **0.1170** | batch active_delta/cleanup, ottimizzazione |
 
 | … | … | |
 | 2.0.0 | 0.2000 | |

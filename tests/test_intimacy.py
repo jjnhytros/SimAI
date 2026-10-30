@@ -147,6 +147,7 @@ def test_apply_intimacy_moodlets_no_duplicate_refresh(
         ).all()
     assert len(rows) == 1
 
+
 def test_apply_intimacy_moodlets_many_multi_char(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -182,5 +183,3 @@ def test_apply_intimacy_moodlets_many_refresh_near_expiry(
             )
         ).all()
     assert len(rows) == 1
-
-

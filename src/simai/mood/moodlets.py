@@ -65,6 +65,7 @@ SPECS: dict[MoodletKind, MoodletSpec] = {
         delta_per_tick=+2.0,
     ),
     MoodletKind.STARVING: MoodletSpec(MoodletKind.STARVING, NEED_MOODLET_DURATION, -15.0),
+    MoodletKind.STUDIED: MoodletSpec(MoodletKind.STUDIED, 2, +0.5),
     MoodletKind.STUFFED: MoodletSpec(MoodletKind.STUFFED, NEED_MOODLET_DURATION, +0.5),
     MoodletKind.THIRSTY: MoodletSpec(MoodletKind.THIRSTY, NEED_MOODLET_DURATION, -6.0),
     MoodletKind.WELL_FED: MoodletSpec(MoodletKind.WELL_FED, NEED_MOODLET_DURATION, +0.5),
@@ -284,6 +285,8 @@ def moodlets_for_action(action: ActionKind) -> MoodletKind | None:
         return MoodletKind.ATE_WELL
     if action == ActionKind.SOCIALIZE:
         return MoodletKind.SOCIALIZED
+    if action == ActionKind.STUDY:
+        return MoodletKind.STUDIED
     return None
 
 

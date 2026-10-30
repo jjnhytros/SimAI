@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.1190] — 2026-10-30
+
+### Aggiunto
+
+- **`ActionKind.STUDY`** (5° valore). `ActionDef` in `CATALOG`:
+  `satisfies=FUN`, `amount=10`, `allowed_at={RESIDENTIAL}`,
+  `max_need_to_start=70`, `cost=0`, `weight=0.8`.
+- **`MoodletKind.STUDIED`** (`+0.5`/tick, durata 2), mappato da
+  `moodlets_for_action(STUDY)`.
+- **`_tick_one`**: quando `action.kind == STUDY` e `job is not None`,
+  `train_skill(..., 0.01)`. 10× il training opportunistico di
+  0.1180, 10× meno del WORKING (0.001/tick). La skill è quella del
+  job corrente.
+- **Player**: `do_action(player, STUDY)` soddisfa FUN (+10), ma
+  **non** allena skill. Limite documentato in `known-issues.md` §19.1.
+
+### Verificato (1y, seed 42)
+
+Attesi: invarianti OK, `mood_mean` ~70.6 (STUDY scatta raramente),
+`purchase`/`salary`/`death` invariati, `tps` ~60.
+
+### Rimandato
+
+- **Player training via STUDY**: 0.1200.
+- **`PRACTICE_*`, `COOK`, `STUDY` con skill specifiche**: 0.1200.
+- **10y accumulato** (0.1160+0.1170+0.1180+0.1190): 0.1200.
+
 ## [0.1180] — 2026-10-30
 
 ### Aggiunto

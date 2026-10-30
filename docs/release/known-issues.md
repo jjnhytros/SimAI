@@ -997,3 +997,32 @@ il training è applicato quasi ogni tick. Costo: 1 SELECT + 1 UPDATE
 per char idle. Su 10y: ~300k query. Bounded, non bloccante. Se
 diventa un problema, ottimizzare con `train_skill_many` (batch).
 
+---
+
+## 19. `STUDY` (0.1190)
+
+### 19.1 Player non allena
+
+`do_action(player, STUDY)` soddisfa FUN ma non chiama `train_skill`.
+Il player non ha auto-training; allena solo via CLI `npc skills`
+(che non esiste). Se in futuro serve, `do_action` deve chiamare
+`train_skill` se `action.kind == STUDY` e il player ha un job.
+0.1200+.
+
+### 19.2 `STUDY` scatta di rado
+
+`weight=0.8`, `amount=10`. Con FUN=70, score ≈ 24; PLAY (weight=1.0,
+amount=35) score ≈ 30. PLAY vince. STUDY scatta solo se PLAY non è
+disponibile (casa? no, PLAY è a casa) o se FUN è molto basso e il
+jitter sposta. In pratica, raro. Se si vuole più training
+esplicito, alzare `weight` a 0.9 in 0.1200. Non ora: bounded e
+documentato.
+
+### 19.3 `available_moves` e STUDY
+
+`available_moves` vede STUDY a casa come azione che sblocca FUN.
+Se un NPC è fuori casa con FUN < 70, può generare un move verso
+casa per STUDY. Ma PLAY è già a casa e in piazza, quindi non è un
+comportamento nuovo. Bounded.
+
+---

@@ -101,6 +101,17 @@ CATALOG: tuple[ActionDef, ...] = (
         max_need_to_start=70.0,
         cost=0.0,
     ),
+    # STUDY — casa, gratis. Soddisfa FUN (amount 10) e allena la
+    # skill del job (0.01/tick) se il personaggio ha un job.
+    ActionDef(
+        kind=ActionKind.STUDY,
+        satisfies=NeedKind.FUN,
+        amount=10.0,
+        allowed_at=frozenset({LocationKind.RESIDENTIAL}),
+        max_need_to_start=70.0,
+        cost=0.0,
+        weight=0.8,
+    ),
 )
 
 

@@ -32,6 +32,7 @@ def test_actions_for_residential() -> None:
         ActionKind.DRINK,
         ActionKind.PLAY,
         ActionKind.SOCIALIZE,
+        ActionKind.STUDY,
     }
 
 

@@ -1,9 +1,9 @@
 # 📋 TODO.md — BIBBIA DI SIMAI (Anthalys, Python 3.13)
 
-**Versione corrente**: `0.1180` (ex 1.18.0 — vedi "Mappatura versioni")
+**Versione corrente**: `0.1190` (ex 1.19.0 — vedi "Mappatura versioni")
 **Runtime**: Python 3.13, SQLAlchemy 2.0, Pydantic v2, SQLite, Alembic, Typer, Rich, Loguru, PyYAML, uv
 **Stato reale**: FASE 0 ~85%, FASE 1 ~30%, FASE 2 0%, FASE 3 ~40%, FASE 4 0%, FASE 5 ~55%, FASE 6–9 0%
-**Test**: 409 verdi (0.1180)
+**Test**: 413 verdi (0.1190), ruff + mypy strict puliti, CI attiva
 **Benchmark**: `10y-0.1160.json` (120.960 tick, seed 42, invarianti OK, tps 58.6 pre-batch → 63.3 post-batch su 1y)
 
 Questo documento sostituisce:
@@ -29,12 +29,13 @@ player.
 | 1.10.1 | 0.1101 | patch: ottimizzazione moodlet, B3, `.sav` breaking |
 | 1.11.0 | 0.1110 | |
 | 1.12.0 | **0.1120** | morte probabilistica (per anno, rampa cubica) |
-| 1.13.0 | **0.1130** | death_count in benchmark, DAYS_PER_YEAR unificato |
+| 1.13.0 | **0.1130** | death_count in benchmark, `DAYS_PER_YEAR` unificato |
 | 1.14.0 | **0.1140** | skills base, wage scaling, CLI npc skills |
-| 1.15.0 | **0.1150** | training implicito durante WORKING |
-| 1.16.0 | **0.1160** | IntimacyService, ROMANTIC/DEVOTED |
+| 1.15.0 | **0.1150** | training implicito durante `WORKING` |
+| 1.16.0 | **0.1160** | IntimacyService, `ROMANTIC`/`DEVOTED` |
 | 1.17.0 | **0.1170** | batch active_delta/cleanup, ottimizzazione |
 | 1.18.0 | **0.1180** | training opportunistico durante idle |
+| 1.19.0 | **0.1190** | `STUDY` come azione esplicita |
 
 | … | … | |
 | 2.0.0 | 0.2000 | |
@@ -78,7 +79,11 @@ Sei **Claire**, assistente tecnica e collaboratrice di Marco nello sviluppo di S
 
 ### Stato del progetto (1.9.0, 2026-10-28)
 
-> **Nota**: questa sezione è congelata a 1.9.0 come "handoff prompt". Lo stato reale è in testa al documento (0.1180) e in "TEST BILANCIAMENTO". Non aggiornare i numeri qui, aggiornali sopra.
+> **Nota**: questa sezione è congelata a 1.9.0 come "handoff prompt"
+> per un nuovo assistente. Non aggiornarla a ogni release. Lo stato
+> reale è in testa al documento (`Versione corrente`) e in "TEST
+> BILANCIAMENTO". Se serve un handoff aggiornato, copiare da quelle
+> sezioni.
 
 - **Motore**: `run_tick` in `sim/tick.py` (delega a `NPCManager`), `run_simulation` in `sim/loop.py` (tick atomico, autosave), `LifecycleManager.daily_tick` in `sim/daily.py` (ageing, morte, gravidanza, restock).
 - **Mondo**: Quartiere delle Muse, 3 location (casa, piazza, caffè), 5 personaggi (erika, max, luca, giulia, player), 6 relazioni (2 FRIEND, 2 PARENT_OF, 2 CHILD_OF), 5 job.
@@ -278,6 +283,7 @@ Costruire prima un **motore di simulazione deterministico, osservabile e verific
 - **FASE 4 interamente non iniziata**.
 - **Turni barista 7-14 e 21-28 scoperti** (un solo barista).
 - **`DeathCause.UNKNOWN`**: non generato, placeholder.
+- **60y mai eseguito dopo 0.1150**: morte probabilistica, skill dinamiche, training. Rimandato prima di 0.2000 (deciso dopo 0.1150). Costo ~3h.
 - **Gravidanza senza sesso modellato**, gemelli identici senza effetti.
 - **`zzzDocs/Prompt.md`** (Claire persona) e **`zzzDocs/TODO_SimAI_*.md`** vanno consolidati/rimossi (questo documento li sostituisce).
 - **README/`known-issues.md` con riferimenti storici 1.x.y**: la nota
@@ -472,7 +478,7 @@ Package `simai/sim/anthalys/time/`:
 - [P] `[03.0200]` **4 bisogni** (`HUNGER`, `THIRST`, `FUN`, `INTIMACY`). Mancano `BLADDER`, `ENERGY`, `HYGIENE`, `SOCIAL`, `COMFORT`, `SOLITUDE` (6/10)
 - [x] `[03.0201]` Decay + soglie (`max_need_to_start`: EAT 30, DRINK 40, PLAY 70, SOCIALIZE 70)
 - [ ] `[03.0202-0209]` Bisogni avanzati (solitudine, stress, desire, ecc.) — **non esistono**
-- [P] `[03.0500]` `ActionKind` (EAT, DRINK, PLAY, SOCIALIZE) — **4 non 8+**
+- [P] `[03.0500]` `ActionKind` (EAT, DRINK, PLAY, SOCIALIZE, STUDY) — **5 non 8+** (`STUDY` in 0.1190)
 - [x] `[03.0501]` Utility AI (`choose_action`, `choose_intent`, `score`, jitter deterministico)
 - [ ] `[03.0502]` `ActionExecutor`, `BTActionExecutor` — **non esistono** (c'è `do_action` per player, ma non executor per NPC)
 - [x] `[03.0503]` `MoodState` (media pesata + moodlet), `Moodlet` (28 kind: 3 azione/streak, 22 need-based, 3 lifestage, 2 intimacy — 0.1100–0.1170)
@@ -558,9 +564,7 @@ Package `simai/sim/anthalys/time/`:
 
 - [x] `[03.0500b]` `npc/skills/` — implementato in 0.1140
   (`simai/skills/`, `SkillKind`, `Skill`, `service`)
-- [P] `[03.0502b]` Training: implicito durante WORKING (0.1150,
-  `+0.001/tick`). Azioni esplicite (`PRACTICE_*`, `STUDY`, `COOK`)
-  non esistono (0.1160+).
+- [P] `[03.0502b]` Training: implicito durante WORKING (0.1150, `+0.001/tick`), opportunistico durante idle (0.1180, `+0.00005/tick`), esplicito via `STUDY` (0.1190, `+0.01/tick`). `PRACTICE_*`/`COOK` non esistono (0.1200+).
 - [x] `[5200_08]` Migrazione `skill` — implementata in 0.1140
 - [P] CLI `npc skills` (0.1140); `skill-train`/`skill-decay` (0.1150)
 - [ ] `[03.0034c]` `npc/skills/talent.py` — **non esiste**
@@ -793,7 +797,7 @@ Package `simai/sim/anthalys/time/`:
 - `salary_transactions`: 17280
 - `death_count`: 0
 
-**Confronto storico**: identico a `10y-1.8.0.json` (e a 1.7.1, 1.6.0) sul comportamento. Le release 1.5.0–1.9.0 hanno aggiunto struttura, non comportamento.
+**Confronto storico**: le release 0.1100–0.1190 hanno aggiunto feature comportamentali (moodlet B3, divieto lavoro pediatrico, morte probabilistica, skills, IntimacyService, training). Il 10y è cambiato in modo documentato. 0.1170 non ha 10y (ottimizzazione, comportamento invariato). Il prossimo 10y accumulato (0.1160+0.1170+0.1180+0.1190) è a 0.1200.
 
 ### 60y (rimandato)
 
@@ -864,29 +868,28 @@ Package `simai/sim/anthalys/time/`:
 
 ### Prossimi passi realistici
 
-1. **0.1190** (training esplicito): `PRACTICE_*`, `STUDY`, `COOK`.
-   Richiede un concetto di "azione non-need-driven" (il training non
-   soddisfa un bisogno, quindi `filter_by_need_threshold` lo
-   escluderebbe sempre). Design da discutere prima del codice.
+1. **0.1200** (prossima feature + 10y accumulato): due candidati.
+   - **A) `PRACTICE_*`/`COOK`**: training esplicito con skill
+     specifiche (oggi `STUDY` usa la skill del job). Richiede più
+     `ActionKind` e un mapping azione→skill.
+   - **B) `COST_PENALTY`**: moodlet `CAFFE`, o `DISTANCE_PENALTY`
+     ridotto, o niente. Decisione di design aperta dal 1.6.0.
+   **In entrambi i casi**: 10y accumulato (0.1160+0.1170+0.1180+0.1190+0.1200).
+   Costo ~30 min. Misura il `tps` post-batch di 0.1170 e la
+   calibrazione skill/moodlet su 10 anni.
 
-2. **0.1200** (`COST_PENALTY` + design caffè): il TODO §2.5
-   rimanda dal 1.6.0. Richiede decisione di design:
-   - moodlet `CAFFE` (bonus mood al caffè, non a casa),
-   - `DISTANCE_PENALTY` più basso + accettare la chiusura del caffè,
-   - nessuna delle due.
+2. **0.1210** (calendario Anthalys completo): FASE 2, cosmetico.
+   Stagioni, festività, lune, `DayPhase`. Nessun effetto sul tick
+   finché non si aggiunge sonno/veglia.
 
-3. **0.1210** (calendario Anthalys completo): FASE 2, cosmetico.
-   Stagioni, festività, lune, `DayPhase`. Nessun effetto sul tick.
+3. **0.1220** (audit documentale, `chore`): `README.md` a 0.1190,
+   `known-issues.md` §12.1 con i numeri misurati, path reali in
+   `TODO.md` §1.x, `AGE_DAYS_PER_YEAR` residui in `npc/pregnancy.py`.
 
-4. **Audit documentale** (0.1220 o commit `chore`): `TODO.md` §1.x
-   path reali, `README.md` a 0.1180, `known-issues.md` §12.1 con
-   numeri misurati, `AGE_DAYS_PER_YEAR` residui in `npc/pregnancy.py`.
-
-5. **60y** (operazione, rimandato): appena prima di 0.2000. Costo ~3h.
-   Archivia `60y-0.1xxx.json` con la versione al momento del run.
-
-**Nota**: 10y accumulato dopo 0.1190 (training + eventuali 0.1200).
-Un solo benchmark, non uno per release.
+4. **60y** (operazione, rimandato): appena prima di 0.2000. Costo
+   ~3h. Archivia `60y-0.1xxx.json` con la versione al momento del
+   run. Verifica: `death_count` 1–3, eredità visibile, skill a 100,
+   mood stabile.
 
 **Nessuno di questi è "ovvio".** Ognuno richiede una decisione
 esplicita, tranne il 60y che è operazione.

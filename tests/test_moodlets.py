@@ -475,3 +475,9 @@ def test_lifestage_no_transition_on_regular_day(
 def test_specs_cover_all_kinds_after_intimacy() -> None:
     """Dopo 0.1160, SPECS copre anche ROMANTIC e DEVOTED."""
     assert set(SPECS) == set(MoodletKind)
+
+
+def test_studied_moodlet_in_specs() -> None:
+    assert MoodletKind.STUDIED in SPECS
+    assert SPECS[MoodletKind.STUDIED].delta_per_tick == 0.5
+    assert SPECS[MoodletKind.STUDIED].duration_ticks == 2

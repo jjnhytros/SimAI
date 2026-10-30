@@ -27,6 +27,7 @@ class MoodletKind(StrEnum):
     SATISFIED = "satisfied"
     SOCIALIZED = "socialized"
     STARVING = "starving"
+    STUDIED = "studied"
     STUFFED = "stuffed"
     THIRSTY = "thirsty"
     WELL_FED = "well_fed"

@@ -299,6 +299,14 @@ class NPCManager:
             )
 
         action = intent.action
+        # 0.1190: STUDY allena la skill del job.
+        if action.kind == ActionKind.STUDY and job is not None:
+            train_skill(
+                session,
+                state.character_id,
+                skill_for_job_title(job.title.value),
+                0.01,
+            )
         before = needs[action.satisfies]
         after = apply_effect(session, state.character_id, action)
         state.needs[action.satisfies] = after

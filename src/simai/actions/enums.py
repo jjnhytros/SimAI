@@ -6,3 +6,4 @@ class ActionKind(StrEnum):
     DRINK = "drink"
     PLAY = "play"
     SOCIALIZE = "socialize"
+    STUDY = "study"

@@ -10,6 +10,7 @@ from simai.actions.enums import ActionKind
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.needs.enums import NeedKind
+from simai.needs.models import Need
 from simai.world.models import Character
 from simai.world.move import move_character
 from simai.world.seed import seed_muse_core
@@ -104,3 +105,33 @@ def test_do_action_socialize_boosts_relationship(
     assert result.success
     # Max ed Erika non sono nella stessa location, nessun boost relazionale.
     assert result.relationship_strength_after is None
+
+
+def test_player_can_study(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Il player a casa può fare STUDY: FUN +10."""
+    from simai.actions.catalog import actions_for_location
+    from simai.actions.do import do_action
+    from simai.actions.enums import ActionKind
+    from simai.world.enums import LocationKind
+
+    # Verifica catalogo
+    actions = actions_for_location(LocationKind.RESIDENTIAL)
+    assert any(a.kind == ActionKind.STUDY for a in actions)
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        player = session.scalar(select(Character).where(Character.is_player.is_(True)))
+        assert player is not None
+        # Player è a casa di default
+        fun = session.scalar(
+            select(Need).where(Need.character_id == player.id, Need.kind == NeedKind.FUN)
+        )
+        assert fun is not None
+        fun.value = 0.0
+        session.commit()
+        result = do_action(session, "player", ActionKind.STUDY)
+        session.commit()
+    assert result.success
+    assert result.need_kind == NeedKind.FUN
+    assert result.need_after == pytest.approx(10.0)

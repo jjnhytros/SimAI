@@ -8,6 +8,8 @@ from sqlalchemy.engine import Engine
 from simai.db.alembic_utils import get_alembic_config
 from simai.db.session import get_engine, get_session_factory
 from simai.economy.payday import process_payday
+from simai.needs.enums import NeedKind
+from simai.needs.models import Need
 from simai.skills.enums import SkillKind
 from simai.skills.models import Skill
 from simai.skills.service import level_of, skill_of, skills_of, wage_with_skill
@@ -213,3 +215,60 @@ def test_non_working_tick_trains_opportunistically_only(
         luca_id = _char_id(session, "luca")
         after = level_of(session, luca_id, SkillKind.BARISTA)
     assert after == pytest.approx(before + 0.00005)
+
+
+def test_study_in_catalog(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from simai.actions.catalog import actions_for_location
+    from simai.actions.enums import ActionKind
+    from simai.world.enums import LocationKind
+
+    actions = actions_for_location(LocationKind.RESIDENTIAL)
+    assert any(a.kind == ActionKind.STUDY for a in actions)
+
+
+def test_study_trains_skill_in_tick(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Quando STUDY è scelto, la skill del job cresce di 0.01.
+
+    Forza la scelta via monkeypatch di `choose_intent`: con FUN=0
+    PLAY e STUDY sono entrambi disponibili, PLAY (score 100) vince
+    su STUDY (score 80). Il branch idle non viene raggiunto, quindi
+    ci si aspetta solo +0.01 (STUDY), niente opportunistico.
+    """
+    import simai.npc.manager as manager_module
+    from simai.actions.catalog import CATALOG
+    from simai.actions.enums import ActionKind
+    from simai.actions.intent import Intent
+    from simai.sim.tick import run_tick
+    from simai.skills.enums import SkillKind
+
+    study_action = next(a for a in CATALOG if a.kind == ActionKind.STUDY)
+
+    def fake_choose_intent(needs, available_actions, available_moves, rng, traits=None):
+        return Intent(action=study_action)
+
+    monkeypatch.setattr(manager_module, "choose_intent", fake_choose_intent)
+
+    engine = _seeded(tmp_path, monkeypatch)
+    factory = get_session_factory(engine)
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        for need in session.scalars(select(Need).where(Need.character_id == erika.id)).all():
+            need.value = 100.0
+        fun = session.scalar(
+            select(Need).where(Need.character_id == erika.id, Need.kind == NeedKind.FUN)
+        )
+        assert fun is not None
+        fun.value = 0.0
+        session.commit()
+        before = level_of(session, erika.id, SkillKind.STUDENTE)
+
+    with factory() as session:
+        run_tick(session, minutes=60, tick_index=0, master_seed=42)
+        session.commit()
+
+    with factory() as session:
+        erika = session.scalar(select(Character).where(Character.key == "erika"))
+        assert erika is not None
+        after = level_of(session, erika.id, SkillKind.STUDENTE)
+    assert after == pytest.approx(before + 0.01)
